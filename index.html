@@ -462,144 +462,230 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         <div class="hybrid-header" style="margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
             <div>
-              <div style="font-size:16px;font-weight:800;color:var(--ac)">WinWin Hybrid Bot</div>
-              <div style="font-size:12px;color:var(--t2);margin-top:3px">8 simultaneous barrier trades — asymmetric stakes — prediction-driven</div>
+              <div style="font-size:16px;font-weight:800;color:var(--ac)">WinWin Smart Bot</div>
+              <div style="font-size:12px;color:var(--t2);margin-top:3px">2 trades per round — ATR barriers — BB squeeze entry — prediction-weighted stakes</div>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(0,229,160,0.15);color:var(--ac)">8 Trades/Round</span>
-              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(59,130,246,0.15);color:var(--bl)">Asymmetric Stakes</span>
-              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(245,166,35,0.15);color:var(--go)">AI Prediction</span>
+              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(0,229,160,0.15);color:var(--ac)">2 Trades/Round</span>
+              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(59,130,246,0.15);color:var(--bl)">ATR Barriers</span>
+              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(245,166,35,0.15);color:var(--go)">BB Squeeze Gate</span>
             </div>
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 380px;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 360px;gap:12px">
 
           <!-- LEFT COLUMN -->
           <div>
 
-            <!-- Prediction Box -->
-            <div class="prediction-box">
+            <!-- Daily Calculator -->
+            <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:14px 16px;margin-bottom:12px">
+              <div style="font-size:13px;font-weight:700;color:var(--ac);margin-bottom:10px">Daily Risk Calculator</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+                <div class="ig">
+                  <div class="il">Risk Per Trade ($)</div>
+                  <input type="number" class="iif" id="ww-risk" value="3" min="0.35" step="0.5" oninput="calcWWDaily()">
+                </div>
+                <div class="ig">
+                  <div class="il">Daily Stop Loss ($)</div>
+                  <input type="number" class="iif" id="ww-daily-sl" value="30" min="1" step="1" oninput="calcWWDaily()">
+                </div>
+                <div class="ig">
+                  <div class="il">Daily Target ($)</div>
+                  <input type="number" class="iif" id="ww-daily-tp" value="60" min="1" step="1" oninput="calcWWDaily()">
+                </div>
+              </div>
+              <!-- Calculated values grid -->
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 9px;border:1px solid var(--bo);text-align:center">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Big Stake</div>
+                  <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="ww-calc-big">$3.00</div>
+                  <div style="font-size:9px;color:var(--t3)">predicted side</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 9px;border:1px solid var(--bo);text-align:center">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Hedge Stake</div>
+                  <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--go)" id="ww-calc-hedge">$0.35</div>
+                  <div style="font-size:9px;color:var(--t3)">opposite side</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 9px;border:1px solid var(--bo);text-align:center">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Max Losses</div>
+                  <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--re)" id="ww-calc-maxl">10</div>
+                  <div style="font-size:9px;color:var(--t3)">before SL hit</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 9px;border:1px solid var(--bo);text-align:center">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Wins Needed</div>
+                  <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--bl)" id="ww-calc-wins">18</div>
+                  <div style="font-size:9px;color:var(--t3)">to hit target</div>
+                </div>
+              </div>
+              <!-- Math breakdown -->
+              <div style="background:var(--bg3);border-radius:var(--rs);padding:9px 11px;border:1px solid var(--bo);font-size:11px;color:var(--t2);line-height:1.8" id="ww-calc-math">
+                Calculating...
+              </div>
+            </div>
+
+            <!-- Signal Monitor -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:12px;font-weight:700">● Signal Monitor</div>
+                <div style="font-size:11px;font-family:var(--mo);font-weight:700;padding:3px 10px;border-radius:99px" id="sig-score-badge" style="background:var(--bg4)">Score: 0/5</div>
+              </div>
+              <!-- Score breakdown -->
+              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:10px">
+                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:6px 4px;border:1px solid var(--bo)" id="sig-atr-card">
+                  <div style="font-size:18px">📊</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:2px">ATR</div>
+                  <div style="font-size:10px;font-weight:700;color:var(--t3)" id="sig-atr-val">--</div>
+                </div>
+                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:6px 4px;border:1px solid var(--bo)" id="sig-bb-card">
+                  <div style="font-size:18px">🔵</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:2px">BB Squeeze</div>
+                  <div style="font-size:10px;font-weight:700;color:var(--t3)" id="sig-bb-val">--</div>
+                </div>
+                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:6px 4px;border:1px solid var(--bo)" id="sig-expand-card">
+                  <div style="font-size:18px">💥</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:2px">Expansion</div>
+                  <div style="font-size:10px;font-weight:700;color:var(--t3)" id="sig-expand-val">--</div>
+                </div>
+                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:6px 4px;border:1px solid var(--bo)" id="sig-mom-card">
+                  <div style="font-size:18px">⚡</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:2px">Momentum</div>
+                  <div style="font-size:10px;font-weight:700;color:var(--t3)" id="sig-mom-val">--</div>
+                </div>
+                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:6px 4px;border:1px solid var(--bo)" id="sig-vol-card">
+                  <div style="font-size:18px">🌊</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:2px">Volatility</div>
+                  <div style="font-size:10px;font-weight:700;color:var(--t3)" id="sig-vol-val">--</div>
+                </div>
+              </div>
+              <!-- Status message -->
+              <div style="background:var(--bg3);border-radius:var(--rs);padding:9px 11px;border:1px solid var(--bo);font-size:12px;font-weight:600;font-family:var(--mo)" id="sig-status">Start bot to see signals...</div>
+            </div>
+
+            <!-- Prediction -->
+            <div class="prediction-box" style="margin-bottom:12px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
                 <div style="font-size:11px;color:var(--t2);font-weight:600">● Prediction</div>
                 <div style="font-size:11px;font-family:var(--mo);color:var(--t2)" id="pred-confidence">--% confidence</div>
               </div>
-              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-                <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800" id="pred-icon" style="background:var(--ad)">--</div>
-                <div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;background:var(--bg3)" id="pred-icon">--</div>
+                <div style="flex:1">
                   <div style="font-size:18px;font-weight:800" id="pred-dir">WAITING</div>
-                  <div style="font-size:11px;color:var(--t2)" id="pred-desc">Connect and start to see prediction</div>
+                  <div style="font-size:11px;color:var(--t2)" id="pred-desc">Warming up...</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:10px;color:var(--t3)">Big stake on</div>
+                  <div style="font-size:13px;font-weight:700;color:var(--ac)" id="pred-big-side">--</div>
                 </div>
               </div>
               <div class="pred-bar"><div class="pred-bar-fill up" id="pred-bar" style="width:50%"></div></div>
-
-              <!-- Recent Moves -->
-              <div style="margin-top:12px">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                  <div style="font-size:11px;color:var(--t2);font-weight:600">Recent Moves</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
+                <div class="hl-card higher" style="padding:8px 10px">
+                  <div style="font-size:10px;color:var(--ac);font-weight:700">↗ Higher</div>
+                  <div style="font-size:18px;font-weight:800;font-family:var(--mo);color:var(--ac)" id="hl-higher-pct">0%</div>
+                  <div style="font-size:9px;color:var(--t3)" id="hl-higher-ticks">0 ticks</div>
+                </div>
+                <div class="hl-card lower" style="padding:8px 10px">
+                  <div style="font-size:10px;color:var(--re);font-weight:700">↘ Lower</div>
+                  <div style="font-size:18px;font-weight:800;font-family:var(--mo);color:var(--re)" id="hl-lower-pct">0%</div>
+                  <div style="font-size:9px;color:var(--t3)" id="hl-lower-ticks">0 ticks</div>
+                </div>
+              </div>
+              <div style="margin-top:8px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                  <div style="font-size:10px;color:var(--t2);font-weight:600">Recent Moves</div>
                   <div style="font-size:10px;font-family:var(--mo);color:var(--t3)" id="streak-txt">--</div>
                 </div>
                 <div class="moves-grid" id="movesGrid"></div>
               </div>
             </div>
 
-            <!-- H/L Stats -->
-            <div class="hl-stats">
-              <div class="hl-card higher">
-                <div style="font-size:11px;color:var(--ac);font-weight:700;margin-bottom:4px">↗ Higher</div>
-                <div style="font-size:22px;font-weight:800;font-family:var(--mo);color:var(--ac)" id="hl-higher-pct">49.1%</div>
-                <div style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="hl-higher-ticks">0 ticks</div>
+            <!-- Trade Preview -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+              <div class="pc-higher" style="padding:13px">
+                <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:6px">↗ HIGHER BARRIER</div>
+                <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--t1)">Barrier: <span id="prev-h-barrier" style="color:var(--ac)">+0.00</span></div>
+                <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--t1)">Stake: <span id="prev-h-stake" style="color:var(--ac)">$0.00</span></div>
+                <div style="font-size:11px;color:var(--t2);margin-top:4px">Est. payout: <span id="prev-h-pay" style="color:var(--ac)">--</span></div>
               </div>
-              <div class="hl-card lower">
-                <div style="font-size:11px;color:var(--re);font-weight:700;margin-bottom:4px">↘ Lower</div>
-                <div style="font-size:22px;font-weight:800;font-family:var(--mo);color:var(--re)" id="hl-lower-pct">50.9%</div>
-                <div style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="hl-lower-ticks">0 ticks</div>
-              </div>
-            </div>
-
-            <!-- Payout Preview -->
-            <div class="payout-cards">
-              <div class="pc-higher">
-                <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:4px">↗ HIGHER</div>
-                <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="pc-higher-pay">Payout: --</div>
-                <div style="font-size:11px;color:var(--t2)" id="pc-higher-profit">Profit: --</div>
-              </div>
-              <div class="pc-lower">
-                <div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:4px">↘ LOWER</div>
-                <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--re)" id="pc-lower-pay">Payout: --</div>
-                <div style="font-size:11px;color:var(--t2)" id="pc-lower-profit">Profit: --</div>
+              <div class="pc-lower" style="padding:13px">
+                <div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:6px">↘ LOWER BARRIER</div>
+                <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--t1)">Barrier: <span id="prev-l-barrier" style="color:var(--re)">-0.00</span></div>
+                <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--t1)">Stake: <span id="prev-l-stake" style="color:var(--re)">$0.00</span></div>
+                <div style="font-size:11px;color:var(--t2);margin-top:4px">Est. payout: <span id="prev-l-pay" style="color:var(--re)">--</span></div>
               </div>
             </div>
-            <div class="pc-both">
-              <div style="font-size:12px;font-weight:700">↕ HIGHER & LOWER</div>
+            <div class="pc-both" style="margin-bottom:12px">
+              <div style="font-size:12px;font-weight:700">↕ Total Per Round</div>
               <div>
-                <span style="font-size:11px;color:var(--t2)">Total Stake: </span>
-                <span style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--t1)" id="pc-total-stake">$0.00</span>
-                <span style="font-size:11px;color:var(--t2);margin-left:8px">Combined Payout: </span>
-                <span style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="pc-combined-pay">$0.00</span>
+                <span style="font-size:11px;color:var(--t2)">Stake: </span>
+                <span style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--t1)" id="pc-total-stake">$0.00</span>
+                <span style="font-size:11px;color:var(--t2);margin-left:10px">If win: </span>
+                <span style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="pc-combined-pay">+$0.00</span>
               </div>
             </div>
 
-            <!-- Auto Trading Section -->
-            <div class="auto-row">
+            <!-- Auto Trading -->
+            <div class="auto-row" style="margin-bottom:12px">
               <div style="display:flex;align-items:center;justify-content:space-between">
                 <div style="display:flex;align-items:center;gap:10px">
                   <span style="font-size:13px;font-weight:700">● Auto Trading</span>
-                  <span style="font-size:10px;padding:2px 8px;border-radius:99px;background:var(--ad);color:var(--ac);font-family:var(--mo)" id="hb-active-count">0 TRADES ACTIVE</span>
+                  <span style="font-size:10px;padding:2px 8px;border-radius:99px;background:var(--ad);color:var(--ac);font-family:var(--mo)" id="hb-active-count">0 ACTIVE</span>
                 </div>
                 <div class="tsw" id="hbSw" onclick="toggleHybrid()"></div>
               </div>
-              <div style="display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap">
-                <div style="display:flex;align-items:center;gap:5px">
-                  <div class="db active" id="hb-min-btn" onclick="HB.mode='min';document.getElementById('hb-min-btn').classList.add('active');document.getElementById('hb-tpl-btn').classList.remove('active')" style="padding:4px 10px">Min</div>
-                  <div class="db" id="hb-tpl-btn" onclick="HB.mode='tpl';document.getElementById('hb-tpl-btn').classList.add('active');document.getElementById('hb-min-btn').classList.remove('active')" style="padding:4px 10px">TPL</div>
-                </div>
-                <div style="display:flex;align-items:center;gap:5px">
-                  <span style="font-size:10px;color:var(--t2)">Rounds:</span>
-                  <input type="number" style="width:55px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none" id="hb-rounds-limit" value="0" min="0">
-                  <span style="font-size:10px;color:var(--t3)">(0=unlimited)</span>
-                </div>
-                <div style="display:flex;align-items:center;gap:5px">
-                  <span style="font-size:10px;color:var(--t2)">Countdown:</span>
-                  <span style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--go)" id="hb-countdown">--</span>
-                </div>
-              </div>
-              <div style="font-size:11px;color:var(--t2);margin-top:6px" id="hb-round-info">Round done: 0/0 won | Net: $0.00</div>
-              <div class="countdown-bar"><div class="countdown-fill" id="hb-countdown-bar" style="width:0%"></div></div>
+              <div style="font-size:11px;color:var(--t2);margin-top:6px" id="hb-round-info">Rounds: 0 won | Net: $0.00</div>
+              <div style="font-size:11px;color:var(--go);font-weight:600;margin-top:3px" id="hb-countdown-txt">--</div>
+              <div class="countdown-bar" style="margin-top:6px"><div class="countdown-fill" id="hb-countdown-bar" style="width:0%"></div></div>
             </div>
 
-            <!-- PLACE ALL BUTTON -->
-            <button class="place-all-btn" id="placeAllBtn" onclick="placeHybridRound()">
-              ↕ ALL 8 TRADES
-            </button>
-            <div style="text-align:center;font-size:11px;color:var(--t3);margin-bottom:14px" id="hb-total-info">Total Ticks: 0 | O H: -- / L: -- | Duration: 5 Ticks | $ H: $50.00 / L: $50.00</div>
+            <!-- Place Button -->
+            <button class="place-all-btn" id="placeAllBtn" onclick="placeHybridRound()">↕ PLACE 2 TRADES</button>
+
+            <!-- Daily Progress -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <div style="font-size:12px;font-weight:700">Daily Progress</div>
+                <div style="font-size:11px;font-family:var(--mo);color:var(--t2)" id="ww-daily-status">--</div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
+                <div class="rs-cell"><div class="rs-lbl">Today P&L</div><div class="rs-val" id="ww-today-pnl" style="font-size:13px">$0.00</div></div>
+                <div class="rs-cell"><div class="rs-lbl">Rounds</div><div class="rs-val" id="hb-rounds">0</div></div>
+                <div class="rs-cell"><div class="rs-lbl">Won</div><div class="rs-val" style="color:var(--ac)" id="hb-won">0</div></div>
+                <div class="rs-cell"><div class="rs-lbl">Lost</div><div class="rs-val" style="color:var(--re)" id="hb-lost">0</div></div>
+              </div>
+              <div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;margin-bottom:4px">
+                <div style="height:100%;border-radius:4px;transition:width .5s" id="ww-progress-bar" style="width:0%"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);font-family:var(--mo)">
+                <span>$0</span><span id="ww-progress-pct">0%</span><span id="ww-progress-target">$60</span>
+              </div>
+            </div>
 
             <!-- Trade History -->
             <div class="card">
               <div class="ch">
                 <div class="ct" style="color:var(--ac)">Trade History</div>
-                <div style="display:flex;align-items:center;gap:8px">
-                  <button class="btn btng" style="font-size:10px;padding:3px 8px;background:var(--re);color:#fff;border-color:var(--re)" id="hb-rec-btn">●</button>
-                  <button class="btn btng" style="font-size:10px;padding:3px 8px" onclick="resetHB()">Reset</button>
+                <div style="display:flex;gap:6px">
+                  <button class="btn" style="background:var(--ad);color:var(--ac);border:1px solid rgba(0,229,160,.2);font-size:11px" id="hb-filter-all" onclick="filterHBHistory('all',this)">All (0)</button>
+                  <button class="btn btng" style="font-size:11px" id="hb-filter-win" onclick="filterHBHistory('win',this)">Wins (0)</button>
+                  <button class="btn btng" style="font-size:11px" id="hb-filter-loss" onclick="filterHBHistory('loss',this)">Losses (0)</button>
+                  <button class="btn btng" style="font-size:11px" onclick="resetHB()">Reset</button>
                 </div>
               </div>
               <div class="cb">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-                  <div style="background:var(--bg3);border-radius:var(--rs);padding:12px;border:1px solid var(--bo)">
-                    <div style="font-size:11px;color:var(--ac);font-weight:600;margin-bottom:3px">✦ Net Profit/Loss</div>
-                    <div style="font-size:22px;font-weight:800;font-family:var(--mo);color:var(--ac)" id="hb-pnl">+$0.00 USD</div>
+                  <div style="background:var(--bg3);border-radius:var(--rs);padding:11px;border:1px solid var(--bo)">
+                    <div style="font-size:10px;color:var(--ac);font-weight:600;margin-bottom:3px">✦ Net P&L</div>
+                    <div style="font-size:20px;font-weight:800;font-family:var(--mo);color:var(--ac)" id="hb-pnl">+$0.00</div>
                   </div>
-                  <div style="background:var(--bg3);border-radius:var(--rs);padding:12px;border:1px solid var(--bo)">
-                    <div style="font-size:11px;color:var(--bl);font-weight:600;margin-bottom:3px">● Win Rate</div>
-                    <div style="font-size:22px;font-weight:800;font-family:var(--mo);color:var(--bl)" id="hb-wr">0% <span style="font-size:12px;color:var(--t3)">(0/0)</span></div>
+                  <div style="background:var(--bg3);border-radius:var(--rs);padding:11px;border:1px solid var(--bo)">
+                    <div style="font-size:10px;color:var(--bl);font-weight:600;margin-bottom:3px">● Win Rate</div>
+                    <div style="font-size:20px;font-weight:800;font-family:var(--mo);color:var(--bl)" id="hb-wr">0%</div>
                   </div>
                 </div>
-                <div style="display:flex;gap:8px;margin-bottom:12px">
-                  <button class="btn" style="background:var(--ad);color:var(--ac);border:1px solid rgba(0,229,160,.2);font-size:11px" id="hb-filter-all" onclick="filterHBHistory('all',this)">All Trades (0)</button>
-                  <button class="btn btng" style="font-size:11px" id="hb-filter-win" onclick="filterHBHistory('win',this)">Wins (0)</button>
-                  <button class="btn btng" style="font-size:11px" id="hb-filter-loss" onclick="filterHBHistory('loss',this)">Losses (0)</button>
-                </div>
-                <div id="hb-history-list"><div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No trades yet. Place a round to begin.</div></div>
+                <div id="hb-history-list"><div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No rounds yet.</div></div>
               </div>
             </div>
           </div>
@@ -607,9 +693,9 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           <!-- RIGHT COLUMN -->
           <div>
 
-            <!-- Asset -->
+            <!-- Asset & Config -->
             <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct">Asset & Duration</div></div>
+              <div class="ch"><div class="ct">Asset & Config</div></div>
               <div class="cb">
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Asset</div>
@@ -631,82 +717,95 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <div class="db" onclick="HB.ticks=10;setHBActive(this)">10T</div>
                   </div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
-                  <div class="ig">
-                    <div class="il">Session SL ($)</div>
-                    <input type="number" class="iif" id="hbSL" value="50">
+                <!-- Barrier mode -->
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:10px 11px;border:1px solid var(--bo);margin-bottom:11px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                    <div style="font-size:11px;font-weight:600">Barrier Mode</div>
+                    <div style="display:flex;gap:4px">
+                      <div class="db active" id="bm-auto" onclick="HB.barrierMode='auto';setBarrierMode(this)" style="padding:3px 9px;font-size:10px">AUTO</div>
+                      <div class="db" id="bm-manual" onclick="HB.barrierMode='manual';setBarrierMode(this)" style="padding:3px 9px;font-size:10px">MANUAL</div>
+                    </div>
                   </div>
-                  <div class="ig">
-                    <div class="il">Session TP ($)</div>
-                    <input type="number" class="iif" id="hbTP" value="200">
+                  <div style="font-size:10px;color:var(--t3)" id="barrier-mode-desc">ATR × 0.6 — updates live every round</div>
+                  <!-- Manual barrier inputs (hidden by default) -->
+                  <div id="manual-barrier-row" style="display:none;margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:7px">
+                    <div class="ig">
+                      <div class="il">Higher Barrier (+)</div>
+                      <input type="number" class="iif" id="ww-manual-h-barrier" value="0.06" step="0.01" min="0.01" oninput="calcWWDaily()">
+                    </div>
+                    <div class="ig">
+                      <div class="il">Lower Barrier (-)</div>
+                      <input type="number" class="iif" id="ww-manual-l-barrier" value="0.06" step="0.01" min="0.01" oninput="calcWWDaily()">
+                    </div>
                   </div>
+                  <div style="margin-top:8px;font-size:11px;font-family:var(--mo)">
+                    <span style="color:var(--t2)">Live ATR: </span><span style="color:var(--t1)" id="ww-live-atr">--</span>
+                    <span style="color:var(--t2);margin-left:10px">Barrier: </span><span style="color:var(--ac)" id="ww-live-barrier">--</span>
+                  </div>
+                </div>
+                <!-- Min score to trade -->
+                <div class="ig" style="margin-bottom:11px">
+                  <div class="il">Min Signal Score to Trade</div>
+                  <div class="dr" style="grid-template-columns:repeat(5,1fr)">
+                    <div class="db" onclick="HB.minScore=1;setHBActive(this)">1</div>
+                    <div class="db" onclick="HB.minScore=2;setHBActive(this)">2</div>
+                    <div class="db active" onclick="HB.minScore=3;setHBActive(this)">3</div>
+                    <div class="db" onclick="HB.minScore=4;setHBActive(this)">4</div>
+                    <div class="db" onclick="HB.minScore=5;setHBActive(this)">5</div>
+                  </div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Higher = fewer but better quality trades</div>
+                </div>
+                <!-- Cooldown toggle -->
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);margin-bottom:11px">
+                  <div>
+                    <div style="font-size:12px;font-weight:600">3-Loss Cooldown</div>
+                    <div style="font-size:10px;color:var(--t2);margin-top:2px">Pause 2 mins after 3 losses</div>
+                  </div>
+                  <div class="tsw on" id="ww-cooldown-sw" onclick="this.classList.toggle('on');HB.useCooldown=this.classList.contains('on')"></div>
                 </div>
               </div>
             </div>
 
-            <!-- 8 Barrier Settings -->
+            <!-- Live Trade Levels -->
             <div class="card" style="margin-bottom:12px">
-              <div class="ch">
-                <div class="ct">● 8 Barrier Settings</div>
-                <button class="btn btng" style="font-size:10px;padding:3px 8px;background:var(--ac);color:var(--bg0)" onclick="autoSetBarriers()">AUTO</button>
-              </div>
+              <div class="ch"><div class="ct">Live Round</div><span style="font-size:10px;color:var(--t3)" id="ww-round-asset">--</span></div>
               <div class="cb">
-                <div style="font-size:10px;color:var(--t3);margin-bottom:10px">Set a different offset barrier for each of the 8 trades</div>
-
-                <!-- 8 barrier pairs in 2 columns -->
-                <div class="barrier-grid" id="barrierGrid">
-                  <!-- Generated by JS -->
-                </div>
-
-                <!-- Quick set all -->
-                <div style="margin-bottom:8px">
-                  <div style="font-size:10px;color:var(--t2);margin-bottom:5px">Set All to:</div>
-                  <div class="quick-barriers">
-                    <div class="qb" onclick="setAllBarriers(0.05)">±0.05</div>
-                    <div class="qb" onclick="setAllBarriers(0.06)">±0.06</div>
-                    <div class="qb" onclick="setAllBarriers(0.12)">±0.12</div>
-                    <div class="qb" onclick="setAllBarriers(0.25)">±0.25</div>
-                    <div class="qb" onclick="setAllBarriers(0.50)">±0.50</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px">
+                  <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.3);border-radius:var(--rs);padding:10px">
+                    <div style="font-size:9px;color:var(--ac);margin-bottom:3px">HIGHER TRADE</div>
+                    <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="live-h-barrier">--</div>
+                    <div style="font-size:11px;color:var(--t2)">Stake: <span id="live-h-stake" style="color:var(--t1)">--</span></div>
+                  </div>
+                  <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.3);border-radius:var(--rs);padding:10px">
+                    <div style="font-size:9px;color:var(--re);margin-bottom:3px">LOWER TRADE</div>
+                    <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--re)" id="live-l-barrier">--</div>
+                    <div style="font-size:11px;color:var(--t2)">Stake: <span id="live-l-stake" style="color:var(--t1)">--</span></div>
                   </div>
                 </div>
-
-                <!-- Quick set individual labels row -->
-                <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:10px;color:var(--t3);font-family:var(--mo)" id="allBarrierLabels"></div>
-              </div>
-            </div>
-
-            <!-- All 8 Trades Stakes -->
-            <div class="card" style="margin-bottom:12px">
-              <div class="ch">
-                <div class="ct">↕ All 8 Trades Stakes</div>
-                <button class="btn btng" style="font-size:10px;padding:3px 8px" onclick="flipAllStakes()">Flip</button>
-              </div>
-              <div class="cb">
-                <div class="stakes-grid" id="stakesGrid">
-                  <!-- Generated by JS -->
-                </div>
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 10px;border:1px solid var(--bo);text-align:center">
-                  <span style="font-size:11px;color:var(--t2)">Total Stake: </span>
-                  <span style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--t1)" id="total-stake-display">$0.00</span>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 10px;border:1px solid var(--bo);font-size:11px;color:var(--t2)">
+                  Entry: <span style="color:var(--t1);font-family:var(--mo)" id="live-entry">--</span>
+                  &nbsp;|&nbsp; Score: <span style="color:var(--go);font-weight:700" id="live-score">--</span>/5
+                  &nbsp;|&nbsp; Direction: <span style="font-weight:700" id="live-dir">--</span>
                 </div>
               </div>
             </div>
 
             <!-- Round Stats -->
             <div class="card">
-              <div class="ch"><div class="ct">Round Stats</div></div>
+              <div class="ch"><div class="ct">Session Stats</div></div>
               <div class="cb">
-                <div class="round-stats">
-                  <div class="rs-cell"><div class="rs-lbl">Rounds</div><div class="rs-val" id="hb-rounds">0</div></div>
-                  <div class="rs-cell"><div class="rs-lbl">Won</div><div class="rs-val" style="color:var(--ac)" id="hb-won">0</div></div>
-                  <div class="rs-cell"><div class="rs-lbl">Lost</div><div class="rs-val" style="color:var(--re)" id="hb-lost">0</div></div>
-                  <div class="rs-cell"><div class="rs-lbl">Net</div><div class="rs-val" id="hb-net">$0</div></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+                  <div class="bst"><div class="bsl">Net P&L</div><div class="bsv" id="hb-net" style="color:var(--ac)">$0.00</div></div>
+                  <div class="bst"><div class="bsl">Win Rate</div><div class="bsv" id="hb-wr-pct" style="color:var(--go)">0%</div></div>
+                  <div class="bst"><div class="bsl">Best Round</div><div class="bsv" id="hb-best" style="color:var(--ac);font-size:12px">$0.00</div></div>
+                  <div class="bst"><div class="bsl">Worst Round</div><div class="bsv" id="hb-worst" style="color:var(--re);font-size:12px">$0.00</div></div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
 
       <!-- DIFFERS BOT -->
       <div class="page" id="page-differs">
@@ -890,27 +989,7 @@ const DD = {
 // ══════════════════════════════════════
 // HYBRID BOT STATE
 // ══════════════════════════════════════
-const HB = {
-  running: false,
-  interval: null,
-  asset: 'R_100',
-  ticks: 5,
-  mode: 'min', // min or tpl
-  rounds: 0,
-  won: 0,
-  lost: 0,
-  pnl: 0,
-  history: [],
-  pending: {}, // roundId -> {results:[], expected:8, ...}
-  roundId: 0,
-  countdownTimer: null,
-  countdownSecs: 0,
-  // 8 barriers: H1,H2,H3,H4 and L1,L2,L3,L4
-  barriers: [0.06, 0.06, 0.06, 0.06, 0.06, 0.06, 0.06, 0.06],
-  // 8 stakes: alternating big/small pattern
-  // H1=small, L1=big, H2=big, L2=small, H3=big, L3=small, H4=small, L4=big
-  stakes: [0.35, 200, 200, 0.35, 200, 0.35, 0.35, 200]
-};
+// HB state defined in WinWin Smart Bot section
 
 // ══════════════════════════════════════
 // WEBSOCKET
@@ -1212,268 +1291,359 @@ function fmtDur(ms){if(!ms||ms<0)return '--';var s=Math.floor(ms/1000);if(s<60)r
 // HYBRID BOT CORE
 // ══════════════════════════════════════
 
-function buildBarrierGrid() {
-  var grid = document.getElementById('barrierGrid');
-  if(!grid) return;
-  grid.innerHTML='';
-  var labels=['H1','H2','H3','H4','L1','L2','L3','L4'];
-  var colors=['var(--ac)','var(--ac)','var(--ac)','var(--ac)','var(--re)','var(--re)','var(--re)','var(--re)'];
-  // Display as 4 pairs: H1/L1, H2/L2, H3/L3, H4/L4
-  for(var i=0;i<4;i++) {
-    var hIdx=i, lIdx=i+4;
-    var pair=document.createElement('div');
-    pair.className='barrier-pair';
-    pair.innerHTML=
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
-      '<div>'+
-        '<div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:4px">'+labels[hIdx]+'</div>'+
-        '<div class="barrier-row">'+
-          '<div class="barrier-adj" onclick="adjBarrier('+hIdx+',-0.01)">-</div>'+
-          '<input class="barrier-input" id="barrier_'+hIdx+'" value="'+HB.barriers[hIdx].toFixed(2)+'" oninput="HB.barriers['+hIdx+']=parseFloat(this.value)||0.06;updateHBCalc()">'+
-          '<div class="barrier-adj" onclick="adjBarrier('+hIdx+',0.01)">+</div>'+
-        '</div>'+
-      '</div>'+
-      '<div>'+
-        '<div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:4px">'+labels[lIdx]+'</div>'+
-        '<div class="barrier-row">'+
-          '<div class="barrier-adj" onclick="adjBarrier('+lIdx+',-0.01)">-</div>'+
-          '<input class="barrier-input" id="barrier_'+lIdx+'" value="'+HB.barriers[lIdx].toFixed(2)+'" oninput="HB.barriers['+lIdx+']=parseFloat(this.value)||0.06;updateHBCalc()">'+
-          '<div class="barrier-adj" onclick="adjBarrier('+lIdx+',0.01)">+</div>'+
-        '</div>'+
-      '</div>'+
-      '</div>';
-    grid.appendChild(pair);
+// ══════════════════════════════════════════════════════════════════
+// WINWIN SMART BOT — 2 trades, ATR barriers, BB squeeze gating
+// ══════════════════════════════════════════════════════════════════
+
+const HB = {
+  running: false,
+  interval: null,
+  asset: 'R_100',
+  ticks: 5,
+  barrierMode: 'auto', // 'auto' or 'manual'
+  minScore: 3,
+  useCooldown: true,
+  rounds: 0, won: 0, lost: 0, pnl: 0,
+  bestRound: 0, worstRound: 0,
+  history: [],
+  pending: {},
+  roundId: 0,
+  countdownTimer: null,
+  lossStreak: 0,
+  coolingDown: false,
+  cooldownEnd: 0,
+  lastBBWidths: [] // track BB width history for squeeze detection
+};
+
+// ── Daily calc ──────────────────────────────────────────────────
+function calcWWDaily() {
+  var risk = parseFloat(document.getElementById('ww-risk').value) || 3;
+  var dailySL = parseFloat(document.getElementById('ww-daily-sl').value) || 30;
+  var dailyTP = parseFloat(document.getElementById('ww-daily-tp').value) || 60;
+  var hedge = Math.max(0.35, parseFloat((risk * 0.12).toFixed(2)));
+  hedge = Math.min(hedge, 0.35); // always min hedge
+  var maxLoss = parseFloat((risk + hedge).toFixed(2));
+  var maxLosses = Math.floor(dailySL / maxLoss);
+
+  // Estimate payout at ~150% (barrier contracts typical)
+  var estPayout = 1.5;
+  var winProfit = parseFloat((risk * estPayout - hedge).toFixed(2));
+  var winsNeeded = Math.ceil(dailyTP / winProfit);
+  var roundsNeeded = Math.ceil(winsNeeded / 0.55); // at 55% win rate
+
+  document.getElementById('ww-calc-big').textContent = '$' + risk.toFixed(2);
+  document.getElementById('ww-calc-hedge').textContent = '$' + hedge.toFixed(2);
+  document.getElementById('ww-calc-maxl').textContent = maxLosses;
+  document.getElementById('ww-calc-wins').textContent = winsNeeded;
+  document.getElementById('ww-progress-target').textContent = '$' + dailyTP;
+
+  var math = '';
+  math += 'Risk/round: $' + maxLoss.toFixed(2) + ' | Win/round: +$' + winProfit.toFixed(2) + '\n';
+  math += 'Max losing rounds before SL: ' + maxLosses + '\n';
+  math += 'Wins needed for $' + dailyTP + ' target: ' + winsNeeded + '\n';
+  math += 'Est. rounds needed (@55% WR): ~' + roundsNeeded;
+  document.getElementById('ww-calc-math').style.whiteSpace = 'pre-line';
+  document.getElementById('ww-calc-math').textContent = math;
+
+  // Update preview
+  updateWWPreview();
+}
+
+function setBarrierMode(el) {
+  var isAuto = HB.barrierMode === 'auto';
+  document.getElementById('bm-auto').classList.toggle('active', isAuto);
+  document.getElementById('bm-manual').classList.toggle('active', !isAuto);
+  var manualRow = document.getElementById('manual-barrier-row');
+  if (manualRow) manualRow.style.display = isAuto ? 'none' : 'grid';
+  document.getElementById('barrier-mode-desc').textContent = isAuto
+    ? 'ATR × 0.6 — updates live every round'
+    : 'Set your own barrier distances';
+  calcWWDaily();
+}
+
+function getWWBarrier() {
+  if (HB.barrierMode === 'manual') {
+    return {
+      h: parseFloat(document.getElementById('ww-manual-h-barrier').value) || 0.06,
+      l: parseFloat(document.getElementById('ww-manual-l-barrier').value) || 0.06
+    };
   }
-  updateHBBarrierLabels();
-}
-
-function adjBarrier(idx, delta) {
-  HB.barriers[idx] = Math.max(0.01, parseFloat((HB.barriers[idx]+delta).toFixed(2)));
-  var inp = document.getElementById('barrier_'+idx);
-  if(inp) inp.value = HB.barriers[idx].toFixed(2);
-  updateHBCalc();
-  updateHBBarrierLabels();
-}
-
-function updateHBBarrierLabels() {
-  var el = document.getElementById('allBarrierLabels');
-  if(!el) return;
-  var labels=['H1','H2','H3','H4','L1','L2','L3','L4'];
-  el.innerHTML = HB.barriers.map(function(b,i){
-    return '<span>'+labels[i]+' '+(i<4?'+':'-')+b.toFixed(2)+'</span>';
-  }).join('');
-}
-
-function setAllBarriers(val) {
-  HB.barriers = HB.barriers.map(function(){ return val; });
-  for(var i=0;i<8;i++) {
-    var inp=document.getElementById('barrier_'+i);
-    if(inp) inp.value=val.toFixed(2);
-  }
-  updateHBCalc();
-  updateHBBarrierLabels();
-}
-
-function autoSetBarriers() {
+  // AUTO: use ATR × 0.6
   var ind = getInd(HB.asset);
-  if(ind.prices.length<14){ notify('!','Need more price data','loss'); return; }
-  var p=ind.prices, n=p.length, atr=0;
-  for(var i=n-14;i<n;i++) atr+=Math.abs(p[i]-p[i-1]);
-  atr=atr/14;
-  // Stagger barriers: smallest to largest
-  var steps=[0.4,0.6,0.8,1.0,0.4,0.6,0.8,1.0];
-  HB.barriers = steps.map(function(m){ return parseFloat((atr*m).toFixed(2)); });
-  for(var j=0;j<8;j++){
-    var inp=document.getElementById('barrier_'+j);
-    if(inp) inp.value=HB.barriers[j].toFixed(2);
-  }
-  updateHBCalc();
-  updateHBBarrierLabels();
-  notify('Auto','Barriers set from ATR: '+atr.toFixed(4),'win');
+  if (ind.prices.length < 14) return { h: 0.06, l: 0.06 };
+  var p = ind.prices, n = p.length, atr = 0;
+  for (var i = n - 14; i < n; i++) atr += Math.abs(p[i] - p[i-1]);
+  atr = atr / 14;
+  var b = Math.max(0.01, parseFloat((atr * 0.6).toFixed(2)));
+  document.getElementById('ww-live-atr').textContent = atr.toFixed(4);
+  document.getElementById('ww-live-barrier').textContent = '+/-' + b.toFixed(2);
+  return { h: b, l: b };
 }
 
-function buildStakesGrid() {
-  var grid = document.getElementById('stakesGrid');
-  if(!grid) return;
-  grid.innerHTML='';
-  var labels=['H1','H2','H3','H4','L1','L2','L3','L4'];
-  var sides=['H','H','H','H','L','L','L','L'];
-  for(var i=0;i<8;i++) {
-    var isBig = HB.stakes[i]>=10;
-    var item=document.createElement('div');
-    item.className='stake-item';
-    item.innerHTML=
-      '<div class="stake-lbl">'+
-        '<span>'+labels[i]+' ($)</span>'+
-        '<span style="padding:1px 6px;border-radius:99px;font-size:9px;font-weight:700;background:'+(sides[i]==='H'?'var(--ad)':'var(--rd)')+';color:'+(sides[i]==='H'?'var(--ac)':'var(--re)')+'">'+sides[i]+'</span>'+
-      '</div>'+
-      '<input class="stake-inp '+(isBig?'big':'small')+'" id="stake_'+i+'" value="'+HB.stakes[i]+'" type="number" min="0.35" step="0.01" oninput="HB.stakes['+i+']=parseFloat(this.value)||0.35;updateHBCalc()">';
-    grid.appendChild(item);
-  }
-  updateHBCalc();
+function updateWWPreview() {
+  var risk = parseFloat(document.getElementById('ww-risk').value) || 3;
+  var hedge = Math.max(0.35, parseFloat((risk * 0.12).toFixed(2)));
+  hedge = Math.min(hedge, 0.35);
+  var barrier = getWWBarrier();
+  var pred = getWWPrediction();
+
+  var bigSide = pred.dir; // 'HIGHER' or 'LOWER'
+  var hStake = bigSide === 'HIGHER' ? risk : hedge;
+  var lStake = bigSide === 'LOWER' ? risk : hedge;
+
+  document.getElementById('prev-h-barrier').textContent = '+' + barrier.h.toFixed(2);
+  document.getElementById('prev-h-stake').textContent = '$' + hStake.toFixed(2);
+  document.getElementById('prev-l-barrier').textContent = '-' + barrier.l.toFixed(2);
+  document.getElementById('prev-l-stake').textContent = '$' + lStake.toFixed(2);
+
+  var estPayout = 1.5;
+  document.getElementById('prev-h-pay').textContent = '$' + (hStake * estPayout).toFixed(2);
+  document.getElementById('prev-l-pay').textContent = '$' + (lStake * estPayout).toFixed(2);
+  document.getElementById('pc-total-stake').textContent = '$' + (hStake + lStake).toFixed(2);
+  var bigWin = Math.max(hStake, lStake) * estPayout - Math.min(hStake, lStake);
+  document.getElementById('pc-combined-pay').textContent = '+$' + bigWin.toFixed(2);
+  document.getElementById('pred-big-side').textContent = bigSide || '--';
 }
 
-function flipAllStakes() {
-  // Flip all stakes — small becomes big and big becomes small
-  var maxStake = Math.max.apply(null, HB.stakes);
-  var minStake = Math.min.apply(null, HB.stakes);
-  HB.stakes = HB.stakes.map(function(s){ return s >= 10 ? minStake : maxStake; });
-  for(var i=0;i<8;i++){
-    var inp=document.getElementById('stake_'+i);
-    if(inp) { inp.value=HB.stakes[i]; inp.className='stake-inp '+(HB.stakes[i]>=10?'big':'small'); }
-  }
-  updateHBCalc();
-  notify('Flip','Stakes flipped!','info');
-}
-
-function updateHBCalc() {
-  var totalStake = HB.stakes.reduce(function(s,v){return s+v;},0);
-  var el = document.getElementById('total-stake-display');
-  if(el) el.textContent='$'+totalStake.toFixed(2);
-
-  // Estimate payout
-  var higherStake = HB.stakes.slice(0,4).reduce(function(s,v){return s+v;},0);
-  var lowerStake  = HB.stakes.slice(4,8).reduce(function(s,v){return s+v;},0);
-  var avgBarrier  = HB.barriers.reduce(function(s,v){return s+v;},0)/8;
-
+// ── ATR + BB Signal Engine ──────────────────────────────────────
+function getWWSignal() {
   var ind = getInd(HB.asset);
-  var atr=0;
-  if(ind.prices.length>=14){
-    var p=ind.prices, n=p.length;
-    for(var i=n-14;i<n;i++) atr+=Math.abs(p[i]-p[i-1]);
-    atr=atr/14;
+  var prices = ind.prices;
+  var n = prices.length;
+  var score = 0;
+  var reasons = [];
+
+  // ── Signal 1: ATR above 14-period average (+1) ──────────────
+  var atrScore = 0;
+  if (n >= 28) {
+    var atr14 = 0, atr28 = 0;
+    for (var i = n-14; i < n; i++) atr14 += Math.abs(prices[i] - prices[i-1]);
+    atr14 /= 14;
+    for (var j = n-28; j < n-14; j++) atr28 += Math.abs(prices[j] - prices[j-1]);
+    atr28 /= 14;
+    if (atr14 > atr28 * 1.1) { atrScore = 1; score++; reasons.push('ATR rising ✓'); }
+    else reasons.push('ATR flat');
+    // Update card
+    var ac = document.getElementById('sig-atr-card');
+    var av = document.getElementById('sig-atr-val');
+    if (ac) ac.style.borderColor = atrScore ? 'var(--ac)' : 'var(--bo)';
+    if (av) { av.textContent = atr14.toFixed(4); av.style.color = atrScore ? 'var(--ac)' : 'var(--t3)'; }
+  } else {
+    var av2 = document.getElementById('sig-atr-val'); if(av2) av2.textContent = 'need 28 ticks';
   }
-  var ratio = atr>0?avgBarrier/atr:1;
-  var estPct = Math.min(300, Math.round(90+ratio*80));
 
-  var higherPayout = higherStake*(1+estPct/100);
-  var lowerPayout  = lowerStake*(1+estPct/100);
-  var combined = Math.max(higherPayout,lowerPayout);
+  // ── Signal 2: BB Squeeze active (+2) ───────────────────────
+  var squeezeScore = 0;
+  if (ind.bbSqueeze) {
+    squeezeScore = 2; score += 2; reasons.push('BB Squeeze ✓✓');
+    // Track that we were in squeeze
+    HB.lastSqueezeTime = Date.now();
+  } else if (HB.lastSqueezeTime && (Date.now() - HB.lastSqueezeTime) < 15000) {
+    // Still within 15s of squeeze ending = post-squeeze window
+    squeezeScore = 1;
+  } else {
+    reasons.push('No BB squeeze');
+  }
+  var bc = document.getElementById('sig-bb-card'), bv = document.getElementById('sig-bb-val');
+  if (bc) bc.style.borderColor = squeezeScore >= 2 ? 'rgba(0,229,160,0.8)' : squeezeScore === 1 ? 'rgba(245,166,35,0.8)' : 'var(--bo)';
+  if (bv) { bv.textContent = ind.bbSqueeze ? 'SQUEEZE!' : 'Normal'; bv.style.color = ind.bbSqueeze ? 'var(--ac)' : 'var(--t3)'; }
 
-  var pc_h=document.getElementById('pc-higher-pay'); if(pc_h) pc_h.textContent='Payout: $'+higherPayout.toFixed(2);
-  var pc_lp=document.getElementById('pc-lower-pay'); if(pc_lp) pc_lp.textContent='Payout: $'+lowerPayout.toFixed(2);
-  var pc_hp=document.getElementById('pc-higher-profit'); if(pc_hp) pc_hp.textContent='Profit: $'+(higherPayout-lowerStake).toFixed(2);
-  var pc_lpr=document.getElementById('pc-lower-profit'); if(pc_lpr) pc_lpr.textContent='Profit: $'+(lowerPayout-higherStake).toFixed(2);
-  var pc_ts=document.getElementById('pc-total-stake'); if(pc_ts) pc_ts.textContent='$'+totalStake.toFixed(2);
-  var pc_cp=document.getElementById('pc-combined-pay'); if(pc_cp) pc_cp.textContent='$'+combined.toFixed(2);
-  var hbti=document.getElementById('hb-total-info');
-  if(hbti) hbti.textContent='Total Ticks: '+S.recentMoves.length+' | O H: '+(atr>0?'+'+atr.toFixed(4):'--')+' / L: '+(atr>0?'-'+atr.toFixed(4):'--')+' | Duration: '+HB.ticks+' Ticks | $ H: $'+higherStake.toFixed(2)+' / L: $'+lowerStake.toFixed(2);
+  // ── Signal 3: Post-squeeze expansion (+1) ──────────────────
+  var expandScore = 0;
+  if (!ind.bbSqueeze && HB.lastSqueezeTime && (Date.now() - HB.lastSqueezeTime) < 15000) {
+    expandScore = 1; score++; reasons.push('Post-squeeze expansion ✓');
+    var ec = document.getElementById('sig-expand-card'), ev = document.getElementById('sig-expand-val');
+    if (ec) ec.style.borderColor = 'var(--ac)';
+    if (ev) { ev.textContent = 'EXPANDING'; ev.style.color = 'var(--ac)'; }
+  } else {
+    var ev2 = document.getElementById('sig-expand-val'); if(ev2) { ev2.textContent = 'Waiting'; ev2.style.color = 'var(--t3)'; }
+    var ec2 = document.getElementById('sig-expand-card'); if(ec2) ec2.style.borderColor = 'var(--bo)';
+  }
+
+  // ── Signal 4: Momentum burst (+1) ──────────────────────────
+  var momScore = 0;
+  if (n >= 5) {
+    var tickSizes = [];
+    for (var k = n-5; k < n; k++) tickSizes.push(Math.abs(prices[k] - prices[k-1]));
+    var avgRecent = tickSizes.slice(-3).reduce(function(s,v){return s+v;},0) / 3;
+    var avgOld = tickSizes.slice(0,2).reduce(function(s,v){return s+v;},0) / 2;
+    if (avgRecent > avgOld * 1.3) { momScore = 1; score++; reasons.push('Momentum burst ✓'); }
+    else reasons.push('No momentum burst');
+    var mc = document.getElementById('sig-mom-card'), mv = document.getElementById('sig-mom-val');
+    if (mc) mc.style.borderColor = momScore ? 'var(--ac)' : 'var(--bo)';
+    if (mv) { mv.textContent = momScore ? 'BURST!' : 'Flat'; mv.style.color = momScore ? 'var(--ac)' : 'var(--t3)'; }
+  }
+
+  // ── Signal 5: Volatility regime (+1) ───────────────────────
+  var volScore = 0;
+  if (ind.bbWidth !== undefined && ind.bbWidth > 0.0015) {
+    volScore = 1; score++; reasons.push('Good volatility ✓');
+  } else { reasons.push('Low volatility'); }
+  var vc = document.getElementById('sig-vol-card'), vv = document.getElementById('sig-vol-val');
+  if (vc) vc.style.borderColor = volScore ? 'var(--ac)' : 'var(--bo)';
+  if (vv) { vv.textContent = ind.bbWidth ? (ind.bbWidth * 100).toFixed(3) + '%' : '--'; vv.style.color = volScore ? 'var(--ac)' : 'var(--t3)'; }
+
+  // Score badge
+  var sb = document.getElementById('sig-score-badge');
+  if (sb) {
+    sb.textContent = 'Score: ' + score + '/5';
+    sb.style.background = score >= 4 ? 'var(--ad)' : score >= 3 ? 'var(--gd)' : 'var(--bg4)';
+    sb.style.color = score >= 4 ? 'var(--ac)' : score >= 3 ? 'var(--go)' : 'var(--t3)';
+  }
+
+  // Status message
+  var minScore = HB.minScore || 3;
+  var ss = document.getElementById('sig-status');
+  if (ss) {
+    if (score >= minScore) {
+      ss.textContent = '✅ SIGNAL FOUND (' + score + '/5) — ' + reasons.filter(function(r){return r.includes('✓');}).join(', ');
+      ss.style.color = 'var(--ac)';
+      ss.style.borderColor = 'rgba(0,229,160,0.3)';
+    } else {
+      ss.textContent = '⏳ Waiting for setup... (' + score + '/' + minScore + ' needed) — ' + reasons.join(', ');
+      ss.style.color = 'var(--go)';
+      ss.style.borderColor = 'rgba(245,166,35,0.2)';
+    }
+  }
+
+  return { score: score, ready: score >= minScore, reasons: reasons };
 }
 
-function setHBActive(el) {
-  el.closest('.dr').querySelectorAll('.db').forEach(function(b){b.classList.remove('active');});
-  el.classList.add('active');
+// ── Prediction (direction for big stake) ───────────────────────
+function getWWPrediction() {
+  var ind = getInd(HB.asset);
+  var moves = S.recentMoves;
+  if (moves.length < 10) return { dir: 'HIGHER', confidence: 50 };
+
+  // Combine: EMA trend + recent tick momentum + BB position
+  var dirScore = 0; // positive = HIGHER, negative = LOWER
+
+  // EMA direction
+  if (ind.ema9 && ind.ema21) {
+    if (ind.ema9 > ind.ema21) dirScore += 2;
+    else dirScore -= 2;
+  }
+
+  // Last 5 tick directions
+  var last5 = moves.slice(-5);
+  var h5 = last5.filter(function(m){return m==='H';}).length;
+  dirScore += (h5 - (5 - h5)); // +5 to -5
+
+  // BB position: price above midline = bullish
+  if (ind.bbMid && ind.prices.length) {
+    var curP = ind.prices[ind.prices.length-1];
+    if (curP > ind.bbMid) dirScore += 1;
+    else dirScore -= 1;
+  }
+
+  // Streak reversal: 4+ same direction = likely reversal
+  var streak = 1, streakDir = moves[moves.length-1];
+  for (var i = moves.length-2; i >= 0 && moves[i] === streakDir; i--) streak++;
+  if (streak >= 4) dirScore += streakDir === 'H' ? -3 : 3; // reverse heavy streak
+
+  var dir = dirScore >= 0 ? 'HIGHER' : 'LOWER';
+  var confidence = Math.min(85, 50 + Math.abs(dirScore) * 4);
+
+  return { dir: dir, confidence: Math.round(confidence), score: dirScore };
 }
 
 function updatePrediction() {
+  var pred = getWWPrediction();
   var moves = S.recentMoves;
-  if(moves.length<10) {
-    document.getElementById('pred-dir').textContent='WAITING';
-    document.getElementById('pred-confidence').textContent='--% confidence';
-    document.getElementById('pred-desc').textContent='Need more ticks...';
-    return;
-  }
-  var last20 = moves.slice(-20);
-  var h = last20.filter(function(m){return m==='H';}).length;
-  var l = last20.length-h;
-  var hPct = Math.round(h/last20.length*100);
-  var lPct = 100-hPct;
-
-  // Update H/L stats
+  var n = moves.length;
   var allH = moves.filter(function(m){return m==='H';}).length;
-  var allL = moves.length-allH;
-  document.getElementById('hl-higher-pct').textContent=(moves.length?Math.round(allH/moves.length*100):0)+'%';
-  document.getElementById('hl-lower-pct').textContent=(moves.length?Math.round(allL/moves.length*100):0)+'%';
-  document.getElementById('hl-higher-ticks').textContent=allH+' ticks';
-  document.getElementById('hl-lower-ticks').textContent=allL+' ticks';
+  var allL = n - allH;
 
-  // Streak detection
-  var streak=1, streakDir=moves[moves.length-1];
-  for(var i=moves.length-2;i>=0&&moves[i]===streakDir;i--) streak++;
-  document.getElementById('streak-txt').textContent=(streak>=3?(streak+'x '+streakDir+' streak'):'No streak');
+  document.getElementById('hl-higher-pct').textContent = n ? Math.round(allH/n*100)+'%' : '0%';
+  document.getElementById('hl-lower-pct').textContent = n ? Math.round(allL/n*100)+'%' : '0%';
+  document.getElementById('hl-higher-ticks').textContent = allH + ' ticks';
+  document.getElementById('hl-lower-ticks').textContent = allL + ' ticks';
 
-  // Prediction: favor direction with higher recent frequency, adjusted for streak reversal
-  var predDir, confidence;
-  if(streak>=4) {
-    // Long streak - predict reversal
-    predDir = streakDir==='H'?'LOWER':'HIGHER';
-    confidence = Math.min(85, 60+streak*3);
-  } else {
-    predDir = h>l?'HIGHER':'LOWER';
-    confidence = Math.max(50, Math.abs(hPct-50)+50);
-  }
+  var streak = 1, streakDir = moves[moves.length-1] || 'H';
+  for (var i = moves.length-2; i >= 0 && moves[i] === streakDir; i--) streak++;
+  document.getElementById('streak-txt').textContent = streak >= 3 ? streak+'x '+streakDir+' streak' : 'No streak';
 
-  document.getElementById('pred-dir').textContent=predDir;
-  document.getElementById('pred-dir').style.color=predDir==='HIGHER'?'var(--ac)':'var(--re)';
-  document.getElementById('pred-confidence').textContent=Math.round(confidence)+'% confidence';
-  document.getElementById('pred-desc').textContent='Next tick predicted to go '+(predDir==='HIGHER'?'higher':'lower')+' than current';
-  document.getElementById('pred-icon').textContent=predDir==='HIGHER'?'↗':'↘';
-  document.getElementById('pred-icon').style.background=predDir==='HIGHER'?'var(--ad)':'var(--rd)';
-  document.getElementById('pred-icon').style.color=predDir==='HIGHER'?'var(--ac)':'var(--re)';
-  var bar=document.getElementById('pred-bar');
-  if(bar){
-    bar.style.width=Math.round(confidence)+'%';
-    bar.className='pred-bar-fill '+(predDir==='HIGHER'?'up':'dn');
-  }
-
-  // Adjust stakes based on prediction - put big stake on predicted side
-  // Only if auto-adjust is reasonable
-  updateHBCalc();
+  document.getElementById('pred-dir').textContent = pred.dir;
+  document.getElementById('pred-dir').style.color = pred.dir === 'HIGHER' ? 'var(--ac)' : 'var(--re)';
+  document.getElementById('pred-confidence').textContent = pred.confidence + '% confidence';
+  document.getElementById('pred-desc').textContent = 'Big stake → ' + pred.dir + ' (score: ' + pred.score + ')';
+  document.getElementById('pred-icon').textContent = pred.dir === 'HIGHER' ? '↗' : '↘';
+  document.getElementById('pred-icon').style.background = pred.dir === 'HIGHER' ? 'var(--ad)' : 'var(--rd)';
+  document.getElementById('pred-big-side').textContent = pred.dir;
+  document.getElementById('pred-big-side').style.color = pred.dir === 'HIGHER' ? 'var(--ac)' : 'var(--re)';
+  var bar = document.getElementById('pred-bar');
+  if (bar) { bar.style.width = pred.confidence + '%'; bar.className = 'pred-bar-fill ' + (pred.dir === 'HIGHER' ? 'up' : 'dn'); }
+  updateWWPreview();
 }
 
 function updateMovesGrid() {
-  var el = document.getElementById('movesGrid');
-  if(!el) return;
+  var el = document.getElementById('movesGrid'); if(!el) return;
   var last = S.recentMoves.slice(-30);
-  el.innerHTML = last.map(function(m){
-    return '<div class="move-pill '+m+'">'+m+'</div>';
-  }).join('');
+  el.innerHTML = last.map(function(m){ return '<div class="move-pill '+m+'">'+m+'</div>'; }).join('');
 }
 
+// ── Bot toggle ──────────────────────────────────────────────────
 function toggleHybrid() {
   HB.running = !HB.running;
   document.getElementById('hbSw').classList.toggle('on', HB.running);
-  if(HB.running) {
-    if(!S.connected){ notify('!','Connect API first!','loss'); HB.running=false; document.getElementById('hbSw').classList.remove('on'); return; }
-    document.getElementById('placeAllBtn').textContent='⏸ AUTO RUNNING...';
-    document.getElementById('placeAllBtn').style.background='linear-gradient(135deg,var(--go),#ff8800)';
+  if (HB.running) {
+    if (!S.connected) { notify('!','Connect API first!','loss'); HB.running=false; document.getElementById('hbSw').classList.remove('on'); return; }
+    HB.lossStreak = 0; HB.coolingDown = false;
+    document.getElementById('placeAllBtn').textContent = '⏸ AUTO RUNNING...';
+    document.getElementById('placeAllBtn').style.background = 'linear-gradient(135deg,var(--go),#ff8800)';
     runHybridAuto();
   } else {
-    clearInterval(HB.interval);
+    clearTimeout(HB.interval);
     clearInterval(HB.countdownTimer);
-    document.getElementById('placeAllBtn').textContent='↕ ALL 8 TRADES';
-    document.getElementById('placeAllBtn').style.background='linear-gradient(135deg,var(--ac),#00b0ff)';
-    document.getElementById('hb-countdown').textContent='--';
-    document.getElementById('hb-countdown-bar').style.width='0%';
+    document.getElementById('placeAllBtn').textContent = '↕ PLACE 2 TRADES';
+    document.getElementById('placeAllBtn').style.background = 'linear-gradient(135deg,var(--ac),#00b0ff)';
+    document.getElementById('hb-countdown-txt').textContent = '--';
+    document.getElementById('hb-countdown-bar').style.width = '0%';
   }
 }
 
 function runHybridAuto() {
-  var sl=parseFloat(document.getElementById('hbSL').value||50);
-  var tp=parseFloat(document.getElementById('hbTP').value||200);
-  var maxRounds=parseInt(document.getElementById('hb-rounds-limit').value||0);
-  if(HB.pnl<=-sl){toggleHybrid();notify('STOP','Hybrid SL -$'+sl+' hit','loss');return;}
-  if(HB.pnl>=tp){toggleHybrid();notify('TP','Hybrid TP +$'+tp+' hit','win');return;}
-  if(maxRounds>0&&HB.rounds>=maxRounds){toggleHybrid();notify('OK','Max rounds reached','win');return;}
-  if(DG.stopped){toggleHybrid();return;}
+  if (!HB.running) return;
+  var dailySL = parseFloat(document.getElementById('ww-daily-sl').value) || 30;
+  var dailyTP = parseFloat(document.getElementById('ww-daily-tp').value) || 60;
+  if (HB.pnl <= -dailySL) { toggleHybrid(); notify('STOP','Daily SL -$'+dailySL+' hit','loss'); return; }
+  if (HB.pnl >= dailyTP)  { toggleHybrid(); notify('TP','Daily target +$'+dailyTP+' hit!','win'); return; }
+  if (DG.stopped) { toggleHybrid(); return; }
 
-  // Wait if too many active trades
-  var hbActive = S.activeTrades.filter(function(t){return t.isHB;});
-  if(hbActive.length>=4){
-    document.getElementById('hb-active-count').textContent=hbActive.length+' TRADES ACTIVE';
-    // retry in 3s
-    setTimeout(runHybridAuto, 3000);
+  // Cooldown check
+  if (HB.coolingDown) {
+    var left = Math.ceil((HB.cooldownEnd - Date.now()) / 1000);
+    if (left > 0) {
+      document.getElementById('hb-round-info').textContent = '⏸ Cooling down: ' + left + 's (3 losses in a row)';
+      HB.interval = setTimeout(runHybridAuto, 1000);
+      return;
+    }
+    HB.coolingDown = false; HB.lossStreak = 0;
+  }
+
+  // Check if trades still active
+  var active = S.activeTrades.filter(function(t){ return t.isHB; });
+  if (active.length >= 2) {
+    document.getElementById('hb-active-count').textContent = active.length + ' ACTIVE';
+    HB.interval = setTimeout(runHybridAuto, 2000);
     return;
   }
 
+  // Check signal
+  var sig = getWWSignal();
+  if (!sig.ready) {
+    document.getElementById('hb-round-info').textContent = '⏳ Score ' + sig.score + '/' + (HB.minScore||3) + ' — waiting for setup...';
+    HB.interval = setTimeout(runHybridAuto, 3000);
+    return;
+  }
+
+  // Place trades
   placeHybridRound();
 
-  // Schedule next round after ticks complete + buffer
-  var waitMs = (HB.ticks*2000)+8000;
-  startCountdown(Math.floor(waitMs/1000));
-  HB.interval = setTimeout(function(){
-    if(HB.running) runHybridAuto();
-  }, waitMs);
+  // Schedule next round
+  var waitMs = (HB.ticks * 2000) + 8000;
+  startCountdown(Math.floor(waitMs / 1000));
+  HB.interval = setTimeout(runHybridAuto, waitMs);
 }
 
 function startCountdown(secs) {
@@ -1482,182 +1652,190 @@ function startCountdown(secs) {
   var total = secs;
   HB.countdownTimer = setInterval(function(){
     HB.countdownSecs--;
-    if(HB.countdownSecs<=0){ clearInterval(HB.countdownTimer); document.getElementById('hb-countdown').textContent='0s'; document.getElementById('hb-countdown-bar').style.width='0%'; return; }
-    document.getElementById('hb-countdown').textContent=HB.countdownSecs+'s';
-    document.getElementById('hb-countdown-bar').style.width=((HB.countdownSecs/total)*100).toFixed(0)+'%';
-  },1000);
+    var txt = document.getElementById('hb-countdown-txt');
+    var bar = document.getElementById('hb-countdown-bar');
+    if (HB.countdownSecs <= 0) {
+      clearInterval(HB.countdownTimer);
+      if (txt) txt.textContent = 'Ready to trade...';
+      if (bar) bar.style.width = '0%';
+      return;
+    }
+    if (txt) txt.textContent = 'Next round in: ' + HB.countdownSecs + 's';
+    if (bar) bar.style.width = ((HB.countdownSecs/total)*100).toFixed(0) + '%';
+  }, 1000);
 }
 
 function placeHybridRound() {
-  if(!S.connected){ notify('!','Not connected','loss'); return; }
-  if(DG.stopped){ notify('STOP','Daily limit hit','loss'); return; }
+  if (!S.connected) { notify('!','Not connected','loss'); return; }
+  if (DG.stopped) { notify('STOP','Daily limit hit','loss'); return; }
+  var risk = parseFloat(document.getElementById('ww-risk').value) || 3;
+  var hedge = Math.max(0.35, parseFloat((risk * 0.12).toFixed(2)));
+  hedge = Math.min(hedge, 0.35);
+  var barrier = getWWBarrier();
+  var pred = getWWPrediction();
+  var sig = getWWSignal();
+
+  // Big stake goes on predicted side
+  var hStake = pred.dir === 'HIGHER' ? risk : hedge;
+  var lStake = pred.dir === 'LOWER'  ? risk : hedge;
 
   HB.roundId++;
   var rid = HB.roundId;
   HB.rounds++;
+  HB.pending[rid] = { results: [null, null], settled: 0, hStake: hStake, lStake: lStake, time: new Date().toLocaleTimeString(), asset: HB.asset, barrier: barrier, pred: pred.dir, score: sig.score };
 
-  HB.pending[rid] = {
-    results: new Array(8).fill(null),
-    settled: 0,
-    expected: 8,
-    stakes: HB.stakes.slice(),
-    barriers: HB.barriers.slice(),
-    time: new Date().toLocaleTimeString(),
-    asset: HB.asset
-  };
+  // HIGHER barrier trade
+  var rH = wsSend({ buy:1, price:hStake, parameters:{ amount:hStake, basis:'stake', contract_type:'CALL', currency:S.currency, duration:HB.ticks, duration_unit:'t', symbol:HB.asset, barrier:'+'+barrier.h.toFixed(2) }});
+  if (rH) S.pending[rH] = { dir:'HIGHER', stake:hStake, asset:HB.asset, isBot:true, isHB:true, hbRound:rid, hbIdx:0, barrier:barrier.h, durVal:HB.ticks, durUnit:'t' };
 
-  // Labels: H1,H2,H3,H4 = CALL (HIGHER), L1,L2,L3,L4 = PUT (LOWER)
-  var types=['CALL','CALL','CALL','CALL','PUT','PUT','PUT','PUT'];
-  var labels=['H1','H2','H3','H4','L1','L2','L3','L4'];
+  // LOWER barrier trade
+  var rL = wsSend({ buy:1, price:lStake, parameters:{ amount:lStake, basis:'stake', contract_type:'PUT', currency:S.currency, duration:HB.ticks, duration_unit:'t', symbol:HB.asset, barrier:'-'+barrier.l.toFixed(2) }});
+  if (rL) S.pending[rL] = { dir:'LOWER', stake:lStake, asset:HB.asset, isBot:true, isHB:true, hbRound:rid, hbIdx:1, barrier:barrier.l, durVal:HB.ticks, durUnit:'t' };
 
-  for(var i=0;i<8;i++) {
-    var ct = types[i];
-    var barSign = ct==='CALL'?'+':'-';
-    var barrierStr = barSign+HB.barriers[i].toFixed(2);
-    var stake = HB.stakes[i];
+  // Update live display
+  var entry = S.prices[HB.asset] || 0;
+  document.getElementById('live-h-barrier').textContent = '+' + barrier.h.toFixed(2);
+  document.getElementById('live-h-stake').textContent = '$' + hStake.toFixed(2);
+  document.getElementById('live-l-barrier').textContent = '-' + barrier.l.toFixed(2);
+  document.getElementById('live-l-stake').textContent = '$' + lStake.toFixed(2);
+  document.getElementById('live-entry').textContent = entry.toFixed(entry > 100 ? 2 : 4);
+  document.getElementById('live-score').textContent = sig.score;
+  document.getElementById('live-dir').textContent = pred.dir;
+  document.getElementById('live-dir').style.color = pred.dir === 'HIGHER' ? 'var(--ac)' : 'var(--re)';
+  document.getElementById('ww-round-asset').textContent = HB.asset;
+  document.getElementById('hb-active-count').textContent = '2 ACTIVE';
 
-    var req = {
-      buy:1, price:stake,
-      parameters:{
-        amount:stake, basis:'stake',
-        contract_type:ct,
-        currency:S.currency,
-        duration:HB.ticks, duration_unit:'t',
-        symbol:HB.asset,
-        barrier:barrierStr
-      }
-    };
-    var r = wsSend(req);
-    if(r) S.pending[r]={
-      dir:ct==='CALL'?'HIGHER':'LOWER',
-      stake:stake, asset:HB.asset,
-      isBot:true, isHB:true,
-      hbRound:rid, hbIdx:i,
-      barrier:HB.barriers[i],
-      durVal:HB.ticks, durUnit:'t',
-      label:labels[i]
-    };
-  }
-
-  var totalStake = HB.stakes.reduce(function(s,v){return s+v;},0);
-  notify('HB','Round '+HB.rounds+': Placing 8 trades | Stake: $'+totalStake.toFixed(2),'info');
-  document.getElementById('hb-active-count').textContent='8 TRADES ACTIVE';
-  updHBRoundInfo();
+  notify('WW', 'Round '+HB.rounds+': $'+hStake+' HIGHER / $'+lStake+' LOWER | Score:'+sig.score+'/5', 'info');
+  updHBStats();
 }
 
 function onHBResult(roundId, idx, profit, direction) {
-  if(!HB.pending[roundId]) return;
-  HB.pending[roundId].results[idx] = {profit:profit, direction:direction, win:profit>0};
+  if (!HB.pending[roundId]) return;
+  HB.pending[roundId].results[idx] = { profit: profit, direction: direction, win: profit > 0 };
   HB.pending[roundId].settled++;
 
-  document.getElementById('hb-active-count').textContent=(8-HB.pending[roundId].settled)+' TRADES ACTIVE';
+  if (HB.pending[roundId].settled >= 2) {
+    var r = HB.pending[roundId];
+    var totalPnl = r.results.reduce(function(s,x){ return s + (x ? x.profit : 0); }, 0);
+    var anyWin = r.results.some(function(x){ return x && x.profit > 0; });
 
-  if(HB.pending[roundId].settled>=HB.pending[roundId].expected) {
-    // All 8 settled
-    var results = HB.pending[roundId].results;
-    var totalProfit = results.reduce(function(s,r){return s+(r?r.profit:0);},0);
-    var anyWin = results.some(function(r){return r&&r.profit>0;});
+    HB.pnl += totalPnl;
+    if (anyWin) { HB.won++; HB.lossStreak = 0; }
+    else {
+      HB.lost++;
+      HB.lossStreak++;
+      if (HB.lossStreak >= 3 && HB.useCooldown && !HB.coolingDown) {
+        HB.coolingDown = true;
+        HB.cooldownEnd = Date.now() + 120000;
+        notify('PAUSE', '3 losses in a row — pausing 2 mins', 'loss');
+      }
+    }
+    if (totalPnl > HB.bestRound) HB.bestRound = totalPnl;
+    if (totalPnl < HB.worstRound) HB.worstRound = totalPnl;
 
-    HB.pnl += totalProfit;
-    if(anyWin) HB.won++; else HB.lost++;
-
-    var logEntry = {
-      round: HB.rounds,
-      time: HB.pending[roundId].time,
-      asset: HB.pending[roundId].asset,
-      profit: totalProfit,
-      won: anyWin,
-      cumPnl: HB.pnl,
-      results: results.slice(),
-      stakes: HB.pending[roundId].stakes,
-      barriers: HB.pending[roundId].barriers
-    };
-    HB.history.unshift(logEntry);
-    if(HB.history.length>50) HB.history.pop();
+    HB.history.unshift({ round: HB.rounds, time: r.time, asset: r.asset, profit: totalPnl, won: anyWin, cumPnl: HB.pnl, results: r.results.slice(), hStake: r.hStake, lStake: r.lStake, barrier: r.barrier, pred: r.pred, score: r.score });
+    if (HB.history.length > 100) HB.history.pop();
     delete HB.pending[roundId];
 
-    DG.trades++;if(anyWin)DG.wins++;else DG.losses++;saveDG();
-    updHBStats();
-    renderHBHistory('all');
-    wsSend({balance:1});
-    notify(anyWin?'HB WIN':'HB LOSS','Round '+HB.rounds+': '+(totalProfit>=0?'+':'')+'$'+totalProfit.toFixed(2),anyWin?'win':'loss');
-    document.getElementById('hb-active-count').textContent='0 TRADES ACTIVE';
+    DG.trades++; if(anyWin) DG.wins++; else DG.losses++; saveDG();
+    updHBStats(); renderHBHistory('all');
+    wsSend({ balance: 1 });
+    notify(anyWin ? 'WW WIN' : 'WW LOSS', 'Round '+HB.rounds+': '+(totalPnl>=0?'+':'')+'$'+totalPnl.toFixed(2), anyWin?'win':'loss');
+    document.getElementById('hb-active-count').textContent = '0 ACTIVE';
   }
 }
 
 function updHBStats() {
-  var tot=HB.won+HB.lost;
-  document.getElementById('hb-rounds').textContent=HB.rounds;
-  document.getElementById('hb-won').textContent=HB.won;
-  document.getElementById('hb-lost').textContent=HB.lost;
-  document.getElementById('hb-net').textContent=(HB.pnl>=0?'+':'')+'$'+HB.pnl.toFixed(2);
-  document.getElementById('hb-net').style.color=HB.pnl>=0?'var(--ac)':'var(--re)';
-  document.getElementById('hb-pnl').textContent=(HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2)+' USD';
-  document.getElementById('hb-pnl').style.color=HB.pnl>=0?'var(--ac)':'var(--re)';
-  var wr=tot?Math.round(HB.won/tot*100):0;
-  document.getElementById('hb-wr').innerHTML=wr+'% <span style="font-size:12px;color:var(--t3)">('+HB.won+'/'+tot+')</span>';
-  document.getElementById('hb-filter-all').textContent='All Trades ('+HB.history.length+')';
-  document.getElementById('hb-filter-win').textContent='Wins ('+HB.won+')';
-  document.getElementById('hb-filter-loss').textContent='Losses ('+HB.lost+')';
-  updHBRoundInfo();
-}
+  var tot = HB.won + HB.lost;
+  var wr = tot ? Math.round(HB.won/tot*100) : 0;
+  document.getElementById('hb-rounds').textContent = HB.rounds;
+  document.getElementById('hb-won').textContent = HB.won;
+  document.getElementById('hb-lost').textContent = HB.lost;
+  document.getElementById('hb-net').textContent = (HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);
+  document.getElementById('hb-net').style.color = HB.pnl>=0?'var(--ac)':'var(--re)';
+  document.getElementById('hb-pnl').textContent = (HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);
+  document.getElementById('hb-pnl').style.color = HB.pnl>=0?'var(--ac)':'var(--re)';
+  document.getElementById('hb-wr').textContent = wr + '%';
+  document.getElementById('hb-wr-pct').textContent = wr + '%';
+  document.getElementById('hb-best').textContent = '+$'+Math.max(0,HB.bestRound).toFixed(2);
+  document.getElementById('hb-worst').textContent = '$'+Math.min(0,HB.worstRound).toFixed(2);
+  document.getElementById('hb-filter-all').textContent = 'All ('+HB.history.length+')';
+  document.getElementById('hb-filter-win').textContent = 'Wins ('+HB.won+')';
+  document.getElementById('hb-filter-loss').textContent = 'Losses ('+HB.lost+')';
+  document.getElementById('hb-round-info').textContent = 'Rounds: '+HB.won+' won / '+HB.lost+' lost | Net: '+(HB.pnl>=0?'+':'')+'$'+HB.pnl.toFixed(2);
 
-function updHBRoundInfo() {
-  var tot=HB.won+HB.lost;
-  document.getElementById('hb-round-info').textContent='Round done: '+HB.won+'/'+tot+' won | Net: '+(HB.pnl>=0?'+':'')+'$'+HB.pnl.toFixed(2);
+  // Daily progress bar
+  var dailyTP = parseFloat(document.getElementById('ww-daily-tp').value) || 60;
+  var dailySL = parseFloat(document.getElementById('ww-daily-sl').value) || 30;
+  var pnl = HB.pnl;
+  document.getElementById('ww-today-pnl').textContent = (pnl>=0?'+':'')+'$'+pnl.toFixed(2);
+  document.getElementById('ww-today-pnl').style.color = pnl>=0?'var(--ac)':'var(--re)';
+  var pct = pnl>=0 ? Math.min(100,(pnl/dailyTP)*100) : Math.min(100,(Math.abs(pnl)/dailySL)*100);
+  var bar = document.getElementById('ww-progress-bar');
+  if (bar) { bar.style.width = pct.toFixed(1)+'%'; bar.style.background = pnl>=0?'linear-gradient(90deg,var(--ac),#00b0ff)':'linear-gradient(90deg,var(--re),#ff8800)'; }
+  document.getElementById('ww-progress-pct').textContent = pct.toFixed(1)+'%';
+  var statusEl = document.getElementById('ww-daily-status');
+  if (statusEl) {
+    if (pnl >= dailyTP) { statusEl.textContent = '🎯 TARGET HIT!'; statusEl.style.color = 'var(--ac)'; }
+    else if (pnl <= -dailySL) { statusEl.textContent = '🛑 DAILY SL HIT'; statusEl.style.color = 'var(--re)'; }
+    else if (pnl > 0) { statusEl.textContent = '+$'+pnl.toFixed(2)+' of $'+dailyTP; statusEl.style.color = 'var(--ac)'; }
+    else if (pnl < 0) { statusEl.textContent = '-$'+Math.abs(pnl).toFixed(2)+' of $'+dailySL+' SL'; statusEl.style.color = 'var(--re)'; }
+    else { statusEl.textContent = 'Ready'; statusEl.style.color = 'var(--t2)'; }
+  }
 }
 
 function filterHBHistory(filter, el) {
   ['hb-filter-all','hb-filter-win','hb-filter-loss'].forEach(function(id){
-    var b=document.getElementById(id);
-    if(b){b.style.background='';b.style.color='';}
+    var b=document.getElementById(id); if(b){b.style.background='';b.style.color='';}
   });
   if(el){el.style.background='var(--ad)';el.style.color='var(--ac)';}
   renderHBHistory(filter);
 }
 
 function renderHBHistory(filter) {
-  var el = document.getElementById('hb-history-list');
-  if(!el) return;
+  var el = document.getElementById('hb-history-list'); if(!el) return;
   var list = HB.history.slice();
   if(filter==='win') list=list.filter(function(r){return r.won;});
   if(filter==='loss') list=list.filter(function(r){return !r.won;});
-  if(!list.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No trades yet.</div>';return;}
-
-  var labels=['H1','H2','H3','H4','L1','L2','L3','L4'];
+  if(!list.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No rounds yet.</div>';return;}
   el.innerHTML = list.map(function(r){
-    var won=r.won;
-    var html='<div class="history-item '+(won?'won':'lost')+'">';
-    // Header
-    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
-    html+='<span style="background:'+(won?'var(--ad)':'var(--rd)')+';color:'+(won?'var(--ac)':'var(--re)')+';padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700">'+(won?'WON':'LOST')+'</span>';
-    html+='<span style="font-size:13px;font-weight:700">'+r.asset+'</span>';
-    html+='<span style="font-size:10px;color:var(--t3)">'+r.time+'</span>';
-    html+='<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+(won?'var(--ac)':'var(--re)')+'">'+( r.profit>=0?'+':'')+'$'+r.profit.toFixed(2)+'</span>';
-    html+='</div>';
-    // Individual trade results
-    html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">';
-    for(var i=0;i<8&&i<r.results.length;i++){
-      var res=r.results[i];
-      if(!res)continue;
-      var isH=i<4;
-      html+='<div style="background:'+(res.win?'rgba(0,229,160,0.08)':'rgba(255,77,106,0.08)')+';border:1px solid '+(res.win?'rgba(0,229,160,0.2)':'rgba(255,77,106,0.2)')+';border-radius:5px;padding:5px 7px">';
-      html+='<div style="font-size:9px;color:'+(isH?'var(--ac)':'var(--re)')+';font-weight:700">'+labels[i]+'</div>';
-      html+='<div style="font-size:11px;font-weight:600;font-family:var(--mo);color:'+(res.win?'var(--ac)':'var(--re)')+'">'+( res.profit>=0?'+':'')+'$'+res.profit.toFixed(2)+'</div>';
-      html+='<div style="font-size:9px;color:var(--t3)">'+res.direction+'</div>';
-      html+='</div>';
-    }
-    html+='</div>';
-    html+='</div>';
+    var won = r.won;
+    var html = '<div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:11px 13px;margin-bottom:7px;border-left:3px solid '+(won?'var(--ac)':'var(--re)')+';">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+    html += '<span style="background:'+(won?'var(--ad)':'var(--rd)')+';color:'+(won?'var(--ac)':'var(--re)')+';padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700">'+(won?'WON':'LOST')+'</span>';
+    html += '<span style="font-size:12px;font-weight:700">'+r.asset+'</span>';
+    html += '<span style="font-size:10px;color:var(--t3)">R'+r.round+' • '+r.time+' • Score:'+r.score+'/5</span>';
+    html += '<span style="font-size:10px;color:var(--t2)">Pred: '+r.pred+'</span>';
+    html += '<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+(won?'var(--ac)':'var(--re)')+'">'+( r.profit>=0?'+':'')+'$'+r.profit.toFixed(2)+'</span>';
+    html += '</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+    var trades = r.results || [];
+    var labels = ['HIGHER','LOWER'];
+    trades.forEach(function(t,i){
+      if(!t) return;
+      var stake = i===0 ? r.hStake : r.lStake;
+      var barrier = i===0 ? (r.barrier ? '+'+r.barrier.h.toFixed(2) : '--') : (r.barrier ? '-'+r.barrier.l.toFixed(2) : '--');
+      html += '<div style="background:'+(t.win?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.07)')+';border:1px solid '+(t.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.25)')+';border-radius:5px;padding:7px 9px">';
+      html += '<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;color:'+(i===0?'var(--ac)':'var(--re)')+';font-weight:700">'+labels[i]+'</span><span style="font-size:11px;font-weight:700;color:'+(t.win?'var(--ac)':'var(--re)')+'">'+( t.profit>=0?'+':'')+'$'+t.profit.toFixed(2)+'</span></div>';
+      html += '<div style="font-size:10px;color:var(--t2)">Stake: $'+stake.toFixed(2)+' | Barrier: '+barrier+'</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
     return html;
   }).join('');
 }
 
 function resetHB() {
-  HB.rounds=0;HB.won=0;HB.lost=0;HB.pnl=0;HB.history=[];
+  HB.rounds=0;HB.won=0;HB.lost=0;HB.pnl=0;HB.history=[];HB.bestRound=0;HB.worstRound=0;HB.lossStreak=0;
   updHBStats();renderHBHistory('all');
-  notify('R','Hybrid stats reset','info');
+  notify('R','WinWin stats reset','info');
 }
+
+function setHBActive(el) {
+  el.closest('.dr').querySelectorAll('.db').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+}
+
 
 // ══════════════════════════════════════
 // MANUAL TRADE
@@ -2216,7 +2394,7 @@ function initCharts(){
 window.addEventListener('load',function(){
   S.botMultiplier=100; S.maxBotTrades=1;
   buildAllDDs(); buildTicker(); initCharts();
-  buildBarrierGrid(); buildStakesGrid(); buildDigitGrid();
+  buildDigitGrid(); calcWWDaily();
   updateStats(); renderTrades();
   updDG();
   document.getElementById('dgGoalInput').value=DG.goal;
