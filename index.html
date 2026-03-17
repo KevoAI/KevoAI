@@ -462,13 +462,14 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         <div class="hybrid-header" style="margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
             <div>
-              <div style="font-size:16px;font-weight:800;color:var(--ac)">WinWin Smart Bot</div>
-              <div style="font-size:12px;color:var(--t2);margin-top:3px">2 trades per round — ATR barriers — BB squeeze entry — prediction-weighted stakes</div>
+              <div style="font-size:16px;font-weight:800;color:var(--ac)">WinWin Volatility Bot</div>
+              <div style="font-size:12px;color:var(--t2);margin-top:3px">8 staggered barrier trades — volatility-timed entry — both sides covered</div>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(0,229,160,0.15);color:var(--ac)">2 Trades/Round</span>
-              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(59,130,246,0.15);color:var(--bl)">ATR Barriers</span>
-              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(245,166,35,0.15);color:var(--go)">BB Squeeze Gate</span>
+              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(0,229,160,0.15);color:var(--ac)">8 Trades/Round</span>
+              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(59,130,246,0.15);color:var(--bl)">ATR Staggered</span>
+              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(245,166,35,0.15);color:var(--go)">Volatility Gated</span>
+              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(255,77,106,0.15);color:var(--re)">Fewer Better Trades</span>
             </div>
           </div>
         </div>
@@ -478,151 +479,69 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           <!-- LEFT COLUMN -->
           <div>
 
-            <!-- Daily Calculator -->
-            <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:14px 16px;margin-bottom:12px">
-              <div style="font-size:13px;font-weight:700;color:var(--ac);margin-bottom:10px">Daily Risk Calculator</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
-                <div class="ig">
-                  <div class="il">Risk Per Trade ($)</div>
-                  <input type="number" class="iif" id="ww-risk" value="3" min="0.35" step="0.5" oninput="calcWWDaily()">
-                </div>
-                <div class="ig">
-                  <div class="il">Daily Stop Loss ($)</div>
-                  <input type="number" class="iif" id="ww-daily-sl" value="30" min="1" step="1" oninput="calcWWDaily()">
-                </div>
-                <div class="ig">
-                  <div class="il">Daily Target ($)</div>
-                  <input type="number" class="iif" id="ww-daily-tp" value="60" min="1" step="1" oninput="calcWWDaily()">
-                </div>
-              </div>
-              <!-- Calculated values grid -->
-              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 9px;border:1px solid var(--bo);text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Big Stake</div>
-                  <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="ww-calc-big">$3.00</div>
-                  <div style="font-size:9px;color:var(--t3)">predicted side</div>
-                </div>
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 9px;border:1px solid var(--bo);text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Hedge Stake</div>
-                  <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--go)" id="ww-calc-hedge">$0.35</div>
-                  <div style="font-size:9px;color:var(--t3)">opposite side</div>
-                </div>
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 9px;border:1px solid var(--bo);text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Max Losses</div>
-                  <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--re)" id="ww-calc-maxl">10</div>
-                  <div style="font-size:9px;color:var(--t3)">before SL hit</div>
-                </div>
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 9px;border:1px solid var(--bo);text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Wins Needed</div>
-                  <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--bl)" id="ww-calc-wins">18</div>
-                  <div style="font-size:9px;color:var(--t3)">to hit target</div>
-                </div>
-              </div>
-              <!-- Math breakdown -->
-              <div style="background:var(--bg3);border-radius:var(--rs);padding:9px 11px;border:1px solid var(--bo);font-size:11px;color:var(--t2);line-height:1.8" id="ww-calc-math">
-                Calculating...
-              </div>
-            </div>
-
             <!-- Signal Monitor -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div style="font-size:12px;font-weight:700">● Signal Monitor</div>
-                <div style="font-size:11px;font-family:var(--mo);font-weight:700;padding:3px 10px;border-radius:99px" id="sig-score-badge" style="background:var(--bg4)">Score: 0/5</div>
+                <div style="font-size:12px;font-weight:700">● Volatility Signal Monitor</div>
+                <div style="font-size:12px;font-weight:800;padding:4px 12px;border-radius:99px;font-family:var(--mo)" id="sig-score-badge">Score: 0/5</div>
               </div>
-              <!-- Score breakdown -->
               <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:10px">
-                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:6px 4px;border:1px solid var(--bo)" id="sig-atr-card">
-                  <div style="font-size:18px">📊</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:2px">ATR</div>
-                  <div style="font-size:10px;font-weight:700;color:var(--t3)" id="sig-atr-val">--</div>
+                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:7px 4px;border:1px solid var(--bo);transition:all .3s" id="sig-atr-card">
+                  <div style="font-size:16px">📊</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:2px">ATR SPIKE</div>
+                  <div style="font-size:10px;font-weight:700;color:var(--t3);margin-top:2px" id="sig-atr-val">--</div>
                 </div>
-                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:6px 4px;border:1px solid var(--bo)" id="sig-bb-card">
-                  <div style="font-size:18px">🔵</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:2px">BB Squeeze</div>
-                  <div style="font-size:10px;font-weight:700;color:var(--t3)" id="sig-bb-val">--</div>
+                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:7px 4px;border:1px solid var(--bo);transition:all .3s" id="sig-bb-card">
+                  <div style="font-size:16px">🔵</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:2px">BB SQUEEZE</div>
+                  <div style="font-size:10px;font-weight:700;color:var(--t3);margin-top:2px" id="sig-bb-val">--</div>
                 </div>
-                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:6px 4px;border:1px solid var(--bo)" id="sig-expand-card">
-                  <div style="font-size:18px">💥</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:2px">Expansion</div>
-                  <div style="font-size:10px;font-weight:700;color:var(--t3)" id="sig-expand-val">--</div>
+                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:7px 4px;border:1px solid var(--bo);transition:all .3s" id="sig-expand-card">
+                  <div style="font-size:16px">💥</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:2px">EXPANSION</div>
+                  <div style="font-size:10px;font-weight:700;color:var(--t3);margin-top:2px" id="sig-expand-val">--</div>
                 </div>
-                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:6px 4px;border:1px solid var(--bo)" id="sig-mom-card">
-                  <div style="font-size:18px">⚡</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:2px">Momentum</div>
-                  <div style="font-size:10px;font-weight:700;color:var(--t3)" id="sig-mom-val">--</div>
+                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:7px 4px;border:1px solid var(--bo);transition:all .3s" id="sig-mom-card">
+                  <div style="font-size:16px">⚡</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:2px">MOMENTUM</div>
+                  <div style="font-size:10px;font-weight:700;color:var(--t3);margin-top:2px" id="sig-mom-val">--</div>
                 </div>
-                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:6px 4px;border:1px solid var(--bo)" id="sig-vol-card">
-                  <div style="font-size:18px">🌊</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:2px">Volatility</div>
-                  <div style="font-size:10px;font-weight:700;color:var(--t3)" id="sig-vol-val">--</div>
+                <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:7px 4px;border:1px solid var(--bo);transition:all .3s" id="sig-cd-card">
+                  <div style="font-size:16px">⏱</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:2px">COOLDOWN</div>
+                  <div style="font-size:10px;font-weight:700;color:var(--t3);margin-top:2px" id="sig-cd-val">--</div>
                 </div>
               </div>
-              <!-- Status message -->
-              <div style="background:var(--bg3);border-radius:var(--rs);padding:9px 11px;border:1px solid var(--bo);font-size:12px;font-weight:600;font-family:var(--mo)" id="sig-status">Start bot to see signals...</div>
+              <div style="background:var(--bg3);border-radius:var(--rs);padding:9px 12px;border:1px solid var(--bo);font-size:12px;font-weight:600;font-family:var(--mo);min-height:38px" id="sig-status">Start bot to see signals...</div>
             </div>
 
-            <!-- Prediction -->
-            <div class="prediction-box" style="margin-bottom:12px">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                <div style="font-size:11px;color:var(--t2);font-weight:600">● Prediction</div>
-                <div style="font-size:11px;font-family:var(--mo);color:var(--t2)" id="pred-confidence">--% confidence</div>
+            <!-- Chart with barrier lines -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
+              <div style="padding:8px 12px;border-bottom:1px solid var(--bo);display:flex;align-items:center;gap:8px">
+                <span style="font-size:12px;font-weight:700" id="ww-chart-lbl">R_100</span>
+                <span style="font-size:11px;color:var(--ac);font-family:var(--mo);font-weight:700" id="ww-chart-price">--</span>
+                <span style="flex:1"></span>
+                <span style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="ww-chart-atr">ATR: --</span>
+                <span style="font-size:10px;padding:2px 7px;border-radius:99px;font-weight:700" id="ww-chart-vol-badge" style="background:var(--bg4);color:var(--t3)">VOL: --</span>
               </div>
-              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-                <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;background:var(--bg3)" id="pred-icon">--</div>
-                <div style="flex:1">
-                  <div style="font-size:18px;font-weight:800" id="pred-dir">WAITING</div>
-                  <div style="font-size:11px;color:var(--t2)" id="pred-desc">Warming up...</div>
-                </div>
-                <div style="text-align:right">
-                  <div style="font-size:10px;color:var(--t3)">Big stake on</div>
-                  <div style="font-size:13px;font-weight:700;color:var(--ac)" id="pred-big-side">--</div>
-                </div>
-              </div>
-              <div class="pred-bar"><div class="pred-bar-fill up" id="pred-bar" style="width:50%"></div></div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
-                <div class="hl-card higher" style="padding:8px 10px">
-                  <div style="font-size:10px;color:var(--ac);font-weight:700">↗ Higher</div>
-                  <div style="font-size:18px;font-weight:800;font-family:var(--mo);color:var(--ac)" id="hl-higher-pct">0%</div>
-                  <div style="font-size:9px;color:var(--t3)" id="hl-higher-ticks">0 ticks</div>
-                </div>
-                <div class="hl-card lower" style="padding:8px 10px">
-                  <div style="font-size:10px;color:var(--re);font-weight:700">↘ Lower</div>
-                  <div style="font-size:18px;font-weight:800;font-family:var(--mo);color:var(--re)" id="hl-lower-pct">0%</div>
-                  <div style="font-size:9px;color:var(--t3)" id="hl-lower-ticks">0 ticks</div>
-                </div>
-              </div>
-              <div style="margin-top:8px">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-                  <div style="font-size:10px;color:var(--t2);font-weight:600">Recent Moves</div>
-                  <div style="font-size:10px;font-family:var(--mo);color:var(--t3)" id="streak-txt">--</div>
-                </div>
-                <div class="moves-grid" id="movesGrid"></div>
+              <canvas id="wwChart" height="200"></canvas>
+              <!-- Barrier legend -->
+              <div style="padding:6px 12px;border-top:1px solid var(--bo);display:flex;gap:10px;flex-wrap:wrap;font-size:10px;font-family:var(--mo)" id="ww-barrier-legend">
+                <span style="color:var(--t3)">No active round</span>
               </div>
             </div>
 
-            <!-- Trade Preview -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-              <div class="pc-higher" style="padding:13px">
-                <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:6px">↗ HIGHER BARRIER</div>
-                <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--t1)">Barrier: <span id="prev-h-barrier" style="color:var(--ac)">+0.00</span></div>
-                <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--t1)">Stake: <span id="prev-h-stake" style="color:var(--ac)">$0.00</span></div>
-                <div style="font-size:11px;color:var(--t2);margin-top:4px">Est. payout: <span id="prev-h-pay" style="color:var(--ac)">--</span></div>
+            <!-- 8 Trade breakdown preview -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
+              <div style="font-size:12px;font-weight:700;margin-bottom:10px">↕ 8 Trades This Round</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="trade-breakdown">
+                <div style="text-align:center;padding:20px;color:var(--t3);font-size:11px;grid-column:span 2">Waiting for volatility signal...</div>
               </div>
-              <div class="pc-lower" style="padding:13px">
-                <div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:6px">↘ LOWER BARRIER</div>
-                <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--t1)">Barrier: <span id="prev-l-barrier" style="color:var(--re)">-0.00</span></div>
-                <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--t1)">Stake: <span id="prev-l-stake" style="color:var(--re)">$0.00</span></div>
-                <div style="font-size:11px;color:var(--t2);margin-top:4px">Est. payout: <span id="prev-l-pay" style="color:var(--re)">--</span></div>
-              </div>
-            </div>
-            <div class="pc-both" style="margin-bottom:12px">
-              <div style="font-size:12px;font-weight:700">↕ Total Per Round</div>
-              <div>
-                <span style="font-size:11px;color:var(--t2)">Stake: </span>
-                <span style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--t1)" id="pc-total-stake">$0.00</span>
-                <span style="font-size:11px;color:var(--t2);margin-left:10px">If win: </span>
-                <span style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="pc-combined-pay">+$0.00</span>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--bo)">
+                <span style="font-size:11px;color:var(--t2)">Total Stake:</span>
+                <span style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--t1)" id="ww-total-stake">$0.00</span>
+                <span style="font-size:11px;color:var(--t2)">Best case win:</span>
+                <span style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="ww-best-win">+$0.00</span>
               </div>
             </div>
 
@@ -635,22 +554,22 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="tsw" id="hbSw" onclick="toggleHybrid()"></div>
               </div>
-              <div style="font-size:11px;color:var(--t2);margin-top:6px" id="hb-round-info">Rounds: 0 won | Net: $0.00</div>
-              <div style="font-size:11px;color:var(--go);font-weight:600;margin-top:3px" id="hb-countdown-txt">--</div>
+              <div style="font-size:11px;color:var(--t2);margin-top:6px" id="hb-round-info">Rounds: 0 | Net: $0.00</div>
+              <div style="font-size:11px;font-weight:600;margin-top:3px;font-family:var(--mo)" id="hb-countdown-txt" style="color:var(--go)">--</div>
               <div class="countdown-bar" style="margin-top:6px"><div class="countdown-fill" id="hb-countdown-bar" style="width:0%"></div></div>
             </div>
 
             <!-- Place Button -->
-            <button class="place-all-btn" id="placeAllBtn" onclick="placeHybridRound()">↕ PLACE 2 TRADES</button>
+            <button class="place-all-btn" id="placeAllBtn" onclick="placeHybridRound()">↕ PLACE 8 TRADES</button>
 
             <!-- Daily Progress -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
                 <div style="font-size:12px;font-weight:700">Daily Progress</div>
-                <div style="font-size:11px;font-family:var(--mo);color:var(--t2)" id="ww-daily-status">--</div>
+                <div style="font-size:11px;font-weight:700;font-family:var(--mo)" id="ww-daily-status" style="color:var(--t2)">--</div>
               </div>
               <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
-                <div class="rs-cell"><div class="rs-lbl">Today P&L</div><div class="rs-val" id="ww-today-pnl" style="font-size:13px">$0.00</div></div>
+                <div class="rs-cell"><div class="rs-lbl">Today P&L</div><div class="rs-val" id="ww-today-pnl" style="font-size:13px;color:var(--ac)">$0.00</div></div>
                 <div class="rs-cell"><div class="rs-lbl">Rounds</div><div class="rs-val" id="hb-rounds">0</div></div>
                 <div class="rs-cell"><div class="rs-lbl">Won</div><div class="rs-val" style="color:var(--ac)" id="hb-won">0</div></div>
                 <div class="rs-cell"><div class="rs-lbl">Lost</div><div class="rs-val" style="color:var(--re)" id="hb-lost">0</div></div>
@@ -666,8 +585,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <!-- Trade History -->
             <div class="card">
               <div class="ch">
-                <div class="ct" style="color:var(--ac)">Trade History</div>
-                <div style="display:flex;gap:6px">
+                <div class="ct" style="color:var(--ac)">Round History</div>
+                <div style="display:flex;gap:5px">
                   <button class="btn" style="background:var(--ad);color:var(--ac);border:1px solid rgba(0,229,160,.2);font-size:11px" id="hb-filter-all" onclick="filterHBHistory('all',this)">All (0)</button>
                   <button class="btn btng" style="font-size:11px" id="hb-filter-win" onclick="filterHBHistory('win',this)">Wins (0)</button>
                   <button class="btn btng" style="font-size:11px" id="hb-filter-loss" onclick="filterHBHistory('loss',this)">Losses (0)</button>
@@ -685,13 +604,38 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <div style="font-size:20px;font-weight:800;font-family:var(--mo);color:var(--bl)" id="hb-wr">0%</div>
                   </div>
                 </div>
-                <div id="hb-history-list"><div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No rounds yet.</div></div>
+                <div id="hb-history-list"><div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No rounds yet. Waiting for volatility signal...</div></div>
               </div>
             </div>
           </div>
 
           <!-- RIGHT COLUMN -->
           <div>
+
+            <!-- Risk Calculator -->
+            <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:14px;margin-bottom:12px">
+              <div style="font-size:13px;font-weight:700;color:var(--ac);margin-bottom:10px">⚙ Risk Calculator</div>
+              <div class="ig" style="margin-bottom:9px">
+                <div class="il">Base Stake ($) — main barriers</div>
+                <div class="ir">
+                  <div class="ia" onclick="var e=document.getElementById('ww-risk');e.value=Math.max(0.35,(parseFloat(e.value)-0.5)).toFixed(2);calcWWDaily()">-</div>
+                  <input type="number" class="iif" id="ww-risk" value="3.00" min="0.35" step="0.5" oninput="calcWWDaily()">
+                  <div class="ia" onclick="var e=document.getElementById('ww-risk');e.value=(parseFloat(e.value)+0.5).toFixed(2);calcWWDaily()">+</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px">
+                <div class="ig">
+                  <div class="il">Daily Stop Loss ($)</div>
+                  <input type="number" class="iif" id="ww-daily-sl" value="30" min="1" oninput="calcWWDaily()">
+                </div>
+                <div class="ig">
+                  <div class="il">Daily Target ($)</div>
+                  <input type="number" class="iif" id="ww-daily-tp" value="60" min="1" oninput="calcWWDaily()">
+                </div>
+              </div>
+              <!-- Calculated breakdown -->
+              <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;border:1px solid var(--bo);font-size:11px;line-height:2;font-family:var(--mo)" id="ww-calc-math">Calculating...</div>
+            </div>
 
             <!-- Asset & Config -->
             <div class="card" style="margin-bottom:12px">
@@ -717,35 +661,9 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <div class="db" onclick="HB.ticks=10;setHBActive(this)">10T</div>
                   </div>
                 </div>
-                <!-- Barrier mode -->
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:10px 11px;border:1px solid var(--bo);margin-bottom:11px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                    <div style="font-size:11px;font-weight:600">Barrier Mode</div>
-                    <div style="display:flex;gap:4px">
-                      <div class="db active" id="bm-auto" onclick="HB.barrierMode='auto';setBarrierMode(this)" style="padding:3px 9px;font-size:10px">AUTO</div>
-                      <div class="db" id="bm-manual" onclick="HB.barrierMode='manual';setBarrierMode(this)" style="padding:3px 9px;font-size:10px">MANUAL</div>
-                    </div>
-                  </div>
-                  <div style="font-size:10px;color:var(--t3)" id="barrier-mode-desc">ATR × 0.6 — updates live every round</div>
-                  <!-- Manual barrier inputs (hidden by default) -->
-                  <div id="manual-barrier-row" style="display:none;margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:7px">
-                    <div class="ig">
-                      <div class="il">Higher Barrier (+)</div>
-                      <input type="number" class="iif" id="ww-manual-h-barrier" value="0.06" step="0.01" min="0.01" oninput="calcWWDaily()">
-                    </div>
-                    <div class="ig">
-                      <div class="il">Lower Barrier (-)</div>
-                      <input type="number" class="iif" id="ww-manual-l-barrier" value="0.06" step="0.01" min="0.01" oninput="calcWWDaily()">
-                    </div>
-                  </div>
-                  <div style="margin-top:8px;font-size:11px;font-family:var(--mo)">
-                    <span style="color:var(--t2)">Live ATR: </span><span style="color:var(--t1)" id="ww-live-atr">--</span>
-                    <span style="color:var(--t2);margin-left:10px">Barrier: </span><span style="color:var(--ac)" id="ww-live-barrier">--</span>
-                  </div>
-                </div>
-                <!-- Min score to trade -->
+                <!-- Min score -->
                 <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Min Signal Score to Trade</div>
+                  <div class="il">Min Signal Score</div>
                   <div class="dr" style="grid-template-columns:repeat(5,1fr)">
                     <div class="db" onclick="HB.minScore=1;setHBActive(this)">1</div>
                     <div class="db" onclick="HB.minScore=2;setHBActive(this)">2</div>
@@ -753,44 +671,53 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <div class="db" onclick="HB.minScore=4;setHBActive(this)">4</div>
                     <div class="db" onclick="HB.minScore=5;setHBActive(this)">5</div>
                   </div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Higher = fewer but better quality trades</div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Higher = fewer, better quality setups</div>
                 </div>
-                <!-- Cooldown toggle -->
+                <!-- Cooldown -->
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);margin-bottom:11px">
                   <div>
-                    <div style="font-size:12px;font-weight:600">3-Loss Cooldown</div>
-                    <div style="font-size:10px;color:var(--t2);margin-top:2px">Pause 2 mins after 3 losses</div>
+                    <div style="font-size:12px;font-weight:600">3-Loss Cooldown (2 min)</div>
+                    <div style="font-size:10px;color:var(--t2);margin-top:2px">Hard pause after 3 net-negative rounds</div>
                   </div>
                   <div class="tsw on" id="ww-cooldown-sw" onclick="this.classList.toggle('on');HB.useCooldown=this.classList.contains('on')"></div>
                 </div>
+                <!-- Min gap between rounds -->
+                <div class="ig" style="margin-bottom:11px">
+                  <div class="il">Min Gap Between Rounds (seconds)</div>
+                  <div class="dr" style="grid-template-columns:repeat(4,1fr)">
+                    <div class="db" onclick="HB.minGap=30;setHBActive(this)">30s</div>
+                    <div class="db active" onclick="HB.minGap=45;setHBActive(this)">45s</div>
+                    <div class="db" onclick="HB.minGap=60;setHBActive(this)">60s</div>
+                    <div class="db" onclick="HB.minGap=90;setHBActive(this)">90s</div>
+                  </div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Prevents over-trading between setups</div>
+                </div>
               </div>
             </div>
 
-            <!-- Live Trade Levels -->
+            <!-- Stagger multipliers (ATR based, editable) -->
             <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct">Live Round</div><span style="font-size:10px;color:var(--t3)" id="ww-round-asset">--</span></div>
+              <div class="ch">
+                <div class="ct">Barrier Multipliers (× ATR)</div>
+                <button class="btn btng" style="font-size:10px;padding:3px 8px;background:var(--ac);color:var(--bg0)" onclick="resetBarrierMults()">Reset</button>
+              </div>
               <div class="cb">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px">
-                  <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.3);border-radius:var(--rs);padding:10px">
-                    <div style="font-size:9px;color:var(--ac);margin-bottom:3px">HIGHER TRADE</div>
-                    <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="live-h-barrier">--</div>
-                    <div style="font-size:11px;color:var(--t2)">Stake: <span id="live-h-stake" style="color:var(--t1)">--</span></div>
+                <div style="font-size:10px;color:var(--t3);margin-bottom:9px">Each barrier = ATR × multiplier. Close = easy hit low payout. Far = rare hit high payout.</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                  <div>
+                    <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:6px">HIGHER SIDE</div>
+                    <div id="h-mult-inputs"></div>
                   </div>
-                  <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.3);border-radius:var(--rs);padding:10px">
-                    <div style="font-size:9px;color:var(--re);margin-bottom:3px">LOWER TRADE</div>
-                    <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--re)" id="live-l-barrier">--</div>
-                    <div style="font-size:11px;color:var(--t2)">Stake: <span id="live-l-stake" style="color:var(--t1)">--</span></div>
+                  <div>
+                    <div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:6px">LOWER SIDE</div>
+                    <div id="l-mult-inputs"></div>
                   </div>
                 </div>
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 10px;border:1px solid var(--bo);font-size:11px;color:var(--t2)">
-                  Entry: <span style="color:var(--t1);font-family:var(--mo)" id="live-entry">--</span>
-                  &nbsp;|&nbsp; Score: <span style="color:var(--go);font-weight:700" id="live-score">--</span>/5
-                  &nbsp;|&nbsp; Direction: <span style="font-weight:700" id="live-dir">--</span>
-                </div>
+                <div style="margin-top:10px;background:var(--bg3);border-radius:var(--rs);padding:8px 10px;border:1px solid var(--bo);font-size:10px;font-family:var(--mo);color:var(--t2)" id="barrier-preview-txt">Live barriers will show here once connected</div>
               </div>
             </div>
 
-            <!-- Round Stats -->
+            <!-- Session stats -->
             <div class="card">
               <div class="ch"><div class="ct">Session Stats</div></div>
               <div class="cb">
@@ -799,6 +726,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div class="bst"><div class="bsl">Win Rate</div><div class="bsv" id="hb-wr-pct" style="color:var(--go)">0%</div></div>
                   <div class="bst"><div class="bsl">Best Round</div><div class="bsv" id="hb-best" style="color:var(--ac);font-size:12px">$0.00</div></div>
                   <div class="bst"><div class="bsl">Worst Round</div><div class="bsv" id="hb-worst" style="color:var(--re);font-size:12px">$0.00</div></div>
+                  <div class="bst"><div class="bsl">Skipped</div><div class="bsv" id="hb-skipped" style="color:var(--t2);font-size:12px">0</div></div>
+                  <div class="bst"><div class="bsl">Avg Score</div><div class="bsv" id="hb-avg-score" style="color:var(--go);font-size:12px">--</div></div>
                 </div>
               </div>
             </div>
@@ -989,852 +918,638 @@ const DD = {
 // ══════════════════════════════════════
 // HYBRID BOT STATE
 // ══════════════════════════════════════
-// HB state defined in WinWin Smart Bot section
-
-// ══════════════════════════════════════
-// WEBSOCKET
-// ══════════════════════════════════════
-function connectWS() {
-  try { if(S.ws) S.ws.close(); } catch(e){}
-  var stxtEl = document.getElementById('stxt');
-  if(stxtEl) stxtEl.textContent = 'Connecting...';
-  S.ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
-  S.ws.onopen = function() {
-    subAllPrices();
-    if(S.apiToken) authorize();
-  };
-  S.ws.onmessage = function(e) {
-    try { handleMsg(JSON.parse(e.data)); } catch(ex){}
-  };
-  S.ws.onclose = function() {
-    S.connected = false; updateConnUI(false);
-    setTimeout(connectWS, 3000);
-  };
-  S.ws.onerror = function() {
-    var stxtEl = document.getElementById('stxt');
-    if(stxtEl) stxtEl.textContent = 'WS error - retrying';
-  };
-}
-
-function wsSend(obj) {
-  if(S.ws && S.ws.readyState===1) {
-    obj.req_id = S.reqId++;
-    S.ws.send(JSON.stringify(obj));
-    return obj.req_id;
-  }
-}
-
-function authorize() { wsSend({authorize: S.apiToken}); }
-function subAllPrices() { for(var g in INSTR) INSTR[g].forEach(function(i){ subPrice(i.sym); }); }
-function subPrice(sym) { wsSend({ticks:sym, subscribe:1}); }
-setInterval(function(){ if(S.ws&&S.ws.readyState===1) wsSend({ping:1}); }, 30000);
-
-// Poll active trades
-setInterval(function(){
-  if(!S.activeTrades.length) return;
-  var now = Date.now();
-  S.activeTrades.forEach(function(t){
-    var elapsed = now-(t.startTime||now);
-    var durMs = t.durMs||8000;
-    if(elapsed > durMs+3000) wsSend({proposal_open_contract:1, contract_id:t.contractId});
-  });
-}, 5000);
-
-function handleMsg(d) {
-  if(d.error) {
-    var code = d.error.code||'', msg = d.error.message||code;
-    if(code==='AlreadySubscribed'||code==='UnrecognisedRequest') return;
-    if(code==='RateLimit') return;
-    if(code==='ProposalOpenContractDoesNotExist') { wsSend({balance:1}); return; }
-    if(code==='InvalidToken'||code==='AuthorizationRequired') {
-      notify('X','Invalid token: '+msg,'loss'); updateConnUI(false);
-    } else if(code==='ContractBuyValidationError'||code==='ContractCreationFailure') {
-      notify('Error', msg, 'loss');
-    } else {
-      console.warn('Deriv error:', code, msg);
-    }
-    return;
-  }
-  switch(d.msg_type) {
-    case 'authorize': onAuth(d.authorize); break;
-    case 'tick': onTickWrapper(d.tick); break;
-    case 'buy': onBuy(d.buy, d.req_id); break;
-    case 'proposal_open_contract': onContract(d.proposal_open_contract); break;
-    case 'balance': onBalance(d.balance); break;
-    case 'transaction': setTimeout(function(){ wsSend({balance:1,subscribe:1}); },500); break;
-  }
-}
-
-function onAuth(a) {
-  S.connected = true;
-  S.currency = a.currency||'USD';
-  S.loginid = a.loginid;
-  updateConnUI(true);
-  var isVirtual = a.is_virtual===1||(a.loginid&&a.loginid.toUpperCase().indexOf('VRTC')!==-1);
-  S.currentTokenIsDemo = isVirtual;
-  if(isVirtual) {
-    S.accType='demo'; S.demoToken=S.apiToken;
-    document.getElementById('demoBtn').className='ab dm';
-    document.getElementById('realBtn').className='ab';
-    document.getElementById('accMode').textContent='DEMO';
-    localStorage.setItem('kevoai_acct','demo');
-    localStorage.setItem('kevoai_demo_token',S.apiToken);
-  } else {
-    S.accType='real'; S.realToken=S.apiToken;
-    document.getElementById('demoBtn').className='ab';
-    document.getElementById('realBtn').className='ab rl';
-    document.getElementById('accMode').textContent='REAL';
-    localStorage.setItem('kevoai_acct','real');
-    localStorage.setItem('kevoai_real_token',S.apiToken);
-  }
-  wsSend({balance:1,subscribe:1});
-  setTimeout(function(){ wsSend({balance:1}); },1500);
-  if(a.balance!==undefined) onBalance({balance:a.balance,currency:a.currency});
-  notify('Connected!',a.loginid+(isVirtual?' (DEMO)':' (REAL)'),'win');
-}
-
-function onBalance(b) {
-  if(!b) return;
-  var bal = parseFloat(b.balance);
-  if(isNaN(bal)) return;
-  S.balance = bal;
-  S.currency = b.currency||S.currency||'USD';
-  document.getElementById('balDisp').textContent = bal.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+S.currency;
-  var today = new Date().toDateString();
-  if(DG.date&&DG.date!==today) {
-    DG.profit=0;DG.trades=0;DG.wins=0;DG.losses=0;DG.stopped=false;DG.targetHit=false;DG.date=today;
-    S.startingBalance=bal; localStorage.setItem('kevoai_start_bal',String(bal)); localStorage.setItem('kevoai_start_date',today); saveDG();
-  }
-  if(!S.startingBalance||S.startingBalance<=0) {
-    var sd=localStorage.getItem('kevoai_start_date')||'', sb=parseFloat(localStorage.getItem('kevoai_start_bal')||'0');
-    if(sd===today&&sb>0) S.startingBalance=sb;
-    else { S.startingBalance=bal; localStorage.setItem('kevoai_start_bal',String(bal)); localStorage.setItem('kevoai_start_date',today); }
-    if(!DG.date) DG.date=today;
-  }
-  DG.profit = parseFloat((bal-S.startingBalance).toFixed(2));
-  updDG();
-}
-
-function saveDG() {
-  localStorage.setItem('kevoai_dg_goal',DG.goal);
-  localStorage.setItem('kevoai_dg_maxloss',DG.maxLoss);
-  localStorage.setItem('kevoai_dg_profit',DG.profit);
-  localStorage.setItem('kevoai_dg_trades',DG.trades);
-  localStorage.setItem('kevoai_dg_wins',DG.wins);
-  localStorage.setItem('kevoai_dg_losses',DG.losses);
-  localStorage.setItem('kevoai_dg_date',DG.date);
-}
-
-function updDG() {
-  var goal = parseFloat(document.getElementById('dgGoalInput').value)||DG.goal;
-  var maxLoss = parseFloat(document.getElementById('dgMaxLoss').value)||DG.maxLoss;
-  DG.goal=goal; DG.maxLoss=maxLoss;
-  document.getElementById('dg-goal').textContent='$'+goal;
-  document.getElementById('dg-bar-goal').textContent='$'+goal;
-  var profit = DG.profit||0;
-  document.getElementById('dg-profit').textContent=(profit>=0?'+':'')+'$'+Math.abs(profit).toFixed(2);
-  document.getElementById('dg-profit').style.color=profit>=0?'var(--ac)':'var(--re)';
-  document.getElementById('dg-trades').textContent=DG.trades||0;
-  document.getElementById('dg-wl').textContent=(DG.wins||0)+' / '+(DG.losses||0);
-  var pct = goal>0?Math.min(100,Math.max(0,(profit/goal)*100)):0;
-  if(profit<0) pct=Math.min(100,Math.max(0,(Math.abs(profit)/maxLoss)*100));
-  document.getElementById('dg-bar').style.width=pct.toFixed(1)+'%';
-  document.getElementById('dg-bar').style.background=profit<0?'linear-gradient(90deg,var(--re),#ff8800)':'linear-gradient(90deg,var(--ac),#00b0ff)';
-  document.getElementById('dg-bar-pct').textContent=pct.toFixed(1)+'%';
-  var status='';
-  if(profit<=-maxLoss){status='STOPPED';document.getElementById('dg-left').style.color='var(--re)';DG.stopped=true;}
-  else if(profit>=goal){status='TARGET HIT!';document.getElementById('dg-left').style.color='var(--ac)';}
-  else if(profit<0){status='Loss: $'+Math.abs(profit).toFixed(2);document.getElementById('dg-left').style.color='var(--re)';}
-  else{status='Profit: +$'+profit.toFixed(2);document.getElementById('dg-left').style.color='var(--ac)';}
-  document.getElementById('dg-left').textContent=status;
-}
-
-function resetDG(){
-  DG.profit=0;DG.trades=0;DG.wins=0;DG.losses=0;DG.stopped=false;DG.targetHit=false;
-  S.startingBalance=S.balance;
-  localStorage.setItem('kevoai_start_bal',String(S.balance));
-  localStorage.setItem('kevoai_start_date',new Date().toDateString());
-  saveDG(); updDG(); notify('Reset','Daily stats reset','info');
-}
-
-function onTick(tick) {
-  var sym=tick.symbol, q=tick.quote, prev=S.prices[sym];
-  S.prices[sym]=q;
-  var tv=document.getElementById('tv-'+sym);
-  var tc=document.getElementById('tc-'+sym);
-  if(tv) tv.textContent=q.toFixed(q>100?2:5);
-  if(tc&&prev!==undefined) {
-    var diff=q-prev, pct=(diff/prev*100).toFixed(3);
-    tc.textContent=(diff>=0?'+':'')+pct+'%';
-    tc.className='tc '+(diff>=0?'up':'down');
-    // Track H/L moves for prediction
-    if(sym===HB.asset||sym===S.asset) {
-      S.recentMoves.push(diff>=0?'H':'L');
-      if(S.recentMoves.length>40) S.recentMoves.shift();
-      updatePrediction();
-      updateMovesGrid();
-    }
-  }
-  if(sym===S.asset) {
-    var dp=q.toFixed(q>100?2:5);
-    document.getElementById('livePrice').textContent=dp;
-    document.getElementById('mktP').textContent=dp;
-    S.priceHist.push(q);
-    if(S.priceHist.length>120) S.priceHist.shift();
-    if(priceChart) {
-      priceChart.data.labels=S.priceHist.map(function(){return '';});
-      priceChart.data.datasets[0].data=S.priceHist.slice();
-      priceChart.update('none');
-    }
-  }
-}
-
-function onTickWrapper(tick) { updateIndicators(tick.symbol,tick.quote); onTick(tick); }
-
-function onBuy(buy, reqId) {
-  if(!buy) return;
-  var p = S.pending[reqId]||{};
-  var durUnit = p.durUnit||'t';
-  var durVal  = parseInt(p.durVal||5);
-  var durMs   = durUnit==='t'?durVal*2000:durUnit==='s'?durVal*1000:durUnit==='m'?durVal*60000:durVal*1000;
-  if(!durMs||durMs<=0) durMs=15000;
-  var t = {
-    id:buy.contract_id, contractId:buy.contract_id,
-    asset:p.asset||S.asset, direction:p.dir||'HIGHER',
-    stake:p.stake||1, pnl:0, win:null, status:'active',
-    time:new Date().toLocaleTimeString(),
-    startTime:Date.now(), endTime:null, duration:null,
-    durMs:durMs, price:S.prices[p.asset||S.asset]||0, exitPrice:null,
-    isBot:!!p.isBot, note:'',
-    isHB:!!p.isHB, hbRound:p.hbRound||null, hbIdx:p.hbIdx||0,
-    isDD:!!p.isDD, digit:p.digit||null,
-    barrier:p.barrier||null
-  };
-  S.trades.unshift(t);
-  S.activeTrades.push(t);
-  updateStats(); renderTrades(); renderActive();
-
-  wsSend({proposal_open_contract:1,contract_id:buy.contract_id,subscribe:1});
-  var _cid=buy.contract_id, _durMs=t.durMs, _polls=0;
-  function _poll() {
-    _polls++;
-    if(!S.activeTrades.some(function(x){return x.contractId==_cid;})) return;
-    if(_polls>=12) {
-      S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!==_cid;});
-      for(var i=0;i<S.trades.length;i++){
-        if(S.trades[i].contractId===_cid&&S.trades[i].status==='active'){
-          S.trades[i].status='timeout';S.trades[i].pnl=0;
-          if(S.trades[i].isHB&&S.trades[i].hbRound) onHBResult(S.trades[i].hbRound,S.trades[i].hbIdx,0,S.trades[i].direction);
-          break;
-        }
-      }
-      updateStats();renderTrades();renderActive();wsSend({balance:1});return;
-    }
-    wsSend({proposal_open_contract:1,contract_id:_cid});
-    setTimeout(_poll,5000);
-  }
-  setTimeout(_poll,_durMs+3000);
-  delete S.pending[reqId];
-}
-
-function onContract(c) {
-  if(!c) return;
-  var idx=-1;
-  for(var i=0;i<S.trades.length;i++){if(S.trades[i].contractId==c.contract_id){idx=i;break;}}
-  if(idx===-1) return;
-  var t=S.trades[idx];
-  if(c.status==='open'||c.status==='active') return;
-  var isDone=c.is_sold||c.status==='sold'||c.status==='expired'||c.status==='cancelled'||c.status==='lost'||c.status==='won';
-  if(!isDone) return;
-  var profit=parseFloat(c.profit||0);
-  var now=Date.now();
-  t.pnl=profit; t.win=profit>0; t.status=profit>0?'win':'loss';
-  t.endTime=now; t.exitPrice=parseFloat(c.exit_spot||S.prices[t.asset]||0);
-  var ms=now-(t.startTime||now); t.duration=ms; t.durationStr=fmtDur(ms);
-  S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
-
-  // Route to Hybrid Bot
-  if(t.isHB&&t.hbRound!==null) {
-    onHBResult(t.hbRound, t.hbIdx, profit, t.direction);
-  }
-  // Route to Differs
-  if(t.isDD) {
-    DD.pnl+=profit;
-    if(profit>0){DD.wins++;DD.winStreak=(DD.winStreak||0)+1;DD.lossStreak=0;}
-    else{DD.losses++;DD.lossStreak=(DD.lossStreak||0)+1;DD.winStreak=0;}
-    updDDStats();
-    var ddLog=document.getElementById('dd-log');
-    if(ddLog){
-      var row=document.createElement('div');
-      row.style.cssText='display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--bo);font-size:11px;font-family:var(--mo)';
-      row.innerHTML='<span style="color:'+(profit>0?'var(--ac)':'var(--re)')+'">'+(profit>0?'WIN':'LOSS')+'</span><span style="color:var(--t2)">DIFFERS '+t.digit+'</span><span style="flex:1;text-align:right;color:'+(profit>0?'var(--ac)':'var(--re)')+'">'+( profit>=0?'+':'')+'$'+profit.toFixed(2)+'</span>';
-      if(ddLog.querySelector('div[style*="text-align:center"]')) ddLog.innerHTML='';
-      ddLog.insertBefore(row,ddLog.firstChild);
-      if(ddLog.children.length>30) ddLog.removeChild(ddLog.lastChild);
-    }
-    DG.trades++;if(profit>0)DG.wins++;else DG.losses++;saveDG();
-    wsSend({balance:1});
-  }
-  if(!t.isHB&&!t.isDD) {
-    notify(profit>0?'WIN':'LOSS',t.direction+(profit>0?' WON':' LOST')+'! '+(profit>=0?'+':'')+'$'+Math.abs(profit).toFixed(2),profit>0?'win':'loss');
-    DG.trades++;if(profit>0)DG.wins++;else DG.losses++;saveDG();
-  }
-  localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
-  updateStats();renderTrades();renderActive();renderJournal('all');
-  wsSend({balance:1});
-  setTimeout(function(){wsSend({balance:1});},1500);
-}
-
-function fmtDur(ms){if(!ms||ms<0)return '--';var s=Math.floor(ms/1000);if(s<60)return s+'s';return Math.floor(s/60)+'m '+(s%60)+'s';}
-
-// ══════════════════════════════════════
-// HYBRID BOT CORE
-// ══════════════════════════════════════
-
-// ══════════════════════════════════════════════════════════════════
-// WINWIN SMART BOT — 2 trades, ATR barriers, BB squeeze gating
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
+// WINWIN VOLATILITY BOT
+// 8 staggered barrier trades (4H + 4L) — volatility-timed entry
+// ══════════════════════════════════════════════════════════════════════
 
 const HB = {
   running: false,
   interval: null,
   asset: 'R_100',
   ticks: 5,
-  barrierMode: 'auto', // 'auto' or 'manual'
   minScore: 3,
+  minGap: 45,       // seconds between rounds
   useCooldown: true,
   rounds: 0, won: 0, lost: 0, pnl: 0,
   bestRound: 0, worstRound: 0,
+  skipped: 0,
+  totalScore: 0,
   history: [],
-  pending: {},
+  pending: {},      // roundId -> {results:[8], settled, ...}
   roundId: 0,
+  lastRoundTime: 0, // timestamp of last round placed
   countdownTimer: null,
   lossStreak: 0,
   coolingDown: false,
   cooldownEnd: 0,
-  lastBBWidths: [] // track BB width history for squeeze detection
+  lastSqueezeTime: 0,
+  prevBBWidth: 0,
+  // ATR multipliers for each barrier tier
+  hMults: [0.3, 0.6, 1.0, 1.8],
+  lMults: [0.3, 0.6, 1.0, 1.8]
 };
 
-// ── Daily calc ──────────────────────────────────────────────────
+// Hedge vs main stake pattern:
+// H1=hedge, H2=main, H3=main, H4=hedge  (close/lottery are cheap)
+// L1=hedge, L2=main, L3=main, L4=hedge
+function getStakes() {
+  var base = parseFloat(document.getElementById('ww-risk').value) || 3;
+  var hedge = 0.35;
+  return [hedge, base, base, hedge, hedge, base, base, hedge];
+}
+
+// ── Risk Calculator ─────────────────────────────────────────────
 function calcWWDaily() {
-  var risk = parseFloat(document.getElementById('ww-risk').value) || 3;
-  var dailySL = parseFloat(document.getElementById('ww-daily-sl').value) || 30;
-  var dailyTP = parseFloat(document.getElementById('ww-daily-tp').value) || 60;
-  var hedge = Math.max(0.35, parseFloat((risk * 0.12).toFixed(2)));
-  hedge = Math.min(hedge, 0.35); // always min hedge
-  var maxLoss = parseFloat((risk + hedge).toFixed(2));
-  var maxLosses = Math.floor(dailySL / maxLoss);
-
-  // Estimate payout at ~150% (barrier contracts typical)
-  var estPayout = 1.5;
-  var winProfit = parseFloat((risk * estPayout - hedge).toFixed(2));
-  var winsNeeded = Math.ceil(dailyTP / winProfit);
-  var roundsNeeded = Math.ceil(winsNeeded / 0.55); // at 55% win rate
-
-  document.getElementById('ww-calc-big').textContent = '$' + risk.toFixed(2);
-  document.getElementById('ww-calc-hedge').textContent = '$' + hedge.toFixed(2);
-  document.getElementById('ww-calc-maxl').textContent = maxLosses;
-  document.getElementById('ww-calc-wins').textContent = winsNeeded;
-  document.getElementById('ww-progress-target').textContent = '$' + dailyTP;
-
-  var math = '';
-  math += 'Risk/round: $' + maxLoss.toFixed(2) + ' | Win/round: +$' + winProfit.toFixed(2) + '\n';
-  math += 'Max losing rounds before SL: ' + maxLosses + '\n';
-  math += 'Wins needed for $' + dailyTP + ' target: ' + winsNeeded + '\n';
-  math += 'Est. rounds needed (@55% WR): ~' + roundsNeeded;
+  var base = parseFloat(document.getElementById('ww-risk').value) || 3;
+  var sl   = parseFloat(document.getElementById('ww-daily-sl').value) || 30;
+  var tp   = parseFloat(document.getElementById('ww-daily-tp').value) || 60;
+  var stakes = getStakes();
+  var totalRisk = stakes.reduce(function(s,v){return s+v;},0);
+  var maxRounds = Math.floor(sl / totalRisk);
+  // Best case: main barriers on winning side both hit (~150% payout)
+  var mainStake = base;
+  var bestWin = parseFloat((mainStake * 2 * 1.5 - mainStake * 2 - 0.35 * 2 * 2).toFixed(2));
+  bestWin = Math.max(0.5, bestWin);
+  var winsNeeded = Math.ceil(tp / bestWin);
+  document.getElementById('ww-progress-target').textContent = '$' + tp;
+  var math = 'Per round stake: $' + totalRisk.toFixed(2) + '
+';
+  math += 'Main barriers: $' + base + ' each (H2, H3, L2, L3)
+';
+  math += 'Hedge barriers: $0.35 each (H1, H4, L1, L4)
+';
+  math += 'Max rounds before SL: ' + maxRounds + '
+';
+  math += 'Est. profit per good round: +$' + bestWin.toFixed(2) + '
+';
+  math += 'Rounds to hit $' + tp + ' target: ~' + winsNeeded;
   document.getElementById('ww-calc-math').style.whiteSpace = 'pre-line';
   document.getElementById('ww-calc-math').textContent = math;
-
-  // Update preview
-  updateWWPreview();
+  updateBarrierPreview();
 }
 
-function setBarrierMode(el) {
-  var isAuto = HB.barrierMode === 'auto';
-  document.getElementById('bm-auto').classList.toggle('active', isAuto);
-  document.getElementById('bm-manual').classList.toggle('active', !isAuto);
-  var manualRow = document.getElementById('manual-barrier-row');
-  if (manualRow) manualRow.style.display = isAuto ? 'none' : 'grid';
-  document.getElementById('barrier-mode-desc').textContent = isAuto
-    ? 'ATR × 0.6 — updates live every round'
-    : 'Set your own barrier distances';
-  calcWWDaily();
+// ── Barrier multiplier inputs ───────────────────────────────────
+function buildMultInputs() {
+  var hDiv = document.getElementById('h-mult-inputs');
+  var lDiv = document.getElementById('l-mult-inputs');
+  if (!hDiv || !lDiv) return;
+  hDiv.innerHTML = ''; lDiv.innerHTML = '';
+  ['H1','H2','H3','H4'].forEach(function(lbl,i){
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:5px;margin-bottom:5px';
+    var isMain = i===1||i===2;
+    row.innerHTML = '<span style="font-size:10px;color:'+(isMain?'var(--ac)':'var(--t3)')+';width:22px;font-weight:700">'+lbl+'</span>'
+      +'<span style="font-size:10px;color:var(--t3);width:16px">×</span>'
+      +'<input type="number" style="width:55px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none" id="hm'+i+'" value="'+HB.hMults[i]+'" step="0.1" min="0.1" oninput="HB.hMults['+i+']=parseFloat(this.value)||0.3;updateBarrierPreview()">'
+      +'<span style="font-size:10px;color:var(--t3)">'+(isMain?'main':'hedge')+'</span>';
+    hDiv.appendChild(row);
+  });
+  ['L1','L2','L3','L4'].forEach(function(lbl,i){
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:5px;margin-bottom:5px';
+    var isMain = i===1||i===2;
+    row.innerHTML = '<span style="font-size:10px;color:'+(isMain?'var(--re)':'var(--t3)')+';width:22px;font-weight:700">'+lbl+'</span>'
+      +'<span style="font-size:10px;color:var(--t3);width:16px">×</span>'
+      +'<input type="number" style="width:55px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none" id="lm'+i+'" value="'+HB.lMults[i]+'" step="0.1" min="0.1" oninput="HB.lMults['+i+']=parseFloat(this.value)||0.3;updateBarrierPreview()">'
+      +'<span style="font-size:10px;color:var(--t3)">'+(isMain?'main':'hedge')+'</span>';
+    lDiv.appendChild(row);
+  });
 }
 
-function getWWBarrier() {
-  if (HB.barrierMode === 'manual') {
-    return {
-      h: parseFloat(document.getElementById('ww-manual-h-barrier').value) || 0.06,
-      l: parseFloat(document.getElementById('ww-manual-l-barrier').value) || 0.06
-    };
+function resetBarrierMults() {
+  HB.hMults = [0.3,0.6,1.0,1.8]; HB.lMults = [0.3,0.6,1.0,1.8];
+  buildMultInputs(); updateBarrierPreview();
+}
+
+function getATR(sym) {
+  var ind = getInd(sym||HB.asset), p = ind.prices, n = p.length;
+  if (n < 5) return 0;
+  var atr = 0, len = Math.min(14, n-1);
+  for (var i = n-len; i < n; i++) atr += Math.abs(p[i]-p[i-1]);
+  return atr / len;
+}
+
+function getBarriers() {
+  var atr = getATR(HB.asset);
+  if (atr <= 0) atr = 0.06;
+  return {
+    h: HB.hMults.map(function(m){ return parseFloat((atr*m).toFixed(2)); }),
+    l: HB.lMults.map(function(m){ return parseFloat((atr*m).toFixed(2)); }),
+    atr: atr
+  };
+}
+
+function updateBarrierPreview() {
+  var b = getBarriers();
+  var stakes = getStakes();
+  var txt = 'HIGHER: ';
+  b.h.forEach(function(v,i){ txt += '+'+v.toFixed(2)+'($'+stakes[i]+') '; });
+  txt += ' | LOWER: ';
+  b.l.forEach(function(v,i){ txt += '-'+v.toFixed(2)+'($'+stakes[i+4]+') '; });
+  var el = document.getElementById('barrier-preview-txt');
+  if (el) el.textContent = txt;
+  // Update trade breakdown preview
+  updateTradeBreakdown(b, stakes, false);
+}
+
+function updateTradeBreakdown(barriers, stakes, isLive) {
+  var el = document.getElementById('trade-breakdown'); if(!el) return;
+  var hLabels=['H1','H2','H3','H4'], lLabels=['L1','L2','L3','L4'];
+  var html='';
+  for (var i=0;i<4;i++){
+    var isMain=i===1||i===2;
+    html+='<div style="background:'+(isMain?'rgba(0,229,160,0.07)':'var(--bg3)')+';border:1px solid '+(isMain?'rgba(0,229,160,0.2)':'var(--bo)')+';border-radius:var(--rs);padding:8px 9px">';
+    html+='<div style="display:flex;justify-content:space-between;margin-bottom:3px">';
+    html+='<span style="font-size:10px;color:var(--ac);font-weight:700">'+hLabels[i]+'</span>';
+    html+='<span style="font-size:10px;color:var(--t2);font-family:var(--mo)">$'+stakes[i]+'</span>';
+    html+='</div>';
+    html+='<div style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--ac)">+'+barriers.h[i].toFixed(2)+'</div>';
+    html+='<div style="font-size:9px;color:var(--t3)">'+(isMain?'main barrier':'hedge')+'</div>';
+    html+='</div>';
   }
-  // AUTO: use ATR × 0.6
-  var ind = getInd(HB.asset);
-  if (ind.prices.length < 14) return { h: 0.06, l: 0.06 };
-  var p = ind.prices, n = p.length, atr = 0;
-  for (var i = n - 14; i < n; i++) atr += Math.abs(p[i] - p[i-1]);
-  atr = atr / 14;
-  var b = Math.max(0.01, parseFloat((atr * 0.6).toFixed(2)));
-  document.getElementById('ww-live-atr').textContent = atr.toFixed(4);
-  document.getElementById('ww-live-barrier').textContent = '+/-' + b.toFixed(2);
-  return { h: b, l: b };
+  for (var j=0;j<4;j++){
+    var isMainL=j===1||j===2;
+    html+='<div style="background:'+(isMainL?'rgba(255,77,106,0.07)':'var(--bg3)')+';border:1px solid '+(isMainL?'rgba(255,77,106,0.2)':'var(--bo)')+';border-radius:var(--rs);padding:8px 9px">';
+    html+='<div style="display:flex;justify-content:space-between;margin-bottom:3px">';
+    html+='<span style="font-size:10px;color:var(--re);font-weight:700">'+lLabels[j]+'</span>';
+    html+='<span style="font-size:10px;color:var(--t2);font-family:var(--mo)">$'+stakes[j+4]+'</span>';
+    html+='</div>';
+    html+='<div style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--re)">-'+barriers.l[j].toFixed(2)+'</div>';
+    html+='<div style="font-size:9px;color:var(--t3)">'+(isMainL?'main barrier':'hedge')+'</div>';
+    html+='</div>';
+  }
+  el.innerHTML=html;
+  var total = stakes.reduce(function(s,v){return s+v;},0);
+  var base = parseFloat(document.getElementById('ww-risk').value)||3;
+  var bestWin = parseFloat((base*2*1.5 - base*2 - 0.35*4).toFixed(2));
+  var ts=document.getElementById('ww-total-stake'); if(ts) ts.textContent='$'+total.toFixed(2);
+  var bw=document.getElementById('ww-best-win'); if(bw) { bw.textContent='+$'+Math.max(0,bestWin).toFixed(2); bw.style.color=bestWin>0?'var(--ac)':'var(--re)'; }
 }
 
-function updateWWPreview() {
-  var risk = parseFloat(document.getElementById('ww-risk').value) || 3;
-  var hedge = Math.max(0.35, parseFloat((risk * 0.12).toFixed(2)));
-  hedge = Math.min(hedge, 0.35);
-  var barrier = getWWBarrier();
-  var pred = getWWPrediction();
-
-  var bigSide = pred.dir; // 'HIGHER' or 'LOWER'
-  var hStake = bigSide === 'HIGHER' ? risk : hedge;
-  var lStake = bigSide === 'LOWER' ? risk : hedge;
-
-  document.getElementById('prev-h-barrier').textContent = '+' + barrier.h.toFixed(2);
-  document.getElementById('prev-h-stake').textContent = '$' + hStake.toFixed(2);
-  document.getElementById('prev-l-barrier').textContent = '-' + barrier.l.toFixed(2);
-  document.getElementById('prev-l-stake').textContent = '$' + lStake.toFixed(2);
-
-  var estPayout = 1.5;
-  document.getElementById('prev-h-pay').textContent = '$' + (hStake * estPayout).toFixed(2);
-  document.getElementById('prev-l-pay').textContent = '$' + (lStake * estPayout).toFixed(2);
-  document.getElementById('pc-total-stake').textContent = '$' + (hStake + lStake).toFixed(2);
-  var bigWin = Math.max(hStake, lStake) * estPayout - Math.min(hStake, lStake);
-  document.getElementById('pc-combined-pay').textContent = '+$' + bigWin.toFixed(2);
-  document.getElementById('pred-big-side').textContent = bigSide || '--';
-}
-
-// ── ATR + BB Signal Engine ──────────────────────────────────────
+// ── Volatility Signal Engine ────────────────────────────────────
 function getWWSignal() {
   var ind = getInd(HB.asset);
-  var prices = ind.prices;
-  var n = prices.length;
+  var prices = ind.prices, n = prices.length;
   var score = 0;
-  var reasons = [];
 
-  // ── Signal 1: ATR above 14-period average (+1) ──────────────
-  var atrScore = 0;
-  if (n >= 28) {
-    var atr14 = 0, atr28 = 0;
-    for (var i = n-14; i < n; i++) atr14 += Math.abs(prices[i] - prices[i-1]);
-    atr14 /= 14;
-    for (var j = n-28; j < n-14; j++) atr28 += Math.abs(prices[j] - prices[j-1]);
-    atr28 /= 14;
-    if (atr14 > atr28 * 1.1) { atrScore = 1; score++; reasons.push('ATR rising ✓'); }
-    else reasons.push('ATR flat');
-    // Update card
-    var ac = document.getElementById('sig-atr-card');
-    var av = document.getElementById('sig-atr-val');
-    if (ac) ac.style.borderColor = atrScore ? 'var(--ac)' : 'var(--bo)';
-    if (av) { av.textContent = atr14.toFixed(4); av.style.color = atrScore ? 'var(--ac)' : 'var(--t3)'; }
+  // ── 1. ATR Spike: 5-tick ATR >= 1.8x 20-tick ATR baseline ──
+  var atr5=0, atr20=0, atrReady=false;
+  if (n >= 25) {
+    for(var i=n-5;i<n;i++) atr5+=Math.abs(prices[i]-prices[i-1]);
+    atr5/=5;
+    for(var j=n-25;j<n-5;j++) atr20+=Math.abs(prices[j]-prices[j-1]);
+    atr20/=20;
+    atrReady=true;
+    if (atr5 >= atr20*1.8) { score++; }
+    var ac=document.getElementById('sig-atr-card'), av=document.getElementById('sig-atr-val');
+    var atrHit = atr5>=atr20*1.8;
+    if(ac){ac.style.borderColor=atrHit?'var(--ac)':'var(--bo)';ac.style.background=atrHit?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(av){av.textContent=(atr5/atr20).toFixed(2)+'x';av.style.color=atrHit?'var(--ac)':'var(--t3)';}
+    // Update live ATR display
+    var latr=document.getElementById('ww-chart-atr');
+    if(latr) latr.textContent='ATR: '+atr5.toFixed(4);
+    var vbadge=document.getElementById('ww-chart-vol-badge');
+    if(vbadge){
+      var ratio=atr20>0?atr5/atr20:1;
+      vbadge.textContent='VOL: '+(ratio>1.8?'HIGH':ratio>1.2?'MED':'LOW');
+      vbadge.style.background=ratio>1.8?'var(--ad)':ratio>1.2?'var(--gd)':'var(--bg4)';
+      vbadge.style.color=ratio>1.8?'var(--ac)':ratio>1.2?'var(--go)':'var(--t3)';
+    }
   } else {
-    var av2 = document.getElementById('sig-atr-val'); if(av2) av2.textContent = 'need 28 ticks';
+    var av2=document.getElementById('sig-atr-val'); if(av2) av2.textContent='need '+Math.max(0,25-n)+' more';
   }
 
-  // ── Signal 2: BB Squeeze active (+2) ───────────────────────
-  var squeezeScore = 0;
+  // ── 2. BB Squeeze: bands were tight, now signal breakout ──────
+  var squeezeScore=0;
   if (ind.bbSqueeze) {
-    squeezeScore = 2; score += 2; reasons.push('BB Squeeze ✓✓');
-    // Track that we were in squeeze
-    HB.lastSqueezeTime = Date.now();
-  } else if (HB.lastSqueezeTime && (Date.now() - HB.lastSqueezeTime) < 15000) {
-    // Still within 15s of squeeze ending = post-squeeze window
-    squeezeScore = 1;
-  } else {
-    reasons.push('No BB squeeze');
+    HB.lastSqueezeTime=Date.now();
+    squeezeScore=2; score+=2;
   }
-  var bc = document.getElementById('sig-bb-card'), bv = document.getElementById('sig-bb-val');
-  if (bc) bc.style.borderColor = squeezeScore >= 2 ? 'rgba(0,229,160,0.8)' : squeezeScore === 1 ? 'rgba(245,166,35,0.8)' : 'var(--bo)';
-  if (bv) { bv.textContent = ind.bbSqueeze ? 'SQUEEZE!' : 'Normal'; bv.style.color = ind.bbSqueeze ? 'var(--ac)' : 'var(--t3)'; }
+  var bcCard=document.getElementById('sig-bb-card'),bcVal=document.getElementById('sig-bb-val');
+  if(bcCard){bcCard.style.borderColor=ind.bbSqueeze?'var(--ac)':'var(--bo)';bcCard.style.background=ind.bbSqueeze?'rgba(0,229,160,0.1)':'var(--bg3)';}
+  if(bcVal){bcVal.textContent=ind.bbSqueeze?'SQUEEZE!':'Normal';bcVal.style.color=ind.bbSqueeze?'var(--ac)':'var(--t3)';}
 
-  // ── Signal 3: Post-squeeze expansion (+1) ──────────────────
-  var expandScore = 0;
-  if (!ind.bbSqueeze && HB.lastSqueezeTime && (Date.now() - HB.lastSqueezeTime) < 15000) {
-    expandScore = 1; score++; reasons.push('Post-squeeze expansion ✓');
-    var ec = document.getElementById('sig-expand-card'), ev = document.getElementById('sig-expand-val');
-    if (ec) ec.style.borderColor = 'var(--ac)';
-    if (ev) { ev.textContent = 'EXPANDING'; ev.style.color = 'var(--ac)'; }
-  } else {
-    var ev2 = document.getElementById('sig-expand-val'); if(ev2) { ev2.textContent = 'Waiting'; ev2.style.color = 'var(--t3)'; }
-    var ec2 = document.getElementById('sig-expand-card'); if(ec2) ec2.style.borderColor = 'var(--bo)';
+  // ── 3. Post-squeeze expansion (bands just started widening) ──
+  var expanding=false;
+  if (!ind.bbSqueeze && HB.lastSqueezeTime>0 && (Date.now()-HB.lastSqueezeTime)<20000) {
+    if (ind.bbWidth>HB.prevBBWidth*1.1) { expanding=true; score++; }
   }
+  if(ind.bbWidth) HB.prevBBWidth=ind.bbWidth;
+  var exCard=document.getElementById('sig-expand-card'),exVal=document.getElementById('sig-expand-val');
+  if(exCard){exCard.style.borderColor=expanding?'var(--ac)':'var(--bo)';exCard.style.background=expanding?'rgba(0,229,160,0.1)':'var(--bg3)';}
+  if(exVal){exVal.textContent=expanding?'EXPANDING!':'Waiting';exVal.style.color=expanding?'var(--ac)':'var(--t3)';}
 
-  // ── Signal 4: Momentum burst (+1) ──────────────────────────
-  var momScore = 0;
-  if (n >= 5) {
-    var tickSizes = [];
-    for (var k = n-5; k < n; k++) tickSizes.push(Math.abs(prices[k] - prices[k-1]));
-    var avgRecent = tickSizes.slice(-3).reduce(function(s,v){return s+v;},0) / 3;
-    var avgOld = tickSizes.slice(0,2).reduce(function(s,v){return s+v;},0) / 2;
-    if (avgRecent > avgOld * 1.3) { momScore = 1; score++; reasons.push('Momentum burst ✓'); }
-    else reasons.push('No momentum burst');
-    var mc = document.getElementById('sig-mom-card'), mv = document.getElementById('sig-mom-val');
-    if (mc) mc.style.borderColor = momScore ? 'var(--ac)' : 'var(--bo)';
-    if (mv) { mv.textContent = momScore ? 'BURST!' : 'Flat'; mv.style.color = momScore ? 'var(--ac)' : 'var(--t3)'; }
+  // ── 4. Momentum: each of last 3 ticks bigger than previous ──
+  var momBurst=false;
+  if (n>=5) {
+    var sizes=[];
+    for(var k=n-4;k<n;k++) sizes.push(Math.abs(prices[k]-prices[k-1]));
+    if(sizes[1]>sizes[0]&&sizes[2]>sizes[1]&&sizes[3]>sizes[2]) { momBurst=true; score++; }
   }
+  var mmCard=document.getElementById('sig-mom-card'),mmVal=document.getElementById('sig-mom-val');
+  if(mmCard){mmCard.style.borderColor=momBurst?'var(--ac)':'var(--bo)';mmCard.style.background=momBurst?'rgba(0,229,160,0.1)':'var(--bg3)';}
+  if(mmVal){mmVal.textContent=momBurst?'BURST!':'Flat';mmVal.style.color=momBurst?'var(--ac)':'var(--t3)';}
 
-  // ── Signal 5: Volatility regime (+1) ───────────────────────
-  var volScore = 0;
-  if (ind.bbWidth !== undefined && ind.bbWidth > 0.0015) {
-    volScore = 1; score++; reasons.push('Good volatility ✓');
-  } else { reasons.push('Low volatility'); }
-  var vc = document.getElementById('sig-vol-card'), vv = document.getElementById('sig-vol-val');
-  if (vc) vc.style.borderColor = volScore ? 'var(--ac)' : 'var(--bo)';
-  if (vv) { vv.textContent = ind.bbWidth ? (ind.bbWidth * 100).toFixed(3) + '%' : '--'; vv.style.color = volScore ? 'var(--ac)' : 'var(--t3)'; }
+  // ── 5. Cooldown clear ────────────────────────────────────────
+  var now=Date.now();
+  var gapOk = (now-HB.lastRoundTime) >= (HB.minGap||45)*1000;
+  var coolOk = !HB.coolingDown || now>HB.cooldownEnd;
+  var cdOk = gapOk && coolOk;
+  if(cdOk) score++;
+  var cdCard=document.getElementById('sig-cd-card'),cdVal=document.getElementById('sig-cd-val');
+  var cdSecs=gapOk?0:Math.ceil(((HB.lastRoundTime+(HB.minGap||45)*1000)-now)/1000);
+  var coolSecs=coolOk?0:Math.ceil((HB.cooldownEnd-now)/1000);
+  var displaySecs=Math.max(cdSecs,coolSecs);
+  if(cdCard){cdCard.style.borderColor=cdOk?'var(--ac)':'var(--bo)';cdCard.style.background=cdOk?'rgba(0,229,160,0.1)':'var(--bg3)';}
+  if(cdVal){cdVal.textContent=cdOk?'READY':(displaySecs+'s');cdVal.style.color=cdOk?'var(--ac)':'var(--re)';}
 
   // Score badge
-  var sb = document.getElementById('sig-score-badge');
-  if (sb) {
-    sb.textContent = 'Score: ' + score + '/5';
-    sb.style.background = score >= 4 ? 'var(--ad)' : score >= 3 ? 'var(--gd)' : 'var(--bg4)';
-    sb.style.color = score >= 4 ? 'var(--ac)' : score >= 3 ? 'var(--go)' : 'var(--t3)';
+  var minScore=HB.minScore||3;
+  var sb=document.getElementById('sig-score-badge');
+  if(sb){
+    sb.textContent='Score: '+score+'/5';
+    sb.style.background=score>=4?'var(--ad)':score>=minScore?'var(--gd)':'var(--bg4)';
+    sb.style.color=score>=4?'var(--ac)':score>=minScore?'var(--go)':'var(--t3)';
+    sb.style.border='1px solid '+(score>=minScore?'rgba(0,229,160,0.3)':'var(--bo)');
   }
 
   // Status message
-  var minScore = HB.minScore || 3;
-  var ss = document.getElementById('sig-status');
-  if (ss) {
-    if (score >= minScore) {
-      ss.textContent = '✅ SIGNAL FOUND (' + score + '/5) — ' + reasons.filter(function(r){return r.includes('✓');}).join(', ');
-      ss.style.color = 'var(--ac)';
-      ss.style.borderColor = 'rgba(0,229,160,0.3)';
+  var ss=document.getElementById('sig-status');
+  if(ss){
+    if(!cdOk){
+      ss.textContent='⏱ '+( !coolOk?'Cooldown: '+Math.ceil((HB.cooldownEnd-now)/1000)+'s remaining':'Gap: '+cdSecs+'s until ready');
+      ss.style.color='var(--go)';
+    } else if(score>=minScore){
+      ss.textContent='✅ VOLATILITY SETUP FOUND — Score '+score+'/5 — Placing 8 trades now...';
+      ss.style.color='var(--ac)';
     } else {
-      ss.textContent = '⏳ Waiting for setup... (' + score + '/' + minScore + ' needed) — ' + reasons.join(', ');
-      ss.style.color = 'var(--go)';
-      ss.style.borderColor = 'rgba(245,166,35,0.2)';
+      var missing=[];
+      if(!atrReady||atr5<atr20*1.8) missing.push('ATR spike ('+( atrReady?(atr5/atr20).toFixed(1)+'x < 1.8x needed':'warming up')+')');
+      if(!ind.bbSqueeze&&!expanding) missing.push('BB squeeze/expansion');
+      if(!momBurst) missing.push('momentum burst');
+      ss.textContent='⏳ Waiting... ('+score+'/'+minScore+') Missing: '+missing.slice(0,2).join(', ');
+      ss.style.color='var(--t2)';
     }
   }
 
-  return { score: score, ready: score >= minScore, reasons: reasons };
+  return { score:score, ready:score>=minScore&&cdOk, atr5:atr5, atr20:atr20 };
 }
 
-// ── Prediction (direction for big stake) ───────────────────────
-function getWWPrediction() {
-  var ind = getInd(HB.asset);
-  var moves = S.recentMoves;
-  if (moves.length < 10) return { dir: 'HIGHER', confidence: 50 };
+// ── Chart with barrier lines ────────────────────────────────────
+var wwChart = null;
+var wwChartData = [];
+var wwBarrierLines = []; // {price, color, label, dash}
 
-  // Combine: EMA trend + recent tick momentum + BB position
-  var dirScore = 0; // positive = HIGHER, negative = LOWER
+function initWWChart() {
+  var canvas = document.getElementById('wwChart'); if(!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (wwChart) { wwChart.destroy(); wwChart=null; }
+  wwChart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels:[],
+      datasets:[{
+        label:'Price', data:[], borderColor:'#00e5a0', borderWidth:1.5,
+        fill:true, backgroundColor:function(c){
+          var g=c.chart.ctx.createLinearGradient(0,0,0,180);
+          g.addColorStop(0,'rgba(0,229,160,.15)'); g.addColorStop(1,'rgba(0,229,160,0)'); return g;
+        }, pointRadius:0, tension:0.3
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{display:false},
+        y:{display:true, grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:9},maxTicksLimit:4}}
+      },
+      animation:{duration:0}
+    }
+  });
+}
 
-  // EMA direction
-  if (ind.ema9 && ind.ema21) {
-    if (ind.ema9 > ind.ema21) dirScore += 2;
-    else dirScore -= 2;
+function updateWWChart(sym, price) {
+  if (!wwChart) return;
+  wwChartData.push(price);
+  if (wwChartData.length>80) wwChartData.shift();
+  var len = wwChartData.length;
+
+  // Rebuild datasets: price line + barrier lines
+  var datasets = [{
+    label:'Price', data:wwChartData.slice(),
+    borderColor:'#00e5a0', borderWidth:1.5, fill:true,
+    backgroundColor:function(c){
+      var g=c.chart.ctx.createLinearGradient(0,0,0,180);
+      g.addColorStop(0,'rgba(0,229,160,.15)'); g.addColorStop(1,'rgba(0,229,160,0)'); return g;
+    }, pointRadius:0, tension:0.3
+  }];
+
+  // Add barrier lines if there's an active round
+  wwBarrierLines.forEach(function(bl){
+    datasets.push({
+      label:bl.label, data:Array(len).fill(bl.price),
+      borderColor:bl.color, borderWidth:bl.isMain?2:1,
+      borderDash:bl.isMain?[5,3]:[3,5],
+      pointRadius:0, fill:false, tension:0
+    });
+  });
+
+  wwChart.data.labels = wwChartData.map(function(){return '';});
+  wwChart.data.datasets = datasets;
+  wwChart.update('none');
+
+  // Update price display
+  var el=document.getElementById('ww-chart-price'); if(el) el.textContent=price.toFixed(price>100?2:4);
+  var lbl=document.getElementById('ww-chart-lbl'); if(lbl) lbl.textContent=sym;
+}
+
+function setWWBarrierLines(entry, barriers, stakes) {
+  wwBarrierLines = [];
+  var hLabels=['H1','H2','H3','H4'], lLabels=['L1','L2','L3','L4'];
+  // Entry
+  wwBarrierLines.push({price:entry,color:'rgba(245,166,35,0.9)',label:'Entry $'+entry.toFixed(2),isMain:true,dash:[4,4]});
+  // Higher barriers
+  barriers.h.forEach(function(b,i){
+    var isMain=i===1||i===2;
+    wwBarrierLines.push({price:entry+b,color:isMain?'rgba(0,229,160,0.9)':'rgba(0,229,160,0.4)',label:hLabels[i]+' +'+b.toFixed(2)+' $'+stakes[i],isMain:isMain});
+  });
+  // Lower barriers
+  barriers.l.forEach(function(b,i){
+    var isMain=i===1||i===2;
+    wwBarrierLines.push({price:entry-b,color:isMain?'rgba(255,77,106,0.9)':'rgba(255,77,106,0.4)',label:lLabels[i]+' -'+b.toFixed(2)+' $'+stakes[i+4],isMain:isMain});
+  });
+  // Update legend
+  var leg=document.getElementById('ww-barrier-legend');
+  if(leg){
+    leg.innerHTML='<span style="color:var(--go);font-weight:700">Entry: '+entry.toFixed(2)+'</span>'
+      +barriers.h.map(function(b,i){return '<span style="color:'+(i===1||i===2?'var(--ac)':'rgba(0,229,160,0.5)')+'">H'+(i+1)+': +'+ b.toFixed(2)+'</span>';}).join('')
+      +barriers.l.map(function(b,i){return '<span style="color:'+(i===1||i===2?'var(--re)':'rgba(255,77,106,0.5)')+'">L'+(i+1)+': -'+ b.toFixed(2)+'</span>';}).join('');
   }
-
-  // Last 5 tick directions
-  var last5 = moves.slice(-5);
-  var h5 = last5.filter(function(m){return m==='H';}).length;
-  dirScore += (h5 - (5 - h5)); // +5 to -5
-
-  // BB position: price above midline = bullish
-  if (ind.bbMid && ind.prices.length) {
-    var curP = ind.prices[ind.prices.length-1];
-    if (curP > ind.bbMid) dirScore += 1;
-    else dirScore -= 1;
-  }
-
-  // Streak reversal: 4+ same direction = likely reversal
-  var streak = 1, streakDir = moves[moves.length-1];
-  for (var i = moves.length-2; i >= 0 && moves[i] === streakDir; i--) streak++;
-  if (streak >= 4) dirScore += streakDir === 'H' ? -3 : 3; // reverse heavy streak
-
-  var dir = dirScore >= 0 ? 'HIGHER' : 'LOWER';
-  var confidence = Math.min(85, 50 + Math.abs(dirScore) * 4);
-
-  return { dir: dir, confidence: Math.round(confidence), score: dirScore };
 }
 
-function updatePrediction() {
-  var pred = getWWPrediction();
-  var moves = S.recentMoves;
-  var n = moves.length;
-  var allH = moves.filter(function(m){return m==='H';}).length;
-  var allL = n - allH;
-
-  document.getElementById('hl-higher-pct').textContent = n ? Math.round(allH/n*100)+'%' : '0%';
-  document.getElementById('hl-lower-pct').textContent = n ? Math.round(allL/n*100)+'%' : '0%';
-  document.getElementById('hl-higher-ticks').textContent = allH + ' ticks';
-  document.getElementById('hl-lower-ticks').textContent = allL + ' ticks';
-
-  var streak = 1, streakDir = moves[moves.length-1] || 'H';
-  for (var i = moves.length-2; i >= 0 && moves[i] === streakDir; i--) streak++;
-  document.getElementById('streak-txt').textContent = streak >= 3 ? streak+'x '+streakDir+' streak' : 'No streak';
-
-  document.getElementById('pred-dir').textContent = pred.dir;
-  document.getElementById('pred-dir').style.color = pred.dir === 'HIGHER' ? 'var(--ac)' : 'var(--re)';
-  document.getElementById('pred-confidence').textContent = pred.confidence + '% confidence';
-  document.getElementById('pred-desc').textContent = 'Big stake → ' + pred.dir + ' (score: ' + pred.score + ')';
-  document.getElementById('pred-icon').textContent = pred.dir === 'HIGHER' ? '↗' : '↘';
-  document.getElementById('pred-icon').style.background = pred.dir === 'HIGHER' ? 'var(--ad)' : 'var(--rd)';
-  document.getElementById('pred-big-side').textContent = pred.dir;
-  document.getElementById('pred-big-side').style.color = pred.dir === 'HIGHER' ? 'var(--ac)' : 'var(--re)';
-  var bar = document.getElementById('pred-bar');
-  if (bar) { bar.style.width = pred.confidence + '%'; bar.className = 'pred-bar-fill ' + (pred.dir === 'HIGHER' ? 'up' : 'dn'); }
-  updateWWPreview();
-}
-
-function updateMovesGrid() {
-  var el = document.getElementById('movesGrid'); if(!el) return;
-  var last = S.recentMoves.slice(-30);
-  el.innerHTML = last.map(function(m){ return '<div class="move-pill '+m+'">'+m+'</div>'; }).join('');
+function clearWWBarrierLines() {
+  wwBarrierLines=[];
+  var leg=document.getElementById('ww-barrier-legend');
+  if(leg) leg.innerHTML='<span style="color:var(--t3)">No active round</span>';
+  if(wwChart) wwChart.update('none');
 }
 
 // ── Bot toggle ──────────────────────────────────────────────────
 function toggleHybrid() {
-  HB.running = !HB.running;
-  document.getElementById('hbSw').classList.toggle('on', HB.running);
-  if (HB.running) {
-    if (!S.connected) { notify('!','Connect API first!','loss'); HB.running=false; document.getElementById('hbSw').classList.remove('on'); return; }
-    HB.lossStreak = 0; HB.coolingDown = false;
-    document.getElementById('placeAllBtn').textContent = '⏸ AUTO RUNNING...';
-    document.getElementById('placeAllBtn').style.background = 'linear-gradient(135deg,var(--go),#ff8800)';
+  HB.running=!HB.running;
+  document.getElementById('hbSw').classList.toggle('on',HB.running);
+  if(HB.running){
+    if(!S.connected){notify('!','Connect API first!','loss');HB.running=false;document.getElementById('hbSw').classList.remove('on');return;}
+    HB.lossStreak=0;HB.coolingDown=false;
+    document.getElementById('placeAllBtn').textContent='⏸ AUTO RUNNING...';
+    document.getElementById('placeAllBtn').style.background='linear-gradient(135deg,var(--go),#ff8800)';
     runHybridAuto();
   } else {
     clearTimeout(HB.interval);
     clearInterval(HB.countdownTimer);
-    document.getElementById('placeAllBtn').textContent = '↕ PLACE 2 TRADES';
-    document.getElementById('placeAllBtn').style.background = 'linear-gradient(135deg,var(--ac),#00b0ff)';
-    document.getElementById('hb-countdown-txt').textContent = '--';
-    document.getElementById('hb-countdown-bar').style.width = '0%';
+    document.getElementById('placeAllBtn').textContent='↕ PLACE 8 TRADES';
+    document.getElementById('placeAllBtn').style.background='linear-gradient(135deg,var(--ac),#00b0ff)';
+    document.getElementById('hb-countdown-txt').textContent='Bot stopped';
+    document.getElementById('hb-countdown-bar').style.width='0%';
   }
 }
 
 function runHybridAuto() {
-  if (!HB.running) return;
-  var dailySL = parseFloat(document.getElementById('ww-daily-sl').value) || 30;
-  var dailyTP = parseFloat(document.getElementById('ww-daily-tp').value) || 60;
-  if (HB.pnl <= -dailySL) { toggleHybrid(); notify('STOP','Daily SL -$'+dailySL+' hit','loss'); return; }
-  if (HB.pnl >= dailyTP)  { toggleHybrid(); notify('TP','Daily target +$'+dailyTP+' hit!','win'); return; }
-  if (DG.stopped) { toggleHybrid(); return; }
+  if(!HB.running) return;
+  var dailySL=parseFloat(document.getElementById('ww-daily-sl').value)||30;
+  var dailyTP=parseFloat(document.getElementById('ww-daily-tp').value)||60;
+  if(HB.pnl<=-dailySL){toggleHybrid();notify('STOP','Daily SL -$'+dailySL+' hit','loss');return;}
+  if(HB.pnl>=dailyTP){toggleHybrid();notify('TP','Daily target +$'+dailyTP+' hit!','win');return;}
+  if(DG.stopped){toggleHybrid();return;}
 
-  // Cooldown check
-  if (HB.coolingDown) {
-    var left = Math.ceil((HB.cooldownEnd - Date.now()) / 1000);
-    if (left > 0) {
-      document.getElementById('hb-round-info').textContent = '⏸ Cooling down: ' + left + 's (3 losses in a row)';
-      HB.interval = setTimeout(runHybridAuto, 1000);
-      return;
-    }
-    HB.coolingDown = false; HB.lossStreak = 0;
+  // Cooldown recovery
+  if(HB.coolingDown&&Date.now()>HB.cooldownEnd){
+    HB.coolingDown=false;HB.lossStreak=0;
+    notify('OK','Cooldown over — watching for setups','info');
   }
 
-  // Check if trades still active
-  var active = S.activeTrades.filter(function(t){ return t.isHB; });
-  if (active.length >= 2) {
-    document.getElementById('hb-active-count').textContent = active.length + ' ACTIVE';
-    HB.interval = setTimeout(runHybridAuto, 2000);
+  // Check active trades
+  var active=S.activeTrades.filter(function(t){return t.isHB;});
+  if(active.length>0){
+    document.getElementById('hb-active-count').textContent=active.length+' ACTIVE';
+    document.getElementById('hb-countdown-txt').textContent='Settling '+active.length+' trades...';
+    HB.interval=setTimeout(runHybridAuto,1000);
     return;
   }
 
   // Check signal
-  var sig = getWWSignal();
-  if (!sig.ready) {
-    document.getElementById('hb-round-info').textContent = '⏳ Score ' + sig.score + '/' + (HB.minScore||3) + ' — waiting for setup...';
-    HB.interval = setTimeout(runHybridAuto, 3000);
+  var sig=getWWSignal();
+  if(!sig.ready){
+    document.getElementById('hb-active-count').textContent='0 ACTIVE';
+    HB.interval=setTimeout(runHybridAuto,2000);
     return;
   }
 
-  // Place trades
+  // Place trades!
   placeHybridRound();
 
-  // Schedule next round
-  var waitMs = (HB.ticks * 2000) + 8000;
-  startCountdown(Math.floor(waitMs / 1000));
-  HB.interval = setTimeout(runHybridAuto, waitMs);
+  // Wait for round to settle + gap before next check
+  var waitMs=(HB.ticks*2000)+6000;
+  startCountdown(Math.floor(waitMs/1000));
+  HB.interval=setTimeout(runHybridAuto,waitMs);
 }
 
-function startCountdown(secs) {
+function startCountdown(secs){
   clearInterval(HB.countdownTimer);
-  HB.countdownSecs = secs;
-  var total = secs;
-  HB.countdownTimer = setInterval(function(){
-    HB.countdownSecs--;
-    var txt = document.getElementById('hb-countdown-txt');
-    var bar = document.getElementById('hb-countdown-bar');
-    if (HB.countdownSecs <= 0) {
-      clearInterval(HB.countdownTimer);
-      if (txt) txt.textContent = 'Ready to trade...';
-      if (bar) bar.style.width = '0%';
-      return;
-    }
-    if (txt) txt.textContent = 'Next round in: ' + HB.countdownSecs + 's';
-    if (bar) bar.style.width = ((HB.countdownSecs/total)*100).toFixed(0) + '%';
-  }, 1000);
+  var total=secs, remaining=secs;
+  HB.countdownTimer=setInterval(function(){
+    remaining--;
+    var txt=document.getElementById('hb-countdown-txt');
+    var bar=document.getElementById('hb-countdown-bar');
+    if(remaining<=0){clearInterval(HB.countdownTimer);if(txt)txt.textContent='Ready for next setup...';if(bar)bar.style.width='0%';return;}
+    if(txt)txt.textContent='Settling round: '+remaining+'s';
+    if(bar)bar.style.width=((remaining/total)*100).toFixed(0)+'%';
+  },1000);
 }
 
 function placeHybridRound() {
-  if (!S.connected) { notify('!','Not connected','loss'); return; }
-  if (DG.stopped) { notify('STOP','Daily limit hit','loss'); return; }
-  var risk = parseFloat(document.getElementById('ww-risk').value) || 3;
-  var hedge = Math.max(0.35, parseFloat((risk * 0.12).toFixed(2)));
-  hedge = Math.min(hedge, 0.35);
-  var barrier = getWWBarrier();
-  var pred = getWWPrediction();
-  var sig = getWWSignal();
+  if(!S.connected){notify('!','Not connected','loss');return;}
+  if(DG.stopped){notify('STOP','Daily limit hit','loss');return;}
 
-  // Big stake goes on predicted side
-  var hStake = pred.dir === 'HIGHER' ? risk : hedge;
-  var lStake = pred.dir === 'LOWER'  ? risk : hedge;
+  var barriers=getBarriers();
+  var stakes=getStakes();
+  var entry=S.prices[HB.asset]||0;
 
   HB.roundId++;
-  var rid = HB.roundId;
+  var rid=HB.roundId;
   HB.rounds++;
-  HB.pending[rid] = { results: [null, null], settled: 0, hStake: hStake, lStake: lStake, time: new Date().toLocaleTimeString(), asset: HB.asset, barrier: barrier, pred: pred.dir, score: sig.score };
+  HB.lastRoundTime=Date.now();
+  HB.pending[rid]={results:new Array(8).fill(null),settled:0,barriers:barriers,stakes:stakes,entry:entry,time:new Date().toLocaleTimeString(),asset:HB.asset};
 
-  // HIGHER barrier trade
-  var rH = wsSend({ buy:1, price:hStake, parameters:{ amount:hStake, basis:'stake', contract_type:'CALL', currency:S.currency, duration:HB.ticks, duration_unit:'t', symbol:HB.asset, barrier:'+'+barrier.h.toFixed(2) }});
-  if (rH) S.pending[rH] = { dir:'HIGHER', stake:hStake, asset:HB.asset, isBot:true, isHB:true, hbRound:rid, hbIdx:0, barrier:barrier.h, durVal:HB.ticks, durUnit:'t' };
+  // Draw barrier lines on chart
+  setWWBarrierLines(entry,barriers,stakes);
+  updateTradeBreakdown(barriers,stakes,true);
 
-  // LOWER barrier trade
-  var rL = wsSend({ buy:1, price:lStake, parameters:{ amount:lStake, basis:'stake', contract_type:'PUT', currency:S.currency, duration:HB.ticks, duration_unit:'t', symbol:HB.asset, barrier:'-'+barrier.l.toFixed(2) }});
-  if (rL) S.pending[rL] = { dir:'LOWER', stake:lStake, asset:HB.asset, isBot:true, isHB:true, hbRound:rid, hbIdx:1, barrier:barrier.l, durVal:HB.ticks, durUnit:'t' };
+  // Place 4 HIGHER contracts
+  barriers.h.forEach(function(b,i){
+    var stake=stakes[i];
+    var r=wsSend({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'CALL',currency:S.currency,duration:HB.ticks,duration_unit:'t',symbol:HB.asset,barrier:'+'+b.toFixed(2)}});
+    if(r) S.pending[r]={dir:'HIGHER',stake:stake,asset:HB.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:i,barrier:b,durVal:HB.ticks,durUnit:'t'};
+  });
 
-  // Update live display
-  var entry = S.prices[HB.asset] || 0;
-  document.getElementById('live-h-barrier').textContent = '+' + barrier.h.toFixed(2);
-  document.getElementById('live-h-stake').textContent = '$' + hStake.toFixed(2);
-  document.getElementById('live-l-barrier').textContent = '-' + barrier.l.toFixed(2);
-  document.getElementById('live-l-stake').textContent = '$' + lStake.toFixed(2);
-  document.getElementById('live-entry').textContent = entry.toFixed(entry > 100 ? 2 : 4);
-  document.getElementById('live-score').textContent = sig.score;
-  document.getElementById('live-dir').textContent = pred.dir;
-  document.getElementById('live-dir').style.color = pred.dir === 'HIGHER' ? 'var(--ac)' : 'var(--re)';
-  document.getElementById('ww-round-asset').textContent = HB.asset;
-  document.getElementById('hb-active-count').textContent = '2 ACTIVE';
+  // Place 4 LOWER contracts
+  barriers.l.forEach(function(b,i){
+    var stake=stakes[i+4];
+    var r=wsSend({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'PUT',currency:S.currency,duration:HB.ticks,duration_unit:'t',symbol:HB.asset,barrier:'-'+b.toFixed(2)}});
+    if(r) S.pending[r]={dir:'LOWER',stake:stake,asset:HB.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:i+4,barrier:b,durVal:HB.ticks,durUnit:'t'};
+  });
 
-  notify('WW', 'Round '+HB.rounds+': $'+hStake+' HIGHER / $'+lStake+' LOWER | Score:'+sig.score+'/5', 'info');
+  var sig=getWWSignal();
+  document.getElementById('hb-active-count').textContent='8 ACTIVE';
+  notify('WW','Round '+HB.rounds+': 8 trades placed | Score '+sig.score+'/5 | Entry: '+entry.toFixed(2),'info');
   updHBStats();
 }
 
-function onHBResult(roundId, idx, profit, direction) {
-  if (!HB.pending[roundId]) return;
-  HB.pending[roundId].results[idx] = { profit: profit, direction: direction, win: profit > 0 };
+function onHBResult(roundId,idx,profit,direction) {
+  if(!HB.pending[roundId]) return;
+  HB.pending[roundId].results[idx]={profit:profit,direction:direction,win:profit>0};
   HB.pending[roundId].settled++;
 
-  if (HB.pending[roundId].settled >= 2) {
-    var r = HB.pending[roundId];
-    var totalPnl = r.results.reduce(function(s,x){ return s + (x ? x.profit : 0); }, 0);
-    var anyWin = r.results.some(function(x){ return x && x.profit > 0; });
-
-    HB.pnl += totalPnl;
-    if (anyWin) { HB.won++; HB.lossStreak = 0; }
-    else {
-      HB.lost++;
-      HB.lossStreak++;
-      if (HB.lossStreak >= 3 && HB.useCooldown && !HB.coolingDown) {
-        HB.coolingDown = true;
-        HB.cooldownEnd = Date.now() + 120000;
-        notify('PAUSE', '3 losses in a row — pausing 2 mins', 'loss');
+  if(HB.pending[roundId].settled>=8){
+    var r=HB.pending[roundId];
+    var totalPnl=r.results.reduce(function(s,x){return s+(x?x.profit:0);},0);
+    totalPnl=parseFloat(totalPnl.toFixed(2));
+    // TRUE win = NET POSITIVE P&L
+    var isWin=totalPnl>0;
+    HB.pnl+=totalPnl;
+    if(isWin){HB.won++;HB.lossStreak=0;}
+    else{
+      HB.lost++;HB.lossStreak++;
+      if(HB.lossStreak>=3&&HB.useCooldown&&!HB.coolingDown){
+        HB.coolingDown=true;HB.cooldownEnd=Date.now()+120000;
+        notify('PAUSE','3 net-negative rounds — pausing 2 mins','loss');
       }
     }
-    if (totalPnl > HB.bestRound) HB.bestRound = totalPnl;
-    if (totalPnl < HB.worstRound) HB.worstRound = totalPnl;
+    if(totalPnl>HB.bestRound) HB.bestRound=totalPnl;
+    if(totalPnl<HB.worstRound) HB.worstRound=totalPnl;
 
-    HB.history.unshift({ round: HB.rounds, time: r.time, asset: r.asset, profit: totalPnl, won: anyWin, cumPnl: HB.pnl, results: r.results.slice(), hStake: r.hStake, lStake: r.lStake, barrier: r.barrier, pred: r.pred, score: r.score });
-    if (HB.history.length > 100) HB.history.pop();
+    HB.history.unshift({round:HB.rounds,time:r.time,asset:r.asset,profit:totalPnl,won:isWin,cumPnl:HB.pnl,results:r.results.slice(),stakes:r.stakes,barriers:r.barriers,entry:r.entry});
+    if(HB.history.length>100) HB.history.pop();
     delete HB.pending[roundId];
 
-    DG.trades++; if(anyWin) DG.wins++; else DG.losses++; saveDG();
-    updHBStats(); renderHBHistory('all');
-    wsSend({ balance: 1 });
-    notify(anyWin ? 'WW WIN' : 'WW LOSS', 'Round '+HB.rounds+': '+(totalPnl>=0?'+':'')+'$'+totalPnl.toFixed(2), anyWin?'win':'loss');
-    document.getElementById('hb-active-count').textContent = '0 ACTIVE';
+    clearWWBarrierLines();
+    DG.trades++;if(isWin)DG.wins++;else DG.losses++;saveDG();
+    updHBStats();renderHBHistory('all');
+    wsSend({balance:1});
+    notify(isWin?'WW WIN':'WW LOSS','Round '+HB.rounds+': '+(totalPnl>=0?'+':'')+'$'+Math.abs(totalPnl).toFixed(2),isWin?'win':'loss');
+    document.getElementById('hb-active-count').textContent='0 ACTIVE';
   }
 }
 
-function updHBStats() {
-  var tot = HB.won + HB.lost;
-  var wr = tot ? Math.round(HB.won/tot*100) : 0;
-  document.getElementById('hb-rounds').textContent = HB.rounds;
-  document.getElementById('hb-won').textContent = HB.won;
-  document.getElementById('hb-lost').textContent = HB.lost;
-  document.getElementById('hb-net').textContent = (HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);
-  document.getElementById('hb-net').style.color = HB.pnl>=0?'var(--ac)':'var(--re)';
-  document.getElementById('hb-pnl').textContent = (HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);
-  document.getElementById('hb-pnl').style.color = HB.pnl>=0?'var(--ac)':'var(--re)';
-  document.getElementById('hb-wr').textContent = wr + '%';
-  document.getElementById('hb-wr-pct').textContent = wr + '%';
-  document.getElementById('hb-best').textContent = '+$'+Math.max(0,HB.bestRound).toFixed(2);
-  document.getElementById('hb-worst').textContent = '$'+Math.min(0,HB.worstRound).toFixed(2);
-  document.getElementById('hb-filter-all').textContent = 'All ('+HB.history.length+')';
-  document.getElementById('hb-filter-win').textContent = 'Wins ('+HB.won+')';
-  document.getElementById('hb-filter-loss').textContent = 'Losses ('+HB.lost+')';
-  document.getElementById('hb-round-info').textContent = 'Rounds: '+HB.won+' won / '+HB.lost+' lost | Net: '+(HB.pnl>=0?'+':'')+'$'+HB.pnl.toFixed(2);
+function updHBStats(){
+  var tot=HB.won+HB.lost;
+  var wr=tot?Math.round(HB.won/tot*100):0;
+  document.getElementById('hb-rounds').textContent=HB.rounds;
+  document.getElementById('hb-won').textContent=HB.won;
+  document.getElementById('hb-lost').textContent=HB.lost;
+  document.getElementById('hb-net').textContent=(HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);
+  document.getElementById('hb-net').style.color=HB.pnl>=0?'var(--ac)':'var(--re)';
+  document.getElementById('hb-pnl').textContent=(HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);
+  document.getElementById('hb-pnl').style.color=HB.pnl>=0?'var(--ac)':'var(--re)';
+  document.getElementById('hb-wr').textContent=wr+'%';
+  document.getElementById('hb-wr-pct').textContent=wr+'%';
+  document.getElementById('hb-best').textContent=(HB.bestRound>0?'+':'')+'$'+HB.bestRound.toFixed(2);
+  document.getElementById('hb-worst').textContent='$'+HB.worstRound.toFixed(2);
+  document.getElementById('hb-skipped').textContent=HB.skipped;
+  if(tot) document.getElementById('hb-avg-score').textContent=(HB.totalScore/tot).toFixed(1)+'/5';
+  document.getElementById('hb-filter-all').textContent='All ('+HB.history.length+')';
+  document.getElementById('hb-filter-win').textContent='Wins ('+HB.won+')';
+  document.getElementById('hb-filter-loss').textContent='Losses ('+HB.lost+')';
+  document.getElementById('hb-round-info').textContent='Rounds: '+HB.won+' won / '+HB.lost+' lost | Net: '+(HB.pnl>=0?'+':'')+'$'+HB.pnl.toFixed(2);
 
-  // Daily progress bar
-  var dailyTP = parseFloat(document.getElementById('ww-daily-tp').value) || 60;
-  var dailySL = parseFloat(document.getElementById('ww-daily-sl').value) || 30;
-  var pnl = HB.pnl;
-  document.getElementById('ww-today-pnl').textContent = (pnl>=0?'+':'')+'$'+pnl.toFixed(2);
-  document.getElementById('ww-today-pnl').style.color = pnl>=0?'var(--ac)':'var(--re)';
-  var pct = pnl>=0 ? Math.min(100,(pnl/dailyTP)*100) : Math.min(100,(Math.abs(pnl)/dailySL)*100);
-  var bar = document.getElementById('ww-progress-bar');
-  if (bar) { bar.style.width = pct.toFixed(1)+'%'; bar.style.background = pnl>=0?'linear-gradient(90deg,var(--ac),#00b0ff)':'linear-gradient(90deg,var(--re),#ff8800)'; }
-  document.getElementById('ww-progress-pct').textContent = pct.toFixed(1)+'%';
-  var statusEl = document.getElementById('ww-daily-status');
-  if (statusEl) {
-    if (pnl >= dailyTP) { statusEl.textContent = '🎯 TARGET HIT!'; statusEl.style.color = 'var(--ac)'; }
-    else if (pnl <= -dailySL) { statusEl.textContent = '🛑 DAILY SL HIT'; statusEl.style.color = 'var(--re)'; }
-    else if (pnl > 0) { statusEl.textContent = '+$'+pnl.toFixed(2)+' of $'+dailyTP; statusEl.style.color = 'var(--ac)'; }
-    else if (pnl < 0) { statusEl.textContent = '-$'+Math.abs(pnl).toFixed(2)+' of $'+dailySL+' SL'; statusEl.style.color = 'var(--re)'; }
-    else { statusEl.textContent = 'Ready'; statusEl.style.color = 'var(--t2)'; }
+  // Daily progress
+  var dailyTP=parseFloat(document.getElementById('ww-daily-tp').value)||60;
+  var dailySL=parseFloat(document.getElementById('ww-daily-sl').value)||30;
+  document.getElementById('ww-today-pnl').textContent=(HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);
+  document.getElementById('ww-today-pnl').style.color=HB.pnl>=0?'var(--ac)':'var(--re)';
+  var pct=HB.pnl>=0?Math.min(100,(HB.pnl/dailyTP)*100):Math.min(100,(Math.abs(HB.pnl)/dailySL)*100);
+  var pbar=document.getElementById('ww-progress-bar');
+  if(pbar){pbar.style.width=pct.toFixed(1)+'%';pbar.style.background=HB.pnl>=0?'linear-gradient(90deg,var(--ac),#00b0ff)':'linear-gradient(90deg,var(--re),#ff8800)';}
+  document.getElementById('ww-progress-pct').textContent=pct.toFixed(1)+'%';
+  var stat=document.getElementById('ww-daily-status');
+  if(stat){
+    if(HB.pnl>=dailyTP){stat.textContent='🎯 TARGET HIT!';stat.style.color='var(--ac)';}
+    else if(HB.pnl<=-dailySL){stat.textContent='🛑 SL HIT';stat.style.color='var(--re)';}
+    else if(HB.pnl>0){stat.textContent='+$'+HB.pnl.toFixed(2)+' / $'+dailyTP;stat.style.color='var(--ac)';}
+    else if(HB.pnl<0){stat.textContent='-$'+Math.abs(HB.pnl).toFixed(2)+' / $'+dailySL+' SL';stat.style.color='var(--re)';}
+    else{stat.textContent='Ready';stat.style.color='var(--t2)';}
   }
 }
 
-function filterHBHistory(filter, el) {
-  ['hb-filter-all','hb-filter-win','hb-filter-loss'].forEach(function(id){
-    var b=document.getElementById(id); if(b){b.style.background='';b.style.color='';}
-  });
+function filterHBHistory(filter,el){
+  ['hb-filter-all','hb-filter-win','hb-filter-loss'].forEach(function(id){var b=document.getElementById(id);if(b){b.style.background='';b.style.color='';}});
   if(el){el.style.background='var(--ad)';el.style.color='var(--ac)';}
   renderHBHistory(filter);
 }
 
-function renderHBHistory(filter) {
-  var el = document.getElementById('hb-history-list'); if(!el) return;
-  var list = HB.history.slice();
+function renderHBHistory(filter){
+  var el=document.getElementById('hb-history-list');if(!el)return;
+  var list=HB.history.slice();
   if(filter==='win') list=list.filter(function(r){return r.won;});
   if(filter==='loss') list=list.filter(function(r){return !r.won;});
   if(!list.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No rounds yet.</div>';return;}
-  el.innerHTML = list.map(function(r){
-    var won = r.won;
-    var html = '<div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:11px 13px;margin-bottom:7px;border-left:3px solid '+(won?'var(--ac)':'var(--re)')+';">';
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
-    html += '<span style="background:'+(won?'var(--ad)':'var(--rd)')+';color:'+(won?'var(--ac)':'var(--re)')+';padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700">'+(won?'WON':'LOST')+'</span>';
-    html += '<span style="font-size:12px;font-weight:700">'+r.asset+'</span>';
-    html += '<span style="font-size:10px;color:var(--t3)">R'+r.round+' • '+r.time+' • Score:'+r.score+'/5</span>';
-    html += '<span style="font-size:10px;color:var(--t2)">Pred: '+r.pred+'</span>';
-    html += '<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+(won?'var(--ac)':'var(--re)')+'">'+( r.profit>=0?'+':'')+'$'+r.profit.toFixed(2)+'</span>';
-    html += '</div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-    var trades = r.results || [];
-    var labels = ['HIGHER','LOWER'];
-    trades.forEach(function(t,i){
-      if(!t) return;
-      var stake = i===0 ? r.hStake : r.lStake;
-      var barrier = i===0 ? (r.barrier ? '+'+r.barrier.h.toFixed(2) : '--') : (r.barrier ? '-'+r.barrier.l.toFixed(2) : '--');
-      html += '<div style="background:'+(t.win?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.07)')+';border:1px solid '+(t.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.25)')+';border-radius:5px;padding:7px 9px">';
-      html += '<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;color:'+(i===0?'var(--ac)':'var(--re)')+';font-weight:700">'+labels[i]+'</span><span style="font-size:11px;font-weight:700;color:'+(t.win?'var(--ac)':'var(--re)')+'">'+( t.profit>=0?'+':'')+'$'+t.profit.toFixed(2)+'</span></div>';
-      html += '<div style="font-size:10px;color:var(--t2)">Stake: $'+stake.toFixed(2)+' | Barrier: '+barrier+'</div>';
-      html += '</div>';
-    });
-    html += '</div></div>';
+  var hLabels=['H1','H2','H3','H4'],lLabels=['L1','L2','L3','L4'];
+  el.innerHTML=list.map(function(r){
+    var won=r.won;
+    var html='<div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:11px 13px;margin-bottom:8px;border-left:3px solid '+(won?'var(--ac)':'var(--re)')+';">';
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+    html+='<span style="background:'+(won?'var(--ad)':'var(--rd)')+';color:'+(won?'var(--ac)':'var(--re)')+';padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700">'+(won?'WIN':'LOSS')+'</span>';
+    html+='<span style="font-size:12px;font-weight:700">'+r.asset+'</span>';
+    html+='<span style="font-size:10px;color:var(--t3)">R'+r.round+' • '+r.time+'</span>';
+    html+='<span style="font-size:10px;color:var(--t3)">Entry: '+r.entry.toFixed(2)+'</span>';
+    html+='<span style="margin-left:auto;font-size:14px;font-weight:700;font-family:var(--mo);color:'+(won?'var(--ac)':'var(--re)')+'">'+( r.profit>=0?'+':'')+'$'+r.profit.toFixed(2)+'</span>';
+    html+='</div>';
+    // 8 trade results in 4+4 grid
+    html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:4px">';
+    for(var i=0;i<4;i++){
+      var t=r.results[i];if(!t)continue;
+      var bv=r.barriers?r.barriers.h[i]:0;
+      html+='<div style="background:'+(t.win?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.08)')+';border:1px solid '+(t.win?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.2)')+';border-radius:4px;padding:5px 6px">';
+      html+='<div style="font-size:9px;color:var(--ac);font-weight:700">'+hLabels[i]+'</div>';
+      html+='<div style="font-size:9px;color:var(--t3)">+'+( bv?bv.toFixed(2):'?')+'</div>';
+      html+='<div style="font-size:10px;font-weight:700;font-family:var(--mo);color:'+(t.win?'var(--ac)':'var(--re)')+'">'+( t.profit>=0?'+':'')+'$'+Math.abs(t.profit).toFixed(2)+'</div>';
+      html+='</div>';
+    }
+    html+='</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px">';
+    for(var j=0;j<4;j++){
+      var tl=r.results[j+4];if(!tl)continue;
+      var blv=r.barriers?r.barriers.l[j]:0;
+      html+='<div style="background:'+(tl.win?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.08)')+';border:1px solid '+(tl.win?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.2)')+';border-radius:4px;padding:5px 6px">';
+      html+='<div style="font-size:9px;color:var(--re);font-weight:700">'+lLabels[j]+'</div>';
+      html+='<div style="font-size:9px;color:var(--t3)">-'+( blv?blv.toFixed(2):'?')+'</div>';
+      html+='<div style="font-size:10px;font-weight:700;font-family:var(--mo);color:'+(tl.win?'var(--ac)':'var(--re)')+'">'+( tl.profit>=0?'+':'')+'$'+Math.abs(tl.profit).toFixed(2)+'</div>';
+      html+='</div>';
+    }
+    html+='</div></div>';
     return html;
   }).join('');
 }
 
-function resetHB() {
-  HB.rounds=0;HB.won=0;HB.lost=0;HB.pnl=0;HB.history=[];HB.bestRound=0;HB.worstRound=0;HB.lossStreak=0;
+function resetHB(){
+  HB.rounds=0;HB.won=0;HB.lost=0;HB.pnl=0;HB.history=[];HB.bestRound=0;HB.worstRound=0;HB.lossStreak=0;HB.skipped=0;HB.totalScore=0;
+  clearWWBarrierLines();
   updHBStats();renderHBHistory('all');
   notify('R','WinWin stats reset','info');
 }
 
-function setHBActive(el) {
+function setHBActive(el){
   el.closest('.dr').querySelectorAll('.db').forEach(function(b){b.classList.remove('active');});
   el.classList.add('active');
 }
+
+// Hook into tick updates for chart
+var _origOnTick=onTick;
+onTick=function(tick){
+  _origOnTick(tick);
+  if(tick.symbol===HB.asset) updateWWChart(tick.symbol,tick.quote);
+};
 
 
 // ══════════════════════════════════════
@@ -2394,7 +2109,7 @@ function initCharts(){
 window.addEventListener('load',function(){
   S.botMultiplier=100; S.maxBotTrades=1;
   buildAllDDs(); buildTicker(); initCharts();
-  buildDigitGrid(); calcWWDaily();
+  buildDigitGrid(); buildMultInputs(); calcWWDaily(); initWWChart();
   updateStats(); renderTrades();
   updDG();
   document.getElementById('dgGoalInput').value=DG.goal;
