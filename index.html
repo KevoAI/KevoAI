@@ -499,7 +499,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <span style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="ww-chart-atr">ATR: --</span>
                 <span style="font-size:10px;padding:2px 7px;border-radius:99px;font-weight:700;background:var(--bg4);color:var(--t3)" id="ww-chart-vol-badge">VOL: --</span>
               </div>
-              <canvas id="wwChart" height="200" style="width:100%"></canvas>
+              <canvas id="wwChart" height="160" style="width:100%"></canvas>
               <div style="padding:6px 12px;border-top:1px solid var(--bo);display:flex;gap:10px;flex-wrap:wrap;font-size:10px;font-family:var(--mo)" id="ww-barrier-legend">
                 <span style="color:var(--t3)">No active round</span>
               </div>
@@ -1049,7 +1049,7 @@ function onTick(tick) {
   }
 }
 
-function onTickWrapper(tick) { updateIndicators(tick.symbol,tick.quote); onTick(tick); if(tick.symbol===HB.asset)updateWWChart(tick.symbol,tick.quote);}
+function onTickWrapper(tick) { updateIndicators(tick.symbol,tick.quote); onTick(tick); if(tick.symbol===HB.asset&&document.getElementById('page-barrier').classList.contains('active'))updateWWChart(tick.symbol,tick.quote);}
 
 function onBuy(buy, reqId) {
   if(!buy) return;
@@ -1179,18 +1179,32 @@ function calcWWDaily() {
   var sl   = parseFloat(document.getElementById('ww-daily-sl').value)||30;
   var tp   = parseFloat(document.getElementById('ww-daily-tp').value)||60;
   var stakes = getStakes();
-  var total = stakes.reduce(function(s,v){return s+v;},0);
-  var maxRounds = Math.floor(sl/total);
-  var bestWin = parseFloat((base*2*1.5 - base*2 - 0.35*4).toFixed(2));
-  bestWin = Math.max(0.5, bestWin);
-  var winsNeeded = Math.ceil(tp/bestWin);
+  var totalPerRound = stakes.reduce(function(s,v){return s+v;},0);
+
+  // Win scenario: main barriers on 1 side hit at ~150% payout
+  var winPayout  = base * 2 * 1.5;           // H2+H3 win payout
+  var loseCost   = base * 2 + 0.35 * 4;      // other side + hedges lose
+  var netWin     = parseFloat((winPayout - loseCost).toFixed(2));
+  netWin = Math.max(0.1, netWin);
+
+  // Worst case: all 8 lose = full round cost
+  var maxRounds  = Math.floor(sl / totalPerRound);
+  var winsNeeded = Math.ceil(tp / netWin);
+
   var el = document.getElementById('ww-progress-target'); if(el) el.textContent='$'+tp;
-  var math = 'Per round stake: $'+total.toFixed(2)+'\n';
-  math += 'Main barriers ($'+base+'): H2, H3, L2, L3\n';
-  math += 'Hedge barriers ($0.35): H1, H4, L1, L4\n';
-  math += 'Max rounds before SL: '+maxRounds+'\n';
-  math += 'Est profit per win: +$'+bestWin.toFixed(2)+'\n';
-  math += 'Rounds to hit $'+tp+' target: ~'+winsNeeded;
+
+  var math = 'Per round cost:  $'+totalPerRound.toFixed(2)+'\n';
+  math += 'Main stakes ($'+base+'): H2,H3,L2,L3\n';
+  math += 'Hedge stakes ($0.35): H1,H4,L1,L4\n';
+  math += '\n';
+  math += 'If H-side wins (H2+H3 breach):\n';
+  math += '  Payout: +$'+winPayout.toFixed(2)+' | Cost: -$'+loseCost.toFixed(2)+'\n';
+  math += '  Net profit: +'+'$'+netWin.toFixed(2)+'\n';
+  math += '\n';
+  math += 'Worst case (all lose): -$'+totalPerRound.toFixed(2)+'\n';
+  math += 'Max all-loss rounds before $'+sl+' SL: '+maxRounds+'\n';
+  math += 'Wins needed for $'+tp+' target: ~'+winsNeeded;
+
   var mel = document.getElementById('ww-calc-math'); if(mel) mel.textContent=math;
   updateBarrierPreview();
 }
@@ -1271,6 +1285,7 @@ function renderTradeBreakdown(b,stakes){
 
 // ── WW Chart ─────────────────────────────────────────────────────
 var wwChart=null,wwChartData=[],wwBarrierLines=[];
+var wwLastBarrierUpdate=0, wwTickCount=0;
 
 function initWWChart(){
   var canvas=document.getElementById('wwChart');if(!canvas)return;
@@ -1279,7 +1294,7 @@ function initWWChart(){
   wwChart=new Chart(ctx,{
     type:'line',
     data:{labels:[],datasets:[{label:'P',data:[],borderColor:'#00e5a0',borderWidth:1.5,fill:true,
-      backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,180);g.addColorStop(0,'rgba(0,229,160,.15)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},
+      backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,150);g.addColorStop(0,'rgba(0,229,160,.15)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},
       pointRadius:0,tension:0.3}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
       scales:{x:{display:false},y:{display:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:9},maxTicksLimit:4}}},
@@ -1289,22 +1304,38 @@ function initWWChart(){
 
 function updateWWChart(sym,price){
   if(!wwChart)return;
+  wwTickCount++;
   wwChartData.push(price);
-  if(wwChartData.length>80)wwChartData.shift();
+  if(wwChartData.length>60)wwChartData.shift(); // smaller buffer = faster
   var len=wwChartData.length;
-  var datasets=[{label:'P',data:wwChartData.slice(),borderColor:'#00e5a0',borderWidth:1.5,fill:true,
-    backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,180);g.addColorStop(0,'rgba(0,229,160,.15)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},
-    pointRadius:0,tension:0.3}];
-  wwBarrierLines.forEach(function(bl){
-    datasets.push({label:bl.label,data:Array(len).fill(bl.price),
-      borderColor:bl.color,borderWidth:bl.isMain?2:1,borderDash:bl.isMain?[5,3]:[3,5],
-      pointRadius:0,fill:false,tension:0});
-  });
+
+  // Only update price dataset (dataset[0]) every tick — fast
   wwChart.data.labels=wwChartData.map(function(){return '';});
-  wwChart.data.datasets=datasets;
+  wwChart.data.datasets[0].data=wwChartData.slice();
+
+  // Rebuild barrier line datasets only when lines change or every 10 ticks
+  var now=Date.now();
+  if(now-wwLastBarrierUpdate>5000||wwTickCount%10===0){
+    wwLastBarrierUpdate=now;
+    // Keep dataset[0] (price), replace rest with barrier lines
+    while(wwChart.data.datasets.length>1) wwChart.data.datasets.pop();
+    wwBarrierLines.forEach(function(bl){
+      wwChart.data.datasets.push({
+        label:bl.label,data:Array(len).fill(bl.price),
+        borderColor:bl.color,borderWidth:bl.isMain?2:1,
+        borderDash:bl.isMain?[5,3]:[3,5],
+        pointRadius:0,fill:false,tension:0
+      });
+    });
+  } else {
+    // Just update existing barrier line lengths without rebuilding
+    for(var i=1;i<wwChart.data.datasets.length;i++){
+      wwChart.data.datasets[i].data=Array(len).fill(wwChart.data.datasets[i].data[0]||0);
+    }
+  }
+
   wwChart.update('none');
   var ep=document.getElementById('ww-chart-price');if(ep)ep.textContent=price.toFixed(price>100?2:4);
-  var el=document.getElementById('ww-chart-lbl');if(el)el.textContent=sym;
 }
 
 function setWWBarrierLines(entry,barriers,stakes){
@@ -1328,69 +1359,83 @@ function clearWWBarrierLines(){
 }
 
 // ── Signal Engine ───────────────────────────────────────────────
+var wwLastSignalDOMUpdate=0;
 function getWWSignal(){
   var ind=getInd(HB.asset),prices=ind.prices,n=prices.length,score=0;
+  var now=Date.now();
+  // Only update DOM every 1.5 seconds to prevent lag
+  var updateDOM = (now-wwLastSignalDOMUpdate)>1500;
+  if(updateDOM) wwLastSignalDOMUpdate=now;
 
   // 1. ATR Spike: 5-tick ATR >= 1.8x 20-tick baseline
-  var atr5=0,atr20=0;
+  var atr5=0,atr20=0,atrHit=false;
   if(n>=25){
     for(var i=n-5;i<n;i++) atr5+=Math.abs(prices[i]-prices[i-1]); atr5/=5;
     for(var j=n-25;j<n-5;j++) atr20+=Math.abs(prices[j]-prices[j-1]); atr20/=20;
-    var atrHit=atr5>=atr20*1.8; if(atrHit)score++;
-    var ac=document.getElementById('sig-atr-card'),av=document.getElementById('sig-atr-val');
-    if(ac){ac.style.borderColor=atrHit?'var(--ac)':'var(--bo)';ac.style.background=atrHit?'rgba(0,229,160,0.1)':'var(--bg3)';}
-    if(av){av.textContent=atr20>0?(atr5/atr20).toFixed(2)+'x':'--';av.style.color=atrHit?'var(--ac)':'var(--t3)';}
-    var vb=document.getElementById('ww-chart-vol-badge');
-    if(vb){var r=atr20>0?atr5/atr20:1;vb.textContent='VOL:'+(r>1.8?'HIGH':r>1.2?'MED':'LOW');vb.style.background=r>1.8?'var(--ad)':r>1.2?'var(--gd)':'var(--bg4)';vb.style.color=r>1.8?'var(--ac)':r>1.2?'var(--go)':'var(--t3)';}
-    var ca=document.getElementById('ww-chart-atr'); if(ca) ca.textContent='ATR:'+atr5.toFixed(4);
+    atrHit=atr5>=atr20*1.8; if(atrHit)score++;
+    if(updateDOM){
+      var ac=document.getElementById('sig-atr-card'),av=document.getElementById('sig-atr-val');
+      if(ac){ac.style.borderColor=atrHit?'var(--ac)':'var(--bo)';ac.style.background=atrHit?'rgba(0,229,160,0.1)':'var(--bg3)';}
+      if(av){av.textContent=atr20>0?(atr5/atr20).toFixed(2)+'x':'--';av.style.color=atrHit?'var(--ac)':'var(--t3)';}
+      var vb=document.getElementById('ww-chart-vol-badge');
+      if(vb){var r=atr20>0?atr5/atr20:1;vb.textContent='VOL:'+(r>1.8?'HIGH':r>1.2?'MED':'LOW');vb.style.background=r>1.8?'var(--ad)':r>1.2?'var(--gd)':'var(--bg4)';vb.style.color=r>1.8?'var(--ac)':r>1.2?'var(--go)':'var(--t3)';}
+      var ca=document.getElementById('ww-chart-atr'); if(ca) ca.textContent='ATR:'+atr5.toFixed(4);
+    }
   } else {
-    var av2=document.getElementById('sig-atr-val');if(av2)av2.textContent='need '+(25-n)+' more';
+    if(updateDOM){var av2=document.getElementById('sig-atr-val');if(av2)av2.textContent='need '+(25-n)+' more';}
   }
 
   // 2. BB Squeeze (+2)
   if(ind.bbSqueeze){HB.lastSqueezeTime=Date.now();score+=2;}
-  var bCard=document.getElementById('sig-bb-card'),bVal=document.getElementById('sig-bb-val');
-  if(bCard){bCard.style.borderColor=ind.bbSqueeze?'var(--ac)':'var(--bo)';bCard.style.background=ind.bbSqueeze?'rgba(0,229,160,0.1)':'var(--bg3)';}
-  if(bVal){bVal.textContent=ind.bbSqueeze?'SQUEEZE!':'Normal';bVal.style.color=ind.bbSqueeze?'var(--ac)':'var(--t3)';}
+  if(updateDOM){
+    var bCard=document.getElementById('sig-bb-card'),bVal=document.getElementById('sig-bb-val');
+    if(bCard){bCard.style.borderColor=ind.bbSqueeze?'var(--ac)':'var(--bo)';bCard.style.background=ind.bbSqueeze?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(bVal){bVal.textContent=ind.bbSqueeze?'SQUEEZE!':'Normal';bVal.style.color=ind.bbSqueeze?'var(--ac)':'var(--t3)';}
+  }
 
   // 3. Post-squeeze expansion (+1)
   var expanding=!ind.bbSqueeze&&HB.lastSqueezeTime>0&&(Date.now()-HB.lastSqueezeTime)<20000&&ind.bbWidth>HB.prevBBWidth*1.1;
   if(expanding)score++;
   if(ind.bbWidth)HB.prevBBWidth=ind.bbWidth;
-  var eCard=document.getElementById('sig-expand-card'),eVal=document.getElementById('sig-expand-val');
-  if(eCard){eCard.style.borderColor=expanding?'var(--ac)':'var(--bo)';eCard.style.background=expanding?'rgba(0,229,160,0.1)':'var(--bg3)';}
-  if(eVal){eVal.textContent=expanding?'EXPANDING!':'Waiting';eVal.style.color=expanding?'var(--ac)':'var(--t3)';}
+  if(updateDOM){
+    var eCard=document.getElementById('sig-expand-card'),eVal=document.getElementById('sig-expand-val');
+    if(eCard){eCard.style.borderColor=expanding?'var(--ac)':'var(--bo)';eCard.style.background=expanding?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(eVal){eVal.textContent=expanding?'EXPANDING!':'Waiting';eVal.style.color=expanding?'var(--ac)':'var(--t3)';}
+  }
 
   // 4. Momentum: 3 consecutive bigger ticks (+1)
   var momBurst=false;
   if(n>=5){var sz=[];for(var k=n-4;k<n;k++)sz.push(Math.abs(prices[k]-prices[k-1]));if(sz[1]>sz[0]&&sz[2]>sz[1]&&sz[3]>sz[2])momBurst=true;}
   if(momBurst)score++;
-  var mCard=document.getElementById('sig-mom-card'),mVal=document.getElementById('sig-mom-val');
-  if(mCard){mCard.style.borderColor=momBurst?'var(--ac)':'var(--bo)';mCard.style.background=momBurst?'rgba(0,229,160,0.1)':'var(--bg3)';}
-  if(mVal){mVal.textContent=momBurst?'BURST!':'Flat';mVal.style.color=momBurst?'var(--ac)':'var(--t3)';}
+  if(updateDOM){
+    var mCard=document.getElementById('sig-mom-card'),mVal=document.getElementById('sig-mom-val');
+    if(mCard){mCard.style.borderColor=momBurst?'var(--ac)':'var(--bo)';mCard.style.background=momBurst?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(mVal){mVal.textContent=momBurst?'BURST!':'Flat';mVal.style.color=momBurst?'var(--ac)':'var(--t3)';}
+  }
 
   // 5. Cooldown/gap clear (+1)
-  var now=Date.now(),gapOk=(now-HB.lastRoundTime)>=(HB.minGap||45)*1000,coolOk=!HB.coolingDown||now>HB.cooldownEnd;
+  var now2=Date.now(),gapOk=(now2-HB.lastRoundTime)>=(HB.minGap||45)*1000,coolOk=!HB.coolingDown||now2>HB.cooldownEnd;
   if(gapOk&&coolOk)score++;
-  var cdCard=document.getElementById('sig-cd-card'),cdVal=document.getElementById('sig-cd-val');
   var cdOk=gapOk&&coolOk;
-  var displaySecs=Math.max(gapOk?0:Math.ceil(((HB.lastRoundTime+(HB.minGap||45)*1000)-now)/1000),coolOk?0:Math.ceil((HB.cooldownEnd-now)/1000));
-  if(cdCard){cdCard.style.borderColor=cdOk?'var(--ac)':'var(--bo)';cdCard.style.background=cdOk?'rgba(0,229,160,0.1)':'var(--bg3)';}
-  if(cdVal){cdVal.textContent=cdOk?'READY':displaySecs+'s';cdVal.style.color=cdOk?'var(--ac)':'var(--re)';}
-
-  // Score badge
-  var minS=HB.minScore||3;
-  var sb=document.getElementById('sig-score-badge');
-  if(sb){sb.textContent='Score: '+score+'/5';sb.style.background=score>=4?'var(--ad)':score>=minS?'var(--gd)':'var(--bg4)';sb.style.color=score>=4?'var(--ac)':score>=minS?'var(--go)':'var(--t3)';sb.style.border='1px solid '+(score>=minS?'rgba(0,229,160,0.3)':'var(--bo)');}
-
-  // Status
-  var ss=document.getElementById('sig-status');
-  if(ss){
-    if(!cdOk){ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+Math.ceil((HB.cooldownEnd-now)/1000)+'s':'Gap: '+displaySecs+'s until ready');ss.style.color='var(--go)';}
-    else if(score>=minS){ss.textContent='✅ VOLATILITY SETUP FOUND — Score '+score+'/5 — Placing 8 trades now...';ss.style.color='var(--ac)';}
-    else{var missing=[];if(!atr5||atr5<atr20*1.8)missing.push('ATR spike');if(!ind.bbSqueeze&&!expanding)missing.push('BB squeeze');if(!momBurst)missing.push('momentum');ss.textContent='⏳ Waiting... ('+score+'/'+minS+') Missing: '+missing.join(', ');ss.style.color='var(--t2)';}
+  var displaySecs=Math.max(gapOk?0:Math.ceil(((HB.lastRoundTime+(HB.minGap||45)*1000)-now2)/1000),coolOk?0:Math.ceil((HB.cooldownEnd-now2)/1000));
+  if(updateDOM){
+    var cdCard=document.getElementById('sig-cd-card'),cdVal=document.getElementById('sig-cd-val');
+    if(cdCard){cdCard.style.borderColor=cdOk?'var(--ac)':'var(--bo)';cdCard.style.background=cdOk?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(cdVal){cdVal.textContent=cdOk?'READY':displaySecs+'s';cdVal.style.color=cdOk?'var(--ac)':'var(--re)';}
+    // Score badge
+    var minS=HB.minScore||3;
+    var sb=document.getElementById('sig-score-badge');
+    if(sb){sb.textContent='Score: '+score+'/5';sb.style.background=score>=4?'var(--ad)':score>=(minS)?'var(--gd)':'var(--bg4)';sb.style.color=score>=4?'var(--ac)':score>=minS?'var(--go)':'var(--t3)';sb.style.border='1px solid '+(score>=minS?'rgba(0,229,160,0.3)':'var(--bo)');}
+    // Status
+    var minS2=HB.minScore||3;
+    var ss=document.getElementById('sig-status');
+    if(ss){
+      if(!cdOk){ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+Math.ceil((HB.cooldownEnd-now2)/1000)+'s':'Gap: '+displaySecs+'s until ready');ss.style.color='var(--go)';}
+      else if(score>=minS2){ss.textContent='✅ VOLATILITY SETUP — Score '+score+'/5 — Ready to trade!';ss.style.color='var(--ac)';}
+      else{var missing=[];if(!atrHit)missing.push('ATR spike');if(!ind.bbSqueeze&&!expanding)missing.push('BB squeeze');if(!momBurst)missing.push('momentum');ss.textContent='⏳ Waiting... ('+score+'/'+minS2+') Missing: '+missing.join(', ');ss.style.color='var(--t2)';}
+    }
   }
-  return{score:score,ready:score>=minS&&cdOk};
+  return{score:score,ready:score>=(HB.minScore||3)&&cdOk};
 }
 
 // ── Bot toggle ──────────────────────────────────────────────────
