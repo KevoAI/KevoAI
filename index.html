@@ -461,11 +461,11 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
             <div>
               <div style="font-size:16px;font-weight:800;color:var(--ac)">WinWin Volatility Bot</div>
-              <div style="font-size:12px;color:var(--t2);margin-top:3px">8 staggered barrier trades — volatility-timed entry — both sides covered</div>
+              <div style="font-size:12px;color:var(--t2);margin-top:3px">2 asymmetric barrier trades — volatility-timed — prediction-weighted stakes</div>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(0,229,160,0.15);color:var(--ac)">8 Trades/Round</span>
-              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(59,130,246,0.15);color:var(--bl)">ATR Staggered</span>
+              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(0,229,160,0.15);color:var(--ac)">2 Trades/Round</span>
+              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(59,130,246,0.15);color:var(--bl)">Asymmetric Stakes</span>
               <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(245,166,35,0.15);color:var(--go)">Volatility Gated</span>
               <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(255,77,106,0.15);color:var(--re)">Fewer Better Trades</span>
             </div>
@@ -490,7 +490,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <div style="background:var(--bg3);border-radius:var(--rs);padding:9px 12px;border:1px solid var(--bo);font-size:12px;font-weight:600;min-height:38px" id="sig-status">Start bot to see signals...</div>
             </div>
 
-            <!-- Live Chart with barrier lines -->
+            <!-- Live Chart with barrier lines - fixed height -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
               <div style="padding:8px 12px;border-bottom:1px solid var(--bo);display:flex;align-items:center;gap:8px">
                 <span style="font-size:12px;font-weight:700" id="ww-chart-lbl">R_100</span>
@@ -499,15 +499,17 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <span style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="ww-chart-atr">ATR: --</span>
                 <span style="font-size:10px;padding:2px 7px;border-radius:99px;font-weight:700;background:var(--bg4);color:var(--t3)" id="ww-chart-vol-badge">VOL: --</span>
               </div>
-              <canvas id="wwChart" height="160" style="width:100%"></canvas>
-              <div style="padding:6px 12px;border-top:1px solid var(--bo);display:flex;gap:10px;flex-wrap:wrap;font-size:10px;font-family:var(--mo)" id="ww-barrier-legend">
-                <span style="color:var(--t3)">No active round</span>
+              <div style="position:relative;height:180px">
+                <canvas id="wwChart"></canvas>
+              </div>
+              <div style="padding:6px 12px;border-top:1px solid var(--bo);display:flex;gap:8px;flex-wrap:wrap;font-size:10px;font-family:var(--mo)" id="ww-barrier-legend">
+                <span style="color:var(--t3)">No active round — waiting for signal</span>
               </div>
             </div>
 
             <!-- 8 Trade breakdown -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
-              <div style="font-size:12px;font-weight:700;margin-bottom:10px">↕ 8 Trades This Round</div>
+              <div style="font-size:12px;font-weight:700;margin-bottom:8px">↕ 2 Trades This Round</div>
               <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:6px" id="trade-breakdown-h"></div>
               <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px" id="trade-breakdown-l"></div>
               <div style="display:flex;align-items:center;justify-content:space-between;margin-top:9px;padding-top:8px;border-top:1px solid var(--bo)">
@@ -533,7 +535,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             </div>
 
             <!-- Place Button -->
-            <button class="place-all-btn" id="placeAllBtn" onclick="placeHybridRound()">↕ PLACE 8 TRADES</button>
+            <button class="place-all-btn" id="placeAllBtn" onclick="placeHybridRound()">↕ PLACE 2 TRADES</button>
 
             <!-- Daily Progress -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
@@ -1049,7 +1051,7 @@ function onTick(tick) {
   }
 }
 
-function onTickWrapper(tick) { updateIndicators(tick.symbol,tick.quote); onTick(tick); if(tick.symbol===HB.asset&&document.getElementById('page-barrier').classList.contains('active'))updateWWChart(tick.symbol,tick.quote);}
+function onTickWrapper(tick){updateIndicators(tick.symbol,tick.quote);onTick(tick);if(tick.symbol===HB.asset&&document.getElementById('page-barrier').classList.contains('active'))updateWWChart(tick.symbol,tick.quote);}
 
 function onBuy(buy, reqId) {
   if(!buy) return;
@@ -1113,9 +1115,13 @@ function onContract(c) {
   var ms=now-(t.startTime||now); t.duration=ms; t.durationStr=fmtDur(ms);
   S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
 
-  // Route to Hybrid Bot
+  // Route to Hybrid Bot — individual trade result
+  // onHBResult batches all 8, so skip individual DG/balance updates
   if(t.isHB&&t.hbRound!==null) {
     onHBResult(t.hbRound, t.hbIdx, profit, t.direction);
+    // Don't fall through to the balance/stats updates below — onHBResult handles them
+    localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
+    return;
   }
   // Route to Differs
   if(t.isDD) {
@@ -1156,74 +1162,72 @@ function fmtDur(ms){if(!ms||ms<0)return '--';var s=Math.floor(ms/1000);if(s<60)r
 // ══════════════════════════════════════════════════════════════════
 
 const HB = {
-  running: false, interval: null,
-  asset: 'R_100', ticks: 5, minScore: 3, minGap: 45,
-  useCooldown: true,
-  rounds: 0, won: 0, lost: 0, pnl: 0,
-  bestRound: 0, worstRound: 0, skipped: 0, totalScore: 0,
-  history: [], pending: {}, roundId: 0,
-  lastRoundTime: 0, countdownTimer: null,
-  lossStreak: 0, coolingDown: false, cooldownEnd: 0,
-  lastSqueezeTime: 0, prevBBWidth: 0,
-  hMults: [0.3, 0.6, 1.0, 1.8],
-  lMults: [0.3, 0.6, 1.0, 1.8]
+  running:false, interval:null,
+  asset:'R_100', ticks:5, minScore:3, minGap:45,
+  useCooldown:true,
+  rounds:0, won:0, lost:0, pnl:0,
+  bestRound:0, worstRound:0,
+  history:[], pending:{}, roundId:0,
+  lastRoundTime:0, countdownTimer:null,
+  lossStreak:0, coolingDown:false, cooldownEnd:0,
+  lastSqueezeTime:0, prevBBWidth:0,
+  hMults:[0.3,0.6,1.0,1.8],
+  lMults:[0.3,0.6,1.0,1.8]
 };
 
-function getStakes() {
-  var base = parseFloat(document.getElementById('ww-risk').value)||3;
-  return [0.35, base, base, 0.35, 0.35, base, base, 0.35];
+function getPerContractStake(){
+  var risk=parseFloat(document.getElementById('ww-risk').value)||10;
+  return Math.max(0.35,parseFloat((risk/8).toFixed(2)));
 }
 
-function calcWWDaily() {
-  var base = parseFloat(document.getElementById('ww-risk').value)||3;
-  var sl   = parseFloat(document.getElementById('ww-daily-sl').value)||30;
-  var tp   = parseFloat(document.getElementById('ww-daily-tp').value)||60;
-  var stakes = getStakes();
-  var totalPerRound = stakes.reduce(function(s,v){return s+v;},0);
+function calcWWDaily(){
+  var risk=parseFloat(document.getElementById('ww-risk').value)||10;
+  var sl=parseFloat(document.getElementById('ww-daily-sl').value)||30;
+  var tp=parseFloat(document.getElementById('ww-daily-tp').value)||60;
+  var pc=Math.max(0.35,parseFloat((risk/8).toFixed(2)));
+  var total=parseFloat((pc*8).toFixed(2));
+  var perSide=parseFloat((pc*4).toFixed(2));
+  var maxRounds=Math.floor(sl/total);
+  var consWin=parseFloat((pc*2*1.5-pc*4).toFixed(2));
+  var goodWin=parseFloat((pc*3*1.75-pc*4).toFixed(2));
+  var winsNeeded=consWin>0?Math.ceil(tp/consWin):999;
+  var el=document.getElementById('ww-progress-target');if(el)el.textContent='$'+tp;
+  var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=total.toFixed(2);
+  var math='Total risk: $'+total.toFixed(2)+' ('+risk+' / 8 = $'+pc+'/contract)
+';
+  math+='Each side: $'+perSide.toFixed(2)+' (4 contracts)
 
-  // Win scenario: main barriers on 1 side hit at ~150% payout
-  var winPayout  = base * 2 * 1.5;           // H2+H3 win payout
-  var loseCost   = base * 2 + 0.35 * 4;      // other side + hedges lose
-  var netWin     = parseFloat((winPayout - loseCost).toFixed(2));
-  netWin = Math.max(0.1, netWin);
+';
+  math+='If price MOVES:
+';
+  math+='  Conservative (2 hit): +'+(consWin>0?'$'+consWin.toFixed(2):'$'+consWin.toFixed(2))+'
+';
+  math+='  Good spike (3 hit):   +$'+goodWin.toFixed(2)+'
 
-  // Worst case: all 8 lose = full round cost
-  var maxRounds  = Math.floor(sl / totalPerRound);
-  var winsNeeded = Math.ceil(tp / netWin);
+';
+  math+='If price FLAT: -$'+total.toFixed(2)+' (full risk)
 
-  var el = document.getElementById('ww-progress-target'); if(el) el.textContent='$'+tp;
-
-  var math = 'Per round cost:  $'+totalPerRound.toFixed(2)+'\n';
-  math += 'Main stakes ($'+base+'): H2,H3,L2,L3\n';
-  math += 'Hedge stakes ($0.35): H1,H4,L1,L4\n';
-  math += '\n';
-  math += 'If H-side wins (H2+H3 breach):\n';
-  math += '  Payout: +$'+winPayout.toFixed(2)+' | Cost: -$'+loseCost.toFixed(2)+'\n';
-  math += '  Net profit: +'+'$'+netWin.toFixed(2)+'\n';
-  math += '\n';
-  math += 'Worst case (all lose): -$'+totalPerRound.toFixed(2)+'\n';
-  math += 'Max all-loss rounds before $'+sl+' SL: '+maxRounds+'\n';
-  math += 'Wins needed for $'+tp+' target: ~'+winsNeeded;
-
-  var mel = document.getElementById('ww-calc-math'); if(mel) mel.textContent=math;
+';
+  math+='Max flat rounds before SL: '+maxRounds+'
+';
+  math+='Wins needed for $'+tp+': ~'+winsNeeded;
+  var mel=document.getElementById('ww-calc-math');if(mel)mel.textContent=math;
   updateBarrierPreview();
 }
 
-function buildMultInputs() {
+function buildMultInputs(){
   ['h','l'].forEach(function(side){
-    var div = document.getElementById(side+'-mult-inputs'); if(!div) return;
+    var div=document.getElementById(side+'-mult-inputs');if(!div)return;
     div.innerHTML='';
-    var mults = side==='h'?HB.hMults:HB.lMults;
-    var labels = side==='h'?['H1','H2','H3','H4']:['L1','L2','L3','L4'];
-    var col = side==='h'?'var(--ac)':'var(--re)';
+    var mults=side==='h'?HB.hMults:HB.lMults;
+    var labels=side==='h'?['H1','H2','H3','H4']:['L1','L2','L3','L4'];
+    var col=side==='h'?'var(--ac)':'var(--re)';
     mults.forEach(function(m,i){
-      var isMain=i===1||i===2;
       var row=document.createElement('div');
       row.style.cssText='display:flex;align-items:center;gap:5px;margin-bottom:5px';
-      row.innerHTML='<span style="font-size:10px;color:'+(isMain?col:'var(--t3)')+';width:22px;font-weight:700">'+labels[i]+'</span>'
-        +'<span style="font-size:10px;color:var(--t3);width:14px">×</span>'
-        +'<input type="number" style="width:55px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none" id="'+side+'m'+i+'" value="'+m+'" step="0.1" min="0.1" oninput="HB.'+side+'Mults['+i+']=parseFloat(this.value)||0.3;updateBarrierPreview()">'
-        +'<span style="font-size:9px;color:var(--t3)">'+(isMain?'main':'hedge')+'</span>';
+      row.innerHTML='<span style="font-size:10px;color:'+col+';width:22px;font-weight:700">'+labels[i]+'</span>'
+        +'<span style="font-size:10px;color:var(--t3);width:14px">x</span>'
+        +'<input type="number" style="width:55px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none" id="'+side+'m'+i+'" value="'+m+'" step="0.1" min="0.1" oninput="HB.'+side+'Mults['+i+']=parseFloat(this.value)||0.3;updateBarrierPreview()">';
       div.appendChild(row);
     });
   });
@@ -1235,66 +1239,57 @@ function getATR(){
   var ind=getInd(HB.asset),p=ind.prices,n=p.length;
   if(n<5)return 0;
   var atr=0,len=Math.min(14,n-1);
-  for(var i=n-len;i<n;i++) atr+=Math.abs(p[i]-p[i-1]);
+  for(var i=n-len;i<n;i++)atr+=Math.abs(p[i]-p[i-1]);
   return atr/len;
 }
 
 function getBarriers(){
-  var atr=getATR(); if(atr<=0)atr=0.06;
-  return {
-    h:HB.hMults.map(function(m){return parseFloat((atr*m).toFixed(2));}),
-    l:HB.lMults.map(function(m){return parseFloat((atr*m).toFixed(2));}),
-    atr:atr
-  };
+  var atr=getATR();if(atr<=0)atr=0.06;
+  return{h:HB.hMults.map(function(m){return parseFloat((atr*m).toFixed(2));}),l:HB.lMults.map(function(m){return parseFloat((atr*m).toFixed(2));}),atr:atr};
 }
 
 function updateBarrierPreview(){
-  var b=getBarriers(),stakes=getStakes();
-  var txt='H: '+b.h.map(function(v,i){return '+'+v.toFixed(2)+'($'+stakes[i]+')';}).join(' ');
-  txt+=' | L: '+b.l.map(function(v,i){return '-'+v.toFixed(2)+'($'+stakes[i+4]+')';}).join(' ');
-  var el=document.getElementById('barrier-preview-txt'); if(el) el.textContent=txt;
-  renderTradeBreakdown(b,stakes);
+  var b=getBarriers(),stake=getPerContractStake(),total=parseFloat((stake*8).toFixed(2));
+  var pt=document.getElementById('barrier-preview-txt');
+  if(pt)pt.textContent='$'+stake+'/contract | H:'+b.h.map(function(v){return '+'+v.toFixed(2);}).join(' ')+' | L:'+b.l.map(function(v){return '-'+v.toFixed(2);}).join(' ');
+  var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=total.toFixed(2);
+  renderTradeBreakdown(b,stake);
 }
 
-function renderTradeBreakdown(b,stakes){
-  var hLabels=['H1','H2','H3','H4'],lLabels=['L1','L2','L3','L4'];
+function renderTradeBreakdown(b,stake){
   var hEl=document.getElementById('trade-breakdown-h'),lEl=document.getElementById('trade-breakdown-l');
-  if(!hEl||!lEl) return;
-  var hHtml='',lHtml='';
+  if(!hEl||!lEl)return;
+  var hL=['H1','H2','H3','H4'],lL=['L1','L2','L3','L4'],hHtml='',lHtml='';
   for(var i=0;i<4;i++){
-    var isMain=i===1||i===2;
-    hHtml+='<div style="background:'+(isMain?'rgba(0,229,160,0.08)':'var(--bg3)')+';border:1px solid '+(isMain?'rgba(0,229,160,0.25)':'var(--bo)')+';border-radius:var(--rs);padding:7px 8px">';
-    hHtml+='<div style="display:flex;justify-content:space-between"><span style="font-size:10px;color:var(--ac);font-weight:700">'+hLabels[i]+'</span><span style="font-size:10px;color:var(--t2)">$'+stakes[i]+'</span></div>';
+    hHtml+='<div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:6px 7px">';
+    hHtml+='<div style="font-size:9px;color:var(--ac);font-weight:700">'+hL[i]+'</div>';
     hHtml+='<div style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--ac)">+'+b.h[i].toFixed(2)+'</div>';
-    hHtml+='<div style="font-size:9px;color:var(--t3)">'+(isMain?'main':'hedge')+'</div></div>';
+    hHtml+='<div style="font-size:9px;color:var(--t2)">$'+stake+'</div></div>';
   }
   for(var j=0;j<4;j++){
-    var isMainL=j===1||j===2;
-    lHtml+='<div style="background:'+(isMainL?'rgba(255,77,106,0.08)':'var(--bg3)')+';border:1px solid '+(isMainL?'rgba(255,77,106,0.25)':'var(--bo)')+';border-radius:var(--rs);padding:7px 8px">';
-    lHtml+='<div style="display:flex;justify-content:space-between"><span style="font-size:10px;color:var(--re);font-weight:700">'+lLabels[j]+'</span><span style="font-size:10px;color:var(--t2)">$'+stakes[j+4]+'</span></div>';
+    lHtml+='<div style="background:rgba(255,77,106,0.07);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:6px 7px">';
+    lHtml+='<div style="font-size:9px;color:var(--re);font-weight:700">'+lL[j]+'</div>';
     lHtml+='<div style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--re)">-'+b.l[j].toFixed(2)+'</div>';
-    lHtml+='<div style="font-size:9px;color:var(--t3)">'+(isMainL?'main':'hedge')+'</div></div>';
+    lHtml+='<div style="font-size:9px;color:var(--t2)">$'+stake+'</div></div>';
   }
-  hEl.innerHTML=hHtml; lEl.innerHTML=lHtml;
-  var total=stakes.reduce(function(s,v){return s+v;},0);
-  var base=parseFloat(document.getElementById('ww-risk')?document.getElementById('ww-risk').value:3)||3;
-  var bestWin=parseFloat((base*2*1.5-base*2-0.35*4).toFixed(2));
+  hEl.innerHTML=hHtml;lEl.innerHTML=lHtml;
+  var total=parseFloat((stake*8).toFixed(2));
   var ts=document.getElementById('ww-total-stake');if(ts)ts.textContent='$'+total.toFixed(2);
-  var bw=document.getElementById('ww-best-win');if(bw){bw.textContent=(bestWin>0?'+':'')+'$'+bestWin.toFixed(2);bw.style.color=bestWin>0?'var(--ac)':'var(--re)';}
+  var bestWin=parseFloat((stake*4*1.5-stake*4).toFixed(2));
+  var bw=document.getElementById('ww-best-win');if(bw){bw.textContent=(bestWin>=0?'+':'')+'$'+bestWin.toFixed(2);bw.style.color=bestWin>0?'var(--ac)':'var(--re)';}
 }
 
 // ── WW Chart ─────────────────────────────────────────────────────
-var wwChart=null,wwChartData=[],wwBarrierLines=[];
-var wwLastBarrierUpdate=0, wwTickCount=0;
+var wwChart=null,wwChartData=[],wwBarrierLines=[],wwChartThrottle=0;
 
 function initWWChart(){
   var canvas=document.getElementById('wwChart');if(!canvas)return;
   var ctx=canvas.getContext('2d');
   if(wwChart){wwChart.destroy();wwChart=null;}
-  wwChart=new Chart(ctx,{
-    type:'line',
+  wwChartData=[];wwBarrierLines=[];
+  wwChart=new Chart(ctx,{type:'line',
     data:{labels:[],datasets:[{label:'P',data:[],borderColor:'#00e5a0',borderWidth:1.5,fill:true,
-      backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,150);g.addColorStop(0,'rgba(0,229,160,.15)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},
+      backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(0,229,160,.15)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},
       pointRadius:0,tension:0.3}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
       scales:{x:{display:false},y:{display:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:9},maxTicksLimit:4}}},
@@ -1304,153 +1299,117 @@ function initWWChart(){
 
 function updateWWChart(sym,price){
   if(!wwChart)return;
-  wwTickCount++;
+  var now=Date.now();
+  if(now-wwChartThrottle<500)return;
+  wwChartThrottle=now;
   wwChartData.push(price);
-  if(wwChartData.length>60)wwChartData.shift(); // smaller buffer = faster
+  if(wwChartData.length>60)wwChartData.shift();
   var len=wwChartData.length;
-
-  // Only update price dataset (dataset[0]) every tick — fast
   wwChart.data.labels=wwChartData.map(function(){return '';});
   wwChart.data.datasets[0].data=wwChartData.slice();
-
-  // Rebuild barrier line datasets only when lines change or every 10 ticks
-  var now=Date.now();
-  if(now-wwLastBarrierUpdate>5000||wwTickCount%10===0){
-    wwLastBarrierUpdate=now;
-    // Keep dataset[0] (price), replace rest with barrier lines
-    while(wwChart.data.datasets.length>1) wwChart.data.datasets.pop();
-    wwBarrierLines.forEach(function(bl){
-      wwChart.data.datasets.push({
-        label:bl.label,data:Array(len).fill(bl.price),
-        borderColor:bl.color,borderWidth:bl.isMain?2:1,
-        borderDash:bl.isMain?[5,3]:[3,5],
-        pointRadius:0,fill:false,tension:0
-      });
-    });
-  } else {
-    // Just update existing barrier line lengths without rebuilding
-    for(var i=1;i<wwChart.data.datasets.length;i++){
-      wwChart.data.datasets[i].data=Array(len).fill(wwChart.data.datasets[i].data[0]||0);
-    }
-  }
-
+  while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
+  wwBarrierLines.forEach(function(bl){
+    wwChart.data.datasets.push({label:bl.label,data:Array(len).fill(bl.price),borderColor:bl.color,borderWidth:bl.isMain?2:1,borderDash:[5,3],pointRadius:0,fill:false,tension:0});
+  });
   wwChart.update('none');
   var ep=document.getElementById('ww-chart-price');if(ep)ep.textContent=price.toFixed(price>100?2:4);
 }
 
-function setWWBarrierLines(entry,barriers,stakes){
+function setWWBarrierLines(entry,barriers,stake){
   wwBarrierLines=[];
-  var hL=['H1','H2','H3','H4'],lL=['L1','L2','L3','L4'];
   wwBarrierLines.push({price:entry,color:'rgba(245,166,35,0.9)',label:'Entry',isMain:true});
-  barriers.h.forEach(function(b,i){var isM=i===1||i===2;wwBarrierLines.push({price:entry+b,color:isM?'rgba(0,229,160,0.9)':'rgba(0,229,160,0.4)',label:hL[i]+' +'+b.toFixed(2),isMain:isM});});
-  barriers.l.forEach(function(b,i){var isM=i===1||i===2;wwBarrierLines.push({price:entry-b,color:isM?'rgba(255,77,106,0.9)':'rgba(255,77,106,0.4)',label:lL[i]+' -'+b.toFixed(2),isMain:isM});});
+  barriers.h.forEach(function(b,i){wwBarrierLines.push({price:entry+b,color:i<=1?'rgba(0,229,160,0.9)':'rgba(0,229,160,0.4)',label:'H'+(i+1)+' +'+b.toFixed(2),isMain:i<=1});});
+  barriers.l.forEach(function(b,i){wwBarrierLines.push({price:entry-b,color:i<=1?'rgba(255,77,106,0.9)':'rgba(255,77,106,0.4)',label:'L'+(i+1)+' -'+b.toFixed(2),isMain:i<=1});});
   var leg=document.getElementById('ww-barrier-legend');
-  if(leg){
-    leg.innerHTML='<span style="color:var(--go);font-weight:700">Entry:'+entry.toFixed(2)+'</span> '
-      +barriers.h.map(function(b,i){return '<span style="color:'+(i===1||i===2?'var(--ac)':'rgba(0,229,160,0.5)')+'">H'+(i+1)+':+'+ b.toFixed(2)+'</span>';}).join(' ')
-      +' '+barriers.l.map(function(b,i){return '<span style="color:'+(i===1||i===2?'var(--re)':'rgba(255,77,106,0.5)')+'">L'+(i+1)+':-'+ b.toFixed(2)+'</span>';}).join(' ');
-  }
+  if(leg)leg.innerHTML='<span style="color:var(--go);font-weight:700">Entry:'+entry.toFixed(2)+'</span> '
+    +barriers.h.map(function(b,i){return '<span style="color:'+(i<=1?'var(--ac)':'rgba(0,229,160,0.5)')+'">H'+(i+1)+':+'+b.toFixed(2)+'</span>';}).join(' ')+' '
+    +barriers.l.map(function(b,i){return '<span style="color:'+(i<=1?'var(--re)':'rgba(255,77,106,0.5)')+'">L'+(i+1)+':-'+b.toFixed(2)+'</span>';}).join(' ');
 }
 
 function clearWWBarrierLines(){
   wwBarrierLines=[];
   var leg=document.getElementById('ww-barrier-legend');if(leg)leg.innerHTML='<span style="color:var(--t3)">No active round</span>';
-  if(wwChart)wwChart.update('none');
+  if(wwChart){while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();wwChart.update('none');}
 }
 
-// ── Signal Engine ───────────────────────────────────────────────
-var wwLastSignalDOMUpdate=0;
+// ── Signal Engine ─────────────────────────────────────────────────
+var wwSigThrottle=0;
 function getWWSignal(){
   var ind=getInd(HB.asset),prices=ind.prices,n=prices.length,score=0;
-  var now=Date.now();
-  // Only update DOM every 1.5 seconds to prevent lag
-  var updateDOM = (now-wwLastSignalDOMUpdate)>1500;
-  if(updateDOM) wwLastSignalDOMUpdate=now;
-
-  // 1. ATR Spike: 5-tick ATR >= 1.8x 20-tick baseline
+  var now=Date.now(),updateDOM=(now-wwSigThrottle)>1500;
+  if(updateDOM)wwSigThrottle=now;
   var atr5=0,atr20=0,atrHit=false;
   if(n>=25){
-    for(var i=n-5;i<n;i++) atr5+=Math.abs(prices[i]-prices[i-1]); atr5/=5;
-    for(var j=n-25;j<n-5;j++) atr20+=Math.abs(prices[j]-prices[j-1]); atr20/=20;
-    atrHit=atr5>=atr20*1.8; if(atrHit)score++;
+    for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;
+    for(var j=n-25;j<n-5;j++)atr20+=Math.abs(prices[j]-prices[j-1]);atr20/=20;
+    atrHit=atr5>=atr20*1.8;if(atrHit)score++;
     if(updateDOM){
       var ac=document.getElementById('sig-atr-card'),av=document.getElementById('sig-atr-val');
       if(ac){ac.style.borderColor=atrHit?'var(--ac)':'var(--bo)';ac.style.background=atrHit?'rgba(0,229,160,0.1)':'var(--bg3)';}
       if(av){av.textContent=atr20>0?(atr5/atr20).toFixed(2)+'x':'--';av.style.color=atrHit?'var(--ac)':'var(--t3)';}
       var vb=document.getElementById('ww-chart-vol-badge');
-      if(vb){var r=atr20>0?atr5/atr20:1;vb.textContent='VOL:'+(r>1.8?'HIGH':r>1.2?'MED':'LOW');vb.style.background=r>1.8?'var(--ad)':r>1.2?'var(--gd)':'var(--bg4)';vb.style.color=r>1.8?'var(--ac)':r>1.2?'var(--go)':'var(--t3)';}
-      var ca=document.getElementById('ww-chart-atr'); if(ca) ca.textContent='ATR:'+atr5.toFixed(4);
+      if(vb){var vr=atr20>0?atr5/atr20:1;vb.textContent='VOL:'+(vr>1.8?'HIGH':vr>1.2?'MED':'LOW');vb.style.background=vr>1.8?'var(--ad)':vr>1.2?'var(--gd)':'var(--bg4)';vb.style.color=vr>1.8?'var(--ac)':vr>1.2?'var(--go)':'var(--t3)';}
+      var ca=document.getElementById('ww-chart-atr');if(ca)ca.textContent='ATR:'+atr5.toFixed(4);
     }
-  } else {
-    if(updateDOM){var av2=document.getElementById('sig-atr-val');if(av2)av2.textContent='need '+(25-n)+' more';}
-  }
-
-  // 2. BB Squeeze (+2)
-  if(ind.bbSqueeze){HB.lastSqueezeTime=Date.now();score+=2;}
+  } else if(updateDOM){var av2=document.getElementById('sig-atr-val');if(av2)av2.textContent='need '+(25-n)+' more';}
+  if(ind.bbSqueeze){HB.lastSqueezeTime=now;score+=2;}
   if(updateDOM){
-    var bCard=document.getElementById('sig-bb-card'),bVal=document.getElementById('sig-bb-val');
-    if(bCard){bCard.style.borderColor=ind.bbSqueeze?'var(--ac)':'var(--bo)';bCard.style.background=ind.bbSqueeze?'rgba(0,229,160,0.1)':'var(--bg3)';}
-    if(bVal){bVal.textContent=ind.bbSqueeze?'SQUEEZE!':'Normal';bVal.style.color=ind.bbSqueeze?'var(--ac)':'var(--t3)';}
+    var bc=document.getElementById('sig-bb-card'),bv=document.getElementById('sig-bb-val');
+    if(bc){bc.style.borderColor=ind.bbSqueeze?'var(--ac)':'var(--bo)';bc.style.background=ind.bbSqueeze?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(bv){bv.textContent=ind.bbSqueeze?'SQUEEZE!':'Normal';bv.style.color=ind.bbSqueeze?'var(--ac)':'var(--t3)';}
   }
-
-  // 3. Post-squeeze expansion (+1)
-  var expanding=!ind.bbSqueeze&&HB.lastSqueezeTime>0&&(Date.now()-HB.lastSqueezeTime)<20000&&ind.bbWidth>HB.prevBBWidth*1.1;
+  var expanding=!ind.bbSqueeze&&HB.lastSqueezeTime>0&&(now-HB.lastSqueezeTime)<20000&&ind.bbWidth>HB.prevBBWidth*1.1;
   if(expanding)score++;
   if(ind.bbWidth)HB.prevBBWidth=ind.bbWidth;
   if(updateDOM){
-    var eCard=document.getElementById('sig-expand-card'),eVal=document.getElementById('sig-expand-val');
-    if(eCard){eCard.style.borderColor=expanding?'var(--ac)':'var(--bo)';eCard.style.background=expanding?'rgba(0,229,160,0.1)':'var(--bg3)';}
-    if(eVal){eVal.textContent=expanding?'EXPANDING!':'Waiting';eVal.style.color=expanding?'var(--ac)':'var(--t3)';}
+    var ec=document.getElementById('sig-expand-card'),ev=document.getElementById('sig-expand-val');
+    if(ec){ec.style.borderColor=expanding?'var(--ac)':'var(--bo)';ec.style.background=expanding?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(ev){ev.textContent=expanding?'EXPANDING!':'Waiting';ev.style.color=expanding?'var(--ac)':'var(--t3)';}
   }
-
-  // 4. Momentum: 3 consecutive bigger ticks (+1)
   var momBurst=false;
   if(n>=5){var sz=[];for(var k=n-4;k<n;k++)sz.push(Math.abs(prices[k]-prices[k-1]));if(sz[1]>sz[0]&&sz[2]>sz[1]&&sz[3]>sz[2])momBurst=true;}
   if(momBurst)score++;
   if(updateDOM){
-    var mCard=document.getElementById('sig-mom-card'),mVal=document.getElementById('sig-mom-val');
-    if(mCard){mCard.style.borderColor=momBurst?'var(--ac)':'var(--bo)';mCard.style.background=momBurst?'rgba(0,229,160,0.1)':'var(--bg3)';}
-    if(mVal){mVal.textContent=momBurst?'BURST!':'Flat';mVal.style.color=momBurst?'var(--ac)':'var(--t3)';}
+    var mc=document.getElementById('sig-mom-card'),mv=document.getElementById('sig-mom-val');
+    if(mc){mc.style.borderColor=momBurst?'var(--ac)':'var(--bo)';mc.style.background=momBurst?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(mv){mv.textContent=momBurst?'BURST!':'Flat';mv.style.color=momBurst?'var(--ac)':'var(--t3)';}
   }
-
-  // 5. Cooldown/gap clear (+1)
-  var now2=Date.now(),gapOk=(now2-HB.lastRoundTime)>=(HB.minGap||45)*1000,coolOk=!HB.coolingDown||now2>HB.cooldownEnd;
-  if(gapOk&&coolOk)score++;
-  var cdOk=gapOk&&coolOk;
-  var displaySecs=Math.max(gapOk?0:Math.ceil(((HB.lastRoundTime+(HB.minGap||45)*1000)-now2)/1000),coolOk?0:Math.ceil((HB.cooldownEnd-now2)/1000));
+  var gapOk=(now-HB.lastRoundTime)>=(HB.minGap||45)*1000,coolOk=!HB.coolingDown||now>HB.cooldownEnd,cdOk=gapOk&&coolOk;
+  if(cdOk)score++;
+  var dsecs=Math.max(gapOk?0:Math.ceil(((HB.lastRoundTime+(HB.minGap||45)*1000)-now)/1000),coolOk?0:Math.ceil((HB.cooldownEnd-now)/1000));
   if(updateDOM){
-    var cdCard=document.getElementById('sig-cd-card'),cdVal=document.getElementById('sig-cd-val');
-    if(cdCard){cdCard.style.borderColor=cdOk?'var(--ac)':'var(--bo)';cdCard.style.background=cdOk?'rgba(0,229,160,0.1)':'var(--bg3)';}
-    if(cdVal){cdVal.textContent=cdOk?'READY':displaySecs+'s';cdVal.style.color=cdOk?'var(--ac)':'var(--re)';}
-    // Score badge
+    var cdc=document.getElementById('sig-cd-card'),cdv=document.getElementById('sig-cd-val');
+    if(cdc){cdc.style.borderColor=cdOk?'var(--ac)':'var(--bo)';cdc.style.background=cdOk?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(cdv){cdv.textContent=cdOk?'READY':dsecs+'s';cdv.style.color=cdOk?'var(--ac)':'var(--re)';}
     var minS=HB.minScore||3;
     var sb=document.getElementById('sig-score-badge');
-    if(sb){sb.textContent='Score: '+score+'/5';sb.style.background=score>=4?'var(--ad)':score>=(minS)?'var(--gd)':'var(--bg4)';sb.style.color=score>=4?'var(--ac)':score>=minS?'var(--go)':'var(--t3)';sb.style.border='1px solid '+(score>=minS?'rgba(0,229,160,0.3)':'var(--bo)');}
-    // Status
-    var minS2=HB.minScore||3;
+    if(sb){sb.textContent='Score: '+score+'/5';sb.style.background=score>=4?'var(--ad)':score>=minS?'var(--gd)':'var(--bg4)';sb.style.color=score>=4?'var(--ac)':score>=minS?'var(--go)':'var(--t3)';sb.style.border='1px solid '+(score>=minS?'rgba(0,229,160,0.3)':'var(--bo)');}
     var ss=document.getElementById('sig-status');
     if(ss){
-      if(!cdOk){ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+Math.ceil((HB.cooldownEnd-now2)/1000)+'s':'Gap: '+displaySecs+'s until ready');ss.style.color='var(--go)';}
-      else if(score>=minS2){ss.textContent='✅ VOLATILITY SETUP — Score '+score+'/5 — Ready to trade!';ss.style.color='var(--ac)';}
-      else{var missing=[];if(!atrHit)missing.push('ATR spike');if(!ind.bbSqueeze&&!expanding)missing.push('BB squeeze');if(!momBurst)missing.push('momentum');ss.textContent='⏳ Waiting... ('+score+'/'+minS2+') Missing: '+missing.join(', ');ss.style.color='var(--t2)';}
+      if(!cdOk){ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+dsecs+'s':'Gap: '+dsecs+'s until ready');ss.style.color='var(--go)';}
+      else if(score>=minS){ss.textContent='SETUP FOUND — Score '+score+'/5 — Placing round...';ss.style.color='var(--ac)';}
+      else{var miss=[];if(!atrHit)miss.push('ATR spike');if(!ind.bbSqueeze&&!expanding)miss.push('BB squeeze');if(!momBurst)miss.push('momentum');ss.textContent='Waiting ('+score+'/'+minS+'): need '+miss.join(', ');ss.style.color='var(--t2)';}
     }
   }
   return{score:score,ready:score>=(HB.minScore||3)&&cdOk};
 }
 
-// ── Bot toggle ──────────────────────────────────────────────────
+// ── Bot ───────────────────────────────────────────────────────────
 function toggleHybrid(){
   HB.running=!HB.running;
   document.getElementById('hbSw').classList.toggle('on',HB.running);
   if(HB.running){
     if(!S.connected){notify('!','Connect API first!','loss');HB.running=false;document.getElementById('hbSw').classList.remove('on');return;}
+    var active=S.activeTrades.filter(function(t){return t.isHB;});
+    if(active.length>0){notify('!','Wait for current round to settle','loss');HB.running=false;document.getElementById('hbSw').classList.remove('on');return;}
     HB.lossStreak=0;HB.coolingDown=false;
-    document.getElementById('placeAllBtn').textContent='⏸ AUTO RUNNING...';
+    document.getElementById('placeAllBtn').textContent='STOP BOT';
     document.getElementById('placeAllBtn').style.background='linear-gradient(135deg,var(--go),#ff8800)';
     runHybridAuto();
   } else {
     clearTimeout(HB.interval);clearInterval(HB.countdownTimer);
-    document.getElementById('placeAllBtn').textContent='↕ PLACE 8 TRADES';
+    var stake=parseFloat((getPerContractStake()*8).toFixed(2));
+    document.getElementById('placeAllBtn').textContent='PLACE ROUND ($'+stake+' total)';
     document.getElementById('placeAllBtn').style.background='linear-gradient(135deg,var(--ac),#00b0ff)';
     document.getElementById('hb-countdown-txt').textContent='Bot stopped';
     document.getElementById('hb-countdown-bar').style.width='0%';
@@ -1464,50 +1423,58 @@ function runHybridAuto(){
   if(HB.pnl<=-dSL){toggleHybrid();notify('STOP','Daily SL hit','loss');return;}
   if(HB.pnl>=dTP){toggleHybrid();notify('TP','Daily target hit!','win');return;}
   if(DG.stopped){toggleHybrid();return;}
-  if(HB.coolingDown&&Date.now()>HB.cooldownEnd){HB.coolingDown=false;HB.lossStreak=0;notify('OK','Cooldown over — watching for setups','info');}
+  if(HB.coolingDown&&Date.now()>HB.cooldownEnd){HB.coolingDown=false;HB.lossStreak=0;notify('OK','Cooldown over','info');}
+  // 1 round at a time — hard block
   var active=S.activeTrades.filter(function(t){return t.isHB;});
-  if(active.length>0){document.getElementById('hb-active-count').textContent=active.length+' ACTIVE';document.getElementById('hb-countdown-txt').textContent='Settling '+active.length+' trade(s)...';HB.interval=setTimeout(runHybridAuto,1000);return;}
+  if(active.length>0){
+    document.getElementById('hb-active-count').textContent=active.length+' ACTIVE';
+    document.getElementById('hb-countdown-txt').textContent='Settling '+active.length+' trade(s)...';
+    HB.interval=setTimeout(runHybridAuto,1000);
+    return;
+  }
   var sig=getWWSignal();
   if(!sig.ready){document.getElementById('hb-active-count').textContent='0 ACTIVE';HB.interval=setTimeout(runHybridAuto,2000);return;}
   placeHybridRound();
-  var waitMs=(HB.ticks*2000)+6000;
+  var waitMs=(HB.ticks*2000)+8000;
   startCountdown(Math.floor(waitMs/1000));
   HB.interval=setTimeout(runHybridAuto,waitMs);
 }
 
 function startCountdown(secs){
   clearInterval(HB.countdownTimer);
-  var total=secs,remaining=secs;
+  var total=secs,rem=secs;
   HB.countdownTimer=setInterval(function(){
-    remaining--;
+    rem--;
     var txt=document.getElementById('hb-countdown-txt'),bar=document.getElementById('hb-countdown-bar');
-    if(remaining<=0){clearInterval(HB.countdownTimer);if(txt)txt.textContent='Ready for next setup...';if(bar)bar.style.width='0%';return;}
-    if(txt)txt.textContent='Settling: '+remaining+'s';
-    if(bar)bar.style.width=((remaining/total)*100).toFixed(0)+'%';
+    if(rem<=0){clearInterval(HB.countdownTimer);if(txt)txt.textContent='Scanning for setup...';if(bar)bar.style.width='0%';return;}
+    if(txt)txt.textContent='Settling: '+rem+'s';if(bar)bar.style.width=((rem/total)*100).toFixed(0)+'%';
   },1000);
 }
 
 function placeHybridRound(){
   if(!S.connected){notify('!','Not connected','loss');return;}
   if(DG.stopped){notify('STOP','Daily limit hit','loss');return;}
-  var barriers=getBarriers(),stakes=getStakes(),entry=S.prices[HB.asset]||0;
+  // Hard block — 1 round at a time
+  var active=S.activeTrades.filter(function(t){return t.isHB;});
+  if(active.length>0){notify('!','Round already active — wait for it to settle','loss');return;}
+  var barriers=getBarriers(),stake=getPerContractStake(),entry=S.prices[HB.asset]||0;
+  var sig=getWWSignal();
   HB.roundId++;var rid=HB.roundId;
   HB.rounds++;HB.lastRoundTime=Date.now();
-  HB.pending[rid]={results:new Array(8).fill(null),settled:0,barriers:barriers,stakes:stakes,entry:entry,time:new Date().toLocaleTimeString(),asset:HB.asset};
-  setWWBarrierLines(entry,barriers,stakes);
-  renderTradeBreakdown(barriers,stakes);
+  HB.pending[rid]={results:new Array(8).fill(null),settled:0,barriers:barriers,stake:stake,entry:entry,time:new Date().toLocaleTimeString(),asset:HB.asset,score:sig.score};
+  setWWBarrierLines(entry,barriers,stake);
+  // Place H1-H4
   barriers.h.forEach(function(b,i){
-    var stake=stakes[i];
     var r=wsSend({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'CALL',currency:S.currency,duration:HB.ticks,duration_unit:'t',symbol:HB.asset,barrier:'+'+b.toFixed(2)}});
     if(r)S.pending[r]={dir:'HIGHER',stake:stake,asset:HB.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:i,barrier:b,durVal:HB.ticks,durUnit:'t'};
   });
+  // Place L1-L4
   barriers.l.forEach(function(b,i){
-    var stake=stakes[i+4];
     var r=wsSend({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'PUT',currency:S.currency,duration:HB.ticks,duration_unit:'t',symbol:HB.asset,barrier:'-'+b.toFixed(2)}});
     if(r)S.pending[r]={dir:'LOWER',stake:stake,asset:HB.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:i+4,barrier:b,durVal:HB.ticks,durUnit:'t'};
   });
   document.getElementById('hb-active-count').textContent='8 ACTIVE';
-  notify('WW','Round '+HB.rounds+': 8 trades | Entry:'+entry.toFixed(2),'info');
+  notify('WW','R'+HB.rounds+': $'+stake+'/contract x8 | Entry:'+entry.toFixed(2),'info');
   updHBStats();
 }
 
@@ -1517,52 +1484,92 @@ function onHBResult(roundId,idx,profit,direction){
   HB.pending[roundId].settled++;
   if(HB.pending[roundId].settled>=8){
     var r=HB.pending[roundId];
-    var totalPnl=parseFloat(r.results.reduce(function(s,x){return s+(x?x.profit:0);},0).toFixed(2));
+    var results=r.results;
+
+    // Collapse 8 individual results into 2 summary values:
+    // HIGHER side (idx 0-3) net P&L
+    var hPnl=parseFloat(results.slice(0,4).reduce(function(s,x){return s+(x?x.profit:0);},0).toFixed(2));
+    // LOWER side (idx 4-7) net P&L
+    var lPnl=parseFloat(results.slice(4,8).reduce(function(s,x){return s+(x?x.profit:0);},0).toFixed(2));
+    var totalPnl=parseFloat((hPnl+lPnl).toFixed(2));
     var isWin=totalPnl>0;
+
+    // Store as 2 clean summary trades in S.trades (replace the 8 individual ones)
+    // Remove the 8 individual HB trades for this round from S.trades
+    S.trades=S.trades.filter(function(t){return !(t.isHB&&t.hbRound===roundId);});
+
+    // Add 2 summary trades: HIGHER side and LOWER side
+    var hWin=hPnl>lPnl; // whichever side won more
+    var nowTs=new Date().toLocaleTimeString();
+    var summaryH={
+      id:roundId+'H', contractId:roundId+'H',
+      asset:r.asset, direction:'HIGHER',
+      stake:parseFloat((r.stake*4).toFixed(2)),
+      pnl:hPnl, win:hPnl>0, status:hPnl>0?'win':'loss',
+      time:r.time, durationStr:HB.ticks+'T',
+      price:r.entry, exitPrice:r.entry,
+      isHB:true, hbRound:roundId, isHBSummary:true,
+      note:''
+    };
+    var summaryL={
+      id:roundId+'L', contractId:roundId+'L',
+      asset:r.asset, direction:'LOWER',
+      stake:parseFloat((r.stake*4).toFixed(2)),
+      pnl:lPnl, win:lPnl>0, status:lPnl>0?'win':'loss',
+      time:r.time, durationStr:HB.ticks+'T',
+      price:r.entry, exitPrice:r.entry,
+      isHB:true, hbRound:roundId, isHBSummary:true,
+      note:''
+    };
+    S.trades.unshift(summaryL);
+    S.trades.unshift(summaryH);
+
+    // Update HB stats
     HB.pnl+=totalPnl;
     if(isWin){HB.won++;HB.lossStreak=0;}
-    else{HB.lost++;HB.lossStreak++;if(HB.lossStreak>=3&&HB.useCooldown&&!HB.coolingDown){HB.coolingDown=true;HB.cooldownEnd=Date.now()+120000;notify('PAUSE','3 net-negative rounds — pausing 2 mins','loss');}}
+    else{HB.lost++;HB.lossStreak++;if(HB.lossStreak>=3&&HB.useCooldown&&!HB.coolingDown){HB.coolingDown=true;HB.cooldownEnd=Date.now()+120000;notify('PAUSE','3 losses — cooling down 2 mins','loss');}}
     if(totalPnl>HB.bestRound)HB.bestRound=totalPnl;
     if(totalPnl<HB.worstRound)HB.worstRound=totalPnl;
-    HB.totalScore+=(getWWSignal().score||0);
-    HB.history.unshift({round:HB.rounds,time:r.time,asset:r.asset,profit:totalPnl,won:isWin,cumPnl:HB.pnl,results:r.results.slice(),stakes:r.stakes,barriers:r.barriers,entry:r.entry});
+
+    HB.history.unshift({round:HB.rounds,time:r.time,asset:r.asset,profit:totalPnl,won:isWin,cumPnl:HB.pnl,hPnl:hPnl,lPnl:lPnl,barriers:r.barriers,stake:r.stake,entry:r.entry,score:r.score});
     if(HB.history.length>100)HB.history.pop();
     delete HB.pending[roundId];
+
     clearWWBarrierLines();
+    // DG: count as 1 round (not 2 trades)
     DG.trades++;if(isWin)DG.wins++;else DG.losses++;saveDG();
+
+    // Persist trades
+    localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
+
     updHBStats();renderHBHistory('all');
+    updateStats();renderTrades();renderActive();
     wsSend({balance:1});
-    notify(isWin?'WW WIN':'WW LOSS','Round '+HB.rounds+': '+(totalPnl>=0?'+':'')+'$'+Math.abs(totalPnl).toFixed(2),isWin?'win':'loss');
+    setTimeout(function(){wsSend({balance:1});},1500);
+    notify(isWin?'WIN':'LOSS','R'+HB.rounds+': '+(totalPnl>=0?'+':'')+'$'+Math.abs(totalPnl).toFixed(2)+(isWin?' ↗H:+$'+Math.abs(hPnl).toFixed(2)+' ↘L:-$'+Math.abs(lPnl).toFixed(2):' Both sides missed'),isWin?'win':'loss');
     document.getElementById('hb-active-count').textContent='0 ACTIVE';
   }
 }
 
 function updHBStats(){
   var tot=HB.won+HB.lost,wr=tot?Math.round(HB.won/tot*100):0;
-  var els={
-    'hb-rounds':HB.rounds,'hb-won':HB.won,'hb-lost':HB.lost,
-    'hb-net':(HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2),
-    'hb-pnl':(HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2),
-    'hb-wr':wr+'%','hb-wr-pct':wr+'%',
-    'hb-best':(HB.bestRound>0?'+':'')+'$'+HB.bestRound.toFixed(2),
-    'hb-worst':'$'+HB.worstRound.toFixed(2),
-    'hb-skipped':HB.skipped,
-    'hb-filter-all':'All ('+HB.history.length+')','hb-filter-win':'Wins ('+HB.won+')','hb-filter-loss':'Losses ('+HB.lost+')',
-    'hb-round-info':'Rounds: '+HB.won+' won / '+HB.lost+' lost | Net: '+(HB.pnl>=0?'+':'')+'$'+HB.pnl.toFixed(2)
-  };
-  Object.keys(els).forEach(function(id){var e=document.getElementById(id);if(e)e.textContent=els[id];});
-  var hn=document.getElementById('hb-net');if(hn)hn.style.color=HB.pnl>=0?'var(--ac)':'var(--re)';
-  var hp=document.getElementById('hb-pnl');if(hp)hp.style.color=HB.pnl>=0?'var(--ac)':'var(--re)';
-  if(tot)document.getElementById('hb-avg-score').textContent=(HB.totalScore/tot).toFixed(1)+'/5';
-  // Daily progress
-  var dtp=parseFloat(document.getElementById('ww-daily-tp')?document.getElementById('ww-daily-tp').value:60)||60;
-  var dsl=parseFloat(document.getElementById('ww-daily-sl')?document.getElementById('ww-daily-sl').value:30)||30;
-  var tp=document.getElementById('ww-today-pnl');if(tp){tp.textContent=(HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);tp.style.color=HB.pnl>=0?'var(--ac)':'var(--re)';}
+  var S2=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+  S2('hb-rounds',HB.rounds);S2('hb-won',HB.won);S2('hb-lost',HB.lost);
+  S2('hb-filter-all','All ('+HB.history.length+')');S2('hb-filter-win','Wins ('+HB.won+')');S2('hb-filter-loss','Losses ('+HB.lost+')');
+  S2('hb-round-info',HB.won+' won / '+HB.lost+' lost | Net: '+(HB.pnl>=0?'+':'')+'$'+HB.pnl.toFixed(2));
+  S2('hb-wr',wr+'%');S2('hb-wr-pct',wr+'%');
+  S2('hb-best',(HB.bestRound>0?'+':'')+'$'+HB.bestRound.toFixed(2));
+  S2('hb-worst','$'+HB.worstRound.toFixed(2));
+  var hp=document.getElementById('hb-pnl');if(hp){hp.textContent=(HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);hp.style.color=HB.pnl>=0?'var(--ac)':'var(--re)';}
+  var hn=document.getElementById('hb-net');if(hn){hn.textContent=(HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);hn.style.color=HB.pnl>=0?'var(--ac)':'var(--re)';}
+  var dtp=parseFloat((document.getElementById('ww-daily-tp')||{value:60}).value)||60;
+  var dsl=parseFloat((document.getElementById('ww-daily-sl')||{value:30}).value)||30;
+  var tp2=document.getElementById('ww-today-pnl');if(tp2){tp2.textContent=(HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);tp2.style.color=HB.pnl>=0?'var(--ac)':'var(--re)';}
   var pct=HB.pnl>=0?Math.min(100,(HB.pnl/dtp)*100):Math.min(100,(Math.abs(HB.pnl)/dsl)*100);
   var pb=document.getElementById('ww-progress-bar');if(pb){pb.style.width=pct.toFixed(1)+'%';pb.style.background=HB.pnl>=0?'linear-gradient(90deg,var(--ac),#00b0ff)':'linear-gradient(90deg,var(--re),#ff8800)';}
   var pp=document.getElementById('ww-progress-pct');if(pp)pp.textContent=pct.toFixed(1)+'%';
   var stat=document.getElementById('ww-daily-status');
-  if(stat){if(HB.pnl>=dtp){stat.textContent='🎯 TARGET HIT!';stat.style.color='var(--ac)';}else if(HB.pnl<=-dsl){stat.textContent='🛑 SL HIT';stat.style.color='var(--re)';}else if(HB.pnl>0){stat.textContent='+$'+HB.pnl.toFixed(2)+' / $'+dtp;stat.style.color='var(--ac)';}else if(HB.pnl<0){stat.textContent='-$'+Math.abs(HB.pnl).toFixed(2)+' / $'+dsl+' SL';stat.style.color='var(--re)';}else{stat.textContent='Ready';stat.style.color='var(--t2)';}}
+  if(stat){if(HB.pnl>=dtp){stat.textContent='TARGET HIT!';stat.style.color='var(--ac)';}else if(HB.pnl<=-dsl){stat.textContent='SL HIT';stat.style.color='var(--re)';}else if(HB.pnl>0){stat.textContent='+$'+HB.pnl.toFixed(2)+' / $'+dtp;stat.style.color='var(--ac)';}else if(HB.pnl<0){stat.textContent='-$'+Math.abs(HB.pnl).toFixed(2)+' SL';stat.style.color='var(--re)';}else{stat.textContent='Ready';stat.style.color='var(--t2)';}}
 }
 
 function filterHBHistory(filter,el){
@@ -1580,30 +1587,46 @@ function renderHBHistory(filter){
   var hL=['H1','H2','H3','H4'],lL=['L1','L2','L3','L4'];
   el.innerHTML=list.map(function(r){
     var won=r.won;
+    var hPnl=r.hPnl||0, lPnl=r.lPnl||0;
+    var hWon=hPnl>0, lWon=lPnl>0;
     var html='<div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:10px 12px;margin-bottom:7px;border-left:3px solid '+(won?'var(--ac)':'var(--re)')+';">';
-    html+='<div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">';
+    // Header row
+    html+='<div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">';
     html+='<span style="background:'+(won?'var(--ad)':'var(--rd)')+';color:'+(won?'var(--ac)':'var(--re)')+';padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700">'+(won?'WIN':'LOSS')+'</span>';
     html+='<span style="font-size:12px;font-weight:700">'+r.asset+'</span>';
     html+='<span style="font-size:10px;color:var(--t3)">R'+r.round+' • '+r.time+'</span>';
-    html+='<span style="font-size:10px;color:var(--t3)">Entry:'+r.entry.toFixed(2)+'</span>';
-    html+='<span style="margin-left:auto;font-size:13px;font-weight:700;font-family:var(--mo);color:'+(won?'var(--ac)':'var(--re)')+'">'+( r.profit>=0?'+':'')+'$'+r.profit.toFixed(2)+'</span>';
+    html+='<span style="font-size:10px;color:var(--t3)">Score:'+r.score+'/5 • $'+r.stake+'/ea • Entry:'+r.entry.toFixed(2)+'</span>';
+    html+='<span style="margin-left:auto;font-size:14px;font-weight:700;font-family:var(--mo);color:'+(won?'var(--ac)':'var(--re)')+'">'+( r.profit>=0?'+':'')+'$'+r.profit.toFixed(2)+'</span>';
     html+='</div>';
-    html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:3px">';
-    for(var i=0;i<4;i++){var t=r.results[i];if(!t)continue;var bv=r.barriers?r.barriers.h[i]:0;html+='<div style="background:'+(t.win?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.08)')+';border:1px solid '+(t.win?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.2)')+';border-radius:4px;padding:4px 5px"><div style="font-size:9px;color:var(--ac);font-weight:700">'+hL[i]+'</div><div style="font-size:9px;color:var(--t3)">+'+( bv?bv.toFixed(2):'?')+'</div><div style="font-size:10px;font-weight:700;font-family:var(--mo);color:'+(t.win?'var(--ac)':'var(--re)')+'">'+( t.profit>=0?'+':'')+'$'+Math.abs(t.profit).toFixed(2)+'</div></div>';}
+    // 2 clean side cards
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    // HIGHER side
+    html+='<div style="background:'+(hWon?'rgba(0,229,160,0.08)':'rgba(255,77,106,0.05)')+';border:1px solid '+(hWon?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.2)')+';border-radius:var(--rs);padding:10px">';
+    html+='<div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:5px">↗ HIGHER SIDE '+(hWon?'✓ WON':'LOST')+'</div>';
+    html+='<div style="font-size:11px;color:var(--t2);margin-bottom:3px">4 contracts (H1-H4)</div>';
+    if(r.barriers)html+='<div style="font-size:10px;color:var(--t3);font-family:var(--mo)">Barriers: +'+r.barriers.h.map(function(b){return b.toFixed(2);}).join(' +')+'</div>';
+    html+='<div style="font-size:16px;font-weight:800;font-family:var(--mo);color:'+(hWon?'var(--ac)':'var(--re)')+';margin-top:4px">'+( hPnl>=0?'+':'')+'$'+hPnl.toFixed(2)+'</div>';
     html+='</div>';
-    html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px">';
-    for(var j=0;j<4;j++){var tl=r.results[j+4];if(!tl)continue;var blv=r.barriers?r.barriers.l[j]:0;html+='<div style="background:'+(tl.win?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.08)')+';border:1px solid '+(tl.win?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.2)')+';border-radius:4px;padding:4px 5px"><div style="font-size:9px;color:var(--re);font-weight:700">'+lL[j]+'</div><div style="font-size:9px;color:var(--t3)">-'+( blv?blv.toFixed(2):'?')+'</div><div style="font-size:10px;font-weight:700;font-family:var(--mo);color:'+(tl.win?'var(--ac)':'var(--re)')+'">'+( tl.profit>=0?'+':'')+'$'+Math.abs(tl.profit).toFixed(2)+'</div></div>';}
+    // LOWER side
+    html+='<div style="background:'+(lWon?'rgba(0,229,160,0.08)':'rgba(255,77,106,0.05)')+';border:1px solid '+(lWon?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.2)')+';border-radius:var(--rs);padding:10px">';
+    html+='<div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:5px">↘ LOWER SIDE '+(lWon?'✓ WON':'LOST')+'</div>';
+    html+='<div style="font-size:11px;color:var(--t2);margin-bottom:3px">4 contracts (L1-L4)</div>';
+    if(r.barriers)html+='<div style="font-size:10px;color:var(--t3);font-family:var(--mo)">Barriers: -'+r.barriers.l.map(function(b){return b.toFixed(2);}).join(' -')+'</div>';
+    html+='<div style="font-size:16px;font-weight:800;font-family:var(--mo);color:'+(lWon?'var(--ac)':'var(--re)')+';margin-top:4px">'+( lPnl>=0?'+':'')+'$'+lPnl.toFixed(2)+'</div>';
+    html+='</div>';
     html+='</div></div>';
     return html;
   }).join('');
 }
 
-function resetHB(){HB.rounds=0;HB.won=0;HB.lost=0;HB.pnl=0;HB.history=[];HB.bestRound=0;HB.worstRound=0;HB.lossStreak=0;HB.skipped=0;HB.totalScore=0;clearWWBarrierLines();updHBStats();renderHBHistory('all');notify('R','WinWin stats reset','info');}
+function resetHB(){HB.rounds=0;HB.won=0;HB.lost=0;HB.pnl=0;HB.history=[];HB.bestRound=0;HB.worstRound=0;HB.lossStreak=0;clearWWBarrierLines();updHBStats();renderHBHistory('all');notify('R','WinWin reset','info');}
 
 function setHBActive(el){
   el.closest('.dr').querySelectorAll('.db').forEach(function(b){b.classList.remove('active');});
   el.classList.add('active');
 }
+
+
 
 
 // ══════════════════════════════════════
@@ -1845,21 +1868,19 @@ function updateStats(){
   var done=S.trades.filter(function(t){return t.status!=='active';});
   var pnl=done.reduce(function(s,t){return s+t.pnl;},0);
 
-  // For HB trades: count rounds not individual trades
-  var roundMap={};
+  // HB trades are stored as 2 summary trades per round (HIGHER + LOWER)
+  // Count HB rounds as 1 unit: group by roundId, round is WIN if net>0
+  var hbRoundMap={};
   done.forEach(function(t){
-    if(t.isHB&&t.hbRound!==null){
-      if(!roundMap[t.hbRound]) roundMap[t.hbRound]={pnl:0,anyWin:false};
-      roundMap[t.hbRound].pnl+=t.pnl;
-      if(t.win) roundMap[t.hbRound].anyWin=true;
+    if(t.isHB&&t.hbRound!==null&&t.isHBSummary){
+      if(!hbRoundMap[t.hbRound])hbRoundMap[t.hbRound]={pnl:0};
+      hbRoundMap[t.hbRound].pnl+=t.pnl;
     }
   });
-  var hbRoundKeys=Object.keys(roundMap);
-  var hbWins=hbRoundKeys.filter(function(k){return roundMap[k].anyWin;}).length;
+  var hbRoundKeys=Object.keys(hbRoundMap);
+  var hbWins=hbRoundKeys.filter(function(k){return hbRoundMap[k].pnl>0;}).length;
   var nonHB=done.filter(function(t){return !t.isHB;});
   var nonHBWins=nonHB.filter(function(t){return t.win;}).length;
-
-  // Total "unit" count = HB rounds + individual trades
   var totalUnits=hbRoundKeys.length+nonHB.length;
   var totalWins=hbWins+nonHBWins;
   var wr=totalUnits?Math.round(totalWins/totalUnits*100):0;
@@ -1883,60 +1904,59 @@ function updateStats(){
 
 // Single trade row for non-HB trades
 function tRow(t){
+  // Skip HB individual contracts — only show HB summary trades
+  if(t.isHB&&!t.isHBSummary) return '';
   var bc=t.status==='active'?'bp':t.win?'bw':'bl2';
   var bl=t.status==='active'?'ACTIVE':t.win?'WON':'LOST';
-  var lbl=t.isDD?'<span style="font-size:9px;padding:1px 5px;background:rgba(245,166,35,0.2);color:var(--go);border-radius:4px;font-weight:700">DD</span>':'';
+  var lbl=t.isDD?'<span style="font-size:9px;padding:1px 5px;background:rgba(245,166,35,0.2);color:var(--go);border-radius:4px;font-weight:700">DD</span>':
+          t.isHBSummary?'<span style="font-size:9px;padding:1px 5px;background:rgba(0,229,160,0.2);color:var(--ac);border-radius:4px;font-weight:700">WW</span>':'';
   var pnlStr=t.status==='active'?'...':(t.pnl>=0?'+':'')+'$'+Math.abs(t.pnl).toFixed(2);
   return '<div class="trow"><span class="tbadge '+bc+'">'+bl+'</span><div style="flex:1"><div style="font-weight:600;font-size:12px">'+t.asset+' '+lbl+'</div><div class="td '+(t.direction==='HIGHER'?'up':'dn')+'">'+(t.direction==='HIGHER'?'▲ HIGHER':'▼ LOWER')+' $'+t.stake+'</div></div><div><div class="tpnl '+(t.pnl>=0?'pos':'neg')+'">'+pnlStr+'</div><div class="ttm">'+t.time+'</div></div></div>';
 }
 
 // HB round summary row for history page
 function hbRoundRow(roundId, trades){
-  var totalPnl = trades.reduce(function(s,t){return s+t.pnl;},0);
-  var anyWin = trades.some(function(t){return t.win;});
-  var time = trades[0].time;
-  var asset = trades[0].asset;
-  var wins = trades.filter(function(t){return t.win;}).length;
-  var html='<div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--r);padding:11px 13px;margin-bottom:8px;border-left:3px solid '+(anyWin?'var(--ac)':'var(--re)')+';">';
-  html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
-  html+='<span style="background:'+(anyWin?'var(--ad)':'var(--rd)')+';color:'+(anyWin?'var(--ac)':'var(--re)')+';padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700">'+(anyWin?'WON':'LOST')+'</span>';
-  html+='<span style="font-size:13px;font-weight:700">'+asset+'</span>';
-  html+='<span style="font-size:10px;padding:1px 6px;background:rgba(0,229,160,0.15);color:var(--ac);border-radius:4px;font-weight:700">HB</span>';
-  html+='<span style="font-size:10px;color:var(--t3)">Round '+roundId+' • '+trades.length+' trades • '+wins+' won</span>';
-  html+='<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+(totalPnl>=0?'var(--ac)':'var(--re)')+'">'+( totalPnl>=0?'+':'')+'$'+totalPnl.toFixed(2)+'</span>';
-  html+='<span style="font-size:10px;color:var(--t3)">'+time+'</span>';
+  // trades = 2 summary trades (HIGHER + LOWER)
+  var net=trades.reduce(function(s,t){return s+t.pnl;},0);
+  var isWin=net>0;
+  var asset=trades[0].asset,time=trades[0].time;
+  var hT=trades.find(function(t){return t.direction==='HIGHER';})||trades[0];
+  var lT=trades.find(function(t){return t.direction==='LOWER';})||trades[1]||trades[0];
+  var html='<div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:10px 13px;margin-bottom:8px;border-left:3px solid '+(isWin?'var(--ac)':'var(--re)')+';">';
+  html+='<div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">';
+  html+='<span style="background:'+(isWin?'var(--ad)':'var(--rd)')+';color:'+(isWin?'var(--ac)':'var(--re)')+';padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700">'+(isWin?'WIN':'LOSS')+'</span>';
+  html+='<span style="font-size:12px;font-weight:700">'+asset+'</span>';
+  html+='<span style="font-size:10px;padding:1px 6px;background:rgba(0,229,160,0.15);color:var(--ac);border-radius:4px;font-weight:700">WW</span>';
+  html+='<span style="font-size:10px;color:var(--t3)">R'+roundId+' • '+time+'</span>';
+  html+='<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+(isWin?'var(--ac)':'var(--re)')+'">'+( net>=0?'+':'')+'$'+net.toFixed(2)+'</span>';
   html+='</div>';
-  // Mini grid of all 8 trades
-  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">';
-  var labels=['H1','H2','H3','H4','L1','L2','L3','L4'];
-  trades.forEach(function(t,i){
-    var isH=t.direction==='HIGHER';
-    html+='<div style="background:'+(t.win?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.07)')+';border:1px solid '+(t.win?'rgba(0,229,160,0.2)':'rgba(255,77,106,0.2)')+';border-radius:5px;padding:5px 7px">';
-    html+='<div style="font-size:9px;color:'+(isH?'var(--ac)':'var(--re)')+';font-weight:700">'+(labels[i]||('T'+(i+1)))+'</div>';
-    html+='<div style="font-size:10px;color:var(--t2)">$'+t.stake+'</div>';
-    html+='<div style="font-size:11px;font-weight:700;font-family:var(--mo);color:'+(t.win?'var(--ac)':'var(--re)')+'">'+( t.pnl>=0?'+':'')+'$'+Math.abs(t.pnl).toFixed(2)+'</div>';
-    html+='<div style="font-size:9px;color:var(--t3)">'+(t.durationStr||'--')+'</div>';
-    html+='</div>';
-  });
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+  html+='<div style="background:'+(hT.win?'rgba(0,229,160,0.08)':'rgba(255,77,106,0.05)')+';border:1px solid '+(hT.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.15)')+';border-radius:var(--rs);padding:8px 10px">';
+  html+='<div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:3px">↗ HIGHER '+(hT.win?'WON':'LOST')+'</div>';
+  html+='<div style="font-size:15px;font-weight:700;font-family:var(--mo);color:'+(hT.win?'var(--ac)':'var(--re)')+'">'+( hT.pnl>=0?'+':'')+'$'+hT.pnl.toFixed(2)+'</div></div>';
+  html+='<div style="background:'+(lT.win?'rgba(0,229,160,0.08)':'rgba(255,77,106,0.05)')+';border:1px solid '+(lT.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.15)')+';border-radius:var(--rs);padding:8px 10px">';
+  html+='<div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:3px">↘ LOWER '+(lT.win?'WON':'LOST')+'</div>';
+  html+='<div style="font-size:15px;font-weight:700;font-family:var(--mo);color:'+(lT.win?'var(--ac)':'var(--re)')+'">'+( lT.pnl>=0?'+':'')+'$'+lT.pnl.toFixed(2)+'</div></div>';
   html+='</div></div>';
   return html;
 }
 
 function renderTrades(){
-  var all = S.trades.slice(0,12);
+  // Show only HB summary trades + non-HB trades (skip raw HB individual contracts)
+  var all=S.trades.filter(function(t){return !t.isHB||t.isHBSummary;}).slice(0,10);
   if(!all.length){document.getElementById('recentTrades').innerHTML='<div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No trades yet.</div>';return;}
-  // Group HB trades by round, show non-HB individually
+  // Group HB summaries by round
   var shown=[], seenRounds={};
   all.forEach(function(t){
-    if(t.isHB&&t.hbRound!==null){
+    if(t.isHBSummary&&t.hbRound!==null){
       if(!seenRounds[t.hbRound]){seenRounds[t.hbRound]=true;shown.push({isRound:true,roundId:t.hbRound});}
-    } else {shown.push({isRound:false,trade:t});}
+    } else if(!t.isHB){shown.push({isRound:false,trade:t});}
   });
   var html='';
   shown.slice(0,6).forEach(function(item){
     if(item.isRound){
-      var rTrades=S.trades.filter(function(x){return x.isHB&&x.hbRound===item.roundId&&x.status!=='active';});
-      if(rTrades.length) html+=hbRoundRow(item.roundId,rTrades);
+      var rTrades=S.trades.filter(function(x){return x.isHBSummary&&x.hbRound===item.roundId;});
+      if(rTrades.length)html+=hbRoundRow(item.roundId,rTrades);
     } else {html+=tRow(item.trade);}
   });
   document.getElementById('recentTrades').innerHTML=html||'<div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No trades yet.</div>';
@@ -1944,29 +1964,29 @@ function renderTrades(){
 
 function rendHist(f){
   var all=S.trades.filter(function(x){return x.status!=='active';});
-  // Split into HB rounds and individual trades
-  var roundMap={}, individuals=[];
+  // Group HB summary trades by round, show individuals separately
+  var hbRoundMap={}, individuals=[];
   all.forEach(function(t){
-    if(t.isHB&&t.hbRound!==null){
-      if(!roundMap[t.hbRound]) roundMap[t.hbRound]=[];
-      roundMap[t.hbRound].push(t);
-    } else { individuals.push(t); }
+    if(t.isHB&&t.isHBSummary&&t.hbRound!==null){
+      if(!hbRoundMap[t.hbRound])hbRoundMap[t.hbRound]=[];
+      hbRoundMap[t.hbRound].push(t);
+    } else if(!t.isHB){
+      individuals.push(t);
+    }
+    // Skip raw HB individual contracts (not isHBSummary)
   });
-  // Build display list
-  // For filter: HB round = won if any win, lost if all lost
   var html='';
-  var roundKeys=Object.keys(roundMap).sort(function(a,b){return b-a;});
-  roundKeys.forEach(function(rid){
-    var trades=roundMap[rid];
-    var anyWin=trades.some(function(t){return t.win;});
-    var totalPnl=trades.reduce(function(s,t){return s+t.pnl;},0);
-    if(f==='win'&&!anyWin) return;
-    if(f==='loss'&&anyWin) return;
+  Object.keys(hbRoundMap).sort(function(a,b){return b-a;}).forEach(function(rid){
+    var trades=hbRoundMap[rid];
+    var net=trades.reduce(function(s,t){return s+t.pnl;},0);
+    var isWin=net>0;
+    if(f==='win'&&!isWin)return;
+    if(f==='loss'&&isWin)return;
     html+=hbRoundRow(parseInt(rid),trades);
   });
   individuals.forEach(function(t){
-    if(f==='win'&&!t.win) return;
-    if(f==='loss'&&t.win) return;
+    if(f==='win'&&!t.win)return;
+    if(f==='loss'&&t.win)return;
     html+=tRow(t);
   });
   document.getElementById('histList').innerHTML=html||'<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No trades.</div>';
