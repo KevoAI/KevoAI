@@ -1439,59 +1439,26 @@ var wwChart=null,wwPriceHist=[],wwBarrierLines=[],wwBarriersDirty=false,wwLastDr
 var _wwYmin=null,_wwYmax=null;
 
 function initWWChart(){
-  var canvas=document.getElementById('wwChart');
-  if(!canvas)return;
-  var ctx=canvas.getContext('2d');
-  if(wwChart){try{wwChart.destroy();}catch(e){}wwChart=null;}
-  wwBarrierLines=[];wwBarriersDirty=false;
+  // wwChart is created in initCharts() — just backfill data and redraw here
+  if(!wwChart)return;
+  wwBarriersDirty=false;
   _wwYmin=null;_wwYmax=null;
+  // Clear barrier datasets
+  while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
+  wwBarrierLines=[];
 
-  // Backfill from ind.prices so chart is full on page open
+  // Backfill price history from indicator engine
   var ind=getInd(HB.asset);
   if(ind.prices.length>wwPriceHist.length){
     wwPriceHist=ind.prices.slice(-120);
   }
-  // Add current price if not already in history
   var curP=S.prices[HB.asset]||0;
   if(curP>0&&(!wwPriceHist.length||wwPriceHist[wwPriceHist.length-1]!==curP)){
     wwPriceHist.push(curP);
     if(wwPriceHist.length>120)wwPriceHist.shift();
   }
-
-  wwChart=new Chart(ctx,{
-    type:'line',
-    data:{
-      labels:[],
-      datasets:[{
-        label:'Price',data:[],
-        borderColor:'#00e5a0',borderWidth:1.5,
-        fill:true,
-        backgroundColor:function(c){
-          var g=c.chart.ctx.createLinearGradient(0,0,0,160);
-          g.addColorStop(0,'rgba(0,229,160,.18)');
-          g.addColorStop(1,'rgba(0,229,160,0)');
-          return g;
-        },
-        pointRadius:0,tension:0.3
-      }]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{display:false},
-        y:{
-          display:true,
-          grid:{color:'rgba(255,255,255,.04)'},
-          ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:9},maxTicksLimit:4}
-        }
-      },
-      animation:{duration:0}
-    }
-  });
-
-  // Draw immediately with backfilled data
-  if(wwPriceHist.length>0) drawWWChart(wwPriceHist[wwPriceHist.length-1]);
+  // Draw immediately
+  if(wwPriceHist.length>0)drawWWChart(wwPriceHist[wwPriceHist.length-1]);
 }
 
 function setWWBarrierLines(entry,barriers){
@@ -2755,6 +2722,22 @@ function initCharts(){
   priceChart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[{data:[],borderColor:'#00e5a0',borderWidth:1.5,fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,230);g.addColorStop(0,'rgba(0,229,160,.15)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},pointRadius:0,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:10},maxTicksLimit:5}}},animation:{duration:0}}});
   var pctx=document.getElementById('pnlChart').getContext('2d');
   pnlChart=new Chart(pctx,{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4a5568',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#4a5568',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+  // Create wwChart here — temporarily show the barrier page so canvas gets real dimensions
+  var barrierPage=document.getElementById('page-barrier');
+  if(barrierPage){
+    barrierPage.style.display='block';
+    barrierPage.style.visibility='hidden'; // invisible but has dimensions
+    var wctx=document.getElementById('wwChart');
+    if(wctx){
+      wwChart=new Chart(wctx.getContext('2d'),{
+        type:'line',
+        data:{labels:[],datasets:[{label:'Price',data:[],borderColor:'#00e5a0',borderWidth:1.5,fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(0,229,160,.18)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},pointRadius:0,tension:0.3}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:9},maxTicksLimit:4}}},animation:{duration:0}}
+      });
+    }
+    barrierPage.style.display='';
+    barrierPage.style.visibility='';
+  }
 }
 
 window.addEventListener('load',function(){
