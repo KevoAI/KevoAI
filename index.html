@@ -499,8 +499,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <span style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="ww-chart-atr">ATR: --</span>
                 <span style="font-size:10px;padding:2px 7px;border-radius:99px;font-weight:700;background:var(--bg4);color:var(--t3)" id="ww-chart-vol-badge">VOL: --</span>
               </div>
-              <div style="position:relative;height:180px">
-                <canvas id="wwChart"></canvas>
+              <div style="position:relative;height:180px;width:100%">
+                <canvas id="wwChart" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas>
               </div>
               <div style="padding:6px 12px;border-top:1px solid var(--bo);display:flex;gap:8px;flex-wrap:wrap;font-size:10px;font-family:var(--mo)" id="ww-barrier-legend">
                 <span style="color:var(--t3)">No active round — waiting for signal</span>
@@ -620,7 +620,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Min Signal Score to Trade</div>
-                  <div class="dr" style="grid-template-columns:repeat(5,1fr)"><div class="db" onclick="HB.minScore=1;setHBActive(this)">1</div><div class="db" onclick="HB.minScore=2;setHBActive(this)">2</div><div class="db active" onclick="HB.minScore=3;setHBActive(this)">3</div><div class="db" onclick="HB.minScore=4;setHBActive(this)">4</div><div class="db" onclick="HB.minScore=5;setHBActive(this)">5</div></div>
+                  <div class="dr" style="grid-template-columns:repeat(5,1fr)"><div class="db" onclick="HB.minScore=1;setHBActive(this)">1</div><div class="db" onclick="HB.minScore=2;setHBActive(this)">2</div><div class="db" onclick="HB.minScore=3;setHBActive(this)">3</div><div class="db active" onclick="HB.minScore=4;setHBActive(this)">4</div><div class="db" onclick="HB.minScore=5;setHBActive(this)">5</div></div>
                   <div style="font-size:10px;color:var(--t3);margin-top:3px">Higher = fewer but better quality setups</div>
                 </div>
                 <div class="ig" style="margin-bottom:11px">
@@ -1054,10 +1054,9 @@ function onTick(tick) {
 function onTickWrapper(tick){
   updateIndicators(tick.symbol,tick.quote);
   onTick(tick);
-  // Always buffer WW chart data; only render when on WinWin page
+  // Buffer ALL ticks for HB asset regardless of page
   if(tick.symbol===HB.asset){
-    wwChartData.push(tick.quote);
-    if(wwChartData.length>60)wwChartData.shift();
+    // Only render visually when on WinWin page
     if(document.getElementById('page-barrier').classList.contains('active')){
       updateWWChart(tick.symbol,tick.quote);
     }
@@ -1194,6 +1193,7 @@ function getSideStake(){
 }
 
 // ── Risk Calculator ───────────────────────────────────────────────
+function updateHBCalc(){calcWWDaily();}
 function calcWWDaily(){
   var risk=parseFloat(document.getElementById('ww-risk').value)||10;
   var sl  =parseFloat(document.getElementById('ww-daily-sl').value)||30;
@@ -1290,33 +1290,69 @@ function renderTradeBreakdown(barrier,side){
 var wwChart=null,wwChartData=[],wwBarrierLines=[],wwChartThrottle=0;
 
 function initWWChart(){
-  var canvas=document.getElementById('wwChart');if(!canvas)return;
+  var canvas=document.getElementById('wwChart');
+  if(!canvas)return;
   var ctx=canvas.getContext('2d');
-  if(wwChart){wwChart.destroy();wwChart=null;}
-  wwChartData=[];wwBarrierLines=[];
-  wwChart=new Chart(ctx,{type:'line',
-    data:{labels:[],datasets:[{label:'P',data:[],borderColor:'#00e5a0',borderWidth:1.5,fill:true,
-      backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(0,229,160,.15)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},
-      pointRadius:0,tension:0.3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{display:false},y:{display:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:9},maxTicksLimit:4}}},
-      animation:{duration:0}}
+  if(wwChart){try{wwChart.destroy();}catch(e){}wwChart=null;}
+  wwBarrierLines=[];
+  wwChart=new Chart(ctx,{
+    type:'line',
+    data:{labels:[],datasets:[{
+      label:'Price',data:[],
+      borderColor:'#00e5a0',borderWidth:1.5,fill:true,
+      backgroundColor:function(c){
+        var g=c.chart.ctx.createLinearGradient(0,0,0,160);
+        g.addColorStop(0,'rgba(0,229,160,.18)');
+        g.addColorStop(1,'rgba(0,229,160,0)');
+        return g;
+      },
+      pointRadius:0,tension:0.3
+    }]},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{display:false},
+        y:{display:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:9},maxTicksLimit:4}}
+      },
+      animation:{duration:0}
+    }
   });
+  // Immediately seed with any existing data
+  var ind=getInd(HB.asset);
+  if(ind.prices.length>0){
+    var seed=ind.prices.slice(-60);
+    wwChart.data.labels=seed.map(function(){return '';});
+    wwChart.data.datasets[0].data=seed.slice();
+    wwChart.update('none');
+    var last=seed[seed.length-1];
+    var ep=document.getElementById('ww-chart-price');if(ep)ep.textContent=last.toFixed(last>100?2:4);
+    var el=document.getElementById('ww-chart-lbl');if(el)el.textContent=HB.asset;
+  }
 }
 
 function updateWWChart(sym,price){
-  if(!wwChart)return;
+  if(!wwChart){initWWChart();if(!wwChart)return;}
   var now=Date.now();if(now-wwChartThrottle<500)return;wwChartThrottle=now;
-  wwChartData.push(price);if(wwChartData.length>60)wwChartData.shift();
-  var len=wwChartData.length;
-  wwChart.data.labels=wwChartData.map(function(){return '';});
-  wwChart.data.datasets[0].data=wwChartData.slice();
+  // Always pull from indicator buffer — freshest data
+  var ind=getInd(sym);
+  var data=ind.prices.length>0?ind.prices.slice(-60):[price];
+  var len=data.length;
+  wwChart.data.labels=data.map(function(){return '';});
+  wwChart.data.datasets[0].data=data.slice();
+  // Rebuild barrier lines
   while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
   wwBarrierLines.forEach(function(bl){
-    wwChart.data.datasets.push({label:bl.label,data:Array(len).fill(bl.price),borderColor:bl.color,borderWidth:bl.isMain?2:1,borderDash:[5,3],pointRadius:0,fill:false,tension:0});
+    wwChart.data.datasets.push({
+      label:bl.label,data:Array(len).fill(bl.price),
+      borderColor:bl.color,borderWidth:bl.isMain?2.5:1.5,
+      borderDash:[6,3],pointRadius:0,fill:false,tension:0
+    });
   });
   wwChart.update('none');
   var ep=document.getElementById('ww-chart-price');if(ep)ep.textContent=price.toFixed(price>100?2:4);
+  var el=document.getElementById('ww-chart-lbl');if(el)el.textContent=sym;
 }
 
 function setWWBarrierLines(entry,barrier){
@@ -1353,33 +1389,41 @@ function getWWSignal(){
     }
     return{score:0,ready:false};
   }
+  // ── SCORING (each = 1 point, max 5) ───────────────────────────
+  // Signal 1: ATR spike — MANDATORY (required regardless of score)
   var atr5=0,atr20=0,atrHit=false;
-  if(n>=25){
-    for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;
-    for(var j=n-25;j<n-5;j++)atr20+=Math.abs(prices[j]-prices[j-1]);atr20/=20;
-    atrHit=atr5>=atr20*1.8;if(atrHit)score++;
-    if(updateDOM){
-      var ac=document.getElementById('sig-atr-card'),av=document.getElementById('sig-atr-val');
-      if(ac){ac.style.borderColor=atrHit?'var(--ac)':'var(--bo)';ac.style.background=atrHit?'rgba(0,229,160,0.1)':'var(--bg3)';}
-      if(av){av.textContent=atr20>0?(atr5/atr20).toFixed(2)+'x':'--';av.style.color=atrHit?'var(--ac)':'var(--t3)';}
-      var vb=document.getElementById('ww-chart-vol-badge');
-      if(vb){var vr=atr20>0?atr5/atr20:1;vb.textContent='VOL:'+(vr>1.8?'HIGH':vr>1.2?'MED':'LOW');vb.style.background=vr>1.8?'var(--ad)':vr>1.2?'var(--gd)':'var(--bg4)';vb.style.color=vr>1.8?'var(--ac)':vr>1.2?'var(--go)':'var(--t3)';}
-      var ca=document.getElementById('ww-chart-atr');if(ca)ca.textContent='ATR:'+atr5.toFixed(4);
-    }
-  } else if(updateDOM){var av2=document.getElementById('sig-atr-val');if(av2)av2.textContent='need '+(25-n)+' more';}
-  if(ind.bbSqueeze){HB.lastSqueezeTime=now;score+=2;}
+  for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;
+  for(var j=n-25;j<n-5;j++)atr20+=Math.abs(prices[j]-prices[j-1]);atr20/=20;
+  atrHit=atr5>=atr20*1.8;
+  if(atrHit)score++;  // +1 each, never +2
+  if(updateDOM){
+    var ac=document.getElementById('sig-atr-card'),av=document.getElementById('sig-atr-val');
+    if(ac){ac.style.borderColor=atrHit?'var(--ac)':'var(--bo)';ac.style.background=atrHit?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(av){av.textContent=atr20>0?(atr5/atr20).toFixed(2)+'x':'--';av.style.color=atrHit?'var(--ac)':'var(--t3)';}
+    var vb=document.getElementById('ww-chart-vol-badge');
+    if(vb){var vr=atr20>0?atr5/atr20:1;vb.textContent='VOL:'+(vr>1.8?'HIGH':vr>1.2?'MED':'LOW');vb.style.background=vr>1.8?'var(--ad)':vr>1.2?'var(--gd)':'var(--bg4)';vb.style.color=vr>1.8?'var(--ac)':vr>1.2?'var(--go)':'var(--t3)';}
+    var ca=document.getElementById('ww-chart-atr');if(ca)ca.textContent='ATR:'+atr5.toFixed(4);
+  }
+
+  // Signal 2: BB Squeeze active = +1 (was +2 — reduced so squeeze alone can't trigger trade)
+  if(ind.bbSqueeze){HB.lastSqueezeTime=now;score++;}
   if(updateDOM){
     var bc=document.getElementById('sig-bb-card'),bv=document.getElementById('sig-bb-val');
     if(bc){bc.style.borderColor=ind.bbSqueeze?'var(--ac)':'var(--bo)';bc.style.background=ind.bbSqueeze?'rgba(0,229,160,0.1)':'var(--bg3)';}
     if(bv){bv.textContent=ind.bbSqueeze?'SQUEEZE!':'Normal';bv.style.color=ind.bbSqueeze?'var(--ac)':'var(--t3)';}
   }
+
+  // Signal 3: Post-squeeze expansion = +1
   var expanding=!ind.bbSqueeze&&HB.lastSqueezeTime>0&&(now-HB.lastSqueezeTime)<20000&&ind.bbWidth>HB.prevBBWidth*1.1;
-  if(expanding)score++;if(ind.bbWidth)HB.prevBBWidth=ind.bbWidth;
+  if(expanding)score++;
+  if(ind.bbWidth)HB.prevBBWidth=ind.bbWidth;
   if(updateDOM){
     var ec=document.getElementById('sig-expand-card'),ev=document.getElementById('sig-expand-val');
     if(ec){ec.style.borderColor=expanding?'var(--ac)':'var(--bo)';ec.style.background=expanding?'rgba(0,229,160,0.1)':'var(--bg3)';}
     if(ev){ev.textContent=expanding?'EXPANDING!':'Waiting';ev.style.color=expanding?'var(--ac)':'var(--t3)';}
   }
+
+  // Signal 4: Momentum burst — 3 consecutive bigger ticks = +1
   var momBurst=false;
   if(n>=5){var sz=[];for(var k=n-4;k<n;k++)sz.push(Math.abs(prices[k]-prices[k-1]));if(sz[1]>sz[0]&&sz[2]>sz[1]&&sz[3]>sz[2])momBurst=true;}
   if(momBurst)score++;
@@ -1388,6 +1432,8 @@ function getWWSignal(){
     if(mc){mc.style.borderColor=momBurst?'var(--ac)':'var(--bo)';mc.style.background=momBurst?'rgba(0,229,160,0.1)':'var(--bg3)';}
     if(mv){mv.textContent=momBurst?'BURST!':'Flat';mv.style.color=momBurst?'var(--ac)':'var(--t3)';}
   }
+
+  // Signal 5: Cooldown/gap clear = +1
   var gapOk=(now-HB.lastRoundTime)>=(HB.minGap||45)*1000,coolOk=!HB.coolingDown||now>HB.cooldownEnd,cdOk=gapOk&&coolOk;
   if(cdOk)score++;
   var dsecs=Math.max(gapOk?0:Math.ceil(((HB.lastRoundTime+(HB.minGap||45)*1000)-now)/1000),coolOk?0:Math.ceil((HB.cooldownEnd-now)/1000));
@@ -1400,12 +1446,28 @@ function getWWSignal(){
     if(sb){sb.textContent='Score: '+score+'/5';sb.style.background=score>=4?'var(--ad)':score>=minS?'var(--gd)':'var(--bg4)';sb.style.color=score>=4?'var(--ac)':score>=minS?'var(--go)':'var(--t3)';sb.style.border='1px solid '+(score>=minS?'rgba(0,229,160,0.3)':'var(--bo)');}
     var ss=document.getElementById('sig-status');
     if(ss){
-      if(!cdOk){ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+dsecs+'s':'Gap: '+dsecs+'s');ss.style.color='var(--go)';}
-      else if(score>=minS){ss.textContent='✅ SETUP FOUND — Score '+score+'/5 — Placing now...';ss.style.color='var(--ac)';}
-      else{var miss=[];if(!atrHit)miss.push('ATR spike');if(!ind.bbSqueeze&&!expanding)miss.push('BB squeeze');if(!momBurst)miss.push('momentum');ss.textContent='⏳ Waiting ('+score+'/'+minS+'): need '+miss.join(', ');ss.style.color='var(--t2)';}
+      if(!cdOk){
+        ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+dsecs+'s':'Gap: '+dsecs+'s until ready');
+        ss.style.color='var(--go)';
+      } else if(!atrHit){
+        // ATR is mandatory — no trade without real volatility
+        ss.textContent='❌ ATR spike required (currently '+( atr20>0?(atr5/atr20).toFixed(2)+'x':'--')+' need 1.8x) — score '+score+'/5';
+        ss.style.color='var(--re)';
+      } else if(score>=minS){
+        ss.textContent='✅ SETUP CONFIRMED — Score '+score+'/5 — ATR spike detected — Placing now...';
+        ss.style.color='var(--ac)';
+      } else {
+        var miss=[];
+        if(!ind.bbSqueeze&&!expanding)miss.push('BB squeeze/expansion');
+        if(!momBurst)miss.push('momentum burst');
+        ss.textContent='⏳ Waiting ('+score+'/'+minS+'): ATR active, need '+miss.join(', ');
+        ss.style.color='var(--t2)';
+      }
     }
   }
-  return{score:score,ready:score>=(HB.minScore||3)&&cdOk};
+  // HARD REQUIREMENT: ATR spike must be present — no trade on squeeze+cooldown alone
+  var meetsScore=score>=(HB.minScore||3);
+  return{score:score,ready:meetsScore&&cdOk&&atrHit};
 }
 
 // ── Bot toggle ────────────────────────────────────────────────────
@@ -1880,26 +1942,13 @@ function showPage(id,navEl){
   if(id==='history')rendHist('all');
   if(id==='journal')renderJournal('all');
   if(id==='barrier'){
-    updateHBCalc();updateMovesGrid();updatePrediction();
-    // Seed WW chart from existing indicator buffer so it's never blank
-    var _ind=getInd(HB.asset);
-    if(_ind.prices.length>0){
-      wwChartData=_ind.prices.slice(-60);
-      if(!wwChart)initWWChart();
-      if(wwChart){
-        wwChart.data.labels=wwChartData.map(function(){return '';});
-        wwChart.data.datasets[0].data=wwChartData.slice();
-        while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
-        wwChart.update('none');
-        var _last=wwChartData[wwChartData.length-1];
-        var _ep=document.getElementById('ww-chart-price');
-        if(_ep)_ep.textContent=_last.toFixed(_last>100?2:4);
-        var _el=document.getElementById('ww-chart-lbl');
-        if(_el)_el.textContent=HB.asset;
-      }
-    } else if(!wwChart){
-      initWWChart();
-    }
+    calcWWDaily();
+    if(typeof updateMovesGrid==='function')updateMovesGrid();
+    if(typeof updatePrediction==='function')updatePrediction();
+    // Destroy and reinit chart every time we visit the page
+    // so it correctly sizes to its container
+    if(wwChart){try{wwChart.destroy();}catch(e){}wwChart=null;}
+    initWWChart();
   }
 }
 
@@ -2251,7 +2300,7 @@ window.addEventListener('load',function(){
   if(!S.apiToken&&savedDemo)S.apiToken=savedDemo;
   if(!S.apiToken&&savedReal)S.apiToken=savedReal;
   // Version check — clear stale data from old 8-trade version
-var _wwVersion = '4.2';
+var _wwVersion = '4.3';
 if(localStorage.getItem('kevoai_version')!==_wwVersion){
   localStorage.removeItem('kevoai_trades');
   localStorage.removeItem('kevoai_dg_trades');
