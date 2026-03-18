@@ -1091,52 +1091,105 @@ function onTickWrapper(tick){
   }
 }
 
-// Direct chart draw — reads from wwPriceHist which is fed directly by the ticker bar
+// Raw canvas draw — pure 2D API, no Chart.js, <1ms per frame
 function drawWWChart(price){
-  if(!wwChart)return;
+  if(!wwCtx||!wwChart)return;
   var now=Date.now();
-  if(now-wwLastDraw<100)return;
+  if(now-wwLastDraw<80)return; // ~12fps — smooth without hammering CPU
   wwLastDraw=now;
+
+  var canvas=wwChart;
   var data=wwPriceHist.slice(-80);
-  // If no history yet, show single point so chart isn't blank
-  if(!data.length){
-    if(price>0)data=[price];
-    else return;
+  if(!data.length){if(price>0)data=[price];else return;}
+  var n=data.length;
+
+  // Canvas logical size (pre-devicePixelRatio scaling)
+  var W=canvas.width/window.devicePixelRatio;
+  var H=canvas.height/window.devicePixelRatio;
+  if(W<=0||H<=0)return;
+
+  var pad={top:8,right:50,bottom:8,left:4};
+  var pw=W-pad.left-pad.right;
+  var ph=H-pad.top-pad.bottom;
+
+  // ── Y scale — auto-fit to data + barriers ────────────────────
+  var allVals=data.slice();
+  wwBarrierLines.forEach(function(b){allVals.push(b.price);});
+  var mn=allVals.reduce(function(a,b){return Math.min(a,b);},Infinity);
+  var mx=allVals.reduce(function(a,b){return Math.max(a,b);},- Infinity);
+  var range=mx-mn||1;
+  var pad_y=range*0.12;
+  mn-=pad_y; mx+=pad_y; range=mx-mn;
+
+  function toY(v){return pad.top+ph*(1-(v-mn)/range);}
+  function toX(i){return pad.left+pw*(i/(n-1||1));}
+
+  // ── Clear ─────────────────────────────────────────────────────
+  wwCtx.clearRect(0,0,W,H);
+
+  // ── Fill under price line ─────────────────────────────────────
+  var grad=wwCtx.createLinearGradient(0,pad.top,0,pad.top+ph);
+  grad.addColorStop(0,'rgba(0,229,160,0.18)');
+  grad.addColorStop(1,'rgba(0,229,160,0.0)');
+  wwCtx.beginPath();
+  wwCtx.moveTo(toX(0),toY(data[0]));
+  for(var i=1;i<n;i++)wwCtx.lineTo(toX(i),toY(data[i]));
+  wwCtx.lineTo(toX(n-1),pad.top+ph);
+  wwCtx.lineTo(toX(0),pad.top+ph);
+  wwCtx.closePath();
+  wwCtx.fillStyle=grad;
+  wwCtx.fill();
+
+  // ── Price line ────────────────────────────────────────────────
+  wwCtx.beginPath();
+  wwCtx.strokeStyle='#00e5a0';
+  wwCtx.lineWidth=1.5;
+  wwCtx.lineJoin='round';
+  wwCtx.moveTo(toX(0),toY(data[0]));
+  for(var i=1;i<n;i++)wwCtx.lineTo(toX(i),toY(data[i]));
+  wwCtx.stroke();
+
+  // ── Y-axis labels (right side) ────────────────────────────────
+  wwCtx.fillStyle='#4a5568';
+  wwCtx.font='9px JetBrains Mono, monospace';
+  wwCtx.textAlign='left';
+  var tickCount=4;
+  for(var t=0;t<=tickCount;t++){
+    var v=mn+range*(t/tickCount);
+    var y=toY(v);
+    wwCtx.globalAlpha=0.25;
+    wwCtx.beginPath();wwCtx.moveTo(pad.left,y);wwCtx.lineTo(W-pad.right,y);
+    wwCtx.strokeStyle='rgba(255,255,255,0.08)';wwCtx.lineWidth=0.5;wwCtx.stroke();
+    wwCtx.globalAlpha=1;
+    wwCtx.fillText(v.toFixed(v>100?1:3),W-pad.right+3,y+3);
   }
-  // Update price dataset only — cheap operation
-  wwChart.data.labels=data.map(function(){return '';});
-  wwChart.data.datasets[0].data=data;
-  // Force y-axis to autoscale to actual data — prevents flat line when asset changes
-  wwChart.options.scales.y.min=undefined;
-  wwChart.options.scales.y.max=undefined;
-  // Rebuild barrier datasets ONLY when dirty (round start/end) — not every tick
-  if(wwBarriersDirty){
-    var len=data.length;
-    for(var _i=1;_i<wwChart.data.datasets.length;_i++){
-      var bl=wwBarrierLines[_i-1];
-      if(bl){
-        wwChart.data.datasets[_i].data=Array(len).fill(bl.price);
-        wwChart.data.datasets[_i].borderColor=bl.color;
-        wwChart.data.datasets[_i].borderWidth=_i===1?2:1.5;
-        wwChart.data.datasets[_i].hidden=false;
-      } else {
-        wwChart.data.datasets[_i].data=[];
-        wwChart.data.datasets[_i].hidden=true;
-      }
-    }
-    wwBarriersDirty=false;
-  } else if(wwBarrierLines.length>0){
-    // Just update lengths to match price data — no object creation
-    var plen=data.length;
-    for(var _j=1;_j<wwChart.data.datasets.length;_j++){
-      var bd=wwChart.data.datasets[_j];
-      if(!bd.hidden&&bd.data.length>0&&bd.data.length!==plen){
-        var bval=bd.data[0];
-        bd.data=Array(plen).fill(bval);
-      }
-    }
-  }
-  wwChart.update('none');
+
+  // ── Barrier lines ─────────────────────────────────────────────
+  wwCtx.setLineDash([6,4]);
+  wwBarrierLines.forEach(function(bl){
+    var by=toY(bl.price);
+    wwCtx.beginPath();
+    wwCtx.strokeStyle=bl.color;
+    wwCtx.lineWidth=bl.isMain?2:1.5;
+    wwCtx.moveTo(pad.left,by);wwCtx.lineTo(W-pad.right,by);
+    wwCtx.stroke();
+    // Label on right
+    wwCtx.fillStyle=bl.color;
+    wwCtx.font='bold 9px JetBrains Mono, monospace';
+    wwCtx.textAlign='left';
+    wwCtx.fillText(bl.label||'',W-pad.right+3,by+3);
+  });
+  wwCtx.setLineDash([]);
+
+  // ── Current price dot ─────────────────────────────────────────
+  var lastY=toY(data[n-1]);
+  var lastX=toX(n-1);
+  wwCtx.beginPath();
+  wwCtx.arc(lastX,lastY,3,0,Math.PI*2);
+  wwCtx.fillStyle='#00e5a0';
+  wwCtx.fill();
+
+  // Update price display
   var ep=document.getElementById('ww-chart-price');
   if(ep)ep.textContent=price.toFixed(price>100?2:4);
 }
@@ -1409,57 +1462,47 @@ function renderTradeBreakdown(bands,perSide){
   var bw=document.getElementById('ww-best-win');if(bw){bw.textContent='+$'+estWin.toFixed(2);bw.style.color='var(--ac)';}
 }
 
-// ── WW Chart — price-only updates per tick, barriers rebuilt only on round start/end ──
-var wwChart=null,wwPriceHist=[],wwBarrierLines=[],wwLastDraw=0,wwBarriersDirty=false;
+// ══════════════════════════════════════════════════════════════════
+// WW CHART — pure raw canvas 2D, zero Chart.js overhead
+// Draws 80 price points + barrier lines in <1ms per frame
+// No dataset objects, no scale recalculation, no library bloat
+// ══════════════════════════════════════════════════════════════════
+var wwChart=null,wwCtx=null,wwPriceHist=[],wwBarrierLines=[],wwLastDraw=0,wwBarriersDirty=false;
+var wwRAF=null; // requestAnimationFrame handle
 
 function initWWChart(){
   var canvas=document.getElementById('wwChart');
   if(!canvas)return;
-  var ctx=canvas.getContext('2d');
-  if(wwChart){try{wwChart.destroy();}catch(e){}wwChart=null;}
+  wwCtx=canvas.getContext('2d');
+  wwChart=canvas; // just store the canvas element
   wwBarrierLines=[];wwBarriersDirty=false;
+  if(wwRAF){cancelAnimationFrame(wwRAF);wwRAF=null;}
 
-  // ── Backfill wwPriceHist from ind.prices (full accumulated tick history) ──
-  var ind=getInd(HB.asset);
-  if(ind.prices.length>wwPriceHist.length){
-    wwPriceHist=ind.prices.slice(-200);
+  // Size canvas to its CSS container — important for sharpness
+  function sizeCanvas(){
+    var rect=canvas.parentElement.getBoundingClientRect();
+    if(rect.width>0&&rect.height>0){
+      canvas.width=rect.width*window.devicePixelRatio;
+      canvas.height=rect.height*window.devicePixelRatio;
+      wwCtx.scale(window.devicePixelRatio,window.devicePixelRatio);
+      wwLastDraw=0; // force immediate redraw after resize
+    }
   }
+  sizeCanvas();
+
+  // Backfill from ind.prices
+  var ind=getInd(HB.asset);
+  if(ind.prices.length>wwPriceHist.length){wwPriceHist=ind.prices.slice(-200);}
   var curP=S.prices[HB.asset]||0;
   if(curP>0&&(!wwPriceHist.length||wwPriceHist[wwPriceHist.length-1]!==curP)){
-    wwPriceHist.push(curP);
-    if(wwPriceHist.length>200)wwPriceHist.shift();
+    wwPriceHist.push(curP);if(wwPriceHist.length>200)wwPriceHist.shift();
   }
-
-  var datasets=[{
-    label:'Price',data:[],
-    borderColor:'#00e5a0',borderWidth:1.5,fill:true,
-    backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(0,229,160,.18)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},
-    pointRadius:0,tension:0.3
-  }];
-  var bColors=['rgba(245,166,35,1)','rgba(0,229,160,1)','rgba(0,229,160,.7)','rgba(0,229,160,.5)','rgba(0,229,160,.3)','rgba(255,77,106,1)','rgba(255,77,106,.7)','rgba(255,77,106,.5)','rgba(255,77,106,.3)'];
-  for(var _b=0;_b<9;_b++){
-    datasets.push({label:'b'+_b,data:[],borderColor:bColors[_b]||'rgba(255,255,255,.3)',borderWidth:_b===0?2:1.5,borderDash:_b===0?[6,3]:[5,4],pointRadius:0,fill:false,tension:0,hidden:true});
-  }
-  wwChart=new Chart(ctx,{
-    type:'line',data:{labels:[],datasets:datasets},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{display:false},
-        y:{display:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:9},maxTicksLimit:4},min:undefined,max:undefined}
-      },
-      animation:{duration:0}
-    }
-  });
-  // Draw immediately with backfilled data
   if(wwPriceHist.length>0){wwLastDraw=0;drawWWChart(wwPriceHist[wwPriceHist.length-1]);}
 }
 
 function setWWBarrierLines(entry,barriers){
-  // barriers = array of {price, color, label} — set once per round, not per tick
   wwBarrierLines=barriers||[];
-  wwBarriersDirty=true; // flag: rebuild barrier datasets on next draw
+  wwBarriersDirty=true;
   var leg=document.getElementById('ww-barrier-legend');
   if(leg){
     var html='<span style="color:var(--go);font-weight:700">Entry:'+entry.toFixed(2)+'</span>';
@@ -1467,21 +1510,24 @@ function setWWBarrierLines(entry,barriers){
     leg.innerHTML=html;
   }
   wwLastDraw=0;
-  var ind=getInd(HB.asset);
-  if(ind.prices.length)drawWWChart(ind.prices[ind.prices.length-1]);
+  var curP=wwPriceHist.length?wwPriceHist[wwPriceHist.length-1]:(S.prices[HB.asset]||0);
+  if(curP>0)drawWWChart(curP);
 }
 
 function forceWWChartUpdate(){
-  var last=wwPriceHist.length?wwPriceHist[wwPriceHist.length-1]:(S.prices[HB.asset]||0);
   wwLastDraw=0;
-  if(last)drawWWChart(last);
+  var last=wwPriceHist.length?wwPriceHist[wwPriceHist.length-1]:(S.prices[HB.asset]||0);
+  if(last>0)drawWWChart(last);
 }
 
 function clearWWBarrierLines(){
-  wwBarrierLines=[];wwBarriersDirty=true;
-  var leg=document.getElementById('ww-barrier-legend');if(leg)leg.innerHTML='<span style="color:var(--t3)">No active round — waiting for signal</span>';
-  if(wwChart){for(var _i=1;_i<wwChart.data.datasets.length;_i++){wwChart.data.datasets[_i].data=[];wwChart.data.datasets[_i].hidden=true;}wwChart.update('none');}
-  wwBarriersDirty=false;
+  wwBarrierLines=[];wwBarriersDirty=false;
+  var leg=document.getElementById('ww-barrier-legend');
+  if(leg)leg.innerHTML='<span style="color:var(--t3)">No active round — waiting for signal</span>';
+  // Just redraw — raw canvas, barriers are gone from wwBarrierLines
+  var curP=wwPriceHist.length?wwPriceHist[wwPriceHist.length-1]:(S.prices[HB.asset]||0);
+  wwLastDraw=0;
+  if(curP>0)drawWWChart(curP);
 }
 
 // ── Signal Engine — REVERSED to match target EXPIRYRANGE logic ───
@@ -2134,11 +2180,8 @@ function showPage(id,navEl){
     calcWWDaily();
     if(typeof updateMovesGrid==='function')updateMovesGrid();
     if(typeof updatePrediction==='function')updatePrediction();
-    if(wwChart){try{wwChart.destroy();}catch(e){}wwChart=null;}
+    // Re-init to resize canvas to container, backfill data, redraw immediately
     initWWChart();
-    // Immediately draw with current price if we have it
-    var curP=S.prices[HB.asset]||0;
-    if(curP>0){wwLastDraw=0;drawWWChart(curP);}
   }
 }
 
