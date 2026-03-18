@@ -1146,6 +1146,14 @@ function drawWWChart(price){
   // Update chart data directly from wwPriceHist
   wwChart.data.labels=wwPriceHist.map(function(){return '';});
   wwChart.data.datasets[0].data=wwPriceHist.slice();
+  // Force y-axis to show real range — prevents flat line appearance
+  if(wwPriceHist.length>1){
+    var mn=Math.min.apply(null,wwPriceHist);
+    var mx=Math.max.apply(null,wwPriceHist);
+    var pad=(mx-mn)*0.2||0.05;
+    wwChart.options.scales.y.min=mn-pad;
+    wwChart.options.scales.y.max=mx+pad;
+  }
 
   if(wwBarriersDirty){
     // Remove old barrier datasets
@@ -1294,7 +1302,7 @@ function fmtDur(ms){if(!ms||ms<0)return '--';var s=Math.floor(ms/1000);if(s<60)r
 
 const HB = {
   running:false, interval:null,
-  asset:'R_100', ticks:5, minScore:2, minGap:15,
+  asset:'R_100', ticks:5, minScore:3, minGap:20,
   useCooldown:true,
   rounds:0, won:0, lost:0, pnl:0,
   bestRound:0, worstRound:0,
@@ -1631,7 +1639,7 @@ function getWWSignal(){
     if(ss){
       if(!cdOk){ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+dsecs+'s':'Gap: '+dsecs+'s');ss.style.color='var(--go)';}
       else if(!atrOk){ss.textContent='❌ Too volatile ('+atrRatio.toFixed(2)+'x) — waiting for price to calm';ss.style.color='var(--re)';}
-      else if(score>=(HB.minScore||2)&&cdOk){ss.textContent='✅ SETUP — Score '+score+'/5 | '+(isSqueeze?'BB Squeeze':'BB normal')+' | Vol '+(atrBest?'LOW':atrOk?'MED':'')+' | Placing EXPIRYRANGE...';ss.style.color='var(--ac)';}
+      else if(score>=(HB.minScore||2)&&cdOk){ss.textContent='✅ SETUP — Score '+score+'/5 | '+(isSqueeze?'BB Squeeze':'BB normal')+' | Vol '+(atrBest?'LOW':atrOk?'MED':'')+' | READY TO PLACE';ss.style.color='var(--ac)';}
       else{ss.textContent='⏳ Waiting ('+score+'/'+(HB.minScore||2)+') — need calmer conditions';ss.style.color='var(--t2)';}
     }
   }
@@ -1808,8 +1816,8 @@ function placeHybridRound(){
       duration:HB.ticks,
       duration_unit:'t',
       symbol:HB.asset,
-      high_barrier:hiBarrier,
-      low_barrier:loBarrier
+      barrier:hiBarrier,
+      barrier2:loBarrier
     }});
     if(_r)S.pending[_r]={
       dir:'BETWEEN_'+(_ci+1),
