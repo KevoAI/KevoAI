@@ -1222,9 +1222,8 @@ function fmtDur(ms){if(!ms||ms<0)return '--';var s=Math.floor(ms/1000);if(s<60)r
 // ══════════════════════════════════════
 
 // ══════════════════════════════════════════════════════════════════
-// WINWIN BOT — 2 contracts, equal split, ATR×1.0 barrier
-// Only lose if price is FLAT. Any move = profit.
-// Display: WIN side + LOSS side + BOTH MISS (if flat)
+// WINWIN BOT — 8 contracts (4 bands × 2 sides), EXPIRYMISS (Ends Outside)
+// Wins on ANY price movement — only loses if price stays completely flat
 // ══════════════════════════════════════════════════════════════════
 
 const HB = {
@@ -1243,10 +1242,12 @@ const HB = {
   bandLabels:['B1 tight','B2 mid','B3 far','B4 lottery']
 };
 
-// ── Stake: total risk ÷ 8 (4 bands × 2 sides) ────────────────────
+// ── Stake: floor to 2dp so total never exceeds risk ─────────────
 function getSideStake(){
   var risk=parseFloat(document.getElementById('ww-risk').value)||10;
-  return Math.max(0.35, parseFloat((risk/8).toFixed(2)));
+  // Use floor not round — prevents $3.04 when user sets $3
+  var raw=Math.floor((risk/8)*100)/100;
+  return Math.max(0.35, raw);
 }
 
 // ── Risk Calculator ───────────────────────────────────────────────
@@ -1255,7 +1256,7 @@ function calcWWDaily(){
   var risk=parseFloat(document.getElementById('ww-risk').value)||10;
   var sl  =parseFloat(document.getElementById('ww-daily-sl').value)||30;
   var tp  =parseFloat(document.getElementById('ww-daily-tp').value)||60;
-  var perContract=Math.max(0.35,parseFloat((risk/8).toFixed(2)));
+  var perContract=Math.max(0.35,Math.floor((risk/8)*100)/100);
   var total=parseFloat((perContract*8).toFixed(2));
   var atr=getATR()||0.06;
   var bands=HB.bandMults.map(function(m,i){
@@ -1351,7 +1352,7 @@ function renderTradeBreakdown(bands,perContract){
       +'</div>';
     lHtml+='<div style="background:rgba(255,77,106,0.07);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:6px 8px">'
       +'<div style="font-size:9px;color:var(--re);font-weight:700">L'+(i+1)+' OUT</div>'
-      +'<div style="font-size:12px;font-weight:700;font-family:var(--mo);color:var(--re)">-'+b+'</div>'
+      +'<div style="font-size:12px;font-weight:700;font-family:var(--mo);color:var(--re)">±'+b+'</div>'
       +'<div style="font-size:9px;color:var(--t3)">$'+perContract+'</div>'
       +'<div style="font-size:9px;color:var(--re)">+'+(payout*100).toFixed(0)+'%</div>'
       +'</div>';
@@ -2084,7 +2085,7 @@ function showPage(id,navEl){
   document.getElementById('page-'+id).classList.add('active');
   if(navEl)navEl.classList.add('active');
   var T={dashboard:'Dashboard',trade:'Trade',bot:'Auto Bot',barrier:'WinWin Hybrid',differs:'Differs Bot',history:'Trade History',journal:'Journal',janalysis:'Journal Analysis',analytics:'Analytics',settings:'Settings'};
-  var Sub={dashboard:'Overview',trade:'Manual Trading',bot:'Automated Trading',barrier:'WinWin 2-Contract Strategy',differs:'Digit Prediction',history:'All Trades',journal:'Detailed Log',janalysis:'Edge Finder',analytics:'Performance',settings:'Configuration'};
+  var Sub={dashboard:'Overview',trade:'Manual Trading',bot:'Automated Trading',barrier:'8-Contract Ends Outside Strategy',differs:'Digit Prediction',history:'All Trades',journal:'Detailed Log',janalysis:'Edge Finder',analytics:'Performance',settings:'Configuration'};
   document.getElementById('ptitle').innerHTML=T[id]+' <span>'+(Sub[id]||'')+'</span>';
   if(id==='analytics')updAnalytics();
   if(id==='history')rendHist('all');
