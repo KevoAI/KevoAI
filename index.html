@@ -461,7 +461,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
             <div>
               <div style="font-size:16px;font-weight:800;color:var(--ac)">WinWin Volatility Bot</div>
-              <div style="font-size:12px;color:var(--t2);margin-top:3px">2 asymmetric barrier trades — volatility-timed — prediction-weighted stakes</div>
+              <div style="font-size:12px;color:var(--t2);margin-top:3px">2 barrier trades — equal split — only lose if price stays flat</div>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
               <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(0,229,160,0.15);color:var(--ac)">2 Trades/Round</span>
@@ -1051,7 +1051,18 @@ function onTick(tick) {
   }
 }
 
-function onTickWrapper(tick){updateIndicators(tick.symbol,tick.quote);onTick(tick);if(tick.symbol===HB.asset&&document.getElementById('page-barrier').classList.contains('active'))updateWWChart(tick.symbol,tick.quote);}
+function onTickWrapper(tick){
+  updateIndicators(tick.symbol,tick.quote);
+  onTick(tick);
+  // Always buffer WW chart data; only render when on WinWin page
+  if(tick.symbol===HB.asset){
+    wwChartData.push(tick.quote);
+    if(wwChartData.length>60)wwChartData.shift();
+    if(document.getElementById('page-barrier').classList.contains('active')){
+      updateWWChart(tick.symbol,tick.quote);
+    }
+  }
+}
 
 function onBuy(buy, reqId) {
   if(!buy) return;
@@ -1332,6 +1343,16 @@ var wwSigThrottle=0;
 function getWWSignal(){
   var ind=getInd(HB.asset),prices=ind.prices,n=prices.length,score=0;
   var now=Date.now(),updateDOM=(now-wwSigThrottle)>1500;if(updateDOM)wwSigThrottle=now;
+  // WARMUP GUARD — need at least 25 ticks before any signal is valid
+  if(n<25){
+    if(updateDOM){
+      var ss2=document.getElementById('sig-status');
+      if(ss2){ss2.textContent='Warming up... ('+n+'/25 ticks)';ss2.style.color='var(--t3)';}
+      var sb2=document.getElementById('sig-score-badge');
+      if(sb2){sb2.textContent='Score: 0/5';sb2.style.background='var(--bg4)';sb2.style.color='var(--t3)';}
+    }
+    return{score:0,ready:false};
+  }
   var atr5=0,atr20=0,atrHit=false;
   if(n>=25){
     for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;
@@ -1853,12 +1874,33 @@ function showPage(id,navEl){
   document.getElementById('page-'+id).classList.add('active');
   if(navEl)navEl.classList.add('active');
   var T={dashboard:'Dashboard',trade:'Trade',bot:'Auto Bot',barrier:'WinWin Hybrid',differs:'Differs Bot',history:'Trade History',journal:'Journal',analytics:'Analytics',settings:'Settings'};
-  var Sub={dashboard:'Overview',trade:'Manual Trading',bot:'Automated Trading',barrier:'8-Trade Hybrid Strategy',differs:'Digit Prediction',history:'All Trades',journal:'Detailed Log',analytics:'Performance',settings:'Configuration'};
+  var Sub={dashboard:'Overview',trade:'Manual Trading',bot:'Automated Trading',barrier:'WinWin 2-Contract Strategy',differs:'Digit Prediction',history:'All Trades',journal:'Detailed Log',analytics:'Performance',settings:'Configuration'};
   document.getElementById('ptitle').innerHTML=T[id]+' <span>'+(Sub[id]||'')+'</span>';
   if(id==='analytics')updAnalytics();
   if(id==='history')rendHist('all');
   if(id==='journal')renderJournal('all');
-  if(id==='barrier'){updateHBCalc();updateMovesGrid();updatePrediction();}
+  if(id==='barrier'){
+    updateHBCalc();updateMovesGrid();updatePrediction();
+    // Seed WW chart from existing indicator buffer so it's never blank
+    var _ind=getInd(HB.asset);
+    if(_ind.prices.length>0){
+      wwChartData=_ind.prices.slice(-60);
+      if(!wwChart)initWWChart();
+      if(wwChart){
+        wwChart.data.labels=wwChartData.map(function(){return '';});
+        wwChart.data.datasets[0].data=wwChartData.slice();
+        while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
+        wwChart.update('none');
+        var _last=wwChartData[wwChartData.length-1];
+        var _ep=document.getElementById('ww-chart-price');
+        if(_ep)_ep.textContent=_last.toFixed(_last>100?2:4);
+        var _el=document.getElementById('ww-chart-lbl');
+        if(_el)_el.textContent=HB.asset;
+      }
+    } else if(!wwChart){
+      initWWChart();
+    }
+  }
 }
 
 function switchAcc(type){
@@ -2208,7 +2250,19 @@ window.addEventListener('load',function(){
   if(document.getElementById('realTok'))document.getElementById('realTok').value=savedReal;
   if(!S.apiToken&&savedDemo)S.apiToken=savedDemo;
   if(!S.apiToken&&savedReal)S.apiToken=savedReal;
-  connectWS(); switchAcc(S.accType);
+  // Version check — clear stale data from old 8-trade version
+var _wwVersion = '4.2';
+if(localStorage.getItem('kevoai_version')!==_wwVersion){
+  localStorage.removeItem('kevoai_trades');
+  localStorage.removeItem('kevoai_dg_trades');
+  localStorage.removeItem('kevoai_dg_wins');
+  localStorage.removeItem('kevoai_dg_losses');
+  localStorage.removeItem('kevoai_dg_profit');
+  S.trades=[];
+  localStorage.setItem('kevoai_version',_wwVersion);
+  console.log('KevoAI v4.2 — cleared stale trade data');
+}
+connectWS(); switchAcc(S.accType);
   document.querySelector('.ni').classList.add('active');
   checkOAuthCallback();
   updHBStats();
