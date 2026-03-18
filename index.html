@@ -1334,7 +1334,7 @@ function initWWChart(){
 
 function updateWWChart(sym,price){
   if(!wwChart){initWWChart();if(!wwChart)return;}
-  var now=Date.now();if(now-wwChartThrottle<500)return;wwChartThrottle=now;
+  var now=Date.now();if(now-wwChartThrottle<300)return;wwChartThrottle=now;
   // Always pull from indicator buffer — freshest data
   var ind=getInd(sym);
   var data=ind.prices.length>0?ind.prices.slice(-60):[price];
@@ -1357,20 +1357,42 @@ function updateWWChart(sym,price){
 
 function setWWBarrierLines(entry,barrier){
   wwBarrierLines=[
-    {price:entry,          color:'rgba(245,166,35,0.9)', label:'Entry '+entry.toFixed(2),isMain:true},
-    {price:entry+barrier,  color:'rgba(0,229,160,0.9)',  label:'H +'+barrier.toFixed(2), isMain:true},
-    {price:entry-barrier,  color:'rgba(255,77,106,0.9)', label:'L -'+barrier.toFixed(2), isMain:true}
+    {price:entry,          color:'rgba(245,166,35,1.0)', label:'Entry '+entry.toFixed(2),isMain:true},
+    {price:entry+barrier,  color:'rgba(0,229,160,1.0)',  label:'H +'+barrier.toFixed(2), isMain:true},
+    {price:entry-barrier,  color:'rgba(255,77,106,1.0)', label:'L -'+barrier.toFixed(2), isMain:true}
   ];
   var leg=document.getElementById('ww-barrier-legend');
   if(leg)leg.innerHTML=
     '<span style="color:var(--go);font-weight:700">Entry: '+entry.toFixed(2)+'</span>'
-    +' <span style="color:var(--ac)">HIGHER: +'+barrier.toFixed(2)+'</span>'
-    +' <span style="color:var(--re)">LOWER: -'+barrier.toFixed(2)+'</span>';
+    +' <span style="color:var(--ac);font-weight:700">HIGHER: +'+barrier.toFixed(2)+'</span>'
+    +' <span style="color:var(--re);font-weight:700">LOWER: -'+barrier.toFixed(2)+'</span>';
+  // Force immediate chart update — don't wait for next tick
+  forceWWChartUpdate();
+}
+
+function forceWWChartUpdate(){
+  if(!wwChart)return;
+  var ind=getInd(HB.asset);
+  var data=ind.prices.length>0?ind.prices.slice(-60):[];
+  if(!data.length)return;
+  var len=data.length;
+  wwChart.data.labels=data.map(function(){return '';});
+  wwChart.data.datasets[0].data=data.slice();
+  while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
+  wwBarrierLines.forEach(function(bl){
+    wwChart.data.datasets.push({
+      label:bl.label, data:Array(len).fill(bl.price),
+      borderColor:bl.color, borderWidth:3,
+      borderDash:[8,4], pointRadius:0, fill:false, tension:0
+    });
+  });
+  wwChart.update('none');
+  wwChartThrottle=Date.now(); // reset throttle so next tick renders fresh
 }
 
 function clearWWBarrierLines(){
   wwBarrierLines=[];
-  var leg=document.getElementById('ww-barrier-legend');if(leg)leg.innerHTML='<span style="color:var(--t3)">No active round</span>';
+  var leg=document.getElementById('ww-barrier-legend');if(leg)leg.innerHTML='<span style="color:var(--t3)">No active round — waiting for signal</span>';
   if(wwChart){while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();wwChart.update('none');}
 }
 
@@ -1500,17 +1522,36 @@ function runHybridAuto(){
   if(HB.pnl>=dTP){toggleHybrid();notify('TP','Daily target hit!','win');return;}
   if(DG.stopped){toggleHybrid();return;}
   if(HB.coolingDown&&Date.now()>HB.cooldownEnd){HB.coolingDown=false;HB.lossStreak=0;notify('OK','Cooldown over — scanning for setups','info');}
+
   // 1 round at a time — hard block
   var active=S.activeTrades.filter(function(t){return t.isHB;});
   if(active.length>0){
+    var now=Date.now();
+    // FREEZE GUARD: if any HB trade has been active > 60s, force-clear it
+    var maxAge=60000;
+    var stale=active.filter(function(t){return (now-(t.startTime||now))>maxAge;});
+    if(stale.length>0){
+      stale.forEach(function(t){
+        // Force settle as $0 pnl
+        if(t.hbRound!==null) onHBResult(t.hbRound,t.hbIdx,0,t.direction);
+        S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!==t.contractId;});
+      });
+      notify('TIMEOUT','Stale trades cleared — resuming','loss');
+      HB.interval=setTimeout(runHybridAuto,1000);return;
+    }
     document.getElementById('hb-active-count').textContent=active.length+' ACTIVE';
-    document.getElementById('hb-countdown-txt').textContent='Settling...';
+    document.getElementById('hb-countdown-txt').textContent='Settling '+active.length+' trade(s)...';
     HB.interval=setTimeout(runHybridAuto,1000);return;
   }
+
   var sig=getWWSignal();
-  if(!sig.ready){document.getElementById('hb-active-count').textContent='0 ACTIVE';HB.interval=setTimeout(runHybridAuto,2000);return;}
+  if(!sig.ready){
+    document.getElementById('hb-active-count').textContent='0 ACTIVE';
+    HB.interval=setTimeout(runHybridAuto,2000);return;
+  }
   placeHybridRound();
-  var waitMs=(HB.ticks*2000)+8000;
+  // Wait = ticks duration + buffer for settlement
+  var waitMs=(HB.ticks*1000)+10000;
   startCountdown(Math.floor(waitMs/1000));
   HB.interval=setTimeout(runHybridAuto,waitMs);
 }
@@ -1536,6 +1577,13 @@ function placeHybridRound(){
   var side=getSideStake();
   var entry=S.prices[HB.asset]||0;
   var sig=getWWSignal();
+
+  // HARD GATE — never place without ATR spike >= 1.8x, even if called manually
+  if(!sig.ready){
+    notify('!','Signal not ready (Score:'+sig.score+'/5, ATR required) — trade blocked','loss');
+    return;
+  }
+  if(entry<=0){notify('!','No price data for '+HB.asset+' — not connected?','loss');return;}
 
   HB.roundId++;var rid=HB.roundId;
   HB.rounds++;HB.lastRoundTime=Date.now();
@@ -2300,7 +2348,7 @@ window.addEventListener('load',function(){
   if(!S.apiToken&&savedDemo)S.apiToken=savedDemo;
   if(!S.apiToken&&savedReal)S.apiToken=savedReal;
   // Version check — clear stale data from old 8-trade version
-var _wwVersion = '4.3';
+var _wwVersion = '4.4';
 if(localStorage.getItem('kevoai_version')!==_wwVersion){
   localStorage.removeItem('kevoai_trades');
   localStorage.removeItem('kevoai_dg_trades');
