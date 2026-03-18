@@ -960,9 +960,10 @@ function handleMsg(d) {
     if(code==='ProposalOpenContractDoesNotExist') { wsSend({balance:1}); return; }
     if(code==='InvalidToken'||code==='AuthorizationRequired') {
       notify('X','Invalid token: '+msg,'loss'); updateConnUI(false);
-    } else if(code==='ContractBuyValidationError'||code==='ContractCreationFailure') {
-      notify('Error', msg+' — clearing stuck round', 'loss');
-      // Route failed buy to onHBResult so the round can still settle
+    } else if(code==='ContractBuyValidationError'||code==='ContractCreationFailure'||code==='OfferingsValidationError'||code==='InputValidationFailed'||code==='ParameterNotAllowed') {
+      // Show FULL error so we know exactly what Deriv rejected
+      notify('BUY ERR', code+': '+msg, 'loss');
+      console.error('DERIV BUY ERROR:', code, msg, d);
       if(d.req_id&&S.pending[d.req_id]){
         var _fp=S.pending[d.req_id];
         if(_fp.isHB&&_fp.hbRound!=null){
@@ -971,7 +972,9 @@ function handleMsg(d) {
         delete S.pending[d.req_id];
       }
     } else {
-      console.warn('Deriv error:', code, msg);
+      // Show ALL other errors too — nothing hidden
+      notify('ERR', code+': '+msg, 'loss');
+      console.warn('Deriv error:', code, msg, d);
     }
     return;
   }
