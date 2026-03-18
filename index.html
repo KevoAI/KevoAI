@@ -906,6 +906,43 @@ function subAllPrices() { for(var g in INSTR) INSTR[g].forEach(function(i){ subP
 function subPrice(sym) { wsSend({ticks:sym, subscribe:1}); }
 setInterval(function(){ if(S.ws&&S.ws.readyState===1) wsSend({ping:1}); }, 30000);
 
+// ── Global HB watchdog — clears stuck pending rounds every 15s ──
+setInterval(function(){
+  var now=Date.now();
+  Object.keys(HB.pending).forEach(function(rid){
+    var r=HB.pending[rid];
+    if(!r._placedAt)r._placedAt=now;
+    if(now-r._placedAt>25000){ // 25s timeout
+      var expected=r.expectedCount||4;
+      var filled=0;
+      for(var _si=0;_si<expected;_si++){
+        if(!r.results[_si]){
+          r.results[_si]={profit:0,win:false,exitPrice:0};
+          filled++;
+        }
+      }
+      if(filled>0){
+        r.settled=expected;
+        onHBResult(parseInt(rid),0,0,'WATCHDOG',0);
+        console.warn('HB watchdog cleared round '+rid+' ('+filled+' slots forced)');
+      }
+    }
+  });
+  // Also clear S.activeTrades that are HB and older than 25s
+  var stale=S.activeTrades.filter(function(t){return t.isHB&&(now-(t.startTime||now))>25000;});
+  if(stale.length>0){
+    stale.forEach(function(t){
+      S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!==t.contractId;});
+      for(var i=0;i<S.trades.length;i++){
+        if(S.trades[i].contractId===t.contractId&&S.trades[i].status==='active'){
+          S.trades[i].status='timeout';S.trades[i].pnl=0;break;
+        }
+      }
+    });
+    updateStats();renderActive();
+  }
+},15000);
+
 // Poll active trades
 setInterval(function(){
   if(!S.activeTrades.length) return;
@@ -926,7 +963,15 @@ function handleMsg(d) {
     if(code==='InvalidToken'||code==='AuthorizationRequired') {
       notify('X','Invalid token: '+msg,'loss'); updateConnUI(false);
     } else if(code==='ContractBuyValidationError'||code==='ContractCreationFailure') {
-      notify('Error', msg, 'loss');
+      notify('Error', msg+' — clearing stuck round', 'loss');
+      // Route failed buy to onHBResult so the round can still settle
+      if(d.req_id&&S.pending[d.req_id]){
+        var _fp=S.pending[d.req_id];
+        if(_fp.isHB&&_fp.hbRound!=null){
+          onHBResult(_fp.hbRound,_fp.hbIdx,0,'BUY_ERROR',0);
+        }
+        delete S.pending[d.req_id];
+      }
     } else {
       console.warn('Deriv error:', code, msg);
     }
@@ -1063,18 +1108,17 @@ function onTick(tick) {
       priceChart.update('none');
     }
   }
-  // ── WW chart: call drawWWChart on EVERY HB.asset tick ──
-  // drawWWChart handles the push internally — same pattern as priceChart
+  // ── WW chart: always accumulate history, draw if chart exists ──
   if(sym===HB.asset){
-    if(wwChart){
-      drawWWChart(q); // always update — no page check, no throttle, always live
-    } else {
-      // Even if chart not visible, keep history building
-      wwPriceHist.push(q);
-      if(wwPriceHist.length>120)wwPriceHist.shift();
-    }
+    // Always push to history — independent of whether chart is initialised
+    wwPriceHist.push(q);
+    if(wwPriceHist.length>120)wwPriceHist.shift();
     var wp=document.getElementById('ww-chart-price');
     if(wp)wp.textContent=q.toFixed(q>100?2:4);
+    // Draw chart if initialised
+    if(wwChart){
+      drawWWChart(q);
+    }
   }
 }
 
@@ -1092,21 +1136,13 @@ function onTickWrapper(tick){
   }
 }
 
-// WW chart draw — EXACT same pattern as working priceChart
-// push price → update labels+data → chart.update('none') — no throttle
+// WW chart draw — called by onTick on every HB.asset tick
+// wwPriceHist is already updated by onTick before this is called
 function drawWWChart(price){
   if(!wwChart)return;
 
-  // Push new price — same as priceChart pattern
-  if(price>0){
-    wwPriceHist.push(price);
-    if(wwPriceHist.length>120)wwPriceHist.shift();
-  }
-
-  // Build datasets: slot 0 = price line, slots 1+ = barrier lines
-  // Rebuild barrier datasets when dirty, otherwise just update price
-  var labels=wwPriceHist.map(function(){return '';});
-  wwChart.data.labels=labels;
+  // Update chart data directly from wwPriceHist
+  wwChart.data.labels=wwPriceHist.map(function(){return '';});
   wwChart.data.datasets[0].data=wwPriceHist.slice();
 
   if(wwBarriersDirty){
@@ -1424,9 +1460,10 @@ function initWWChart(){
 
   // Backfill from ind.prices so chart is full on page open
   var ind=getInd(HB.asset);
-  if(ind.prices.length>0){
+  if(ind.prices.length>wwPriceHist.length){
     wwPriceHist=ind.prices.slice(-120);
   }
+  // Add current price if not already in history
   var curP=S.prices[HB.asset]||0;
   if(curP>0&&(!wwPriceHist.length||wwPriceHist[wwPriceHist.length-1]!==curP)){
     wwPriceHist.push(curP);
@@ -1632,16 +1669,41 @@ function runHybridAuto(){
   if(DG.stopped){toggleHybrid();return;}
   if(HB.coolingDown&&Date.now()>HB.cooldownEnd){HB.coolingDown=false;HB.lossStreak=0;notify('OK','Cooldown over — scanning for setups','info');}
 
+  // ── Watchdog: force-clear any HB.pending round stuck > 30s ──────
+  var nowWD=Date.now();
+  Object.keys(HB.pending).forEach(function(rid){
+    var r=HB.pending[rid];
+    if(!r._placedAt)r._placedAt=nowWD;
+    if(nowWD-r._placedAt>30000){
+      // Force settle all unsettled slots as $0
+      var expected=r.expectedCount||4;
+      for(var _si=0;_si<expected;_si++){
+        if(!r.results[_si])onHBResult(parseInt(rid),_si,0,'TIMEOUT',0);
+      }
+      notify('TIMEOUT','Round '+rid+' force-cleared after 30s','loss');
+    }
+  });
+
   // 1 round at a time — hard block
   var active=S.activeTrades.filter(function(t){return t.isHB;});
   if(active.length>0){
     var now=Date.now();
-    var maxAge=60000;
+    var maxAge=30000; // 30s — not 60s
     var stale=active.filter(function(t){return (now-(t.startTime||now))>maxAge;});
     if(stale.length>0){
       stale.forEach(function(t){
-        if(t.hbRound!==null) onHBResult(t.hbRound,t.hbIdx,0,t.direction,0);
+        if(t.hbRound!==null){
+          onHBResult(t.hbRound,t.hbIdx,0,t.direction,0);
+        }
         S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!==t.contractId;});
+      });
+      // Also wipe any fully-stuck pending rounds
+      Object.keys(HB.pending).forEach(function(rid){
+        var r=HB.pending[rid];
+        var expected=r.expectedCount||4;
+        for(var _si=0;_si<expected;_si++){
+          if(!r.results[_si])onHBResult(parseInt(rid),_si,0,'TIMEOUT',0);
+        }
       });
       notify('TIMEOUT','Stale trades cleared — resuming','loss');
       HB.interval=setTimeout(runHybridAuto,1000);return;
@@ -1713,37 +1775,26 @@ function placeHybridRound(){
 
   // 8 slots: idx 0-3 = HIGHER bands (OUT above upper), idx 4-7 = LOWER bands (OUT below lower)
   HB.pending[rid]={
-    results:new Array(8).fill(null), settled:0,
-    bands:bands, perContract:perContract, entry:entry,
+    results:new Array(4).fill(null), settled:0,
+    expectedCount:4, _placedAt:Date.now(),
+    entry:entry, perSide:perSide, barrier:offset,
     time:new Date().toLocaleTimeString(), asset:HB.asset, score:sig.score,
-    atrRatio:atrRatio, atr5:parseFloat(atr5.toFixed(5)), atr20:parseFloat(atr20.toFixed(5)),
-    ema21:parseFloat(ema21.toFixed(2)), trendDir:trendDir,
+    atrRatio:atrRatio, trendDir:trendDir,
     bbSqueeze:bbSq, momBurst:momB, confluences:confluences,
-    barrierOffset:getActiveBarrier()
+    barrierOffset:offset
   };
 
-
-  var offset=getActiveBarrier();
   var chartBarriers=[
-    {price:entry,color:'rgba(245,166,35,1)',label:'Entry '+entry.toFixed(2)},
-    {price:entry+offset,color:'rgba(0,229,160,1)',label:'H +'+offset},
-    {price:entry-offset,color:'rgba(255,77,106,1)',label:'L -'+offset}
+    {price:entry,color:'rgba(245,166,35,1)',label:'Entry '+entry.toFixed(2),isMain:true},
+    {price:entry+offset,color:'rgba(0,229,160,1)',label:'H +'+offset,isMain:true},
+    {price:entry-offset,color:'rgba(255,77,106,1)',label:'L -'+offset,isMain:true}
   ];
   setWWBarrierLines(entry,chartBarriers);
   renderTradeBreakdown([offset],perSide);
 
-  // ── Place 2 EXPIRYRANGE contracts — HIGHER + LOWER (his exact method) ──
-  // EXPIRYRANGE = Ends Between — wins if exit price STAYS INSIDE [low_barrier, high_barrier]
-  // He places HIGHER & LOWER simultaneously, one active barrier offset
-  var offset=getActiveBarrier();
+  // His exact method: 4 identical EXPIRYRANGE contracts, all ±0.35 offset
   var hiBarrier='+'+offset.toFixed(2);
   var loBarrier='-'+offset.toFixed(2);
-
-  // His exact method: 4 identical EXPIRYRANGE contracts, all ±0.35 offset
-  HB.pending[rid].results=new Array(4).fill(null);
-  HB.pending[rid].expectedCount=4;
-  HB.pending[rid].barrier=offset;
-  HB.pending[rid].perSide=perSide;
 
   for(var _ci=0;_ci<4;_ci++){
     var _r=wsSend({buy:1,price:perSide,parameters:{
