@@ -1054,13 +1054,41 @@ function onTick(tick) {
 function onTickWrapper(tick){
   updateIndicators(tick.symbol,tick.quote);
   onTick(tick);
-  // Buffer ALL ticks for HB asset regardless of page
   if(tick.symbol===HB.asset){
-    // Only render visually when on WinWin page
-    if(document.getElementById('page-barrier').classList.contains('active')){
-      updateWWChart(tick.symbol,tick.quote);
+    // Always update chart if on WinWin page — simple and direct
+    var page=document.getElementById('page-barrier');
+    if(page&&page.classList.contains('active')){
+      drawWWChart(tick.quote);
     }
   }
+}
+
+// Direct chart draw — no complex throttle, just update on every tick
+var wwLastDraw=0;
+function drawWWChart(price){
+  if(!wwChart)return;
+  var now=Date.now();
+  if(now-wwLastDraw<250)return; // max 4 updates/sec — enough to look live
+  wwLastDraw=now;
+  var ind=getInd(HB.asset);
+  var data=ind.prices.slice(-80); // last 80 prices
+  if(!data.length)return;
+  var len=data.length;
+  wwChart.data.labels=data.map(function(){return '';});
+  wwChart.data.datasets[0].data=data;
+  // Barrier lines
+  while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
+  wwBarrierLines.forEach(function(bl){
+    wwChart.data.datasets.push({
+      label:bl.label,data:Array(len).fill(bl.price),
+      borderColor:bl.color,borderWidth:3,
+      borderDash:[8,4],pointRadius:0,fill:false,tension:0
+    });
+  });
+  wwChart.update('none');
+  // Update price display
+  var ep=document.getElementById('ww-chart-price');
+  if(ep)ep.textContent=price.toFixed(price>100?2:4);
 }
 
 function onBuy(buy, reqId) {
@@ -1287,7 +1315,7 @@ function renderTradeBreakdown(barrier,side){
 }
 
 // ── WW Chart — fixed height, throttled ───────────────────────────
-var wwChart=null,wwChartData=[],wwBarrierLines=[],wwChartThrottle=0;
+var wwChart=null,wwChartData=[],wwBarrierLines=[],wwLastDraw=0;
 
 function initWWChart(){
   var canvas=document.getElementById('wwChart');
@@ -1322,37 +1350,15 @@ function initWWChart(){
   // Immediately seed with any existing data
   var ind=getInd(HB.asset);
   if(ind.prices.length>0){
-    var seed=ind.prices.slice(-60);
-    wwChart.data.labels=seed.map(function(){return '';});
-    wwChart.data.datasets[0].data=seed.slice();
-    wwChart.update('none');
-    var last=seed[seed.length-1];
-    var ep=document.getElementById('ww-chart-price');if(ep)ep.textContent=last.toFixed(last>100?2:4);
-    var el=document.getElementById('ww-chart-lbl');if(el)el.textContent=HB.asset;
+    var last=ind.prices[ind.prices.length-1];
+    wwLastDraw=0;
+    drawWWChart(last);
   }
 }
 
 function updateWWChart(sym,price){
-  if(!wwChart){initWWChart();if(!wwChart)return;}
-  var now=Date.now();if(now-wwChartThrottle<300)return;wwChartThrottle=now;
-  // Always pull from indicator buffer — freshest data
-  var ind=getInd(sym);
-  var data=ind.prices.length>0?ind.prices.slice(-60):[price];
-  var len=data.length;
-  wwChart.data.labels=data.map(function(){return '';});
-  wwChart.data.datasets[0].data=data.slice();
-  // Rebuild barrier lines
-  while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
-  wwBarrierLines.forEach(function(bl){
-    wwChart.data.datasets.push({
-      label:bl.label,data:Array(len).fill(bl.price),
-      borderColor:bl.color,borderWidth:bl.isMain?2.5:1.5,
-      borderDash:[6,3],pointRadius:0,fill:false,tension:0
-    });
-  });
-  wwChart.update('none');
-  var ep=document.getElementById('ww-chart-price');if(ep)ep.textContent=price.toFixed(price>100?2:4);
-  var el=document.getElementById('ww-chart-lbl');if(el)el.textContent=sym;
+  wwLastDraw=0;
+  drawWWChart(price);
 }
 
 function setWWBarrierLines(entry,barrier){
@@ -1371,23 +1377,10 @@ function setWWBarrierLines(entry,barrier){
 }
 
 function forceWWChartUpdate(){
-  if(!wwChart)return;
   var ind=getInd(HB.asset);
-  var data=ind.prices.length>0?ind.prices.slice(-60):[];
-  if(!data.length)return;
-  var len=data.length;
-  wwChart.data.labels=data.map(function(){return '';});
-  wwChart.data.datasets[0].data=data.slice();
-  while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
-  wwBarrierLines.forEach(function(bl){
-    wwChart.data.datasets.push({
-      label:bl.label, data:Array(len).fill(bl.price),
-      borderColor:bl.color, borderWidth:3,
-      borderDash:[8,4], pointRadius:0, fill:false, tension:0
-    });
-  });
-  wwChart.update('none');
-  wwChartThrottle=Date.now(); // reset throttle so next tick renders fresh
+  var last=ind.prices.length?ind.prices[ind.prices.length-1]:0;
+  wwLastDraw=0; // reset so it draws immediately
+  if(last)drawWWChart(last);
 }
 
 function clearWWBarrierLines(){
@@ -1619,8 +1612,8 @@ function onHBResult(roundId,idx,profit,direction){
     var r=HB.pending[roundId];
     var hResult=r.results[0]||{profit:0,direction:'HIGHER',win:false};
     var lResult=r.results[1]||{profit:0,direction:'LOWER',win:false};
-    var hPnl=parseFloat((hResult.profit||0).toFixed(2));
-    var lPnl=parseFloat((lResult.profit||0).toFixed(2));
+    var hPnl=parseFloat((hResult.win ? hResult.profit : -r.side).toFixed(2));
+    var lPnl=parseFloat((lResult.win ? lResult.profit : -r.side).toFixed(2));
     var totalPnl=parseFloat((hPnl+lPnl).toFixed(2));
 
     // 3 outcomes:
@@ -2186,61 +2179,82 @@ function renderJournal(filter){
   var all=S.trades.filter(function(t){return t.status!=='active';});
   if(!all.length){document.getElementById('journalList').innerHTML='<div style="text-align:center;padding:32px;color:var(--t3);font-size:12px">No completed trades yet.</div>';return;}
 
-  // Separate HB rounds from individual trades
+  // Group HB summary trades by round; keep non-HB individual
   var roundMap={}, individuals=[];
   all.forEach(function(t){
-    if(t.isHB&&t.hbRound!==null){
-      if(!roundMap[t.hbRound]) roundMap[t.hbRound]=[];
+    if(t.isHB&&t.isHBSummary&&t.hbRound!==null){
+      if(!roundMap[t.hbRound])roundMap[t.hbRound]=[];
       roundMap[t.hbRound].push(t);
-    } else { individuals.push(t); }
+    } else if(!t.isHB){
+      individuals.push(t);
+    }
+    // skip raw HB individual contracts
   });
 
   var html='';
-  var labels=['H1','H2','H3','H4','L1','L2','L3','L4'];
 
-  // HB rounds - each shown as a grouped card
+  // WinWin rounds — 2 cards each (HIGHER + LOWER)
   var roundKeys=Object.keys(roundMap).sort(function(a,b){return b-a;});
   roundKeys.forEach(function(rid){
     var trades=roundMap[rid];
-    var anyWin=trades.some(function(t){return t.win;});
-    var totalPnl=trades.reduce(function(s,t){return s+t.pnl;},0);
-    if(filter==='win'&&!anyWin) return;
-    if(filter==='loss'&&anyWin) return;
+    var totalPnl=parseFloat(trades.reduce(function(s,t){return s+t.pnl;},0).toFixed(2));
+    var isWin=totalPnl>0;
+    var bothMiss=!trades.some(function(t){return t.win;});
+    if(filter==='win'&&!isWin)return;
+    if(filter==='loss'&&isWin)return;
+    var hT=trades.find(function(t){return t.direction==='HIGHER';})||trades[0];
+    var lT=trades.find(function(t){return t.direction==='LOWER';})||(trades[1]||trades[0]);
     var rNote=S.notes['hb_'+rid]||'';
-    html+='<div class="jrow '+(anyWin?'win-row':'loss-row')+'" style="margin-bottom:12px">';
+    var borderCol=bothMiss?'var(--go)':isWin?'var(--ac)':'var(--re)';
+
+    html+='<div class="jrow '+(isWin?'win-row':'loss-row')+'" style="margin-bottom:12px">';
     // Header
     html+='<div class="jrow-top">';
-    html+=(anyWin?'<span class="tbadge bw">WON</span>':'<span class="tbadge bl2">LOST</span>');
-    html+='<span style="font-size:10px;padding:2px 7px;border-radius:99px;background:rgba(0,229,160,0.15);color:var(--ac);font-weight:700">HB ROUND '+rid+'</span>';
-    html+='<span style="font-size:13px;font-weight:700">'+trades[0].asset+'</span>';
-    html+='<span style="font-size:10px;color:var(--t3)">'+trades[0].time+' • '+trades.length+' trades</span>';
-    html+='<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+(totalPnl>=0?'var(--ac)':'var(--re)')+'">'+( totalPnl>=0?'+':'')+'$'+totalPnl.toFixed(2)+'</span>';
+    if(bothMiss){html+='<span class="tbadge" style="background:rgba(245,166,35,0.15);color:var(--go)">FLAT</span>';}
+    else{html+=(isWin?'<span class="tbadge bw">WIN</span>':'<span class="tbadge bl2">LOSS</span>');}
+    html+='<span style="font-size:10px;padding:2px 7px;border-radius:99px;background:rgba(0,229,160,0.15);color:var(--ac);font-weight:700">WW ROUND '+rid+'</span>';
+    html+='<span style="font-size:13px;font-weight:700">'+hT.asset+'</span>';
+    html+='<span style="font-size:10px;color:var(--t3)">'+hT.time+' • 2 trades</span>';
+    html+='<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+(isWin?'var(--ac)':bothMiss?'var(--go)':'var(--re)')+'">'+( totalPnl>=0?'+':'')+'$'+totalPnl.toFixed(2)+'</span>';
     html+='</div>';
-    // 8 individual trade cards
-    html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">';
-    trades.forEach(function(t,i){
-      var isH=t.direction==='HIGHER';
-      html+='<div style="background:'+(t.win?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.07)')+';border:1px solid '+(t.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.25)')+';border-radius:var(--rs);padding:8px 9px">';
-      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
-      html+='<span style="font-size:10px;color:'+(isH?'var(--ac)':'var(--re)')+';font-weight:700">'+(labels[i]||('T'+(i+1)))+' '+(isH?'▲':'▼')+'</span>';
-      html+='<span style="font-size:10px;font-weight:700;color:'+(t.win?'var(--ac)':'var(--re)')+'">'+( t.pnl>=0?'+':'')+'$'+Math.abs(t.pnl).toFixed(2)+'</span>';
+
+    if(bothMiss){
+      // Both missed
+      html+='<div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:var(--rs);padding:10px;margin-bottom:10px;text-align:center">';
+      html+='<div style="font-size:12px;font-weight:700;color:var(--go)">⚠ BOTH MISSED — Price stayed flat</div>';
+      html+='<div style="font-size:11px;color:var(--t2);margin-top:3px">Barrier not reached on either side</div>';
+      html+='<div style="font-size:13px;font-weight:700;color:var(--re);margin-top:4px">Loss: -$'+Math.abs(totalPnl).toFixed(2)+'</div>';
       html+='</div>';
-      html+='<div style="font-size:10px;color:var(--t2)">Stake: <b>$'+t.stake+'</b></div>';
-      html+='<div style="font-size:10px;color:var(--t3)">Entry: '+(t.price?parseFloat(t.price).toFixed(2):'--')+'</div>';
-      html+='<div style="font-size:10px;color:var(--t3)">Exit: '+(t.exitPrice?parseFloat(t.exitPrice).toFixed(2):'--')+'</div>';
-      html+='<div style="font-size:10px;color:var(--t3)">Dur: '+(t.durationStr||'--')+'</div>';
+    } else {
+      // 2 side cards
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+      [hT,lT].forEach(function(t){
+        var isH=t.direction==='HIGHER';
+        var col=isH?'var(--ac)':'var(--re)';
+        // P&L: if win show actual pnl, if loss show -stake (what was actually lost)
+        var pnlDisplay=t.win?('+$'+t.pnl.toFixed(2)):('-$'+t.stake.toFixed(2));
+        var pnlColor=t.win?'var(--ac)':'var(--re)';
+        html+='<div style="background:'+(t.win?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.07)')+';border:1px solid '+(t.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.25)')+';border-radius:var(--rs);padding:10px">';
+        html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+        html+='<span style="font-size:11px;color:'+col+';font-weight:700">'+(isH?'↗ HIGHER':'↘ LOWER')+'</span>';
+        html+='<span style="font-size:12px;font-weight:700;color:'+pnlColor+'">'+pnlDisplay+'</span>';
+        html+='</div>';
+        html+='<div style="font-size:10px;color:var(--t2)">Stake: <b>$'+t.stake.toFixed(2)+'</b></div>';
+        html+='<div style="font-size:10px;color:var(--t3)">Entry: '+(t.price?parseFloat(t.price).toFixed(2):'--')+'</div>';
+        html+='<div style="font-size:10px;color:var(--t3)">Dur: '+(t.durationStr||HB.ticks+'T')+'</div>';
+        html+='<div style="font-size:10px;font-weight:600;color:'+(t.win?'var(--ac)':'var(--re)')+';margin-top:4px">'+(t.win?'✓ BARRIER HIT':'✗ BARRIER MISSED')+'</div>';
+        html+='</div>';
+      });
       html+='</div>';
-    });
-    html+='</div>';
-    // Note for round
+    }
     html+='<div class="jnote"><textarea class="jni" placeholder="Add round note..." rows="1" id="note_hb_'+rid+'">'+rNote+'</textarea><button class="jnb" onclick="saveNote(\'hb_'+rid+'\')">Save</button></div>';
     html+='</div>';
   });
 
   // Individual (non-HB) trades
   individuals.forEach(function(t){
-    if(filter==='win'&&!t.win) return;
-    if(filter==='loss'&&t.win) return;
+    if(filter==='win'&&!t.win)return;
+    if(filter==='loss'&&t.win)return;
     var note=S.notes[t.id]||t.note||'';
     var pnlStr=t.pnl>=0?'<span style="color:var(--ac)">+$'+t.pnl.toFixed(2)+'</span>':'<span style="color:var(--re)">-$'+Math.abs(t.pnl).toFixed(2)+'</span>';
     html+='<div class="jrow '+(t.win?'win-row':'loss-row')+'">';
@@ -2248,10 +2262,10 @@ function renderJournal(filter){
     html+=(t.win?'<span class="tbadge bw">WON</span>':'<span class="tbadge bl2">LOST</span>');
     html+='<span style="font-size:13px;font-weight:700">'+t.asset+'</span>';
     html+='<span style="font-size:11px;font-weight:700;color:'+(t.direction==='HIGHER'?'var(--ac)':'var(--re)')+'">'+t.direction+'</span>';
-    if(t.isDD) html+='<span style="font-size:9px;padding:1px 6px;background:rgba(245,166,35,0.2);color:var(--go);border-radius:4px;font-weight:700">DD</span>';
+    if(t.isDD)html+='<span style="font-size:9px;padding:1px 6px;background:rgba(245,166,35,0.2);color:var(--go);border-radius:4px;font-weight:700">DD</span>';
     html+='<span style="margin-left:auto;font-size:13px;font-weight:700">'+pnlStr+'</span>';
     html+='</div>';
-    html+='<div class="jrow-body"><div class="jcell"><div class="jcell-lbl">Time</div><div class="jcell-val">'+t.time+'</div></div><div class="jcell"><div class="jcell-lbl">Duration</div><div class="jcell-val">'+(t.durationStr||'--')+'</div></div><div class="jcell"><div class="jcell-lbl">Stake</div><div class="jcell-val">$'+t.stake+'</div></div><div class="jcell"><div class="jcell-lbl">Entry</div><div class="jcell-val">'+(t.price?parseFloat(t.price).toFixed(2):'--')+'</div></div><div class="jcell"><div class="jcell-lbl">Exit</div><div class="jcell-val">'+(t.exitPrice?parseFloat(t.exitPrice).toFixed(2):'--')+'</div></div></div>';
+    html+='<div class="jrow-body"><div class="jcell"><div class="jcell-lbl">Time</div><div class="jcell-val">'+t.time+'</div></div><div class="jcell"><div class="jcell-lbl">Dur</div><div class="jcell-val">'+(t.durationStr||'--')+'</div></div><div class="jcell"><div class="jcell-lbl">Stake</div><div class="jcell-val">$'+t.stake+'</div></div><div class="jcell"><div class="jcell-lbl">Entry</div><div class="jcell-val">'+(t.price?parseFloat(t.price).toFixed(2):'--')+'</div></div><div class="jcell"><div class="jcell-lbl">Exit</div><div class="jcell-val">'+(t.exitPrice?parseFloat(t.exitPrice).toFixed(2):'--')+'</div></div></div>';
     html+='<div class="jnote"><textarea class="jni" placeholder="Add note..." rows="2" id="note_'+t.id+'">'+note+'</textarea><button class="jnb" onclick="saveNote('+t.id+')">Save</button></div></div>';
   });
 
@@ -2348,7 +2362,7 @@ window.addEventListener('load',function(){
   if(!S.apiToken&&savedDemo)S.apiToken=savedDemo;
   if(!S.apiToken&&savedReal)S.apiToken=savedReal;
   // Version check — clear stale data from old 8-trade version
-var _wwVersion = '4.4';
+var _wwVersion = '4.6';
 if(localStorage.getItem('kevoai_version')!==_wwVersion){
   localStorage.removeItem('kevoai_trades');
   localStorage.removeItem('kevoai_dg_trades');
