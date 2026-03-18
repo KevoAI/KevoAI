@@ -1065,10 +1065,18 @@ function onTickWrapper(tick){
   updateIndicators(tick.symbol,tick.quote);
   onTick(tick);
   if(tick.symbol===HB.asset){
-    // Always update chart if on WinWin page — simple and direct
     var page=document.getElementById('page-barrier');
     if(page&&page.classList.contains('active')){
-      drawWWChart(tick.quote);
+      drawWWChart(tick.quote); // always draw — chart handles empty data gracefully
+    }
+    // Also update barrier preview ATR values as ticks come in
+    if(wwChart){
+      var ca=document.getElementById('ww-chart-atr');
+      var ind=getInd(HB.asset);
+      if(ca&&ind.prices.length>=2){
+        var atr=getATR();
+        if(atr>0)ca.textContent='ATR:'+atr.toFixed(4);
+      }
     }
   }
 }
@@ -1081,7 +1089,11 @@ function drawWWChart(price){
   wwLastDraw=now;
   var ind=getInd(HB.asset);
   var data=ind.prices.slice(-80);
-  if(!data.length)return;
+  // Fallback: if ind.prices not yet seeded, use current price as single point
+  if(!data.length){
+    if(price>0)data=[price];
+    else return;
+  }
   // Update price dataset only — cheap operation
   wwChart.data.labels=data.map(function(){return '';});
   wwChart.data.datasets[0].data=data;
@@ -1430,11 +1442,11 @@ var wwSigThrottle=0;
 function getWWSignal(){
   var ind=getInd(HB.asset),prices=ind.prices,n=prices.length,score=0;
   var now=Date.now(),updateDOM=(now-wwSigThrottle)>1500;if(updateDOM)wwSigThrottle=now;
-  // WARMUP GUARD — need at least 25 ticks before any signal is valid
-  if(n<25){
+  // WARMUP GUARD — need at least 10 ticks before any signal is valid
+  if(n<10){
     if(updateDOM){
       var ss2=document.getElementById('sig-status');
-      if(ss2){ss2.textContent='Warming up... ('+n+'/25 ticks)';ss2.style.color='var(--t3)';}
+      if(ss2){ss2.textContent='Warming up... ('+n+'/10 ticks — ~'+(10-n)*2+'s)';ss2.style.color='var(--t3)';}
       var sb2=document.getElementById('sig-score-badge');
       if(sb2){sb2.textContent='Score: 0/5';sb2.style.background='var(--bg4)';sb2.style.color='var(--t3)';}
     }
@@ -1443,9 +1455,10 @@ function getWWSignal(){
   // ── SCORING (each = 1 point, max 5) ───────────────────────────
   // Signal 1: ATR spike — MANDATORY (required regardless of score)
   var atr5=0,atr20=0,atrHit=false;
-  for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;
-  for(var j=n-25;j<n-5;j++)atr20+=Math.abs(prices[j]-prices[j-1]);atr20/=20;
-  atrHit=atr5>=atr20*1.8;
+  var atr5len=Math.min(5,n-1),atr20len=Math.min(20,n-6);
+  if(atr5len>0){for(var i=n-atr5len;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=atr5len;}
+  if(atr20len>0){for(var j=n-atr5len-atr20len;j<n-atr5len;j++)atr20+=Math.abs(prices[j]-prices[j-1]);atr20/=atr20len;}
+  atrHit=atr20>0&&atr5>=atr20*1.8;
   if(atrHit)score++;  // +1 each, never +2
   if(updateDOM){
     var ac=document.getElementById('sig-atr-card'),av=document.getElementById('sig-atr-val');
@@ -2095,10 +2108,11 @@ function showPage(id,navEl){
     calcWWDaily();
     if(typeof updateMovesGrid==='function')updateMovesGrid();
     if(typeof updatePrediction==='function')updatePrediction();
-    // Destroy and reinit chart every time we visit the page
-    // so it correctly sizes to its container
     if(wwChart){try{wwChart.destroy();}catch(e){}wwChart=null;}
     initWWChart();
+    // Immediately draw with current price if we have it
+    var curP=S.prices[HB.asset]||0;
+    if(curP>0){wwLastDraw=0;drawWWChart(curP);}
   }
 }
 
