@@ -1013,6 +1013,8 @@ function onAuth(a) {
   setTimeout(function(){ wsSend({balance:1}); },1500);
   if(a.balance!==undefined) onBalance({balance:a.balance,currency:a.currency});
   notify('Connected!',a.loginid+(isVirtual?' (DEMO)':' (REAL)'),'win');
+  // Re-init WW chart now that ticks will start arriving
+  setTimeout(function(){initWWChart();},2000);
 }
 
 function onBalance(b) {
@@ -1743,6 +1745,7 @@ function placeHybridRound(){
   if(active.length>0){notify('!','Round already active','loss');return;}
 
   var perSide=getSideStake();
+  var offset=getActiveBarrier(); // ← was missing — caused ReferenceError crash
   var entry=S.prices[HB.asset]||0;
   var sig=getWWSignal();
 
@@ -1826,7 +1829,7 @@ function onHBResult(roundId,idx,profit,direction,exitSpot){
   HB.pending[roundId].results[idx]={profit:profit,direction:direction,win:profit>0,exitPrice:exitSpot||0};
   HB.pending[roundId].settled++;
 
-  var expectedCount=r.expectedCount||2;
+  var expectedCount=HB.pending[roundId].expectedCount||4;
   if(HB.pending[roundId].settled>=expectedCount){
     var r=HB.pending[roundId];
     var results=r.results;
