@@ -1197,30 +1197,17 @@ function calcWWDaily(){
   var winsNeeded=netWin>0?Math.ceil(tp/netWin):999;
   var el=document.getElementById('ww-progress-target');if(el)el.textContent='$'+tp;
   var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=total.toFixed(2);
-  var math='2 contracts per round:
-';
-  math+='  HIGHER: $'+side.toFixed(2)+'
-';
-  math+='  LOWER:  $'+side.toFixed(2)+'
-';
-  math+='  Total risk: $'+total.toFixed(2)+'
-
-';
-  math+='If price MOVES (barrier hit at ~200%):
-';
-  math+='  Win: +$'+winPayout.toFixed(2)+' — Lose: -$'+side.toFixed(2)+'
-';
-  math+='  Net profit: +$'+netWin.toFixed(2)+'
-
-';
-  math+='If price FLAT (both miss):
-';
-  math+='  Net loss: -$'+total.toFixed(2)+' (your full risk)
-
-';
-  math+='Max flat rounds before $'+sl+' SL: '+maxRounds+'
-';
-  math+='Wins needed for $'+tp+' target: ~'+winsNeeded;
+  var math='2 contracts per round:\n'
+    +'  HIGHER: $'+side.toFixed(2)+'\n'
+    +'  LOWER:  $'+side.toFixed(2)+'\n'
+    +'  Total risk: $'+total.toFixed(2)+'\n\n'
+    +'If price MOVES (barrier hit at ~200%):\n'
+    +'  Win: +$'+winPayout.toFixed(2)+' — Lose: -$'+side.toFixed(2)+'\n'
+    +'  Net profit: +$'+netWin.toFixed(2)+'\n\n'
+    +'If price FLAT (both miss):\n'
+    +'  Net loss: -$'+total.toFixed(2)+' (your full risk)\n\n'
+    +'Max flat rounds before $'+sl+' SL: '+maxRounds+'\n'
+    +'Wins needed for $'+tp+' target: ~'+winsNeeded;
   var mel=document.getElementById('ww-calc-math');if(mel)mel.textContent=math;
   updateBarrierPreview();
 }
@@ -1231,14 +1218,19 @@ function buildMultInputs(){
   var lDiv=document.getElementById('l-mult-inputs');
   if(hDiv) hDiv.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
     +'<span style="font-size:11px;color:var(--ac);font-weight:700;width:24px">H1</span>'
-    +'<span style="font-size:10px;color:var(--t3)">× ATR</span>'
-    +'<input type="number" style="width:60px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:var(--mo);font-size:12px;outline:none" id="hm0" value="'+HB.barrierMult+'" step="0.1" min="0.3" oninput="HB.barrierMult=parseFloat(this.value)||1.0;var el=document.getElementById('lm0');if(el)el.value=this.value;updateBarrierPreview()">'
-    +'<span style="font-size:10px;color:var(--t3)">= ~200% payout</span></div>';
+    +'<span style="font-size:10px;color:var(--t3)">&times; ATR</span>'
+    +'<input type="number" style="width:60px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:var(--mo);font-size:12px;outline:none" id="hm0" value="'+HB.barrierMult+'" step="0.1" min="0.3" oninput="HB.barrierMult=parseFloat(this.value)||1.0;syncBarrierMult(this.value);updateBarrierPreview()">'
+    +'<span style="font-size:10px;color:var(--t3)">~200% payout</span></div>';
   if(lDiv) lDiv.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
     +'<span style="font-size:11px;color:var(--re);font-weight:700;width:24px">L1</span>'
-    +'<span style="font-size:10px;color:var(--t3)">× ATR</span>'
-    +'<input type="number" style="width:60px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:var(--mo);font-size:12px;outline:none" id="lm0" value="'+HB.barrierMult+'" step="0.1" min="0.3" oninput="HB.barrierMult=parseFloat(this.value)||1.0;var el=document.getElementById('hm0');if(el)el.value=this.value;updateBarrierPreview()">'
-    +'<span style="font-size:10px;color:var(--t3)">= ~200% payout</span></div>';
+    +'<span style="font-size:10px;color:var(--t3)">&times; ATR</span>'
+    +'<input type="number" style="width:60px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:var(--mo);font-size:12px;outline:none" id="lm0" value="'+HB.barrierMult+'" step="0.1" min="0.3" oninput="HB.barrierMult=parseFloat(this.value)||1.0;syncBarrierMult(this.value);updateBarrierPreview()">'
+    +'<span style="font-size:10px;color:var(--t3)">~200% payout</span></div>';
+}
+
+function syncBarrierMult(v){
+  var h=document.getElementById('hm0'),l=document.getElementById('lm0');
+  if(h)h.value=v; if(l)l.value=v;
 }
 
 function resetBarrierMults(){HB.barrierMult=1.0;var h=document.getElementById('hm0');var l=document.getElementById('lm0');if(h)h.value='1.0';if(l)l.value='1.0';updateBarrierPreview();}
