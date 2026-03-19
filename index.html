@@ -1340,13 +1340,15 @@ function onContract(c) {
   var now=Date.now();
   t.pnl=profit; t.win=profit>0; t.status=profit>0?'win':'loss';
   t.endTime=now;
-  // exit_spot — use every possible Deriv field, never live price
+  // exit_spot extraction — CALL/PUT barrier contracts use different fields than standard contracts
+  // Priority: exit_spot > exit_tick.quote > exit_tick.value > current_spot (at settlement time)
   var exitSp = parseFloat(c.exit_spot||0)
     || (c.exit_tick && parseFloat(c.exit_tick.quote||c.exit_tick.value||0))
     || parseFloat(c.exit_spot_display||0)
-    || parseFloat(c.exit_spot_time&&c.current_spot||0);
+    || parseFloat(c.current_spot||0);  // current_spot = final price at settlement for barrier contracts
   t.exitPrice = (exitSp && exitSp > 0) ? exitSp : null;
-  var ms=now-(t.startTime||now); t.duration=ms; t.durationStr=fmtDur(ms);
+  t.duration = Date.now()-(t.startTime||Date.now());
+  t.durationStr = fmtDur(t.duration);
   S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
 
   // Route to Hybrid Bot — individual trade result
@@ -2250,31 +2252,33 @@ function tRow(t){
 }
 
 // HB round summary row for history page
+// HB round summary row for history page — single leg CALL/PUT
 function hbRoundRow(roundId, trades){
-  var net=trades.reduce(function(s,t){return s+t.pnl;},0);
-  var isWin=net>0;
-  var bothMiss=!trades.some(function(t){return t.win;});
-  var asset=trades[0].asset,time=trades[0].time;
-  var hT=trades.find(function(t){return t.direction==='HIGHER';})||trades[0];
-  var lT=trades.find(function(t){return t.direction==='LOWER';})||(trades[1]||trades[0]);
-  var bCol=bothMiss?'var(--go)':isWin?'var(--ac)':'var(--re)';
+  var t=trades[0]; if(!t)return '';
+  var isWin=t.win;
+  var isCall=t.direction==='CALL';
+  var pnl=parseFloat(t.pnl||0);
+  var entry=parseFloat(t.price||0);
+  var exit=parseFloat(t.exitPrice||0);
+  var moved=exit>0&&entry>0?Math.abs(exit-entry).toFixed(exit>100?2:4):'--';
+  var dirCol=isCall?'var(--ac)':'var(--re)';
+  var bCol=isWin?'var(--ac)':'var(--re)';
   var html='<div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:10px 13px;margin-bottom:8px;border-left:3px solid '+bCol+';">';
-  html+='<div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">';
-  if(bothMiss)html+='<span style="background:rgba(245,166,35,0.15);color:var(--go);padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700">FLAT</span>';
-  else html+='<span style="background:'+(isWin?'var(--ad)':'var(--rd)')+';color:'+(isWin?'var(--ac)':'var(--re)')+';padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700">'+(isWin?'WIN':'LOSS')+'</span>';
-  html+='<span style="font-size:12px;font-weight:700">'+asset+'</span>';
+  html+='<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">';
+  html+='<span style="background:'+(isWin?'var(--ad)':'var(--rd)')+';color:'+(isWin?'var(--ac)':'var(--re)')+';padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700">'+(isWin?'WIN':'LOSS')+'</span>';
+  html+='<span style="font-size:11px;font-weight:700;color:'+dirCol+'">'+(isCall?'↗ CALL':'↘ PUT')+'</span>';
+  html+='<span style="font-size:12px;font-weight:700">'+t.asset+'</span>';
   html+='<span style="font-size:10px;padding:1px 6px;background:rgba(0,229,160,0.15);color:var(--ac);border-radius:4px;font-weight:700">WW</span>';
-  html+='<span style="font-size:10px;color:var(--t3)">R'+roundId+' • '+time+'</span>';
-  html+='<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+bCol+'">'+( net>=0?'+':'')+'$'+net.toFixed(2)+'</span>';
+  html+='<span style="font-size:10px;color:var(--t3)">R'+roundId+' • '+t.time+'</span>';
+  html+='<span style="margin-left:auto;font-size:14px;font-weight:700;font-family:var(--mo);color:'+bCol+'">'+(pnl>=0?'+':'')+'$'+pnl.toFixed(2)+'</span>';
   html+='</div>';
-  if(bothMiss){
-    html+='<div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:var(--rs);padding:8px;text-align:center"><div style="font-size:11px;font-weight:700;color:var(--go)">⚠ BOTH MISSED — Price flat</div><div style="font-size:12px;font-weight:700;color:var(--re);margin-top:3px">-$'+Math.abs(net).toFixed(2)+'</div></div>';
-  } else {
-    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-    html+='<div style="background:'+(hT.win?'rgba(0,229,160,0.08)':'rgba(255,77,106,0.05)')+';border:1px solid '+(hT.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.15)')+';border-radius:var(--rs);padding:8px"><div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:3px">↗ HIGHER '+(hT.win?'WON':'LOST')+'</div><div style="font-size:15px;font-weight:700;font-family:var(--mo);color:'+(hT.win?'var(--ac)':'var(--re)')+'">'+( hT.pnl>=0?'+':'')+'$'+hT.pnl.toFixed(2)+'</div></div>';
-    html+='<div style="background:'+(lT.win?'rgba(0,229,160,0.08)':'rgba(255,77,106,0.05)')+';border:1px solid '+(lT.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.15)')+';border-radius:var(--rs);padding:8px"><div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:3px">↘ LOWER '+(lT.win?'WON':'LOST')+'</div><div style="font-size:15px;font-weight:700;font-family:var(--mo);color:'+(lT.win?'var(--ac)':'var(--re)')+'">'+( lT.pnl>=0?'+':'')+'$'+lT.pnl.toFixed(2)+'</div></div>';
-    html+='</div>';
-  }
+  html+='<div style="display:flex;gap:12px;font-size:10px;font-family:var(--mo);color:var(--t2)">';
+  html+='<span>Entry:<b style="color:var(--go)"> '+(entry?entry.toFixed(entry>100?2:4):'--')+'</b></span>';
+  html+='<span>Exit:<b style="color:var(--t1)"> '+(exit?exit.toFixed(exit>100?2:4):'--')+'</b></span>';
+  html+='<span>Moved:<b style="color:'+(moved!=='--'?'var(--go)':'var(--t3)')+'"> '+moved+'</b></span>';
+  html+='<span>Stake:<b style="color:var(--t1)"> $'+t.stake.toFixed(2)+'</b></span>';
+  html+='<span>'+(isWin?'✓ barrier hit':'✗ missed')+'</span>';
+  html+='</div>';
   html+='</div>';
   return html;
 }
@@ -2336,16 +2340,24 @@ function renderActive(){
   if(!S.activeTrades.length){el.innerHTML='';return;}
   var html='';
   S.activeTrades.forEach(function(t){
-    var now=Date.now(),elapsed=now-(t.startTime||now),durMs=t.durMs||8000,remaining=Math.max(0,durMs-elapsed),secs=Math.ceil(remaining/1000),pct=Math.min(100,(elapsed/durMs)*100);
-    var entryP=parseFloat(t.price)||0,curP=S.prices[t.asset]||entryP,winning=t.direction==='HIGHER'?curP>entryP:curP<entryP;
-    var cardColor=winning?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.1)',borderColor=winning?'rgba(0,229,160,0.4)':'rgba(255,77,106,0.4)',textColor=winning?'var(--ac)':'var(--re)';
+    var now=Date.now(),elapsed=now-(t.startTime||now),durMs=t.durMs||15000;
+    var remaining=Math.max(0,durMs-elapsed),secs=Math.ceil(remaining/1000);
+    var pct=Math.min(100,(elapsed/durMs)*100);
+    var entryP=parseFloat(t.price)||0,curP=S.prices[t.asset]||entryP;
+    // For CALL: winning if current > entry. For PUT: winning if current < entry.
+    var winning=t.direction==='CALL'?curP>entryP:t.direction==='PUT'?curP<entryP:t.direction==='HIGHER'?curP>entryP:curP<entryP;
+    var cardColor=winning?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.1)';
+    var borderColor=winning?'rgba(0,229,160,0.4)':'rgba(255,77,106,0.4)';
+    var textColor=winning?'var(--ac)':'var(--re)';
+    var moved=entryP>0&&curP>0?(curP-entryP).toFixed(curP>100?2:4):'--';
     html+='<div style="background:'+cardColor+';border:1px solid '+borderColor+';border-radius:var(--rs);padding:9px 12px;margin-bottom:7px;display:flex;align-items:center;gap:10px" id="atc_'+t.contractId+'">';
     html+='<span style="font-size:12px;font-weight:700;color:'+textColor+'">'+t.asset+'</span>';
-    html+='<span class="tbadge '+(t.direction==='HIGHER'?'bw':'bl2')+'">'+t.direction+'</span>';
-    if(t.isHB)html+='<span style="font-size:10px;color:var(--ac);font-weight:700">HB</span>';
+    html+='<span style="font-size:11px;font-weight:700;color:'+(t.direction==='CALL'?'var(--ac)':'var(--re)')+'">'+t.direction+'</span>';
+    if(t.isHB)html+='<span style="font-size:10px;color:var(--ac);font-weight:700">WW</span>';
     html+='<span style="font-size:11px;color:var(--t3)">$'+t.stake+'</span>';
+    html+='<span style="font-size:10px;color:var(--t2);font-family:var(--mo)">entry:'+( entryP?entryP.toFixed(entryP>100?2:4):'--')+' now:'+( curP?curP.toFixed(curP>100?2:4):'--')+' Δ'+moved+'</span>';
     html+='<span style="flex:1"></span>';
-    html+='<div style="text-align:right"><div style="font-size:13px;font-weight:700;color:'+textColor+';font-family:var(--mo)" id="cd_'+t.contractId+'">'+(secs>0?secs+'s':'...')+'</div>';
+    html+='<div style="text-align:right"><div style="font-size:13px;font-weight:700;color:'+textColor+';font-family:var(--mo)" id="cd_'+t.contractId+'">'+(secs>0?secs+'s':'done')+'</div>';
     html+='<div style="width:60px;height:3px;background:var(--bg4);border-radius:2px;margin-top:3px;overflow:hidden"><div style="height:100%;background:'+textColor+';width:'+pct.toFixed(0)+'%;transition:width 0.5s" id="cdbar_'+t.contractId+'"></div></div></div>';
     html+='</div>';
   });
@@ -2356,15 +2368,28 @@ setInterval(function(){
   if(!S.activeTrades.length)return;
   var now=Date.now();
   S.activeTrades.slice().forEach(function(t){
-    var elapsed=now-(t.startTime||now),durMs=t.durMs||8000,remaining=Math.max(0,durMs-elapsed),secs=Math.ceil(remaining/1000),pct=Math.min(100,(elapsed/durMs)*100);
-    if(elapsed>durMs*2&&!t.repolled){t.repolled=true;wsSend({proposal_open_contract:1,contract_id:t.contractId});}
-    if(elapsed>durMs*5&&durMs>0){
+    var elapsed=now-(t.startTime||now),durMs=t.durMs||15000;
+    var remaining=Math.max(0,durMs-elapsed),secs=Math.ceil(remaining/1000),pct=Math.min(100,(elapsed/durMs)*100);
+    // Poll once at 2x duration if still active (backup in case subscription missed)
+    if(elapsed>durMs*2&&!t.repolled){
+      t.repolled=true;
+      wsSend({proposal_open_contract:1,contract_id:t.contractId});
+    }
+    // Hard remove after 3 minutes regardless — prevents frozen trades
+    if(elapsed>180000){
       S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!==t.contractId;});
-      for(var i=0;i<S.trades.length;i++){if(S.trades[i].contractId===t.contractId&&S.trades[i].status==='active'){S.trades[i].status='timeout';S.trades[i].pnl=0;S.trades[i].win=false;if(S.trades[i].isHB&&S.trades[i].hbRound!==null)onHBResult(S.trades[i].hbRound,S.trades[i].hbIdx,0,S.trades[i].direction);break;}}
+      for(var i=0;i<S.trades.length;i++){
+        if(S.trades[i].contractId===t.contractId&&S.trades[i].status==='active'){
+          S.trades[i].status='timeout';S.trades[i].pnl=0;S.trades[i].win=false;
+          if(S.trades[i].isHB&&S.trades[i].hbRound!==null)
+            onHBResult(S.trades[i].hbRound,S.trades[i].hbIdx,0,S.trades[i].direction,0);
+          break;
+        }
+      }
       updateStats();renderActive();renderTrades();wsSend({balance:1});return;
     }
     var cdEl=document.getElementById('cd_'+t.contractId),barEl=document.getElementById('cdbar_'+t.contractId);
-    if(cdEl)cdEl.textContent=secs>0?secs+'s':'...';
+    if(cdEl)cdEl.textContent=secs>0?secs+'s':'done';
     if(barEl)barEl.style.width=pct.toFixed(0)+'%';
   });
 },1000);
@@ -2401,7 +2426,7 @@ function renderJournal(filter){
     // Single leg — just use trades[0], direction is 'CALL' or 'PUT'
     var eoT=trades[0];
     var ebT=null; // no second leg
-    var winSide=eoT&&eoT.win?'OUTSIDE':ebT&&ebT.win?'BETWEEN':'--';
+    var winSide=eoT&&eoT.win?(eoT.direction==='CALL'?'CALL hit':'PUT hit'):'missed';
     var entry=parseFloat((hist?hist.entry:eoT.price)||0);
     var barrier=parseFloat((hist?hist.barrier:eoT.barrier)||0);
 
@@ -2782,7 +2807,7 @@ window.addEventListener('load',function(){
   if(!S.apiToken&&savedDemo)S.apiToken=savedDemo;
   if(!S.apiToken&&savedReal)S.apiToken=savedReal;
   // Version check — clear stale data from old 8-trade version
-var _wwVersion = '5.1';
+var _wwVersion = '5.3';
 if(localStorage.getItem('kevoai_version')!==_wwVersion){
   localStorage.removeItem('kevoai_trades');
   localStorage.removeItem('kevoai_dg_trades');
