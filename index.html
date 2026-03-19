@@ -1004,29 +1004,27 @@ function _hbCleanupOnError(roundId){
 
 // ── Query Deriv for valid EXPIRYRANGE durations on the HB asset ──
 function queryContractsFor(sym){
-  wsSend({contracts_for: sym, currency: S.currency||'USD', landing_company:'svg', product_type:'basic'});
-  // Also log a test proposal to see what Deriv says about the contract
-  var testEpoch = Math.floor(Date.now()/1000) + 900; // 15 min from now
-  console.log('[TEST PROPOSAL] sending with date_expiry:', testEpoch);
-  var rid = wsSend({proposal:1, amount:1, basis:'stake', contract_type:'EXPIRYRANGEE',
-    currency:'USD', date_expiry:testEpoch, symbol:sym,
-    barrier:'+0.10', barrier2:'-0.10'});
-  if(rid) S.pending[rid] = {type:'debug_proposal'};
+  // Query the selected asset AND a few others to find which supports short EXPIRYRANGE
+  ['R_100','R_75','R_50','R_25','1HZ100V','1HZ75V'].forEach(function(s){
+    wsSend({contracts_for:s, currency:S.currency||'USD', landing_company:'svg', product_type:'basic'});
+  });
 }
 
 function onContractsFor(data){
   if(!data||!data.available) return;
   data.available.forEach(function(c){
     if(c.contract_type==='EXPIRYRANGE'||c.contract_type==='EXPIRYRANGEE'){
-      console.log('[CF]', c.contract_type, 'expiry_type:', c.expiry_type, 'min:', c.min_contract_duration, 'high_barrier:', c.high_barrier, 'low_barrier:', c.low_barrier);
-      // Use intraday contract — has shorter duration and relative barriers
       if(c.expiry_type==='intraday'){
-        // Store valid barrier values from Deriv
-        HB._derivHighBarrier = c.high_barrier; // e.g. "+1.02"
-        HB._derivLowBarrier  = c.low_barrier;  // e.g. "-1.02"
-        HB._minDurMins = parseInt(c.min_contract_duration)||2;
-        console.log('[WW] Using intraday barriers:', HB._derivHighBarrier, HB._derivLowBarrier, 'min:', HB._minDurMins+'m');
-        notify('OK','WW barriers set: '+HB._derivHighBarrier+'/'+HB._derivLowBarrier,'info');
+        var sym = data.symbol || '?';
+        console.log('[EXPIRYRANGE]', sym, c.contract_type, 'min:', c.min_contract_duration, 'barriers:', c.high_barrier, c.low_barrier);
+        // Store if this is a short duration one
+        if(c.min_contract_duration && parseInt(c.min_contract_duration)<=1 && c.min_contract_duration.indexOf('m')>-1){
+          HB._derivHighBarrier = c.high_barrier;
+          HB._derivLowBarrier  = c.low_barrier;
+          HB._minDurMins = parseInt(c.min_contract_duration)||1;
+          HB._expiryAsset = sym;
+          notify('OK','Found short EXPIRYRANGE on '+sym+' min:'+c.min_contract_duration,'win');
+        }
       }
     }
   });
@@ -1738,42 +1736,50 @@ function placeHybridRound(){
     }
   }
 
-  // Use CALL/PUT with barriers — supports 15s duration and custom barrier distance
-  // CALL with barrier = price must end ABOVE barrier (ends outside high)
-  // PUT with barrier  = price must end BELOW barrier (ends outside low)
-  // Together they cover the same concept — one always wins when price moves
-  var durSecs = 15;
-  var hiBar = '+' + barrier.toFixed(2);
-  var loBar = '-' + barrier.toFixed(2);
+  // EXPIRYRANGE requires trading_period_start + date_expiry
+  // trading_period_start = now (epoch), date_expiry = next 15-min boundary
+  var nowEpoch = Math.floor(Date.now()/1000);
+  var mins15 = 15 * 60;
+  var expiryEpoch = (Math.floor(nowEpoch/mins15) + 1) * mins15;
+  if(expiryEpoch - nowEpoch < 120) expiryEpoch += mins15; // min 2 min away
 
-  console.log('[WW PLACING] CALL+PUT barrier', hiBar, loBar, durSecs+'s');
+  var hiBar = HB._derivHighBarrier || ('+'+barrier.toFixed(2));
+  var loBar = HB._derivLowBarrier  || ('-'+barrier.toFixed(2));
 
-  var rEO = wsSend({buy:1, price:side, parameters:{
+  console.log('[WW PLACING] trading_period_start:', nowEpoch, 'date_expiry:', expiryEpoch, '(+'+Math.round((expiryEpoch-nowEpoch)/60)+'min) barriers:', hiBar, loBar);
+
+  var propEO = wsSend({
+    proposal:1,
     amount:side, basis:'stake',
-    contract_type:'CALL',
+    contract_type:'EXPIRYRANGEE',
     currency:S.currency,
-    duration:durSecs, duration_unit:'s',
+    trading_period_start: nowEpoch,
+    date_expiry: expiryEpoch,
     symbol:HB.asset,
-    barrier: hiBar
-  }});
-  if(rEO) S.pending[rEO]={
-    dir:'OUTSIDE', stake:side, asset:HB.asset,
-    isBot:true, isHB:true, hbRound:rid, hbIdx:0,
-    barrier:barrier, durVal:durSecs, durUnit:'s'
+    barrier: hiBar,
+    barrier2: loBar
+  });
+  if(propEO) S.pending[propEO]={
+    type:'hb_proposal', dir:'OUTSIDE', idx:0,
+    stake:side, asset:HB.asset, hbRound:rid,
+    barrier:barrier, durVal:expiryEpoch-nowEpoch, durUnit:'s'
   };
 
-  var rEB = wsSend({buy:1, price:side, parameters:{
+  var propEB = wsSend({
+    proposal:1,
     amount:side, basis:'stake',
-    contract_type:'PUT',
+    contract_type:'EXPIRYRANGE',
     currency:S.currency,
-    duration:durSecs, duration_unit:'s',
+    trading_period_start: nowEpoch,
+    date_expiry: expiryEpoch,
     symbol:HB.asset,
-    barrier: loBar
-  }});
-  if(rEB) S.pending[rEB]={
-    dir:'BETWEEN', stake:side, asset:HB.asset,
-    isBot:true, isHB:true, hbRound:rid, hbIdx:1,
-    barrier:barrier, durVal:durSecs, durUnit:'s'
+    barrier: hiBar,
+    barrier2: loBar
+  });
+  if(propEB) S.pending[propEB]={
+    type:'hb_proposal', dir:'BETWEEN', idx:1,
+    stake:side, asset:HB.asset, hbRound:rid,
+    barrier:barrier, durVal:expiryEpoch-nowEpoch, durUnit:'s'
   };
 
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
