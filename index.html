@@ -964,10 +964,27 @@ function handleMsg(d) {
     if(code==='ProposalOpenContractDoesNotExist') { wsSend({balance:1}); return; }
     if(code==='InvalidToken'||code==='AuthorizationRequired') {
       notify('X','Invalid token: '+msg,'loss'); updateConnUI(false);
-    } else if(code==='ContractBuyValidationError'||code==='ContractCreationFailure') {
-      notify('Error', msg, 'loss');
+    } else if(code==='ContractBuyValidationError'||code==='ContractCreationFailure'||code==='OfferingsValidationError'||code==='InputValidationFailed') {
+      notify('Trade Error', msg, 'loss');
+      // Clear any pending HB round so bot doesn't freeze
+      if(d.req_id && S.pending[d.req_id] && S.pending[d.req_id].isHB){
+        var failedRid = S.pending[d.req_id].hbRound;
+        // Remove both pending entries for this round
+        Object.keys(S.pending).forEach(function(k){
+          if(S.pending[k].isHB && S.pending[k].hbRound===failedRid) delete S.pending[k];
+        });
+        // Clear the HB pending round too
+        if(HB.pending[failedRid]) delete HB.pending[failedRid];
+        HB.rounds = Math.max(0, HB.rounds-1);
+        clearWWBarrierLines();
+        document.getElementById('hb-active-count').textContent='0 ACTIVE';
+        notify('!','Round cancelled: '+msg+' — check barrier/duration settings','loss');
+      }
+      delete S.pending[d.req_id];
     } else {
-      console.warn('Deriv error:', code, msg);
+      console.warn('Deriv error:', code, msg, 'req_id:', d.req_id);
+      // Show error prominently — always helpful for debugging
+      notify('Err:'+code, msg.substring(0,60), 'loss');
     }
     return;
   }
@@ -1652,31 +1669,32 @@ function placeHybridRound(){
 
   // ── Place ENDS OUTSIDE (idx 0) ────────────────────────────────
   // CALL with barrier = ENDS OUTSIDE (price exits above)
-  // Actually Deriv uses EXPIRYRANGEE for ends outside
-  // contract_type: 'EXPIRYRANGEE' = Ends Outside
-  // contract_type: 'EXPIRYRANGE'  = Ends Between
+  // EXPIRYRANGEE = Ends Outside, EXPIRYRANGE = Ends Between
+  // These contracts require duration in SECONDS not ticks
+  var durSecs = HB.ticks * 2; // 5 ticks ≈ 10 seconds on volatility indices
+
   var rEO=wsSend({buy:1,price:side,parameters:{
     amount:side,basis:'stake',
     contract_type:'EXPIRYRANGEE',
     currency:S.currency,
-    duration:HB.ticks,duration_unit:'t',
+    duration:durSecs,duration_unit:'s',
     symbol:HB.asset,
     barrier:'+'+barrier.toFixed(2),
     barrier2:'-'+barrier.toFixed(2)
   }});
-  if(rEO)S.pending[rEO]={dir:'OUTSIDE',stake:side,asset:HB.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:0,barrier:barrier,durVal:HB.ticks,durUnit:'t'};
+  if(rEO)S.pending[rEO]={dir:'OUTSIDE',stake:side,asset:HB.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:0,barrier:barrier,durVal:durSecs,durUnit:'s'};
 
   // ── Place ENDS BETWEEN (idx 1) ────────────────────────────────
   var rEB=wsSend({buy:1,price:side,parameters:{
     amount:side,basis:'stake',
     contract_type:'EXPIRYRANGE',
     currency:S.currency,
-    duration:HB.ticks,duration_unit:'t',
+    duration:durSecs,duration_unit:'s',
     symbol:HB.asset,
     barrier:'+'+barrier.toFixed(2),
     barrier2:'-'+barrier.toFixed(2)
   }});
-  if(rEB)S.pending[rEB]={dir:'BETWEEN',stake:side,asset:HB.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:1,barrier:barrier,durVal:HB.ticks,durUnit:'t'};
+  if(rEB)S.pending[rEB]={dir:'BETWEEN',stake:side,asset:HB.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:1,barrier:barrier,durVal:durSecs,durUnit:'s'};
 
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
   notify('WW','R'+HB.rounds+': OUTSIDE+BETWEEN ±'+barrier.toFixed(2)+' $'+side+'/side | Score:'+sig.score,'info');
