@@ -763,8 +763,42 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
 
       <!-- ANALYTICS -->
       <div class="page" id="page-analytics">
-        <div class="sr"><div class="sc g"><div class="sl">Best Trade</div><div class="sv g" id="a-best">$0.00</div></div><div class="sc r"><div class="sl">Worst Trade</div><div class="sv r" id="a-worst">$0.00</div></div><div class="sc go"><div class="sl">Avg Win</div><div class="sv go" id="a-avgw">$0.00</div></div><div class="sc b"><div class="sl">Avg Loss</div><div class="sv b" id="a-avgl">$0.00</div></div></div>
-        <div class="card"><div class="ch"><div class="ct">P&L Per Trade</div></div><div class="cb" style="height:220px;position:relative"><canvas id="pnlChart"></canvas></div></div>
+        <!-- Summary stats -->
+        <div class="sr" style="margin-bottom:14px">
+          <div class="sc g"><div class="sl">Best Round</div><div class="sv g" id="a-best">$0.00</div></div>
+          <div class="sc r"><div class="sl">Worst Round</div><div class="sv r" id="a-worst">$0.00</div></div>
+          <div class="sc go"><div class="sl">Avg Win</div><div class="sv go" id="a-avgw">$0.00</div></div>
+          <div class="sc b"><div class="sl">Avg Loss</div><div class="sv b" id="a-avgl">$0.00</div></div>
+        </div>
+        <!-- P&L chart -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="ch"><div class="ct">P&L Per Round</div></div>
+          <div class="cb" style="height:200px;position:relative"><canvas id="pnlChart"></canvas></div>
+        </div>
+        <!-- Signal analysis -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="ch">
+            <div class="ct">Signal Effectiveness — Which confluences actually win</div>
+            <button class="btn btng" style="font-size:10px;padding:3px 9px" onclick="updAnalytics()">Refresh</button>
+          </div>
+          <div class="cb" id="signal-analysis">
+            <div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No WinWin rounds yet — trade to see analysis.</div>
+          </div>
+        </div>
+        <!-- Score analysis -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="ch"><div class="ct">Score vs Win Rate</div></div>
+          <div class="cb" id="score-analysis">
+            <div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No data yet.</div>
+          </div>
+        </div>
+        <!-- ATR analysis -->
+        <div class="card">
+          <div class="ch"><div class="ct">ATR Ratio at Entry vs Outcome</div></div>
+          <div class="cb" id="atr-analysis">
+            <div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No data yet.</div>
+          </div>
+        </div>
       </div>
 
       <!-- SETTINGS -->
@@ -1566,10 +1600,37 @@ function placeHybridRound(){
 
   HB.roundId++;var rid=HB.roundId;
   HB.rounds++;HB.lastRoundTime=Date.now();
+  // Capture full confluence snapshot at trade time
+  var _ind=getInd(HB.asset),_p=_ind.prices,_n=_p.length;
+  var _atr=0;for(var _ii=_n-14;_ii<_n;_ii++)_atr+=Math.abs(_p[_ii]-_p[_ii-1]);_atr/=14;
+  var _atr5=0;for(var _jj=_n-5;_jj<_n;_jj++)_atr5+=Math.abs(_p[_jj]-_p[_jj-1]);_atr5/=5;
+  var _atr20=0;for(var _kk=Math.max(0,_n-25);_kk<_n-5;_kk++)_atr20+=Math.abs(_p[_kk]-_p[_kk-1]);_atr20/=20;
+  var _snap={
+    score:sig.score,
+    atr:parseFloat(_atr.toFixed(6)),
+    atr5:parseFloat(_atr5.toFixed(6)),
+    atr20:parseFloat(_atr20.toFixed(6)),
+    atrRatio:_atr20>0?parseFloat((_atr5/_atr20).toFixed(3)):1,
+    bbSqueeze:!!_ind.bbSqueeze,
+    bbWidth:_ind.bbWidth?parseFloat(_ind.bbWidth.toFixed(6)):0,
+    rsi:_ind.rsiVal?parseFloat(_ind.rsiVal.toFixed(1)):50,
+    trend:_ind.trend||'neutral',
+    // Which signals fired
+    sig_lowVol:_atr20>0&&_atr5<_atr20*1.2,
+    sig_squeeze:!!_ind.bbSqueeze,
+    sig_expanding:!_ind.bbSqueeze&&HB.lastSqueezeTime>0&&(Date.now()-HB.lastSqueezeTime)<20000,
+    sig_momentum:false, // set below
+    barrier:barrier,
+    barrierMult:HB.barrierMult
+  };
+  // Check momentum
+  if(_n>=5){var _sz=[];for(var _mm=_n-4;_mm<_n;_mm++)_sz.push(Math.abs(_p[_mm]-_p[_mm-1]));_snap.sig_momentum=_sz[1]>_sz[0]&&_sz[2]>_sz[1]&&_sz[3]>_sz[2];}
+
   HB.pending[rid]={
     results:[null,null],settled:0,
     barrier:barrier,side:side,entry:entry,
-    time:new Date().toLocaleTimeString(),asset:HB.asset,score:sig.score
+    time:new Date().toLocaleTimeString(),asset:HB.asset,score:sig.score,
+    snap:_snap
   };
 
   // Draw barriers on main chart
@@ -1624,54 +1685,87 @@ function placeHybridRound(){
 
 function onHBResult(roundId,idx,profit,direction){
   if(!HB.pending[roundId])return;
-  HB.pending[roundId].results[idx]={profit:profit,direction:direction,win:profit>0};
+  // profit from Deriv = net profit (positive = win, 0 or negative = loss)
+  var won=profit>0;
+  HB.pending[roundId].results[idx]={profit:profit,direction:direction,win:won};
   HB.pending[roundId].settled++;
-  if(HB.pending[roundId].settled>=2){
-    var r=HB.pending[roundId];
-    var eoResult=r.results[0]||{profit:0,direction:'OUTSIDE',win:false};
-    var ebResult=r.results[1]||{profit:0,direction:'BETWEEN',win:false};
-    // Correct P&L: winner gets payout - stake, loser loses stake
-    var eoPnl=parseFloat((eoResult.win?eoResult.profit:-r.side).toFixed(2));
-    var ebPnl=parseFloat((ebResult.win?ebResult.profit:-r.side).toFixed(2));
-    var totalPnl=parseFloat((eoPnl+ebPnl).toFixed(2));
-    var isWin=totalPnl>0;
-    // One always wins — both can win if payout is huge, but net could be negative
-    // if payout < 200% on winner (shouldn't happen with proper barrier setting)
 
-    HB.pnl+=totalPnl;
-    if(isWin){HB.won++;HB.lossStreak=0;}
-    else{HB.lost++;HB.lossStreak++;if(HB.lossStreak>=3&&HB.useCooldown&&!HB.coolingDown){HB.coolingDown=true;HB.cooldownEnd=Date.now()+120000;notify('PAUSE','3 net-negative rounds — pausing 2 mins','loss');}}
-    if(totalPnl>HB.bestRound)HB.bestRound=totalPnl;
-    if(totalPnl<HB.worstRound)HB.worstRound=totalPnl;
-
-    // Store 2 summary trades
-    S.trades=S.trades.filter(function(t){return!(t.isHB&&t.hbRound===roundId&&!t.isHBSummary);});
-    var summaryEO={id:roundId+'EO',contractId:roundId+'EO',asset:r.asset,direction:'OUTSIDE',stake:r.side,pnl:eoPnl,win:eoResult.win,status:eoResult.win?'win':'loss',time:r.time,durationStr:HB.ticks+'T',price:r.entry,exitPrice:r.entry,isHB:true,hbRound:roundId,isHBSummary:true,note:''};
-    var summaryEB={id:roundId+'EB',contractId:roundId+'EB',asset:r.asset,direction:'BETWEEN',stake:r.side,pnl:ebPnl,win:ebResult.win,status:ebResult.win?'win':'loss',time:r.time,durationStr:HB.ticks+'T',price:r.entry,exitPrice:r.entry,isHB:true,hbRound:roundId,isHBSummary:true,note:''};
-    S.trades.unshift(summaryEB);S.trades.unshift(summaryEO);
-
-    HB.history.unshift({
-      round:HB.rounds,time:r.time,asset:r.asset,
-      profit:totalPnl,won:isWin,cumPnl:HB.pnl,
-      eoPnl:eoPnl,ebPnl:ebPnl,eoWin:eoResult.win,ebWin:ebResult.win,
-      barrier:r.barrier,side:r.side,entry:r.entry,score:r.score
-    });
-    if(HB.history.length>100)HB.history.pop();
-    delete HB.pending[roundId];
-
-    clearWWBarrierLines();
-    S.priceHistHB=null;
-    DG.trades++;if(isWin)DG.wins++;else DG.losses++;saveDG();
-    localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
-    updHBStats();renderHBHistory('all');
-    updateStats();renderTrades();renderActive();
-    wsSend({balance:1});
-    setTimeout(function(){wsSend({balance:1});},1500);
-
-    var winSide=eoResult.win?'OUTSIDE':'BETWEEN';
-    notify(isWin?'WIN':'CHECK','R'+HB.rounds+': '+winSide+' won | Net: '+(totalPnl>=0?'+':'')+'$'+Math.abs(totalPnl).toFixed(2),isWin?'win':totalPnl===0?'info':'loss');
-    document.getElementById('hb-active-count').textContent='0 ACTIVE';
+  // Settle after both contracts resolve OR after one settles with a 10s timeout
+  var doSettle=HB.pending[roundId].settled>=2;
+  if(!doSettle&&HB.pending[roundId].settled===1){
+    // Set a 10s safety timeout to force settle if second never comes
+    if(!HB.pending[roundId]._timeout){
+      HB.pending[roundId]._timeout=setTimeout(function(){
+        if(!HB.pending[roundId])return;
+        // Fill missing result with loss
+        for(var i=0;i<2;i++){
+          if(!HB.pending[roundId].results[i]){
+            HB.pending[roundId].results[i]={profit:0,direction:i===0?'OUTSIDE':'BETWEEN',win:false};
+            HB.pending[roundId].settled++;
+          }
+        }
+        _settleHBRound(roundId);
+      },10000);
+    }
+    return;
   }
+  if(doSettle) _settleHBRound(roundId);
+}
+
+function _settleHBRound(roundId){
+  if(!HB.pending[roundId])return;
+  clearTimeout(HB.pending[roundId]._timeout);
+  var r=HB.pending[roundId];
+  var eoResult=r.results[0]||{profit:0,direction:'OUTSIDE',win:false};
+  var ebResult=r.results[1]||{profit:0,direction:'BETWEEN',win:false};
+
+  // P&L: Deriv returns net profit on winner, we lost the stake on loser
+  var eoPnl=parseFloat((eoResult.win?eoResult.profit:-r.side).toFixed(2));
+  var ebPnl=parseFloat((ebResult.win?ebResult.profit:-r.side).toFixed(2));
+  var totalPnl=parseFloat((eoPnl+ebPnl).toFixed(2));
+  var isWin=totalPnl>0;
+
+  HB.pnl+=totalPnl;
+  if(isWin){HB.won++;HB.lossStreak=0;}
+  else{HB.lost++;HB.lossStreak++;
+    if(HB.lossStreak>=3&&HB.useCooldown&&!HB.coolingDown){
+      HB.coolingDown=true;HB.cooldownEnd=Date.now()+120000;
+      notify('PAUSE','3 net-negative rounds — pausing 2 mins','loss');
+    }
+  }
+  if(totalPnl>HB.bestRound)HB.bestRound=totalPnl;
+  if(totalPnl<HB.worstRound)HB.worstRound=totalPnl;
+
+  // Store 2 summary trades
+  S.trades=S.trades.filter(function(t){return!(t.isHB&&t.hbRound===roundId&&!t.isHBSummary);});
+  var summaryEO={id:roundId+'EO',contractId:roundId+'EO',asset:r.asset,direction:'OUTSIDE',stake:r.side,pnl:eoPnl,win:eoResult.win,status:eoResult.win?'win':'loss',time:r.time,durationStr:HB.ticks+'T',price:r.entry,exitPrice:r.entry,isHB:true,hbRound:roundId,isHBSummary:true,note:''};
+  var summaryEB={id:roundId+'EB',contractId:roundId+'EB',asset:r.asset,direction:'BETWEEN',stake:r.side,pnl:ebPnl,win:ebResult.win,status:ebResult.win?'win':'loss',time:r.time,durationStr:HB.ticks+'T',price:r.entry,exitPrice:r.entry,isHB:true,hbRound:roundId,isHBSummary:true,note:''};
+  S.trades.unshift(summaryEB);S.trades.unshift(summaryEO);
+
+  HB.history.unshift({
+    round:HB.rounds,time:r.time,asset:r.asset,
+    profit:totalPnl,won:isWin,cumPnl:HB.pnl,
+    eoPnl:eoPnl,ebPnl:ebPnl,eoWin:eoResult.win,ebWin:ebResult.win,
+    barrier:r.barrier,side:r.side,entry:r.entry,score:r.score,
+    snap:r.snap||null
+  });
+  if(HB.history.length>100)HB.history.pop();
+  delete HB.pending[roundId];
+
+  clearWWBarrierLines();
+
+  // DG — count 1 round as 1 trade
+  DG.trades++;if(isWin)DG.wins++;else DG.losses++;saveDG();
+
+  localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
+  updHBStats();renderHBHistory('all');
+  updateStats();renderTrades();renderActive();
+  wsSend({balance:1});
+  setTimeout(function(){wsSend({balance:1});},1500);
+
+  var winSide=eoResult.win?'ENDS OUTSIDE':'ENDS BETWEEN';
+  notify(isWin?'WIN':'LOSS','R'+HB.rounds+': '+winSide+' won | Net:'+(totalPnl>=0?'+':'')+'$'+Math.abs(totalPnl).toFixed(2),isWin?'win':'loss');
+  document.getElementById('hb-active-count').textContent='0 ACTIVE';
 }
 
 function updHBStats(){
@@ -2196,60 +2290,83 @@ function renderJournal(filter){
 
   var html='';
 
-  // WinWin rounds — 2 cards each (HIGHER + LOWER)
+  // WinWin rounds — full confluence detail
   var roundKeys=Object.keys(roundMap).sort(function(a,b){return b-a;});
   roundKeys.forEach(function(rid){
     var trades=roundMap[rid];
     var totalPnl=parseFloat(trades.reduce(function(s,t){return s+t.pnl;},0).toFixed(2));
     var isWin=totalPnl>0;
-    var bothMiss=!trades.some(function(t){return t.win;});
     if(filter==='win'&&!isWin)return;
     if(filter==='loss'&&isWin)return;
-    var hT=trades.find(function(t){return t.direction==='HIGHER';})||trades[0];
-    var lT=trades.find(function(t){return t.direction==='LOWER';})||(trades[1]||trades[0]);
+    var hist=HB.history.find(function(h){return h.round==rid;})||null;
+    var snap=hist?hist.snap:null;
     var rNote=S.notes['hb_'+rid]||'';
-    var borderCol=bothMiss?'var(--go)':isWin?'var(--ac)':'var(--re)';
+    var eoT=trades.find(function(t){return t.direction==='OUTSIDE';})||trades[0];
+    var ebT=trades.find(function(t){return t.direction==='BETWEEN';})||(trades[1]||trades[0]);
+    var winSide=eoT&&eoT.win?'OUTSIDE':ebT&&ebT.win?'BETWEEN':'--';
+    var entry=parseFloat((hist?hist.entry:eoT.price)||0);
+    var barrier=parseFloat((hist?hist.barrier:eoT.barrier)||0);
 
-    html+='<div class="jrow '+(isWin?'win-row':'loss-row')+'" style="margin-bottom:12px">';
+    html+='<div class="jrow '+(isWin?'win-row':'loss-row')+'" style="margin-bottom:14px">';
     // Header
     html+='<div class="jrow-top">';
-    if(bothMiss){html+='<span class="tbadge" style="background:rgba(245,166,35,0.15);color:var(--go)">FLAT</span>';}
-    else{html+=(isWin?'<span class="tbadge bw">WIN</span>':'<span class="tbadge bl2">LOSS</span>');}
-    html+='<span style="font-size:10px;padding:2px 7px;border-radius:99px;background:rgba(0,229,160,0.15);color:var(--ac);font-weight:700">WW ROUND '+rid+'</span>';
-    html+='<span style="font-size:13px;font-weight:700">'+hT.asset+'</span>';
-    html+='<span style="font-size:10px;color:var(--t3)">'+hT.time+' • 2 trades</span>';
-    html+='<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+(isWin?'var(--ac)':bothMiss?'var(--go)':'var(--re)')+'">'+( totalPnl>=0?'+':'')+'$'+totalPnl.toFixed(2)+'</span>';
+    html+=(isWin?'<span class="tbadge bw">WIN</span>':'<span class="tbadge bl2">LOSS</span>');
+    html+='<span style="font-size:10px;padding:2px 7px;border-radius:99px;background:rgba(0,229,160,0.15);color:var(--ac);font-weight:700">WW R'+rid+'</span>';
+    html+='<span style="font-size:13px;font-weight:700">'+(hist?hist.asset:eoT.asset)+'</span>';
+    html+='<span style="font-size:10px;color:var(--t3)">'+(hist?hist.time:eoT.time)+' • '+winSide+' won</span>';
+    html+='<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+(isWin?'var(--ac)':'var(--re)')+'">'+( totalPnl>=0?'+':'')+'$'+totalPnl.toFixed(2)+'</span>';
     html+='</div>';
-
-    if(bothMiss){
-      // Both missed
-      html+='<div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:var(--rs);padding:10px;margin-bottom:10px;text-align:center">';
-      html+='<div style="font-size:12px;font-weight:700;color:var(--go)">⚠ BOTH MISSED — Price stayed flat</div>';
-      html+='<div style="font-size:11px;color:var(--t2);margin-top:3px">Barrier not reached on either side</div>';
-      html+='<div style="font-size:13px;font-weight:700;color:var(--re);margin-top:4px">Loss: -$'+Math.abs(totalPnl).toFixed(2)+'</div>';
-      html+='</div>';
-    } else {
-      // 2 side cards
-      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
-      [hT,lT].forEach(function(t){
-        var isH=t.direction==='HIGHER';
-        var col=isH?'var(--ac)':'var(--re)';
-        // P&L: if win show actual pnl, if loss show -stake (what was actually lost)
-        var pnlDisplay=t.win?('+$'+t.pnl.toFixed(2)):('-$'+t.stake.toFixed(2));
-        var pnlColor=t.win?'var(--ac)':'var(--re)';
-        html+='<div style="background:'+(t.win?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.07)')+';border:1px solid '+(t.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.25)')+';border-radius:var(--rs);padding:10px">';
-        html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
-        html+='<span style="font-size:11px;color:'+col+';font-weight:700">'+(isH?'↗ HIGHER':'↘ LOWER')+'</span>';
-        html+='<span style="font-size:12px;font-weight:700;color:'+pnlColor+'">'+pnlDisplay+'</span>';
-        html+='</div>';
-        html+='<div style="font-size:10px;color:var(--t2)">Stake: <b>$'+t.stake.toFixed(2)+'</b></div>';
-        html+='<div style="font-size:10px;color:var(--t3)">Entry: '+(t.price?parseFloat(t.price).toFixed(2):'--')+'</div>';
-        html+='<div style="font-size:10px;color:var(--t3)">Dur: '+(t.durationStr||HB.ticks+'T')+'</div>';
-        html+='<div style="font-size:10px;font-weight:600;color:'+(t.win?'var(--ac)':'var(--re)')+';margin-top:4px">'+(t.win?'✓ BARRIER HIT':'✗ BARRIER MISSED')+'</div>';
-        html+='</div>';
+    // Price info row
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">';
+    html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Entry Price</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--go)">'+(entry?entry.toFixed(entry>100?2:4):'--')+'</div></div>';
+    html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Barrier ±</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--go)">'+(barrier?'±'+barrier.toFixed(2):'--')+'</div><div style="font-size:9px;color:var(--t3);margin-top:1px">Mult: '+(snap?'×'+snap.barrierMult:'--')+'</div></div>';
+    html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Won Side</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:'+(eoT&&eoT.win?'var(--ac)':'var(--bl)')+'">'+winSide+'</div><div style="font-size:9px;color:var(--t3);margin-top:1px">'+(eoT&&eoT.win?'Price EXITED barrier':'Price STAYED inside')+'</div></div>';
+    html+='</div>';
+    // Confluences block
+    if(snap){
+      html+='<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:var(--rs);padding:10px;margin-bottom:8px">';
+      html+='<div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:8px">📊 Confluences at Entry — Score '+snap.score+'/5</div>';
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:10px;margin-bottom:7px">';
+      var sigs2=[
+        {k:'sig_lowVol',   l:'Low Volatility',    d:'ATR ratio: '+snap.atrRatio+'× (need <1.2×)'},
+        {k:'sig_squeeze',  l:'BB Squeeze',         d:'BB Width: '+(snap.bbWidth?(snap.bbWidth*100).toFixed(3)+'%':'--')+(snap.bbSqueeze?' ← TIGHT':'')},
+        {k:'sig_expanding',l:'Post-Squeeze',       d:snap.sig_expanding?'Bands expanding after squeeze':'No recent squeeze'},
+        {k:'sig_momentum', l:'Momentum Burst',     d:snap.sig_momentum?'4 accelerating ticks':'No acceleration'}
+      ];
+      sigs2.forEach(function(sig){
+        var on=snap[sig.k];
+        html+='<div style="background:'+(on?'rgba(0,229,160,0.1)':'var(--bg4)')+';border-radius:5px;padding:6px 8px;font-family:var(--mo)">';
+        html+='<div style="color:'+(on?'var(--ac)':'var(--t3)')+';font-weight:700;font-size:10px">'+(on?'✓ ':'✗ ')+sig.l+'</div>';
+        html+='<div style="color:var(--t3);font-size:9px;margin-top:2px">'+sig.d+'</div></div>';
       });
       html+='</div>';
+      html+='<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;display:flex;gap:12px;flex-wrap:wrap;font-size:10px;font-family:var(--mo);color:var(--t3)">';
+      html+='<span>ATR(5):<b style="color:var(--t1)"> '+snap.atr5.toFixed(4)+'</b></span>';
+      html+='<span>ATR(20):<b style="color:var(--t1)"> '+snap.atr20.toFixed(4)+'</b></span>';
+      html+='<span>Ratio:<b style="color:'+(snap.atrRatio<1.2?'var(--ac)':'var(--re)')+'">&nbsp;'+snap.atrRatio+'×</b></span>';
+      html+='<span>RSI:<b style="color:var(--t1)"> '+snap.rsi+'</b></span>';
+      html+='<span>Trend:<b style="color:var(--t1)"> '+snap.trend+'</b></span>';
+      html+='</div></div>';
+    } else {
+      html+='<div style="background:var(--bg3);border-radius:var(--rs);padding:8px;margin-bottom:8px;font-size:10px;color:var(--t3)">No confluence data — trade placed manually or pre-v5.0</div>';
     }
+    // OUTSIDE / BETWEEN cards
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+    [eoT,ebT].forEach(function(t){
+      if(!t)return;
+      var isEO=t.direction==='OUTSIDE';
+      var col=isEO?'var(--ac)':'var(--bl)';
+      var pnlDisplay=t.win?('+$'+t.pnl.toFixed(2)):('-$'+(t.stake||0).toFixed(2));
+      html+='<div style="background:'+(t.win?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.05)')+';border:1px solid '+(t.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.2)')+';border-radius:var(--rs);padding:10px">';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">';
+      html+='<span style="font-size:10px;color:'+col+';font-weight:700">'+(isEO?'↗↙ ENDS OUTSIDE':'↔ ENDS BETWEEN')+'</span>';
+      html+='<span style="font-size:12px;font-weight:700;color:'+(t.win?'var(--ac)':'var(--re)')+'">'+pnlDisplay+'</span>';
+      html+='</div>';
+      html+='<div style="font-size:10px;color:var(--t3)">Stake: $'+(t.stake||0).toFixed(2)+'</div>';
+      html+='<div style="font-size:10px;font-weight:600;color:'+(t.win?'var(--ac)':'var(--re)')+';margin-top:4px">'+(t.win?'✓ WON':'✗ LOST')+'</div>';
+      html+='</div>';
+    });
+    html+='</div>';
     html+='<div class="jnote"><textarea class="jni" placeholder="Add round note..." rows="1" id="note_hb_'+rid+'">'+rNote+'</textarea><button class="jnb" onclick="saveNote(\'hb_'+rid+'\')">Save</button></div>';
     html+='</div>';
   });
@@ -2303,13 +2420,158 @@ function exportJournal(){
 
 function updAnalytics(){
   var done=S.trades.filter(function(t){return t.status!=='active';});
-  if(!done.length)return;
-  var wins=done.filter(function(t){return t.win;}),losses=done.filter(function(t){return !t.win;});
-  document.getElementById('a-best').textContent='+$'+Math.max.apply(null,done.map(function(t){return t.pnl;}).concat([0])).toFixed(2);
-  document.getElementById('a-worst').textContent='$'+Math.min.apply(null,done.map(function(t){return t.pnl;}).concat([0])).toFixed(2);
-  document.getElementById('a-avgw').textContent='+$'+(wins.length?wins.reduce(function(s,t){return s+t.pnl;},0)/wins.length:0).toFixed(2);
-  document.getElementById('a-avgl').textContent='$'+(losses.length?Math.abs(losses.reduce(function(s,t){return s+t.pnl;},0)/losses.length):0).toFixed(2);
-  if(pnlChart){var r=done.slice(0,20).reverse();pnlChart.data.labels=r.map(function(_,i){return 'T'+(i+1);});pnlChart.data.datasets[0].data=r.map(function(t){return t.pnl;});pnlChart.data.datasets[0].backgroundColor=r.map(function(t){return t.pnl>0?'rgba(0,229,160,.7)':'rgba(255,77,106,.7)';});pnlChart.update();}
+  // For stats: use HB history for WW rounds, non-HB for rest
+  var allPnls=HB.history.map(function(h){return h.profit;});
+  done.filter(function(t){return !t.isHB;}).forEach(function(t){allPnls.push(t.pnl);});
+  if(!allPnls.length)return;
+  var wins=allPnls.filter(function(p){return p>0;}),losses=allPnls.filter(function(p){return p<=0;});
+  document.getElementById('a-best').textContent='+$'+Math.max.apply(null,allPnls.concat([0])).toFixed(2);
+  document.getElementById('a-worst').textContent='$'+Math.abs(Math.min.apply(null,allPnls.concat([0]))).toFixed(2);
+  document.getElementById('a-avgw').textContent='+$'+(wins.length?wins.reduce(function(s,v){return s+v;},0)/wins.length:0).toFixed(2);
+  document.getElementById('a-avgl').textContent='$'+(losses.length?Math.abs(losses.reduce(function(s,v){return s+v;},0)/losses.length):0).toFixed(2);
+
+  // P&L chart — last 20 WW rounds
+  if(pnlChart){
+    var rr=HB.history.slice(0,20).reverse();
+    pnlChart.data.labels=rr.map(function(h){return 'R'+h.round;});
+    pnlChart.data.datasets[0].data=rr.map(function(h){return h.profit;});
+    pnlChart.data.datasets[0].backgroundColor=rr.map(function(h){return h.profit>0?'rgba(0,229,160,.7)':'rgba(255,77,106,.7)';});
+    pnlChart.update();
+  }
+
+  // ── Signal Effectiveness Analysis ────────────────────────────────
+  var rounds=HB.history.filter(function(h){return h.snap;});
+  var saEl=document.getElementById('signal-analysis');
+  if(saEl){
+    if(!rounds.length){saEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No WinWin rounds with confluence data yet.</div>';}
+    else{
+      var sigs=[
+        {key:'sig_lowVol',   label:'Low Volatility (ATR ratio <1.2×)'},
+        {key:'sig_squeeze',  label:'BB Squeeze active'},
+        {key:'sig_expanding',label:'Post-Squeeze expansion'},
+        {key:'sig_momentum', label:'Momentum burst (4 accel ticks)'}
+      ];
+      var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+      sigs.forEach(function(sig){
+        var withSig=rounds.filter(function(h){return h.snap[sig.key];});
+        var withoutSig=rounds.filter(function(h){return !h.snap[sig.key];});
+        var wrWith=withSig.length?Math.round(withSig.filter(function(h){return h.won;}).length/withSig.length*100):null;
+        var wrWithout=withoutSig.length?Math.round(withoutSig.filter(function(h){return h.won;}).length/withoutSig.length*100):null;
+        var avgPnlWith=withSig.length?(withSig.reduce(function(s,h){return s+h.profit;},0)/withSig.length):null;
+        var avgPnlWithout=withoutSig.length?(withoutSig.reduce(function(s,h){return s+h.profit;},0)/withoutSig.length):null;
+        var better=wrWith!==null&&wrWithout!==null&&wrWith>wrWithout;
+        html+='<div style="background:var(--bg3);border:1px solid '+(better?'rgba(0,229,160,0.3)':'var(--bo)')+';border-radius:var(--rs);padding:10px">';
+        html+='<div style="font-size:11px;font-weight:700;color:'+(better?'var(--ac)':'var(--t2)')+';margin-bottom:6px">'+(better?'✓ ':'○ ')+sig.label+'</div>';
+        html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:10px;font-family:var(--mo)">';
+        html+='<div style="background:rgba(0,229,160,0.07);border-radius:4px;padding:5px 7px">';
+        html+='<div style="color:var(--t3);margin-bottom:2px">WITH ('+withSig.length+' rounds)</div>';
+        html+='<div style="color:var(--ac);font-weight:700;font-size:13px">'+(wrWith!==null?wrWith+'%':'--')+'</div>';
+        html+='<div style="color:var(--t3)">Avg: '+(avgPnlWith!==null?(avgPnlWith>=0?'+':'')+'$'+avgPnlWith.toFixed(2):'--')+'</div>';
+        html+='</div>';
+        html+='<div style="background:var(--bg4);border-radius:4px;padding:5px 7px">';
+        html+='<div style="color:var(--t3);margin-bottom:2px">WITHOUT ('+withoutSig.length+' rounds)</div>';
+        html+='<div style="color:var(--t2);font-weight:700;font-size:13px">'+(wrWithout!==null?wrWithout+'%':'--')+'</div>';
+        html+='<div style="color:var(--t3)">Avg: '+(avgPnlWithout!==null?(avgPnlWithout>=0?'+':'')+'$'+avgPnlWithout.toFixed(2):'--')+'</div>';
+        html+='</div></div>';
+        if(better)html+='<div style="font-size:10px;color:var(--ac);margin-top:5px">↑ This signal improves win rate by '+(wrWith-wrWithout)+'%</div>';
+        else if(wrWith!==null&&wrWithout!==null)html+='<div style="font-size:10px;color:var(--t3);margin-top:5px">No clear edge from this signal yet</div>';
+        html+='</div>';
+      });
+      html+='</div>';
+      // Recommendation
+      var bestSig=null,bestEdge=-999;
+      sigs.forEach(function(sig){
+        var withSig=rounds.filter(function(h){return h.snap[sig.key];});
+        var withoutSig=rounds.filter(function(h){return !h.snap[sig.key];});
+        if(withSig.length>=3&&withoutSig.length>=3){
+          var wrWith=Math.round(withSig.filter(function(h){return h.won;}).length/withSig.length*100);
+          var wrWithout=Math.round(withoutSig.filter(function(h){return h.won;}).length/withoutSig.length*100);
+          var edge=wrWith-wrWithout;
+          if(edge>bestEdge){bestEdge=edge;bestSig=sig.label;}
+        }
+      });
+      if(bestSig&&bestEdge>5){
+        html+='<div style="margin-top:10px;background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:10px;font-size:11px">';
+        html+='<b style="color:var(--ac)">📈 Recommendation:</b> <span style="color:var(--t1)">"'+bestSig+'" is your strongest predictor (+'+bestEdge+'% win rate when present). Consider making it mandatory.</span>';
+        html+='</div>';
+      }
+      saEl.innerHTML=html;
+    }
+  }
+
+  // ── Score vs Win Rate ─────────────────────────────────────────────
+  var scEl=document.getElementById('score-analysis');
+  if(scEl){
+    if(!rounds.length){scEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No data yet.</div>';}
+    else{
+      var scoreMap={};
+      rounds.forEach(function(h){
+        var s=h.snap.score;
+        if(!scoreMap[s])scoreMap[s]={total:0,wins:0,pnl:0};
+        scoreMap[s].total++;
+        if(h.won)scoreMap[s].wins++;
+        scoreMap[s].pnl+=h.profit;
+      });
+      var html2='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">';
+      for(var sc=1;sc<=5;sc++){
+        var d=scoreMap[sc]||{total:0,wins:0,pnl:0};
+        var wr2=d.total?Math.round(d.wins/d.total*100):null;
+        var avg2=d.total?d.pnl/d.total:null;
+        html2+='<div style="background:var(--bg3);border:1px solid '+(wr2>=60?'rgba(0,229,160,0.3)':wr2>=40?'rgba(245,166,35,0.3)':'var(--bo)')+';border-radius:var(--rs);padding:10px;text-align:center">';
+        html2+='<div style="font-size:18px;font-weight:800;font-family:var(--mo);color:'+(wr2>=60?'var(--ac)':wr2>=40?'var(--go)':'var(--re)')+'">'+sc+'/5</div>';
+        html2+='<div style="font-size:10px;color:var(--t3);margin-top:3px">'+d.total+' rounds</div>';
+        html2+='<div style="font-size:12px;font-weight:700;color:'+(wr2>=60?'var(--ac)':wr2>=40?'var(--go)':'var(--re)')+';margin-top:3px">'+(wr2!==null?wr2+'%':'--')+'</div>';
+        html2+='<div style="font-size:10px;font-family:var(--mo);color:'+(avg2&&avg2>0?'var(--ac)':'var(--re)')+';margin-top:2px">'+(avg2!==null?(avg2>=0?'+':'')+'$'+avg2.toFixed(2):'--')+'</div>';
+        html2+='</div>';
+      }
+      html2+='</div>';
+      // Min score recommendation
+      var bestScore=3,bestAvg=-999;
+      for(var s2=1;s2<=5;s2++){
+        var d2=scoreMap[s2];
+        if(d2&&d2.total>=3){var a2=d2.pnl/d2.total;if(a2>bestAvg){bestAvg=a2;bestScore=s2;}}
+      }
+      html2+='<div style="margin-top:10px;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:var(--rs);padding:9px;font-size:11px">';
+      html2+='<b style="color:var(--go)">Current min score: '+HB.minScore+'/5</b>';
+      html2+='<span style="color:var(--t2);margin-left:8px">Best avg P&L at score '+bestScore+': '+(bestAvg>=0?'+':'')+'$'+bestAvg.toFixed(2)+'/round</span>';
+      html2+='</div>';
+      scEl.innerHTML=html2;
+    }
+  }
+
+  // ── ATR Ratio Analysis ────────────────────────────────────────────
+  var atrEl=document.getElementById('atr-analysis');
+  if(atrEl){
+    if(!rounds.length){atrEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No data yet.</div>';}
+    else{
+      // Bucket by ATR ratio: <0.8 (very low), 0.8-1.0 (low), 1.0-1.2 (medium), >1.2 (high)
+      var buckets=[
+        {label:'Very Low (<0.8×)',min:0,max:0.8,rounds:[]},
+        {label:'Low (0.8-1.0×)',min:0.8,max:1.0,rounds:[]},
+        {label:'Medium (1.0-1.2×)',min:1.0,max:1.2,rounds:[]},
+        {label:'High (>1.2×)',min:1.2,max:999,rounds:[]}
+      ];
+      rounds.forEach(function(h){
+        var r=h.snap.atrRatio||1;
+        buckets.forEach(function(b){if(r>=b.min&&r<b.max)b.rounds.push(h);});
+      });
+      var html3='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px">';
+      buckets.forEach(function(b){
+        var n=b.rounds.length;
+        var wr3=n?Math.round(b.rounds.filter(function(h){return h.won;}).length/n*100):null;
+        var avg3=n?b.rounds.reduce(function(s,h){return s+h.profit;},0)/n:null;
+        html3+='<div style="background:var(--bg3);border:1px solid '+(wr3>=60?'rgba(0,229,160,0.3)':'var(--bo)')+';border-radius:var(--rs);padding:10px">';
+        html3+='<div style="font-size:10px;color:var(--t2);font-weight:600;margin-bottom:5px">'+b.label+'</div>';
+        html3+='<div style="font-size:18px;font-weight:800;font-family:var(--mo);color:'+(wr3>=60?'var(--ac)':wr3>=40?'var(--go)':'var(--t3)')+'">'+( wr3!==null?wr3+'%':'--')+'</div>';
+        html3+='<div style="font-size:10px;color:var(--t3);margin-top:2px">'+n+' rounds</div>';
+        html3+='<div style="font-size:11px;font-family:var(--mo);color:'+(avg3&&avg3>0?'var(--ac)':'var(--re)')+';margin-top:3px">'+(avg3!==null?(avg3>=0?'+':'')+'$'+avg3.toFixed(2):'--')+'</div>';
+        html3+='</div>';
+      });
+      html3+='</div>';
+      html3+='<div style="margin-top:9px;font-size:11px;color:var(--t2)">Lower ATR ratio = tighter market = ENDS OUTSIDE pays more = better entry condition.</div>';
+      atrEl.innerHTML=html3;
+    }
+  }
 }
 
 function notify(icon,text,type){document.getElementById('ni').textContent=icon;document.getElementById('nt').textContent=text;var el=document.getElementById('notif');el.className='notif show '+type;setTimeout(function(){el.className='notif';},3500);}
@@ -2377,7 +2639,7 @@ window.addEventListener('load',function(){
   if(!S.apiToken&&savedDemo)S.apiToken=savedDemo;
   if(!S.apiToken&&savedReal)S.apiToken=savedReal;
   // Version check — clear stale data from old 8-trade version
-var _wwVersion = '4.9';
+var _wwVersion = '5.0';
 if(localStorage.getItem('kevoai_version')!==_wwVersion){
   localStorage.removeItem('kevoai_trades');
   localStorage.removeItem('kevoai_dg_trades');
