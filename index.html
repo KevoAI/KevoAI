@@ -995,7 +995,7 @@ function handleMsg(d) {
     case 'tick': onTickWrapper(d.tick); break;
     case 'proposal': onProposal(d.proposal, d.req_id); break;
     case 'buy': onBuy(d.buy, d.req_id); break;
-    case 'proposal_open_contract': console.log('[RAW POC]', JSON.stringify(d.proposal_open_contract).substring(0,400)); onContract(d.proposal_open_contract); break;
+    case 'proposal_open_contract': onContract(d.proposal_open_contract); break;
     case 'balance': onBalance(d.balance); break;
     case 'transaction': setTimeout(function(){ wsSend({balance:1,subscribe:1}); },500); break;
     case 'contracts_for': onContractsFor(d.contracts_for); break;
@@ -1285,7 +1285,9 @@ function onBuy(buy, reqId) {
     stake:p.stake||1, pnl:0, win:null, status:'active',
     time:new Date().toLocaleTimeString(),
     startTime:Date.now(), endTime:null, duration:null,
-    durMs:durMs, price:parseFloat(buy.entry_spot||buy.buy_price||S.prices[p.asset||S.asset]||0), exitPrice:null,
+    durMs:durMs,
+    price:parseFloat(buy.entry_spot||buy.buy_price||0)||S.prices[p.asset||S.asset]||0,
+    exitPrice:null,
     isBot:!!p.isBot, note:'',
     isHB:!!p.isHB, hbRound:p.hbRound||null, hbIdx:p.hbIdx||0,
     isDD:!!p.isDD, digit:p.digit||null,
@@ -1295,83 +1297,71 @@ function onBuy(buy, reqId) {
   S.activeTrades.push(t);
   updateStats(); renderTrades(); renderActive();
 
-  wsSend({proposal_open_contract:1,contract_id:buy.contract_id,subscribe:1});
-  var _cid=buy.contract_id, _durMs=t.durMs, _polls=0;
-  // Force poll immediately at durMs + 1s, then again at +3s, +6s, +10s
-  // Barrier contracts often don't push terminal status via subscription
-  setTimeout(function(){ if(S.activeTrades.some(function(x){return x.contractId==_cid;})) wsSend({proposal_open_contract:1,contract_id:_cid}); },_durMs+1000);
-  setTimeout(function(){ if(S.activeTrades.some(function(x){return x.contractId==_cid;})) wsSend({proposal_open_contract:1,contract_id:_cid}); },_durMs+3000);
-  setTimeout(function(){ if(S.activeTrades.some(function(x){return x.contractId==_cid;})) wsSend({proposal_open_contract:1,contract_id:_cid}); },_durMs+6000);
-  function _poll() {
-    _polls++;
+  // Subscribe for live updates — Deriv will push result when contract settles
+  wsSend({proposal_open_contract:1, contract_id:buy.contract_id, subscribe:1});
+
+  // Backup poll — fires once after duration + 5s buffer in case subscription misses it
+  var _cid = buy.contract_id;
+  var _durMs = t.durMs || 15000;
+  setTimeout(function(){
     if(!S.activeTrades.some(function(x){return x.contractId==_cid;})) return;
-    // If already settled via WS subscription, stop polling
-    var tIdx=-1;
-    for(var i=0;i<S.trades.length;i++){if(S.trades[i].contractId==_cid){tIdx=i;break;}}
-    if(tIdx>=0&&S.trades[tIdx]._settled) return;
-    if(_polls>=20) {
-      S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!==_cid;});
+    // Still active after expected end — poll once
+    wsSend({proposal_open_contract:1, contract_id:_cid});
+    // If still active after 30 more seconds, force remove
+    setTimeout(function(){
+      if(!S.activeTrades.some(function(x){return x.contractId==_cid;})) return;
+      S.activeTrades = S.activeTrades.filter(function(x){return x.contractId!==_cid;});
       for(var i=0;i<S.trades.length;i++){
         if(S.trades[i].contractId===_cid&&S.trades[i].status==='active'){
-          S.trades[i]._settled=true;
-          S.trades[i].status='timeout';S.trades[i].pnl=-S.trades[i].stake;
-          if(S.trades[i].isHB&&S.trades[i].hbRound) onHBResult(S.trades[i].hbRound,S.trades[i].hbIdx,-S.trades[i].stake,S.trades[i].direction,0);
+          S.trades[i].status='timeout'; S.trades[i].pnl=-S.trades[i].stake;
+          if(S.trades[i].isHB&&S.trades[i].hbRound)
+            onHBResult(S.trades[i].hbRound,S.trades[i].hbIdx,-S.trades[i].stake,S.trades[i].direction,0);
           break;
         }
       }
-      updateStats();renderTrades();renderActive();wsSend({balance:1});return;
-    }
-    wsSend({proposal_open_contract:1,contract_id:_cid});
-    setTimeout(_poll,3000);
-  }
-  setTimeout(_poll,_durMs+3000);
+      updateStats();renderTrades();renderActive();wsSend({balance:1});
+    }, 30000);
+  }, _durMs + 5000);
+
   delete S.pending[reqId];
 }
 
 function onContract(c) {
   if(!c) return;
-  console.log('[POC]', c.contract_id, 'status:', c.status, 'is_sold:', c.is_sold, 'is_expired:', c.is_expired, 'profit:', c.profit, 'exit_spot:', c.exit_spot, 'sell_price:', c.sell_price, 'expiry_time:', c.expiry_time, 'date_expiry:', c.date_expiry);
   var idx=-1;
   for(var i=0;i<S.trades.length;i++){if(S.trades[i].contractId==c.contract_id){idx=i;break;}}
   if(idx===-1) return;
   var t=S.trades[idx];
-  if(t._settled) return; // already settled — ignore repeat pushes
-  // Lock entry_spot on first response only
+  // Capture entry_spot from first open response — exact Deriv fill price
   var _entrySpot=parseFloat(c.entry_spot||0)||(c.entry_tick&&parseFloat(c.entry_tick.quote||0))||0;
-  if(_entrySpot>0 && !t._entryLocked){
-    t.price=_entrySpot; t._entryLocked=true;
+  if(_entrySpot>0){
+    t.price=_entrySpot;
+    // Also update HB pending entry so r.entry reflects actual fill, not pre-placement price
     if(t.isHB&&t.hbRound!==null&&HB.pending[t.hbRound]) HB.pending[t.hbRound].entry=_entrySpot;
   }
-  // True settlement: is_sold=1 (won) or expiry time has passed (expired/lost)
-  var nowSec=Math.floor(Date.now()/1000);
-  var expiryTs=parseInt(c.expiry_time||c.date_expiry||0);
-  var pastExpiry=expiryTs>0 && nowSec>=expiryTs;
-  var isDone=c.is_sold==1 || (c.is_expired==1 && pastExpiry) ||
-    c.status==='sold'||c.status==='won'||c.status==='lost'||
-    c.status==='expired'||c.status==='cancelled';
+  if(c.status==='open'||c.status==='active') return;
+  var isDone=c.is_sold||c.is_expired||c.status==='sold'||c.status==='expired'||c.status==='cancelled'||c.status==='lost'||c.status==='won';
   if(!isDone) return;
-  t._settled=true;
+  // Log full settlement to debug entry/exit
+  if(t.isHB) console.log('[CONTRACT SETTLED]', c.contract_id, 'status:', c.status, 'profit:', c.profit, 'entry_spot:', c.entry_spot, 'exit_spot:', c.exit_spot, 'exit_tick:', JSON.stringify(c.exit_tick), 'buy_price:', c.buy_price, 'sell_price:', c.sell_price);
+  // Deriv sends profit as negative for losses, 0 for both-miss (barrier contracts)
+  // Use sell_price - buy_price if profit field is missing
   var profit=parseFloat(c.profit);
   if(isNaN(profit)) profit=0;
-  // Barrier miss: Deriv returns profit=0 with sell_price=0 — record as -stake
-  if(profit===0){
-    var sp=parseFloat(c.sell_price||c.sell_spot||1);
-    var bp=parseFloat(c.buy_price||t.stake||0);
-    if(sp===0 && bp>0) profit=-bp;
-    else if(t.stake && sp<bp) profit=-(bp-sp);
-    if(profit===0) profit=-t.stake; // final fallback: settled with no payout = full loss
+  // For barrier contracts: profit=0 means stake was lost (both missed scenario)
+  // Deriv returns profit=0 but buy_price=stake, sell_price=0 — detect and correct
+  if(profit===0&&c.buy_price&&parseFloat(c.buy_price)>0&&(c.sell_price===0||c.sell_price==='0'||c.sell_price===undefined)){
+    profit=-parseFloat(c.buy_price);
   }
   var now=Date.now();
   t.pnl=profit; t.win=profit>0; t.status=profit>0?'win':'loss';
   t.endTime=now;
-  // Exit spot — all Deriv field variants
-  var exitSp=parseFloat(c.exit_spot||0)
-    ||parseFloat(c.sell_spot||0)
-    ||(c.exit_tick&&parseFloat(c.exit_tick.quote||c.exit_tick.value||0))
-    ||(c.audit_details&&c.audit_details.contract_end&&parseFloat(c.audit_details.contract_end.tick||0))
-    ||0;
-  t.exitPrice=exitSp>0?exitSp:null;
-  console.log('[SETTLED] profit:',profit,'exitSp:',exitSp,'entry:',t.price);
+  // exit_spot — use every possible Deriv field, never live price
+  var exitSp = parseFloat(c.exit_spot||0)
+    || (c.exit_tick && parseFloat(c.exit_tick.quote||c.exit_tick.value||0))
+    || parseFloat(c.exit_spot_display||0)
+    || parseFloat(c.exit_spot_time&&c.current_spot||0);
+  t.exitPrice = (exitSp && exitSp > 0) ? exitSp : null;
   var ms=now-(t.startTime||now); t.duration=ms; t.durationStr=fmtDur(ms);
   S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
 
@@ -1696,8 +1686,6 @@ function runHybridAuto(){
   if(HB.pnl>=dTP){toggleHybrid();notify('TP','Daily target hit!','win');return;}
   if(DG.stopped){toggleHybrid();return;}
   if(HB.coolingDown&&Date.now()>HB.cooldownEnd){HB.coolingDown=false;HB.lossStreak=0;notify('OK','Cooldown over','info');}
-  // Filter out already-settled trades that somehow remain in activeTrades
-  S.activeTrades=S.activeTrades.filter(function(t){return !t._settled;});
   var active=S.activeTrades.filter(function(t){return t.isHB;});
   if(active.length>0){
     // Freeze guard
