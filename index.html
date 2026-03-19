@@ -1228,6 +1228,14 @@ function onTick(tick) {
     var ep=document.getElementById('ww-chart-price');
     if(ep)ep.textContent=dp(q);
   }
+  // ── EXPIRY TICK CAPTURE: sample price the moment contract expires ──
+  S.activeTrades.forEach(function(t){
+    if(!t._exitCaptured && t.expiryTime && Date.now()>=t.expiryTime && sym===t.asset){
+      t.exitPrice=q;
+      t._exitCaptured=true;
+      t._exitConfirmed=false; // locally captured — not API-confirmed
+    }
+  });
 }
 function dp(q){return q.toFixed(q>100?2:4);}
 
@@ -1285,6 +1293,7 @@ function onBuy(buy, reqId) {
     stake:p.stake||1, pnl:0, win:null, status:'active',
     time:new Date().toLocaleTimeString(),
     startTime:Date.now(), endTime:null, duration:null,
+    expiryTime:Date.now()+durMs,
     durMs:durMs, price:parseFloat(buy.entry_spot||buy.buy_price||S.prices[p.asset||S.asset]||0), exitPrice:null,
     isBot:!!p.isBot, note:'',
     isHB:!!p.isHB, hbRound:p.hbRound||null, hbIdx:p.hbIdx||0,
@@ -1347,8 +1356,10 @@ function onContract(c) {
     if(t.isHB&&t.hbRound!==null&&HB.pending[t.hbRound]) HB.pending[t.hbRound].entry=entryPrice;
   }
 
-  // ── LIVE EXIT: update current_spot while contract is open ───────
-  if(!c.is_sold && c.current_spot){
+  // ── LIVE EXIT: track current_spot on every push ─────────────────
+  // For expired/missed contracts Deriv never sends exit_tick — current_spot
+  // is the only price we get at expiry time, so we keep the latest value.
+  if(c.current_spot && parseFloat(c.current_spot)>0){
     t._liveExit=parseFloat(c.current_spot);
   }
 
@@ -1383,18 +1394,25 @@ function onContract(c) {
     exitPrice = c.exit_tick
       ? parseFloat(c.exit_tick.quote||c.exit_tick.value||0)||null
       : (parseFloat(c.exit_spot||0)||null);
+    if(exitPrice) t._exitConfirmed=true;
   } else {
-    // Expired/lost: exit_tick if Deriv sends it, else exit_spot
+    // Expired/lost: barrier was never crossed — Deriv won't send exit_tick
+    // Use exit_tick if present, else exit_spot, else the last current_spot we tracked
     if(c.exit_tick && (c.exit_tick.quote||c.exit_tick.value)){
       exitPrice=parseFloat(c.exit_tick.quote||c.exit_tick.value)||null;
     } else if(c.exit_spot && parseFloat(c.exit_spot)>0){
       exitPrice=parseFloat(c.exit_spot);
     } else if(c.sell_spot && parseFloat(c.sell_spot)>0){
       exitPrice=parseFloat(c.sell_spot);
+    } else if(t.exitPrice && t._exitCaptured){
+      exitPrice=t.exitPrice; // locally captured at exact expiry tick
+    } else if(t._liveExit && t._liveExit>0){
+      exitPrice=t._liveExit; // last known price before expiry
     }
   }
-  // Sanity: if exit equals entry exactly, it wasn't a real exit tick — clear it
-  if(exitPrice && t.price && exitPrice===t.price) exitPrice=null;
+  // Only wipe exit===entry for WON contracts (where exit_tick should differ from entry)
+  // For LOST/expired, price barely moved so exit near entry is valid
+  if(exitPrice && t.price && exitPrice===t.price && c.is_sold) exitPrice=null;
   if(exitPrice && isNaN(exitPrice)) exitPrice=null;
 
   console.log('[SETTLED] cid:',c.contract_id,'is_sold:',c.is_sold,'profit:',profit,
@@ -1933,7 +1951,9 @@ function _settleHBRound(roundId){
     stake:r.side,pnl:eoPnl,win:eoResult.win,
     status:eoResult.win?'win':'loss',
     time:r.time,durationStr:(HB._durSecs||15)+'s',
-    price:r.entry,exitPrice:eoResult.exitSpot>0?eoResult.exitSpot:null,
+    price:r.entry,
+    exitPrice:eoResult.exitSpot>0?eoResult.exitSpot:(r.exitPrice||S.prices[r.asset]||null),
+    _exitConfirmed:eoResult.exitSpot>0,
     isHB:true,hbRound:roundId,isHBSummary:true,note:''};
   S.trades.unshift(summaryEO);
 
@@ -2523,7 +2543,8 @@ function renderJournal(filter){
     var exitSp=hist&&hist.exitSpot>0?hist.exitSpot:(eoT.exitPrice&&eoT.exitPrice>0?eoT.exitPrice:0);
     if(exitSp&&entry&&exitSp===entry) exitSp=0; // same as entry = no real exit captured
     var exitDiff=exitSp&&entry?parseFloat((exitSp-entry).toFixed(4)):0;
-    var exitLabel=exitSp>0?exitSp.toFixed(exitSp>100?2:4):'--';
+    var exitConfirmed=hist?(eoT._exitConfirmed||eoT.exitConfirmed):eoT._exitConfirmed;
+    var exitLabel=exitSp>0?(exitConfirmed?exitSp.toFixed(exitSp>100?2:4)+'<span style="color:var(--ac);font-size:9px;margin-left:3px">✓</span>':'~'+exitSp.toFixed(exitSp>100?2:4)):'--';
     var moveLabel=exitDiff?(exitDiff>0?'▲':'▼')+Math.abs(exitDiff).toFixed(exitSp>100?2:4)+' move':'--';
     html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Exit Price</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:'+(exitSp>0?'var(--t1)':'var(--t3)')+'">'+exitLabel+'</div><div style="font-size:9px;color:'+(exitDiff>0?'var(--ac)':exitDiff<0?'var(--re)':'var(--t3)')+';margin-top:1px">'+moveLabel+'</div></div>';
     html+='</div>';
