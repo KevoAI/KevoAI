@@ -1285,7 +1285,7 @@ function onBuy(buy, reqId) {
     stake:p.stake||1, pnl:0, win:null, status:'active',
     time:new Date().toLocaleTimeString(),
     startTime:Date.now(), endTime:null, duration:null,
-    durMs:durMs, price:S.prices[p.asset||S.asset]||0, exitPrice:null,
+    durMs:durMs, price:parseFloat(buy.entry_spot||buy.buy_price||S.prices[p.asset||S.asset]||0), exitPrice:null,
     isBot:!!p.isBot, note:'',
     isHB:!!p.isHB, hbRound:p.hbRound||null, hbIdx:p.hbIdx||0,
     isDD:!!p.isDD, digit:p.digit||null,
@@ -1324,6 +1324,13 @@ function onContract(c) {
   for(var i=0;i<S.trades.length;i++){if(S.trades[i].contractId==c.contract_id){idx=i;break;}}
   if(idx===-1) return;
   var t=S.trades[idx];
+  // Capture entry_spot from first open response — exact Deriv fill price
+  var _entrySpot=parseFloat(c.entry_spot||0)||(c.entry_tick&&parseFloat(c.entry_tick.quote||0))||0;
+  if(_entrySpot>0){
+    t.price=_entrySpot;
+    // Also update HB pending entry so r.entry reflects actual fill, not pre-placement price
+    if(t.isHB&&t.hbRound!==null&&HB.pending[t.hbRound]) HB.pending[t.hbRound].entry=_entrySpot;
+  }
   if(c.status==='open'||c.status==='active') return;
   var isDone=c.is_sold||c.is_expired||c.status==='sold'||c.status==='expired'||c.status==='cancelled'||c.status==='lost'||c.status==='won';
   if(!isDone) return;
@@ -1339,9 +1346,11 @@ function onContract(c) {
   var now=Date.now();
   t.pnl=profit; t.win=profit>0; t.status=profit>0?'win':'loss';
   t.endTime=now;
-  // exit_spot is the actual price at contract expiry — prefer exit_spot over exit_tick.value
-  var exitSp=parseFloat(c.exit_spot||0)||(c.exit_tick&&parseFloat(c.exit_tick.quote||0))||parseFloat(S.prices[t.asset]||0);
-  t.exitPrice=exitSp;
+  // exit_spot — only use actual Deriv settlement fields, never live price fallback
+  var exitSp = parseFloat(c.exit_spot||0)
+    || (c.exit_tick && parseFloat(c.exit_tick.quote||0))
+    || (c.exit_tick && parseFloat(c.exit_tick.value||0));
+  t.exitPrice = (exitSp && exitSp > 0) ? exitSp : null;
   var ms=now-(t.startTime||now); t.duration=ms; t.durationStr=fmtDur(ms);
   S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
 
@@ -1673,37 +1682,26 @@ function runHybridAuto(){
     var stale=active.filter(function(t){return(now-(t.startTime||now))>60000;});
     if(stale.length>0){
       stale.forEach(function(t){
-        if(t.hbRound!==null)onHBResult(t.hbRound,t.hbIdx,0,t.direction);
+        if(t.hbRound!==null)onHBResult(t.hbRound,t.hbIdx,-t.stake,t.direction,0);
         S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!==t.contractId;});
       });
       notify('TIMEOUT','Stale trades cleared','loss');
       HB.interval=setTimeout(runHybridAuto,1000);return;
     }
     document.getElementById('hb-active-count').textContent=active.length+' ACTIVE';
-    document.getElementById('hb-countdown-txt').textContent='Settling...';
-    HB.interval=setTimeout(runHybridAuto,1000);return;
+    document.getElementById('hb-countdown-txt').textContent='Waiting for result...';
+    HB.interval=setTimeout(runHybridAuto,500);return;
   }
   var sig=getWWSignal();
   if(!sig.ready){document.getElementById('hb-active-count').textContent='0 ACTIVE';HB.interval=setTimeout(runHybridAuto,2000);return;}
   placeHybridRound();
-  var _durSecs = HB._durSecs || 15;
-  var waitMs = (_durSecs * 1000) + 8000;
-  startCountdown(Math.floor(waitMs/1000));
-  // Scan every 2s during settle — active trade guard at top prevents double-placing.
-  HB.interval=setTimeout(runHybridAuto,2000);
+  // No artificial delay — contract settles via WS subscription push.
+  // Loop every 500ms; active trade guard at top prevents double-placing.
+  HB.interval=setTimeout(runHybridAuto,500);
 }
 
 function startCountdown(secs){
-  clearInterval(HB.countdownTimer);
-  var total=secs,rem=secs;
-  HB.countdownTimer=setInterval(function(){
-    var txt=document.getElementById('hb-countdown-txt'),bar=document.getElementById('hb-countdown-bar');
-    var active=S.activeTrades.filter(function(t){return t.isHB;});
-    if(active.length===0&&rem<total){clearInterval(HB.countdownTimer);if(txt)txt.textContent='Scanning...';if(bar)bar.style.width='0%';return;}
-    rem--;
-    if(rem<=0){clearInterval(HB.countdownTimer);if(txt)txt.textContent='Scanning...';if(bar)bar.style.width='0%';return;}
-    if(txt)txt.textContent='Settling: '+rem+'s';if(bar)bar.style.width=((rem/total)*100).toFixed(0)+'%';
-  },1000);
+  // No-op — countdown removed. Status driven by runHybridAuto loop.
 }
 
 function placeHybridRound(){
@@ -1827,7 +1825,8 @@ function placeHybridRound(){
     stake:side, asset:HB.asset,
     isBot:true, isHB:true,
     hbRound:rid, hbIdx:0,
-    barrier:barrier, durVal:durSecs, durUnit:'s'
+    barrier:barrier, durVal:durSecs, durUnit:'s',
+    entryPrice:entry  // exact price at placement moment
   };
 
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
@@ -1878,7 +1877,7 @@ function _settleHBRound(roundId){
     stake:r.side,pnl:eoPnl,win:eoResult.win,
     status:eoResult.win?'win':'loss',
     time:r.time,durationStr:(HB._durSecs||15)+'s',
-    price:r.entry,exitPrice:eoResult.exitSpot||r.entry,
+    price:r.entry,exitPrice:eoResult.exitSpot>0?eoResult.exitSpot:null,
     isHB:true,hbRound:roundId,isHBSummary:true,note:''};
   S.trades.unshift(summaryEO);
 
@@ -1886,14 +1885,14 @@ function _settleHBRound(roundId){
     round:HB.rounds,time:r.time,asset:r.asset,
     profit:totalPnl,won:isWin,cumPnl:HB.pnl,
     eoPnl:eoPnl,ebPnl:ebPnl,eoWin:eoResult.win,ebWin:ebResult.win,
-    barrier:r.barrier,side:r.side,entry:r.entry,exitSpot:eoResult.exitSpot||0,score:r.score,
+    barrier:r.barrier,side:r.side,entry:r.entry,exitSpot:eoResult.exitSpot>0?eoResult.exitSpot:null,score:r.score,
     snap:r.snap||null
   });
   if(HB.history.length>100)HB.history.pop();
   delete HB.pending[roundId];
 
   clearWWBarrierLines();
-  // Stop countdown immediately on settle
+  // Result received — reset status display
   clearInterval(HB.countdownTimer);
   var _ctxt=document.getElementById('hb-countdown-txt'),_cbar=document.getElementById('hb-countdown-bar');
   if(_ctxt)_ctxt.textContent='Scanning...';if(_cbar)_cbar.style.width='0%';
@@ -2465,9 +2464,11 @@ function renderJournal(filter){
     html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">';
     html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Entry Price</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--go)">'+(entry?entry.toFixed(entry>100?2:4):'--')+'</div></div>';
     html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Barrier ±</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--go)">'+(barrier?'±'+barrier.toFixed(2):'--')+'</div><div style="font-size:9px;color:var(--t3);margin-top:1px">Mult: '+(snap?'×'+snap.barrierMult:'--')+'</div></div>';
-    var exitSp=parseFloat((hist?hist.exitSpot:eoT.exitPrice)||0);
+    var exitSp=hist&&hist.exitSpot>0?hist.exitSpot:(eoT.exitPrice&&eoT.exitPrice>0?eoT.exitPrice:0);
     var exitDiff=exitSp&&entry?parseFloat((exitSp-entry).toFixed(4)):0;
-    html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Exit Price</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:'+(exitSp?'var(--t1)':'var(--t3)')+'">'+(exitSp?exitSp.toFixed(exitSp>100?2:4):'--')+'</div><div style="font-size:9px;color:'+(exitDiff>0?'var(--ac)':exitDiff<0?'var(--re)':'var(--t3)')+';margin-top:1px">'+(exitDiff?( exitDiff>0?'▲':exitDiff<0?'▼':'')+Math.abs(exitDiff).toFixed(4)+' move':'--')+'</div></div>';
+    var exitLabel=exitSp>0?exitSp.toFixed(exitSp>100?2:4):'--';
+    var moveLabel=exitDiff?(exitDiff>0?'▲':'▼')+Math.abs(exitDiff).toFixed(exitSp>100?2:4)+' move':'--';
+    html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Exit Price</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:'+(exitSp>0?'var(--t1)':'var(--t3)')+'">'+exitLabel+'</div><div style="font-size:9px;color:'+(exitDiff>0?'var(--ac)':exitDiff<0?'var(--re)':'var(--t3)')+';margin-top:1px">'+moveLabel+'</div></div>';
     html+='</div>';
     // Confluences block
     if(snap){
@@ -2506,7 +2507,7 @@ function renderJournal(filter){
     html+='<div style="display:flex;gap:14px;font-size:10px;font-family:var(--mo);color:var(--t2)">';
     html+='<span>Stake: <b style="color:var(--t1)">$'+(eoT.stake||0).toFixed(2)+'</b></span>';
     html+='<span>Entry: <b style="color:var(--go)">'+(entry?entry.toFixed(entry>100?2:4):'--')+'</b></span>';
-    html+='<span>Exit: <b style="color:'+(exitSp?'var(--t1)':'var(--t3)')+'">'+(exitSp?exitSp.toFixed(exitSp>100?2:4):'--')+'</b></span>';
+    html+='<span>Exit: <b style="color:'+(exitSp>0?'var(--t1)':'var(--t3)')+'">'+exitLabel+'</b></span>';
     html+='<span>Barrier: <b style="color:var(--go)">'+(barrier?'±'+barrier.toFixed(2):'--')+'</b></span>';
     html+='<span>Dur: <b style="color:var(--t1)">'+(eoT.durationStr||'15s')+'</b></span>';
     html+='</div>';
