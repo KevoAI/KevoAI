@@ -2813,9 +2813,34 @@ var TT = {
   running:false, mode:'both', durVal:5, durUnit:'t',
   asset:'R_100', cycles:0, wins:0, losses:0, pnl:0,
   trades:[], pendingH:null, pendingL:null,
-  totalPaid:0, winCount:0, // for avg payout calc
+  totalPaid:0, winCount:0,
   cyclesDone:0, cyclesTarget:10
 };
+
+function buildTTDropdown(){
+  var ttdd=document.getElementById('dd-tt');
+  if(!ttdd) return;
+  var assets=[
+    {s:'R_100',n:'Volatility 100 Index'},
+    {s:'R_75', n:'Volatility 75 Index'},
+    {s:'R_50', n:'Volatility 50 Index'},
+    {s:'R_25', n:'Volatility 25 Index'}
+  ];
+  var html='';
+  assets.forEach(function(a){
+    html+='<div class="ddo" onclick="selectTTAsset(''+a.s+'',''+a.n+'')">'+a.s+' <span style="color:var(--t3);font-size:10px">'+a.n+'</span></div>';
+  });
+  ttdd.innerHTML=html;
+}
+
+function selectTTAsset(sym,name){
+  TT.asset=sym;
+  var n=document.getElementById('tt-asset-n');
+  var i=document.getElementById('tt-asset-i');
+  if(n) n.textContent=sym;
+  if(i) i.textContent=name;
+  toggleDD('dd-tt');
+}
 
 function setActive(el){
   var par=el.parentNode;
@@ -3250,8 +3275,7 @@ window.addEventListener('load',function(){
   S.botMultiplier=100; S.maxBotTrades=1;
   buildAllDDs(); buildTicker(); initCharts();
   // Build TT asset dropdown
-  var ttdd=document.getElementById('dd-tt');
-  if(ttdd){var ttAssets=[{s:'R_100',n:'Volatility 100 Index'},{s:'R_75',n:'Volatility 75 Index'},{s:'R_50',n:'Volatility 50 Index'},{s:'R_25',n:'Volatility 25 Index'}];ttdd.innerHTML=ttAssets.map(function(a){return '<div class="ddo" onclick="TT.asset=''+a.s+'';document.getElementById('tt-asset-n').textContent=''+a.s+'';document.getElementById('tt-asset-i').textContent=''+a.n+'';toggleDD('dd-tt')">'+a.s+'<span style='color:var(--t3);font-size:10px'>'+a.n+'</span></div>';}).join('');}
+  buildTTDropdown();
   buildDigitGrid(); buildMultInputs(); calcWWDaily(); initWWChart();
   updateStats(); renderTrades();
   updDG();
