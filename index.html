@@ -1304,8 +1304,8 @@ function onBuy(buy, reqId) {
       S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!==_cid;});
       for(var i=0;i<S.trades.length;i++){
         if(S.trades[i].contractId===_cid&&S.trades[i].status==='active'){
-          S.trades[i].status='timeout';S.trades[i].pnl=0;
-          if(S.trades[i].isHB&&S.trades[i].hbRound) onHBResult(S.trades[i].hbRound,S.trades[i].hbIdx,0,S.trades[i].direction);
+          S.trades[i].status='timeout';S.trades[i].pnl=-S.trades[i].stake;
+          if(S.trades[i].isHB&&S.trades[i].hbRound) onHBResult(S.trades[i].hbRound,S.trades[i].hbIdx,-S.trades[i].stake,S.trades[i].direction,0);
           break;
         }
       }
@@ -1325,12 +1325,23 @@ function onContract(c) {
   if(idx===-1) return;
   var t=S.trades[idx];
   if(c.status==='open'||c.status==='active') return;
-  var isDone=c.is_sold||c.status==='sold'||c.status==='expired'||c.status==='cancelled'||c.status==='lost'||c.status==='won';
+  var isDone=c.is_sold||c.is_expired||c.status==='sold'||c.status==='expired'||c.status==='cancelled'||c.status==='lost'||c.status==='won';
   if(!isDone) return;
-  var profit=parseFloat(c.profit||0);
+  // Deriv sends profit as negative for losses, 0 for both-miss (barrier contracts)
+  // Use sell_price - buy_price if profit field is missing
+  var profit=parseFloat(c.profit);
+  if(isNaN(profit)) profit=0;
+  // For barrier contracts: profit=0 means stake was lost (both missed scenario)
+  // Deriv returns profit=0 but buy_price=stake, sell_price=0 — detect and correct
+  if(profit===0&&c.buy_price&&parseFloat(c.buy_price)>0&&(c.sell_price===0||c.sell_price==='0'||c.sell_price===undefined)){
+    profit=-parseFloat(c.buy_price);
+  }
   var now=Date.now();
   t.pnl=profit; t.win=profit>0; t.status=profit>0?'win':'loss';
-  t.endTime=now; t.exitPrice=parseFloat(c.exit_spot||S.prices[t.asset]||0);
+  t.endTime=now;
+  // exit_spot is the actual price at contract expiry — prefer exit_spot over exit_tick.value
+  var exitSp=parseFloat(c.exit_spot||0)||(c.exit_tick&&parseFloat(c.exit_tick.quote||0))||parseFloat(S.prices[t.asset]||0);
+  t.exitPrice=exitSp;
   var ms=now-(t.startTime||now); t.duration=ms; t.durationStr=fmtDur(ms);
   S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
 
@@ -1841,7 +1852,10 @@ function _settleHBRound(roundId){
   // Single leg — only one contract per round
   var eoResult=r.results[0]||{profit:0,direction:'OUTSIDE',win:false};
   var ebResult={profit:0,direction:'BETWEEN',win:false,skipped:true};
-  var eoPnl=parseFloat((eoResult.profit||0).toFixed(2));
+  // Deriv returns profit:0 for barrier-missed (both miss) — treat as -stake
+  var rawPnl=parseFloat(eoResult.profit||0);
+  if(rawPnl===0&&!eoResult.win) rawPnl=-r.side;
+  var eoPnl=parseFloat(rawPnl.toFixed(2));
   var ebPnl=0;
   var totalPnl=eoPnl;
   var isWin=totalPnl>0;
@@ -1879,6 +1893,10 @@ function _settleHBRound(roundId){
   delete HB.pending[roundId];
 
   clearWWBarrierLines();
+  // Stop countdown immediately on settle
+  clearInterval(HB.countdownTimer);
+  var _ctxt=document.getElementById('hb-countdown-txt'),_cbar=document.getElementById('hb-countdown-bar');
+  if(_ctxt)_ctxt.textContent='Scanning...';if(_cbar)_cbar.style.width='0%';
 
   // DG — count 1 round as 1 trade
   DG.trades++;if(isWin)DG.wins++;else DG.losses++;saveDG();
