@@ -1917,6 +1917,7 @@ function placeHybridRound(){
     results:[null],settled:0,
     barrier:barrier,side:side,entry:entry,
     time:new Date().toLocaleTimeString(),asset:HB.asset,score:sig.score,
+    durVal:null,durUnit:null, // set after contract type determined below
     snap:_snap
   };
 
@@ -1945,25 +1946,33 @@ function placeHybridRound(){
   console.log('[WW PLACING] dir:', dir, 'barrier:', barUsed, 'dec:.'+Math.round(decPart*100).toString().padStart(2,'0'), 'stake:$'+side);
 
   // Single contract — full stake, full payout
-  // BETWEEN = EXPIRYRANGE (price stays inside barriers), CALL/PUT = directional
-  var contractType=dir==='BETWEEN'?'EXPIRYRANGE':dir;
-  var r1 = wsSend({buy:1, price:side, parameters:{
-    amount:side, basis:'stake',
-    contract_type: contractType,
-    currency:S.currency,
-    duration:durSecs, duration_unit:'s',
-    symbol:HB.asset,
-    barrier: hiBar,  // EXPIRYRANGE needs upper barrier
-    barrier2: loBar  // EXPIRYRANGE needs lower barrier too
-  }});
+  // BETWEEN = EXPIRYRANGE on ticks (5t min), CALL/PUT = seconds
+  var contractType, durVal, durUnit, b1param, b2param;
+  if(dir==='BETWEEN'){
+    contractType='EXPIRYRANGE';
+    durVal=5; durUnit='t';           // ticks — minimum Deriv accepts for EXPIRYRANGE
+    b1param=hiBar;                   // upper barrier (positive)
+    b2param=loBar;                   // lower barrier (negative)
+  } else {
+    contractType=dir;                // CALL or PUT
+    durVal=durSecs; durUnit='s';
+    b1param=dir==='CALL'?hiBar:loBar;
+    b2param=undefined;
+  }
+  console.log('[WW PLACING] type:',contractType,'dur:',durVal+durUnit,'barrier:',b1param,(b2param||''),'dec:.'+Math.round(decPart*100).toString().padStart(2,'0'),'stake:$'+side);
+  var buyParams={amount:side,basis:'stake',contract_type:contractType,currency:S.currency,duration:durVal,duration_unit:durUnit,symbol:HB.asset,barrier:b1param};
+  if(b2param) buyParams.barrier2=b2param;
+  var r1=wsSend({buy:1,price:side,parameters:buyParams});
   if(r1) S.pending[r1]={
-    dir:dir==='BETWEEN'?'BETWEEN':dir==='CALL'?'OUTSIDE':'OUTSIDE',
+    dir:dir==='BETWEEN'?'BETWEEN':'OUTSIDE',
     stake:side, asset:HB.asset,
     isBot:true, isHB:true,
     hbRound:rid, hbIdx:0,
-    barrier:barrier, durVal:durSecs, durUnit:'s',
-    entryPrice:entry  // exact price at placement moment
+    barrier:barrier, durVal:durVal, durUnit:durUnit,
+    entryPrice:entry
   };
+  // Store on HB pending so settlement summary gets correct duration
+  if(HB.pending[rid]){HB.pending[rid].durVal=durVal;HB.pending[rid].durUnit=durUnit;}
 
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
   notify('WW R'+HB.rounds,'$'+parseFloat((side).toFixed(2))+' placed — ±'+barrier.toFixed(2)+' barrier','win');
@@ -2031,7 +2040,7 @@ function _settleHBRound(roundId){
     direction:eoResult.direction||'OUTSIDE',
     stake:r.side,pnl:eoPnl,win:eoResult.win,
     status:eoResult.win?'win':'loss',
-    time:r.time,durationStr:(HB._durSecs||15)+'s',
+    time:r.time,durationStr:r.durUnit==='t'?(r.durVal||5)+'t':(r.durVal||15)+'s',
     price:r.entry,
     exitPrice:eoResult.exitSpot>0?eoResult.exitSpot:(r.exitPrice||S.prices[r.asset]||null),
     _exitConfirmed:eoResult.exitSpot>0,
