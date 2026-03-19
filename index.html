@@ -1009,25 +1009,22 @@ function queryContractsFor(sym){
 
 function onContractsFor(data){
   if(!data||!data.available) return;
-  // Find EXPIRYRANGE entry — extract min_duration
   data.available.forEach(function(c){
     if(c.contract_type==='EXPIRYRANGE'||c.contract_type==='EXPIRYRANGEE'){
-      var minD = c.min_duration||'';
-      var maxD = c.max_duration||'';
-      console.log('[contracts_for]', c.contract_type, 'min:', minD, 'max:', maxD, 'expiry_type:', c.expiry_type);
-      // Parse min duration — format is e.g. "15s" or "1m" or "5t"
-      if(minD && c.contract_type==='EXPIRYRANGEE'){
-        var val = parseInt(minD);
-        var unit = minD.replace(/[0-9]/g,'');
-        // Store valid duration
-        if(!isNaN(val) && val>0){
-          HB._validDurVal = val;
-          HB._validDurUnit = unit;
-          // Update the duration display
-          var durSecs = unit==='s'?val:unit==='m'?val*60:unit==='t'?val*2:val;
-          console.log('[WW] Valid EXPIRYRANGE duration:', val, unit, '(~'+durSecs+'s)');
-          notify('OK','WW contract: min '+val+unit+' for '+HB.asset,'info');
+      console.log('[contracts_for FULL]', JSON.stringify(c).substring(0,400));
+      // These contracts use date_expiry not duration
+      // Extract trading periods from the contract
+      if(c.trading_period){
+        var tp = c.trading_period;
+        console.log('[trading_period]', JSON.stringify(tp));
+        // Store the next valid expiry from trading periods
+        if(tp.date_expiry){
+          HB._nextExpiry = tp.date_expiry.epoch || null;
+          console.log('[WW] date_expiry epoch:', HB._nextExpiry);
         }
+      }
+      if(c.available_barriers){
+        console.log('[available_barriers]', JSON.stringify(c.available_barriers).substring(0,200));
       }
     }
   });
@@ -1651,8 +1648,7 @@ function runHybridAuto(){
   if(!sig.ready){document.getElementById('hb-active-count').textContent='0 ACTIVE';HB.interval=setTimeout(runHybridAuto,2000);return;}
   placeHybridRound();
   var _durSecs = (HB._validDurUnit==='m'?(HB._validDurVal||15)*60:(HB._validDurVal||15));
-  var waitMs = (_durSecs * 1000) + 8000;
-  startCountdown(Math.floor(waitMs/1000));
+  var waitMs = (_durSecs * 1000) + 8000;  startCountdown(Math.floor(waitMs/1000));
   HB.interval=setTimeout(runHybridAuto,waitMs);
 }
 
@@ -1731,17 +1727,26 @@ function placeHybridRound(){
     }
   }
 
-  // Use duration validated by contracts_for query — fallback 15s if not yet queried
-  var durVal  = HB._validDurVal  || 15;
-  var durUnit = HB._validDurUnit || 's';
-  console.log('[WW PLACING] dur:', durVal, durUnit, 'barrier:±'+barrier.toFixed(2));
+  // EXPIRYRANGE/EXPIRYRANGEE use date_expiry (epoch timestamp) NOT duration
+  // expiry_type is 'intraday' and 'daily' — meaning they expire at set times
+  // For volatility indices running 24/7: pick next 15-min boundary from now
+  var nowEpoch = Math.floor(Date.now()/1000);
+  // Round up to next 15-minute boundary (e.g. :00, :15, :30, :45)
+  var mins15 = 15 * 60;
+  var expiryEpoch = (Math.floor(nowEpoch/mins15) + 1) * mins15;
+  // If that's less than 10s away, use the one after
+  if(expiryEpoch - nowEpoch < 10) expiryEpoch += mins15;
+  // Use stored expiry from contracts_for trading_period if available
+  if(HB._nextExpiry && HB._nextExpiry > nowEpoch + 10) expiryEpoch = HB._nextExpiry;
+
+  console.log('[WW PLACING] date_expiry:', expiryEpoch, '(now+', expiryEpoch-nowEpoch, 's) barrier:±'+barrier.toFixed(2));
 
   var propEO = wsSend({
     proposal:1,
     amount:side, basis:'stake',
     contract_type:'EXPIRYRANGEE',
     currency:S.currency,
-    duration:durVal, duration_unit:durUnit,
+    date_expiry: expiryEpoch,
     symbol:HB.asset,
     barrier:'+'+barrier.toFixed(2),
     barrier2:'-'+barrier.toFixed(2)
@@ -1749,7 +1754,7 @@ function placeHybridRound(){
   if(propEO) S.pending[propEO]={
     type:'hb_proposal', dir:'OUTSIDE', idx:0,
     stake:side, asset:HB.asset, hbRound:rid,
-    barrier:barrier, durVal:durVal, durUnit:durUnit
+    barrier:barrier, durVal:expiryEpoch-nowEpoch, durUnit:'s'
   };
 
   var propEB = wsSend({
@@ -1757,7 +1762,7 @@ function placeHybridRound(){
     amount:side, basis:'stake',
     contract_type:'EXPIRYRANGE',
     currency:S.currency,
-    duration:durVal, duration_unit:durUnit,
+    date_expiry: expiryEpoch,
     symbol:HB.asset,
     barrier:'+'+barrier.toFixed(2),
     barrier2:'-'+barrier.toFixed(2)
@@ -1765,7 +1770,7 @@ function placeHybridRound(){
   if(propEB) S.pending[propEB]={
     type:'hb_proposal', dir:'BETWEEN', idx:1,
     stake:side, asset:HB.asset, hbRound:rid,
-    barrier:barrier, durVal:durVal, durUnit:durUnit
+    barrier:barrier, durVal:expiryEpoch-nowEpoch, durUnit:'s'
   };
 
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
