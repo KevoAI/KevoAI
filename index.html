@@ -2472,22 +2472,19 @@ function renderJournal(filter){
     } else {
       html+='<div style="background:var(--bg3);border-radius:var(--rs);padding:8px;margin-bottom:8px;font-size:10px;color:var(--t3)">No confluence data — trade placed manually or pre-v5.0</div>';
     }
-    // OUTSIDE / BETWEEN cards
-    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
-    [eoT,ebT].forEach(function(t){
-      if(!t)return;
-      var isEO=t.direction==='OUTSIDE';
-      var col=isEO?'var(--ac)':'var(--bl)';
-      var pnlDisplay=t.win?('+$'+t.pnl.toFixed(2)):('-$'+(t.stake||0).toFixed(2));
-      html+='<div style="background:'+(t.win?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.05)')+';border:1px solid '+(t.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.2)')+';border-radius:var(--rs);padding:10px">';
-      html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">';
-      html+='<span style="font-size:10px;color:'+col+';font-weight:700">'+(isEO?'↗↙ ENDS OUTSIDE':'↔ ENDS BETWEEN')+'</span>';
-      html+='<span style="font-size:12px;font-weight:700;color:'+(t.win?'var(--ac)':'var(--re)')+'">'+pnlDisplay+'</span>';
-      html+='</div>';
-      html+='<div style="font-size:10px;color:var(--t3)">Stake: $'+(t.stake||0).toFixed(2)+'</div>';
-      html+='<div style="font-size:10px;font-weight:600;color:'+(t.win?'var(--ac)':'var(--re)')+';margin-top:4px">'+(t.win?'✓ WON':'✗ LOST')+'</div>';
-      html+='</div>';
-    });
+    // Single leg result card
+    html+='<div style="background:'+(eoT.win?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.05)')+';border:1px solid '+(eoT.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.2)')+';border-radius:var(--rs);padding:12px;margin-bottom:8px">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+    html+='<span style="font-size:11px;color:'+(eoT.direction==='OUTSIDE'?'var(--ac)':'var(--bl)')+';font-weight:700">'+(eoT.direction==='OUTSIDE'?'↗ CALL — price above barrier':'↘ PUT — price below barrier')+'</span>';
+    html+='<span style="font-size:14px;font-weight:800;font-family:var(--mo);color:'+(eoT.win?'var(--ac)':'var(--re)')+'">'+( eoT.pnl>=0?'+':'')+'$'+eoT.pnl.toFixed(2)+'</span>';
+    html+='</div>';
+    html+='<div style="display:flex;gap:14px;font-size:10px;font-family:var(--mo);color:var(--t2)">';
+    html+='<span>Stake: <b style="color:var(--t1)">$'+(eoT.stake||0).toFixed(2)+'</b></span>';
+    html+='<span>Entry: <b style="color:var(--go)">'+(entry?entry.toFixed(entry>100?2:4):'--')+'</b></span>';
+    html+='<span>Barrier: <b style="color:var(--go)">'+(barrier?'±'+barrier.toFixed(2):'--')+'</b></span>';
+    html+='<span>Dur: <b style="color:var(--t1)">'+(eoT.durationStr||'15s')+'</b></span>';
+    html+='</div>';
+    html+='<div style="font-size:11px;font-weight:700;color:'+(eoT.win?'var(--ac)':'var(--re)')+';margin-top:6px">'+(eoT.win?'✓ BARRIER HIT — WON':'✗ BARRIER MISSED — LOST')+'</div>';
     html+='</div>';
     html+='<div class="jnote"><textarea class="jni" placeholder="Add round note..." rows="1" id="note_hb_'+rid+'">'+rNote+'</textarea><button class="jnb" onclick="saveNote(\'hb_'+rid+'\')">Save</button></div>';
     html+='</div>';
@@ -2761,7 +2758,7 @@ window.addEventListener('load',function(){
   if(!S.apiToken&&savedDemo)S.apiToken=savedDemo;
   if(!S.apiToken&&savedReal)S.apiToken=savedReal;
   // Version check — clear stale data from old 8-trade version
-var _wwVersion = '5.0';
+var _wwVersion = '5.1';
 if(localStorage.getItem('kevoai_version')!==_wwVersion){
   localStorage.removeItem('kevoai_trades');
   localStorage.removeItem('kevoai_dg_trades');
