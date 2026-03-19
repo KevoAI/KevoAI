@@ -2822,17 +2822,19 @@ function buildTTDropdown(){
   if(!ttdd) return;
   var assets=[
     {s:'R_100',n:'Volatility 100 Index'},
-    {s:'R_75', n:'Volatility 75 Index'},
-    {s:'R_50', n:'Volatility 50 Index'},
-    {s:'R_25', n:'Volatility 25 Index'}
+    {s:'R_75',n:'Volatility 75 Index'},
+    {s:'R_50',n:'Volatility 50 Index'},
+    {s:'R_25',n:'Volatility 25 Index'}
   ];
-  var html='';
+  ttdd.innerHTML='';
   assets.forEach(function(a){
-    html+='<div class="ddo" onclick="selectTTAsset(''+a.s+'',''+a.n+'')">'+a.s+' <span style="color:var(--t3);font-size:10px">'+a.n+'</span></div>';
+    var d=document.createElement('div');
+    d.className='ddo';
+    d.innerHTML=a.s+' <span style="color:var(--t3);font-size:10px">'+a.n+'</span>';
+    (function(sym,name){d.onclick=function(){selectTTAsset(sym,name);};})(a.s,a.n);
+    ttdd.appendChild(d);
   });
-  ttdd.innerHTML=html;
 }
-
 function selectTTAsset(sym,name){
   TT.asset=sym;
   var n=document.getElementById('tt-asset-n');
