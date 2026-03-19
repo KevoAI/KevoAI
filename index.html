@@ -1829,17 +1829,6 @@ function placeHybridRound(){
   var entry=S.prices[HB.asset]||0;
   if(entry<=0){notify('!','No price data for '+HB.asset,'loss');return;}
 
-  // ── ATR FLOOR: skip if market is too dead to move ──────────────
-  // Data shows: wins avg move 0.567, losses avg 0.273
-  // Raw ATR below 0.05 means market is flat — skip to avoid dead zone
-  var _rawAtr=getATR();
-  var _atrFloor=parseFloat(document.getElementById('ww-atr-floor')?document.getElementById('ww-atr-floor').value||0.05:0.05);
-  if(_rawAtr<_atrFloor){
-    var _atrEl=document.getElementById('ww-dec-filter');
-    if(_atrEl)_atrEl.textContent='ATR: '+_rawAtr.toFixed(4)+' ✗ TOO LOW';
-    return; // silent skip — market too dead
-  }
-
   // ── CHANGE 1: Decimal zone filter ──────────────────────────────
   // Only trade when last 2 decimal digits are in winning zones
   // Winning zones: .00-.20 and .35-.50 (based on session analysis)
@@ -1860,27 +1849,17 @@ function placeHybridRound(){
   // Play ONE side only — keeps full payout, halves loss
   // Direction: CALL if uptrend, PUT if downtrend
   var ind=getInd(HB.asset);
-  var prices_=ind.prices,n_=prices_.length;
-  // ── DIRECTION + CONTRACT TYPE LOGIC ────────────────────────────
-  // Data: 75% of wins came from BETWEEN (price stays flat)
-  // Only use CALL/PUT (OUTSIDE) when momentum is clearly strong
-  var momBurst_=false;
-  if(n_>=5){var _szz=[];for(var _km=n_-4;_km<n_;_km++)_szz.push(Math.abs(prices_[_km]-prices_[_km-1]));momBurst_=_szz[1]>_szz[0]&&_szz[2]>_szz[1]&&_szz[3]>_szz[2];}
-  var strongTrend=ind.trend==='up'||ind.trend==='down';
-  var useOutside=momBurst_&&strongTrend; // only OUTSIDE when BOTH momentum burst AND clear trend
-  var dir;
-  if(useOutside){
-    // Strong momentum — bet on direction
-    dir=ind.trend==='up'?'CALL':'PUT';
-  } else {
-    // Weak/neutral — prefer BETWEEN (price stays inside barrier)
-    // BETWEEN uses RANGE contract type — bet price stays flat
-    dir='BETWEEN';
-  }
-  // If no price history for direction
+  var dir = ind.trend==='up' ? 'CALL' : ind.trend==='down' ? 'PUT' : null;
+  // If neutral — use last 5 tick momentum
   if(!dir){
-    notify('!','No trend signal — skipping round','info');
-    return;
+    var prices=ind.prices,n=prices.length;
+    if(n>=5){
+      var mom=prices[n-1]-prices[n-5];
+      dir=mom>0?'CALL':'PUT';
+    } else {
+      notify('!','No trend signal — skipping round','info');
+      return;
+    }
   }
   // Single stake = full risk amount (not split)
   side = Math.max(0.35, parseFloat((parseFloat(document.getElementById('ww-risk').value||3)).toFixed(2)));
@@ -1917,7 +1896,6 @@ function placeHybridRound(){
     results:[null],settled:0,
     barrier:barrier,side:side,entry:entry,
     time:new Date().toLocaleTimeString(),asset:HB.asset,score:sig.score,
-    durVal:null,durUnit:null, // set after contract type determined below
     snap:_snap
   };
 
@@ -1946,33 +1924,22 @@ function placeHybridRound(){
   console.log('[WW PLACING] dir:', dir, 'barrier:', barUsed, 'dec:.'+Math.round(decPart*100).toString().padStart(2,'0'), 'stake:$'+side);
 
   // Single contract — full stake, full payout
-  // BETWEEN = EXPIRYRANGE on ticks (5t min), CALL/PUT = seconds
-  var contractType, durVal, durUnit, b1param, b2param;
-  if(dir==='BETWEEN'){
-    contractType='EXPIRYRANGE';
-    durVal=5; durUnit='t';           // ticks — minimum Deriv accepts for EXPIRYRANGE
-    b1param=hiBar;                   // upper barrier (positive)
-    b2param=loBar;                   // lower barrier (negative)
-  } else {
-    contractType=dir;                // CALL or PUT
-    durVal=durSecs; durUnit='s';
-    b1param=dir==='CALL'?hiBar:loBar;
-    b2param=undefined;
-  }
-  console.log('[WW PLACING] type:',contractType,'dur:',durVal+durUnit,'barrier:',b1param,(b2param||''),'dec:.'+Math.round(decPart*100).toString().padStart(2,'0'),'stake:$'+side);
-  var buyParams={amount:side,basis:'stake',contract_type:contractType,currency:S.currency,duration:durVal,duration_unit:durUnit,symbol:HB.asset,barrier:b1param};
-  if(b2param) buyParams.barrier2=b2param;
-  var r1=wsSend({buy:1,price:side,parameters:buyParams});
+  var r1 = wsSend({buy:1, price:side, parameters:{
+    amount:side, basis:'stake',
+    contract_type: dir,
+    currency:S.currency,
+    duration:durSecs, duration_unit:'s',
+    symbol:HB.asset,
+    barrier: barUsed
+  }});
   if(r1) S.pending[r1]={
-    dir:dir==='BETWEEN'?'BETWEEN':'OUTSIDE',
+    dir:dir==='CALL'?'OUTSIDE':'BETWEEN',
     stake:side, asset:HB.asset,
     isBot:true, isHB:true,
     hbRound:rid, hbIdx:0,
-    barrier:barrier, durVal:durVal, durUnit:durUnit,
-    entryPrice:entry
+    barrier:barrier, durVal:durSecs, durUnit:'s',
+    entryPrice:entry  // exact price at placement moment
   };
-  // Store on HB pending so settlement summary gets correct duration
-  if(HB.pending[rid]){HB.pending[rid].durVal=durVal;HB.pending[rid].durUnit=durUnit;}
 
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
   notify('WW R'+HB.rounds,'$'+parseFloat((side).toFixed(2))+' placed — ±'+barrier.toFixed(2)+' barrier','win');
@@ -2010,26 +1977,12 @@ function _settleHBRound(roundId){
   var isWin=totalPnl>0;
 
   HB.pnl+=totalPnl;
-  if(isWin){HB.won++;HB.lossStreak=0;HB.winStreak=(HB.winStreak||0)+1;}
-  else{HB.lost++;HB.lossStreak++;HB.winStreak=0;
+  if(isWin){HB.won++;HB.lossStreak=0;}
+  else{HB.lost++;HB.lossStreak++;
     if(HB.lossStreak>=3&&HB.useCooldown&&!HB.coolingDown){
-      // 3 losses = 2 min cooldown, 5 losses = 5 min cooldown
-      var coolMs=HB.lossStreak>=5?300000:120000;
-      HB.coolingDown=true;HB.cooldownEnd=Date.now()+coolMs;
-      notify('PAUSE',HB.lossStreak+' losses — pausing '+(coolMs/60000)+' mins','loss');
+      HB.coolingDown=true;HB.cooldownEnd=Date.now()+120000;
+      notify('PAUSE','3 net-negative rounds — pausing 2 mins','loss');
     }
-    // Session stop after 6 consecutive losses — too much drawdown
-    if(HB.lossStreak>=6){
-      toggleHybrid();
-      notify('STOP','6 consecutive losses — bot stopped to protect balance','loss');
-      return;
-    }
-  }
-  // Win rate warning — alert when below 40% after 20+ rounds
-  var _tot=HB.won+HB.lost;
-  if(_tot>=20){
-    var _wr=HB.won/_tot;
-    if(_wr<0.40&&_tot%5===0) notify('WARN','Win rate '+Math.round(_wr*100)+'% — below 40% breakeven threshold','loss');
   }
   if(totalPnl>HB.bestRound)HB.bestRound=totalPnl;
   if(totalPnl<HB.worstRound)HB.worstRound=totalPnl;
@@ -2040,7 +1993,7 @@ function _settleHBRound(roundId){
     direction:eoResult.direction||'OUTSIDE',
     stake:r.side,pnl:eoPnl,win:eoResult.win,
     status:eoResult.win?'win':'loss',
-    time:r.time,durationStr:r.durUnit==='t'?(r.durVal||5)+'t':(r.durVal||15)+'s',
+    time:r.time,durationStr:(HB._durSecs||15)+'s',
     price:r.entry,
     exitPrice:eoResult.exitSpot>0?eoResult.exitSpot:(r.exitPrice||S.prices[r.asset]||null),
     _exitConfirmed:eoResult.exitSpot>0,
@@ -2082,11 +2035,7 @@ function updHBStats(){
   var S2=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
   S2('hb-rounds',HB.rounds);S2('hb-won',HB.won);S2('hb-lost',HB.lost);
   S2('hb-filter-all','All ('+HB.history.length+')');S2('hb-filter-win','Wins ('+HB.won+')');S2('hb-filter-loss','Losses ('+HB.lost+')');
-  var _tot=HB.won+HB.lost;
-  var _wrPct=(_tot>0?Math.round(HB.won/_tot*100):0);
-  var _wrColor=_wrPct>=50?'var(--ac)':_wrPct>=40?'var(--go)':'var(--re)';
-  S2('hb-round-info',HB.won+' profitable / '+HB.lost+' negative | Net: '+(HB.pnl>=0?'+':'')+'$'+HB.pnl.toFixed(2)+' | WR: '+_wrPct+'%');
-  var _wrel=document.getElementById('hb-round-info');if(_wrel)_wrel.style.color=_wrPct<40?'var(--re)':_wrPct<50?'var(--go)':'var(--ac)';
+  S2('hb-round-info',HB.won+' profitable / '+HB.lost+' negative | Net: '+(HB.pnl>=0?'+':'')+'$'+HB.pnl.toFixed(2));
   S2('hb-wr',wr+'%');S2('hb-wr-pct',wr+'%');
   S2('hb-best',(HB.bestRound>=0?'+':'')+'$'+HB.bestRound.toFixed(2));
   S2('hb-worst','$'+HB.worstRound.toFixed(2));
