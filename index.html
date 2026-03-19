@@ -991,11 +991,51 @@ function handleMsg(d) {
   switch(d.msg_type) {
     case 'authorize': onAuth(d.authorize); break;
     case 'tick': onTickWrapper(d.tick); break;
+    case 'proposal': onProposal(d.proposal, d.req_id); break;
     case 'buy': onBuy(d.buy, d.req_id); break;
     case 'proposal_open_contract': onContract(d.proposal_open_contract); break;
     case 'balance': onBalance(d.balance); break;
     case 'transaction': setTimeout(function(){ wsSend({balance:1,subscribe:1}); },500); break;
   }
+}
+
+function _hbCleanupOnError(roundId){
+  if(!roundId) return;
+  // Remove all pending entries for this round
+  Object.keys(S.pending).forEach(function(k){
+    if(S.pending[k] && S.pending[k].hbRound===roundId) delete S.pending[k];
+  });
+  if(HB.pending[roundId]) delete HB.pending[roundId];
+  HB.rounds = Math.max(0, HB.rounds-1);
+  clearWWBarrierLines();
+  document.getElementById('hb-active-count').textContent='0 ACTIVE';
+}
+
+function onProposal(proposal, reqId){
+  if(!proposal) return;
+  var p = S.pending[reqId];
+  if(!p || p.type !== 'hb_proposal') return;
+  delete S.pending[reqId];
+
+  // Got proposal back — now buy it immediately
+  var proposalId = proposal.id;
+  if(!proposalId){
+    notify('!','No proposal ID returned — check barrier settings','loss');
+    // Clean up the round if both proposals fail
+    _hbCleanupOnError(p.hbRound);
+    return;
+  }
+
+  console.log('[WW PROPOSAL]', p.dir, 'id:', proposalId, 'ask_price:', proposal.ask_price, 'payout:', proposal.payout);
+
+  // Buy the proposal
+  var buyReqId = wsSend({buy: proposalId, price: proposal.ask_price});
+  if(buyReqId) S.pending[buyReqId] = {
+    dir: p.dir, stake: p.stake, asset: p.asset,
+    isBot: true, isHB: true,
+    hbRound: p.hbRound, hbIdx: p.idx,
+    barrier: p.barrier, durVal: p.durVal, durUnit: p.durUnit
+  };
 }
 
 function onAuth(a) {
@@ -1659,7 +1699,6 @@ function placeHybridRound(){
     S.asset=HB.asset;
     S.priceHist=getInd(HB.asset).prices.slice(-80);
     document.getElementById('chartLbl').textContent=HB.asset;
-    // Seed the chart immediately
     if(priceChart&&S.priceHist.length>0){
       priceChart.data.labels=S.priceHist.map(function(){return '';});
       priceChart.data.datasets[0].data=S.priceHist.slice();
@@ -1667,34 +1706,43 @@ function placeHybridRound(){
     }
   }
 
-  // ── Place ENDS OUTSIDE (idx 0) ────────────────────────────────
-  // CALL with barrier = ENDS OUTSIDE (price exits above)
-  // EXPIRYRANGEE = Ends Outside, EXPIRYRANGE = Ends Between
-  // These contracts require duration in SECONDS not ticks
-  var durSecs = HB.ticks * 2; // 5 ticks ≈ 10 seconds on volatility indices
+  // ── EXPIRYRANGE/EXPIRYRANGEE require proposal→buy flow ──────────
+  // Step 1: Send proposals for both contracts
+  // Step 2: On proposal response → buy with proposal ID
+  // This is different from CALL/PUT which can be direct-bought
+  var durSecs = HB.ticks * 2; // 5 ticks ≈ 10 seconds
 
-  var rEO=wsSend({buy:1,price:side,parameters:{
-    amount:side,basis:'stake',
+  var propEO = wsSend({
+    proposal:1,
+    amount:side, basis:'stake',
     contract_type:'EXPIRYRANGEE',
     currency:S.currency,
-    duration:durSecs,duration_unit:'s',
+    duration:durSecs, duration_unit:'s',
     symbol:HB.asset,
     barrier:'+'+barrier.toFixed(2),
     barrier2:'-'+barrier.toFixed(2)
-  }});
-  if(rEO)S.pending[rEO]={dir:'OUTSIDE',stake:side,asset:HB.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:0,barrier:barrier,durVal:durSecs,durUnit:'s'};
+  });
+  if(propEO) S.pending[propEO]={
+    type:'hb_proposal', dir:'OUTSIDE', idx:0,
+    stake:side, asset:HB.asset, hbRound:rid,
+    barrier:barrier, durVal:durSecs, durUnit:'s'
+  };
 
-  // ── Place ENDS BETWEEN (idx 1) ────────────────────────────────
-  var rEB=wsSend({buy:1,price:side,parameters:{
-    amount:side,basis:'stake',
+  var propEB = wsSend({
+    proposal:1,
+    amount:side, basis:'stake',
     contract_type:'EXPIRYRANGE',
     currency:S.currency,
-    duration:durSecs,duration_unit:'s',
+    duration:durSecs, duration_unit:'s',
     symbol:HB.asset,
     barrier:'+'+barrier.toFixed(2),
     barrier2:'-'+barrier.toFixed(2)
-  }});
-  if(rEB)S.pending[rEB]={dir:'BETWEEN',stake:side,asset:HB.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:1,barrier:barrier,durVal:durSecs,durUnit:'s'};
+  });
+  if(propEB) S.pending[propEB]={
+    type:'hb_proposal', dir:'BETWEEN', idx:1,
+    stake:side, asset:HB.asset, hbRound:rid,
+    barrier:barrier, durVal:durSecs, durUnit:'s'
+  };
 
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
   notify('WW','R'+HB.rounds+': OUTSIDE+BETWEEN ±'+barrier.toFixed(2)+' $'+side+'/side | Score:'+sig.score,'info');
