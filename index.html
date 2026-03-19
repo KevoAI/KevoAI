@@ -1874,6 +1874,7 @@ function placeHybridRound(){
   var _snap={
     score:sig.score,
     atr:parseFloat(_atr.toFixed(6)),
+    contractDir:dir,
     atr5:parseFloat(_atr5.toFixed(6)),
     atr20:parseFloat(_atr20.toFixed(6)),
     atrRatio:_atr20>0?parseFloat((_atr5/_atr20).toFixed(3)):1,
@@ -1933,13 +1934,15 @@ function placeHybridRound(){
     barrier: barUsed
   }});
   if(r1) S.pending[r1]={
-    dir:dir==='CALL'?'OUTSIDE':'BETWEEN',
+    dir:'OUTSIDE', contractDir:dir,
     stake:side, asset:HB.asset,
     isBot:true, isHB:true,
     hbRound:rid, hbIdx:0,
     barrier:barrier, durVal:durSecs, durUnit:'s',
-    entryPrice:entry  // exact price at placement moment
+    entryPrice:entry
   };
+  // Also store on HB pending for journal rendering
+  if(HB.pending[rid]) HB.pending[rid].contractDir=dir;
 
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
   notify('WW R'+HB.rounds,'$'+parseFloat((side).toFixed(2))+' placed — ±'+barrier.toFixed(2)+' barrier','win');
@@ -2025,7 +2028,11 @@ function _settleHBRound(roundId){
   wsSend({balance:1});
   setTimeout(function(){wsSend({balance:1});},1500);
 
-  var winSide=eoResult.win?'ENDS OUTSIDE':'ENDS BETWEEN';
+  // Win label: if won = price exited barrier (OUTSIDE). If lost = price stayed inside.
+  // Also show direction: CALL (went up) or PUT (went down)
+  var contractDir=r.snap&&r.snap.contractDir?r.snap.contractDir:(eoResult.contractDir||'');
+  var dirLabel=contractDir==='CALL'?' ↑ CALL':contractDir==='PUT'?' ↓ PUT':'';
+  var winSide=eoResult.win?('OUTSIDE'+dirLabel):('BARRIER MISSED');
   notify(isWin?'WON':'LOST',(isWin?'+':'-')+'$'+Math.abs(totalPnl).toFixed(2)+' — '+winSide+' (R'+HB.rounds+')',isWin?'win':'loss');
   document.getElementById('hb-active-count').textContent='0 ACTIVE';
 }
@@ -2566,7 +2573,9 @@ function renderJournal(filter){
     var rNote=S.notes['hb_'+rid]||'';
     var eoT=trades.find(function(t){return t.direction==='OUTSIDE';})||trades[0];
     var ebT=trades.find(function(t){return t.direction==='BETWEEN';})||(trades[1]||trades[0]);
-    var winSide=eoT&&eoT.win?'OUTSIDE':ebT&&ebT.win?'BETWEEN':'--';
+    var _jCdir=(hist&&hist.snap&&hist.snap.contractDir)||eoT.contractDir||'';
+    var _jWinLabel=eoT&&eoT.win?(_jCdir==='CALL'?'CALL ↑':_jCdir==='PUT'?'PUT ↓':'OUTSIDE'):( ebT&&ebT.win?'BETWEEN':'MISSED');
+    var winSide=_jWinLabel;
     var entry=parseFloat((hist?hist.entry:eoT.price)||0);
     var barrier=parseFloat((hist?hist.barrier:eoT.barrier)||0);
 
@@ -2622,7 +2631,9 @@ function renderJournal(filter){
     // Single leg result card
     html+='<div style="background:'+(eoT.win?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.05)')+';border:1px solid '+(eoT.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.2)')+';border-radius:var(--rs);padding:12px;margin-bottom:8px">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
-    html+='<span style="font-size:11px;color:'+(eoT.direction==='OUTSIDE'?'var(--ac)':'var(--bl)')+';font-weight:700">'+(eoT.direction==='OUTSIDE'?'↗ CALL — price above barrier':'↘ PUT — price below barrier')+'</span>';
+    var _cdir=(hist&&hist.snap&&hist.snap.contractDir)||eoT.contractDir||'';
+    var _legLabel=_cdir==='CALL'?'↑ CALL — price above barrier':_cdir==='PUT'?'↓ PUT — price below barrier':'↕ OUTSIDE — barrier exit';
+    html+='<span style="font-size:11px;color:var(--ac);font-weight:700">'+_legLabel+'</span>';
     html+='<span style="font-size:14px;font-weight:800;font-family:var(--mo);color:'+(eoT.win?'var(--ac)':'var(--re)')+'">'+( eoT.pnl>=0?'+':'')+'$'+eoT.pnl.toFixed(2)+'</span>';
     html+='</div>';
     html+='<div style="display:flex;gap:14px;font-size:10px;font-family:var(--mo);color:var(--t2)">';
