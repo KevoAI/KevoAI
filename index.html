@@ -1005,27 +1005,21 @@ function _hbCleanupOnError(roundId){
 // ── Query Deriv for valid EXPIRYRANGE durations on the HB asset ──
 function queryContractsFor(sym){
   wsSend({contracts_for: sym, currency: S.currency||'USD', landing_company:'svg', product_type:'basic'});
+  // Also log a test proposal to see what Deriv says about the contract
+  var testEpoch = Math.floor(Date.now()/1000) + 900; // 15 min from now
+  console.log('[TEST PROPOSAL] sending with date_expiry:', testEpoch);
+  var rid = wsSend({proposal:1, amount:1, basis:'stake', contract_type:'EXPIRYRANGEE',
+    currency:'USD', date_expiry:testEpoch, symbol:sym,
+    barrier:'+0.10', barrier2:'-0.10'});
+  if(rid) S.pending[rid] = {type:'debug_proposal'};
 }
 
 function onContractsFor(data){
   if(!data||!data.available) return;
   data.available.forEach(function(c){
     if(c.contract_type==='EXPIRYRANGE'||c.contract_type==='EXPIRYRANGEE'){
-      console.log('[contracts_for FULL]', JSON.stringify(c).substring(0,400));
-      // These contracts use date_expiry not duration
-      // Extract trading periods from the contract
-      if(c.trading_period){
-        var tp = c.trading_period;
-        console.log('[trading_period]', JSON.stringify(tp));
-        // Store the next valid expiry from trading periods
-        if(tp.date_expiry){
-          HB._nextExpiry = tp.date_expiry.epoch || null;
-          console.log('[WW] date_expiry epoch:', HB._nextExpiry);
-        }
-      }
-      if(c.available_barriers){
-        console.log('[available_barriers]', JSON.stringify(c.available_barriers).substring(0,200));
-      }
+      // Log EVERYTHING so we can see exactly what Deriv expects
+      console.log('[CF]', c.contract_type, JSON.stringify(c));
     }
   });
 }
@@ -1033,8 +1027,17 @@ function onContractsFor(data){
 function onProposal(proposal, reqId){
   if(!proposal) return;
   var p = S.pending[reqId];
-  if(!p || p.type !== 'hb_proposal') return;
+  if(!p) return;
   delete S.pending[reqId];
+
+  // Debug proposal — just log what came back
+  if(p.type==='debug_proposal'){
+    console.log('[DEBUG PROPOSAL RESPONSE]', JSON.stringify(proposal));
+    notify('OK','Test proposal: id='+proposal.id+' ask='+proposal.ask_price+' payout='+proposal.payout,'info');
+    return;
+  }
+
+  if(p.type !== 'hb_proposal') return;
 
   // Got proposal back — now buy it immediately
   var proposalId = proposal.id;
