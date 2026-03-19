@@ -490,20 +490,19 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <div style="background:var(--bg3);border-radius:var(--rs);padding:9px 12px;border:1px solid var(--bo);font-size:12px;font-weight:600;min-height:38px" id="sig-status">Start bot to see signals...</div>
             </div>
 
-            <!-- Live barrier info — lines drawn on main Dashboard chart -->
-            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:10px 14px;margin-bottom:12px">
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-                <span style="font-size:12px;font-weight:700">📊 Live Price</span>
+            <!-- WinWin Live Chart -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
+              <div style="padding:8px 12px;border-bottom:1px solid var(--bo);display:flex;align-items:center;gap:8px">
+                <span style="font-size:12px;font-weight:700;font-family:var(--mo)" id="ww-chart-lbl">R_100</span>
                 <span style="font-size:13px;font-weight:700;color:var(--ac);font-family:var(--mo)" id="ww-chart-price">--</span>
-                <span id="ww-chart-lbl" style="font-size:10px;color:var(--t3);font-family:var(--mo)">R_100</span>
-                <span style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="ww-chart-atr">ATR: --</span>
-                <span style="font-size:10px;padding:2px 7px;border-radius:99px;font-weight:700;background:var(--bg4);color:var(--t3)" id="ww-chart-vol-badge">VOL: --</span>
+                <span style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="ww-chart-atr">ATR:--</span>
+                <span style="font-size:10px;padding:2px 7px;border-radius:99px;font-weight:700;background:var(--bg4);color:var(--t3)" id="ww-chart-vol-badge">VOL:--</span>
                 <span style="flex:1"></span>
-                <span style="font-size:10px;color:var(--t2)">Entry + barriers drawn on
-                  <span style="color:var(--ac);cursor:pointer;font-weight:700" onclick="showPage('dashboard',document.querySelector('.ni'))">Dashboard chart ↗</span>
-                </span>
               </div>
-              <div style="padding:7px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);font-size:10px;font-family:var(--mo);display:flex;gap:12px;flex-wrap:wrap;align-items:center;min-height:30px" id="ww-barrier-legend">
+              <div style="position:relative;height:180px">
+                <canvas id="wwChart"></canvas>
+              </div>
+              <div style="padding:6px 12px;border-top:1px solid var(--bo);font-size:10px;font-family:var(--mo);min-height:28px;display:flex;gap:12px;align-items:center;flex-wrap:wrap" id="ww-barrier-legend">
                 <span style="color:var(--t3)">No active round — waiting for signal</span>
               </div>
             </div>
@@ -1043,74 +1042,64 @@ function resetDG(){
 function onTick(tick) {
   var sym=tick.symbol, q=tick.quote, prev=S.prices[sym];
   S.prices[sym]=q;
+  // Ticker bar
   var tv=document.getElementById('tv-'+sym);
   var tc=document.getElementById('tc-'+sym);
   if(tv) tv.textContent=q.toFixed(q>100?2:5);
-  if(tc&&prev!==undefined) {
+  if(tc&&prev!==undefined){
     var diff=q-prev, pct=(diff/prev*100).toFixed(3);
     tc.textContent=(diff>=0?'+':'')+pct+'%';
     tc.className='tc '+(diff>=0?'up':'down');
-    if(sym===HB.asset||sym===S.asset) {
+    if(sym===HB.asset||sym===S.asset){
       S.recentMoves.push(diff>=0?'H':'L');
       if(S.recentMoves.length>40) S.recentMoves.shift();
-      updatePrediction();
-      updateMovesGrid();
+      if(typeof updatePrediction==='function')updatePrediction();
+      if(typeof updateMovesGrid==='function')updateMovesGrid();
     }
   }
-  // Update main price chart — either dashboard asset OR HB asset when barriers active
-  var isChartAsset = sym===S.asset || (sym===HB.asset && wwActiveBarrier);
-  if(isChartAsset) {
-    var dp=q.toFixed(q>100?2:5);
-    // If HB asset is different from S.asset, temporarily update chart with HB prices
-    if(sym===HB.asset && wwActiveBarrier && sym!==S.asset){
-      // Use HB price history for chart when barriers are active
-      if(!S.priceHistHB) S.priceHistHB=[];
-      S.priceHistHB.push(q);
-      if(S.priceHistHB.length>120) S.priceHistHB.shift();
-      if(priceChart){
-        priceChart.data.labels=S.priceHistHB.map(function(){return '';});
-        priceChart.data.datasets[0].data=S.priceHistHB.slice();
-        priceChart.update('none');
-        // Update barrier line lengths
-        var len=S.priceHistHB.length;
-        priceChart.data.datasets.forEach(function(d){
-          if(d._isWWBarrier)d.data=Array(len).fill(d.data[0]||0);
-        });
-      }
-      document.getElementById('livePrice').textContent=dp;
-      document.getElementById('mktP').textContent=dp;
-      document.getElementById('chartLbl').textContent=sym;
-    } else if(sym===S.asset){
-      document.getElementById('livePrice').textContent=dp;
-      document.getElementById('mktP').textContent=dp;
-      S.priceHist.push(q);
-      if(S.priceHist.length>120) S.priceHist.shift();
-      if(priceChart) {
-        priceChart.data.labels=S.priceHist.map(function(){return '';});
-        priceChart.data.datasets[0].data=S.priceHist.slice();
-        priceChart.update('none');
-      }
+  // ── DASHBOARD chart (priceChart) — always live ──────────────────
+  if(sym===S.asset){
+    document.getElementById('livePrice').textContent=q.toFixed(q>100?2:5);
+    document.getElementById('mktP').textContent=dp(q);
+    if(priceChart){
+      var d1=getInd(sym).prices.slice(-120);
+      priceChart.data.labels=d1.map(function(){return '';});
+      priceChart.data.datasets[0].data=d1.slice();
+      // Sync WW barrier line lengths
+      priceChart.data.datasets.forEach(function(ds){
+        if(ds._isWWBarrier)ds.data=Array(d1.length).fill(ds.data[0]||0);
+      });
+      priceChart.update('none');
     }
+  }
+  // ── WINWIN chart (wwChart) — always live for HB asset ───────────
+  if(sym===HB.asset&&wwChart){
+    var d2=getInd(sym).prices.slice(-100);
+    if(d2.length>0){
+      wwChart.data.labels=d2.map(function(){return '';});
+      wwChart.data.datasets[0].data=d2.slice();
+      // Sync WW barrier lines on ww chart too
+      wwChart.data.datasets.forEach(function(ds){
+        if(ds._isWWBarrier)ds.data=Array(d2.length).fill(ds.data[0]||0);
+      });
+      wwChart.update('none');
+    }
+    // Update price display in WinWin header
+    var ep=document.getElementById('ww-chart-price');
+    if(ep)ep.textContent=dp(q);
   }
 }
+function dp(q){return q.toFixed(q>100?2:4);}
 
 function onTickWrapper(tick){
   updateIndicators(tick.symbol,tick.quote);
   onTick(tick);
-  // Keep WW barrier lines in sync with main chart data length
+  // ATR display update for HB asset
   if(tick.symbol===HB.asset){
-    updateWWBarrierLengths();
-    updateWWPriceDisplay(tick.symbol,tick.quote);
-    // Update ATR display if on WW page
-    var page=document.getElementById('page-barrier');
-    if(page&&page.classList.contains('active')){
-      var ind=getInd(HB.asset);
-      if(ind.prices.length>=14){
-        var p=ind.prices,n=p.length,atr=0;
-        for(var i=n-14;i<n;i++)atr+=Math.abs(p[i]-p[i-1]);
-        atr=atr/14;
-        var ca=document.getElementById('ww-chart-atr');if(ca)ca.textContent='ATR:'+atr.toFixed(4);
-      }
+    var ind=getInd(HB.asset),p=ind.prices,n=p.length;
+    if(n>=14){
+      var atr=0;for(var _i=n-14;_i<n;_i++)atr+=Math.abs(p[_i]-p[_i-1]);atr/=14;
+      var ca=document.getElementById('ww-chart-atr');if(ca)ca.textContent='ATR:'+atr.toFixed(4);
     }
   }
 }
@@ -1440,6 +1429,64 @@ function getWWSignal(){
 }
 
 // ── Bot ───────────────────────────────────────────────────────────
+// ── WW Barrier Lines — drawn on both priceChart and wwChart ──────
+var wwActiveBarrier=null;
+
+function setWWBarrierLines(entry,barrier){
+  wwActiveBarrier={entry:entry,barrier:barrier};
+  var leg=document.getElementById('ww-barrier-legend');
+  if(leg)leg.innerHTML=
+    '<span style="color:var(--go);font-weight:700">●Entry:'+entry.toFixed(2)+'</span>'
+    +' <span style="color:var(--ac);font-weight:700">▲OUTSIDE:+'+(entry+barrier).toFixed(2)+'</span>'
+    +' <span style="color:var(--re);font-weight:700">▼OUTSIDE:-'+(entry-barrier).toFixed(2)+'</span>'
+    +' <span style="color:var(--bl)">BETWEEN wins if inside</span>';
+  _drawWWBarriersOnChart(priceChart);
+  _drawWWBarriersOnChart(wwChart);
+}
+
+function clearWWBarrierLines(){
+  wwActiveBarrier=null;S.priceHistHB=null;
+  var leg=document.getElementById('ww-barrier-legend');
+  if(leg)leg.innerHTML='<span style="color:var(--t3)">No active round — waiting for signal</span>';
+  [priceChart,wwChart].forEach(function(c){
+    if(!c)return;
+    c.data.datasets=c.data.datasets.filter(function(d){return !d._isWWBarrier;});
+    c.update('none');
+  });
+}
+
+function _drawWWBarriersOnChart(chart){
+  if(!chart||!wwActiveBarrier)return;
+  var entry=wwActiveBarrier.entry,barrier=wwActiveBarrier.barrier;
+  var len=Math.max(2,chart.data.labels.length);
+  chart.data.datasets=chart.data.datasets.filter(function(d){return !d._isWWBarrier;});
+  [{price:entry,       color:'rgba(245,166,35,0.9)',dash:[4,4],w:1.5},
+   {price:entry+barrier,color:'rgba(0,229,160,0.9)', dash:[8,4],w:2},
+   {price:entry-barrier,color:'rgba(255,77,106,0.9)',dash:[8,4],w:2}
+  ].forEach(function(l){
+    chart.data.datasets.push({_isWWBarrier:true,
+      data:Array(len).fill(l.price),borderColor:l.color,
+      borderWidth:l.w,borderDash:l.dash,pointRadius:0,fill:false,tension:0});
+  });
+  chart.update('none');
+}
+
+function _drawWWBarriersOnPriceChart(){
+  _drawWWBarriersOnChart(priceChart);
+  _drawWWBarriersOnChart(wwChart);
+}
+
+function updateWWPriceDisplay(sym,price){
+  var ep=document.getElementById('ww-chart-price');if(ep)ep.textContent=dp(price);
+  var el=document.getElementById('ww-chart-lbl');if(el)el.textContent=sym;
+}
+
+function initWWChart(){}
+function forceWWChartUpdate(){}
+function updateWWChart(){}
+function updateWWBarrierLengths(){}
+var wwLastDraw=0,wwChartData=[],wwBarrierLines=[];
+
 function toggleHybrid(){
   HB.running=!HB.running;
   document.getElementById('hbSw').classList.toggle('on',HB.running);
@@ -1529,10 +1576,17 @@ function placeHybridRound(){
   setWWBarrierLines(entry,barrier);
   renderTradeBreakdown(barrier,side);
 
-  // Auto-switch dashboard chart to HB asset
+  // Switch dashboard chart to HB asset so barriers are visible
   if(HB.asset!==S.asset){
-    S.priceHistHB=getInd(HB.asset).prices.slice(-80);
+    S.asset=HB.asset;
+    S.priceHist=getInd(HB.asset).prices.slice(-80);
     document.getElementById('chartLbl').textContent=HB.asset;
+    // Seed the chart immediately
+    if(priceChart&&S.priceHist.length>0){
+      priceChart.data.labels=S.priceHist.map(function(){return '';});
+      priceChart.data.datasets[0].data=S.priceHist.slice();
+      priceChart.update('none');
+    }
   }
 
   // ── Place ENDS OUTSIDE (idx 0) ────────────────────────────────
@@ -1924,11 +1978,21 @@ function showPage(id,navEl){
     calcWWDaily();
     if(typeof updateMovesGrid==='function')updateMovesGrid();
     if(typeof updatePrediction==='function')updatePrediction();
-    // Update price display from current price
-    var _curP=S.prices[HB.asset];
-    if(_curP)updateWWPriceDisplay(HB.asset,_curP);
-    // Re-draw barrier lines if a round is active
-    if(wwActiveBarrier)_drawWWBarriersOnPriceChart();
+    // Seed wwChart with current HB asset prices
+    var _hbInd=getInd(HB.asset);
+    var _curP=S.prices[HB.asset]||0;
+    if(_curP){
+      var ep=document.getElementById('ww-chart-price');if(ep)ep.textContent=dp(_curP);
+      var el=document.getElementById('ww-chart-lbl');if(el)el.textContent=HB.asset;
+    }
+    if(wwChart&&_hbInd.prices.length>0){
+      var _d=_hbInd.prices.slice(-100);
+      wwChart.data.labels=_d.map(function(){return '';});
+      wwChart.data.datasets[0].data=_d.slice();
+      wwChart.data.datasets=wwChart.data.datasets.filter(function(d){return !d._isWWBarrier;});
+      if(wwActiveBarrier)_drawWWBarriersOnChart(wwChart);
+      else wwChart.update('none');
+    }
   }
 }
 
@@ -2276,10 +2340,22 @@ async function sendAI(){
 }
 function appendAI(text,role){var msgs=document.getElementById('aims');var div=document.createElement('div');div.className='aim '+role;div.innerHTML='<div class="aib">'+text+'</div>';msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;return div;}
 
-var priceChart,pnlChart;
+var priceChart,pnlChart,wwChart;
+function chartOpts(h){
+  return {responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{display:false},y:{display:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:10},maxTicksLimit:5}}},
+    animation:{duration:0}};
+}
 function initCharts(){
+  // Dashboard chart
   var ctx=document.getElementById('priceChart').getContext('2d');
-  priceChart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[{data:[],borderColor:'#00e5a0',borderWidth:1.5,fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,230);g.addColorStop(0,'rgba(0,229,160,.15)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},pointRadius:0,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:10},maxTicksLimit:5}}},animation:{duration:0}}});
+  priceChart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[{data:[],borderColor:'#00e5a0',borderWidth:1.5,fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,230);g.addColorStop(0,'rgba(0,229,160,.15)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},pointRadius:0,tension:.3}]},options:chartOpts(230)});
+  // WinWin chart
+  var wctx=document.getElementById('wwChart');
+  if(wctx){
+    wwChart=new Chart(wctx.getContext('2d'),{type:'line',data:{labels:[],datasets:[{data:[],borderColor:'#00e5a0',borderWidth:1.5,fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,180);g.addColorStop(0,'rgba(0,229,160,.15)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},pointRadius:0,tension:.3}]},options:chartOpts(180)});
+  }
   var pctx=document.getElementById('pnlChart').getContext('2d');
   pnlChart=new Chart(pctx,{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4a5568',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#4a5568',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}}}});
 }
@@ -2301,7 +2377,7 @@ window.addEventListener('load',function(){
   if(!S.apiToken&&savedDemo)S.apiToken=savedDemo;
   if(!S.apiToken&&savedReal)S.apiToken=savedReal;
   // Version check — clear stale data from old 8-trade version
-var _wwVersion = '4.8';
+var _wwVersion = '4.9';
 if(localStorage.getItem('kevoai_version')!==_wwVersion){
   localStorage.removeItem('kevoai_trades');
   localStorage.removeItem('kevoai_dg_trades');
