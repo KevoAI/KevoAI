@@ -1822,31 +1822,12 @@ function placeHybridRound(){
 
 function onHBResult(roundId,idx,profit,direction){
   if(!HB.pending[roundId])return;
-  // profit from Deriv = net profit (positive = win, 0 or negative = loss)
   var won=profit>0;
   HB.pending[roundId].results[idx]={profit:profit,direction:direction,win:won};
   HB.pending[roundId].settled++;
-
-  // Single leg — settle after 1 contract
-  var doSettle=HB.pending[roundId].settled>=1;
-  if(!doSettle&&HB.pending[roundId].settled===1){
-    // Set a 10s safety timeout to force settle if second never comes
-    if(!HB.pending[roundId]._timeout){
-      HB.pending[roundId]._timeout=setTimeout(function(){
-        if(!HB.pending[roundId])return;
-        // Fill missing result with loss
-        for(var i=0;i<2;i++){
-          if(!HB.pending[roundId].results[i]){
-            HB.pending[roundId].results[i]={profit:0,direction:i===0?'OUTSIDE':'BETWEEN',win:false};
-            HB.pending[roundId].settled++;
-          }
-        }
-        _settleHBRound(roundId);
-      },10000);
-    }
-    return;
-  }
-  if(doSettle) _settleHBRound(roundId);
+  console.log('[HBResult] round:'+roundId+' idx:'+idx+' profit:'+profit+' settled:'+HB.pending[roundId].settled);
+  // Single leg — settle immediately on first result
+  _settleHBRound(roundId);
 }
 
 function _settleHBRound(roundId){
@@ -1872,11 +1853,16 @@ function _settleHBRound(roundId){
   if(totalPnl>HB.bestRound)HB.bestRound=totalPnl;
   if(totalPnl<HB.worstRound)HB.worstRound=totalPnl;
 
-  // Store 2 summary trades
+  // Store 1 summary trade (single leg)
   S.trades=S.trades.filter(function(t){return!(t.isHB&&t.hbRound===roundId&&!t.isHBSummary);});
-  var summaryEO={id:roundId+'EO',contractId:roundId+'EO',asset:r.asset,direction:'OUTSIDE',stake:r.side,pnl:eoPnl,win:eoResult.win,status:eoResult.win?'win':'loss',time:r.time,durationStr:HB.ticks+'T',price:r.entry,exitPrice:r.entry,isHB:true,hbRound:roundId,isHBSummary:true,note:''};
-  var summaryEB={id:roundId+'EB',contractId:roundId+'EB',asset:r.asset,direction:'BETWEEN',stake:r.side,pnl:ebPnl,win:ebResult.win,status:ebResult.win?'win':'loss',time:r.time,durationStr:HB.ticks+'T',price:r.entry,exitPrice:r.entry,isHB:true,hbRound:roundId,isHBSummary:true,note:''};
-  S.trades.unshift(summaryEB);S.trades.unshift(summaryEO);
+  var summaryEO={id:roundId+'EO',contractId:roundId+'EO',asset:r.asset,
+    direction:eoResult.direction||'OUTSIDE',
+    stake:r.side,pnl:eoPnl,win:eoResult.win,
+    status:eoResult.win?'win':'loss',
+    time:r.time,durationStr:(HB._durSecs||15)+'s',
+    price:r.entry,exitPrice:r.entry,
+    isHB:true,hbRound:roundId,isHBSummary:true,note:''};
+  S.trades.unshift(summaryEO);
 
   HB.history.unshift({
     round:HB.rounds,time:r.time,asset:r.asset,
