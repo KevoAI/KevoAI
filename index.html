@@ -1018,8 +1018,16 @@ function onContractsFor(data){
   if(!data||!data.available) return;
   data.available.forEach(function(c){
     if(c.contract_type==='EXPIRYRANGE'||c.contract_type==='EXPIRYRANGEE'){
-      // Log EVERYTHING so we can see exactly what Deriv expects
-      console.log('[CF]', c.contract_type, JSON.stringify(c));
+      console.log('[CF]', c.contract_type, 'expiry_type:', c.expiry_type, 'min:', c.min_contract_duration, 'high_barrier:', c.high_barrier, 'low_barrier:', c.low_barrier);
+      // Use intraday contract — has shorter duration and relative barriers
+      if(c.expiry_type==='intraday'){
+        // Store valid barrier values from Deriv
+        HB._derivHighBarrier = c.high_barrier; // e.g. "+1.02"
+        HB._derivLowBarrier  = c.low_barrier;  // e.g. "-1.02"
+        HB._minDurMins = parseInt(c.min_contract_duration)||2;
+        console.log('[WW] Using intraday barriers:', HB._derivHighBarrier, HB._derivLowBarrier, 'min:', HB._minDurMins+'m');
+        notify('OK','WW barriers set: '+HB._derivHighBarrier+'/'+HB._derivLowBarrier,'info');
+      }
     }
   });
 }
@@ -1730,50 +1738,42 @@ function placeHybridRound(){
     }
   }
 
-  // EXPIRYRANGE/EXPIRYRANGEE use date_expiry (epoch timestamp) NOT duration
-  // expiry_type is 'intraday' and 'daily' — meaning they expire at set times
-  // For volatility indices running 24/7: pick next 15-min boundary from now
-  var nowEpoch = Math.floor(Date.now()/1000);
-  // Round up to next 15-minute boundary (e.g. :00, :15, :30, :45)
-  var mins15 = 15 * 60;
-  var expiryEpoch = (Math.floor(nowEpoch/mins15) + 1) * mins15;
-  // If that's less than 10s away, use the one after
-  if(expiryEpoch - nowEpoch < 10) expiryEpoch += mins15;
-  // Use stored expiry from contracts_for trading_period if available
-  if(HB._nextExpiry && HB._nextExpiry > nowEpoch + 10) expiryEpoch = HB._nextExpiry;
+  // Use CALL/PUT with barriers — supports 15s duration and custom barrier distance
+  // CALL with barrier = price must end ABOVE barrier (ends outside high)
+  // PUT with barrier  = price must end BELOW barrier (ends outside low)
+  // Together they cover the same concept — one always wins when price moves
+  var durSecs = 15;
+  var hiBar = '+' + barrier.toFixed(2);
+  var loBar = '-' + barrier.toFixed(2);
 
-  console.log('[WW PLACING] date_expiry:', expiryEpoch, '(now+', expiryEpoch-nowEpoch, 's) barrier:±'+barrier.toFixed(2));
+  console.log('[WW PLACING] CALL+PUT barrier', hiBar, loBar, durSecs+'s');
 
-  var propEO = wsSend({
-    proposal:1,
+  var rEO = wsSend({buy:1, price:side, parameters:{
     amount:side, basis:'stake',
-    contract_type:'EXPIRYRANGEE',
+    contract_type:'CALL',
     currency:S.currency,
-    date_expiry: expiryEpoch,
+    duration:durSecs, duration_unit:'s',
     symbol:HB.asset,
-    barrier:'+'+barrier.toFixed(2),
-    barrier2:'-'+barrier.toFixed(2)
-  });
-  if(propEO) S.pending[propEO]={
-    type:'hb_proposal', dir:'OUTSIDE', idx:0,
-    stake:side, asset:HB.asset, hbRound:rid,
-    barrier:barrier, durVal:expiryEpoch-nowEpoch, durUnit:'s'
+    barrier: hiBar
+  }});
+  if(rEO) S.pending[rEO]={
+    dir:'OUTSIDE', stake:side, asset:HB.asset,
+    isBot:true, isHB:true, hbRound:rid, hbIdx:0,
+    barrier:barrier, durVal:durSecs, durUnit:'s'
   };
 
-  var propEB = wsSend({
-    proposal:1,
+  var rEB = wsSend({buy:1, price:side, parameters:{
     amount:side, basis:'stake',
-    contract_type:'EXPIRYRANGE',
+    contract_type:'PUT',
     currency:S.currency,
-    date_expiry: expiryEpoch,
+    duration:durSecs, duration_unit:'s',
     symbol:HB.asset,
-    barrier:'+'+barrier.toFixed(2),
-    barrier2:'-'+barrier.toFixed(2)
-  });
-  if(propEB) S.pending[propEB]={
-    type:'hb_proposal', dir:'BETWEEN', idx:1,
-    stake:side, asset:HB.asset, hbRound:rid,
-    barrier:barrier, durVal:expiryEpoch-nowEpoch, durUnit:'s'
+    barrier: loBar
+  }});
+  if(rEB) S.pending[rEB]={
+    dir:'BETWEEN', stake:side, asset:HB.asset,
+    isBot:true, isHB:true, hbRound:rid, hbIdx:1,
+    barrier:barrier, durVal:durSecs, durUnit:'s'
   };
 
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
