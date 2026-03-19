@@ -1361,7 +1361,7 @@ function onContract(c) {
     wsSend({balance:1});
   }
   if(!t.isHB&&!t.isDD) {
-    notify(profit>0?'WIN':'LOSS',t.direction+(profit>0?' WON':' LOST')+'! '+(profit>=0?'+':'')+'$'+Math.abs(profit).toFixed(2),profit>0?'win':'loss');
+    notify(profit>0?'WON':'LOST',(profit>=0?'+':'-')+'$'+Math.abs(profit).toFixed(2)+' '+t.direction,profit>0?'win':'loss');
     DG.trades++;if(profit>0)DG.wins++;else DG.losses++;saveDG();
   }
   localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
@@ -1820,7 +1820,7 @@ function placeHybridRound(){
   };
 
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
-  notify('WW','R'+HB.rounds+': OUTSIDE+BETWEEN ±'+barrier.toFixed(2)+' $'+side+'/side | Score:'+sig.score,'info');
+  notify('WW R'+HB.rounds,'$'+parseFloat((side).toFixed(2))+' placed — ±'+barrier.toFixed(2)+' barrier','win');
   updHBStats();
 }
 
@@ -1890,7 +1890,7 @@ function _settleHBRound(roundId){
   setTimeout(function(){wsSend({balance:1});},1500);
 
   var winSide=eoResult.win?'ENDS OUTSIDE':'ENDS BETWEEN';
-  notify(isWin?'WIN':'LOSS','R'+HB.rounds+': '+winSide+' won | Net:'+(totalPnl>=0?'+':'')+'$'+Math.abs(totalPnl).toFixed(2),isWin?'win':'loss');
+  notify(isWin?'WON':'LOST',(isWin?'+':'-')+'$'+Math.abs(totalPnl).toFixed(2)+' — '+winSide+' (R'+HB.rounds+')',isWin?'win':'loss');
   document.getElementById('hb-active-count').textContent='0 ACTIVE';
 }
 
@@ -2230,10 +2230,7 @@ function switchAcc(type){
 
 function updateStats(){
   var done=S.trades.filter(function(t){return t.status!=='active';});
-  var pnl=done.reduce(function(s,t){return s+t.pnl;},0);
-
-  // HB trades are stored as 2 summary trades per round (HIGHER + LOWER)
-  // Count HB rounds as 1 unit: group by roundId, round is WIN if net>0
+  // Build HB round map — 1 summary trade per round now (single leg)
   var hbRoundMap={};
   done.forEach(function(t){
     if(t.isHB&&t.hbRound!==null&&t.isHBSummary){
@@ -2242,11 +2239,15 @@ function updateStats(){
     }
   });
   var hbRoundKeys=Object.keys(hbRoundMap);
+  var hbPnl=hbRoundKeys.reduce(function(s,k){return s+hbRoundMap[k].pnl;},0);
   var hbWins=hbRoundKeys.filter(function(k){return hbRoundMap[k].pnl>0;}).length;
   var nonHB=done.filter(function(t){return !t.isHB;});
+  var nonHBPnl=nonHB.reduce(function(s,t){return s+t.pnl;},0);
   var nonHBWins=nonHB.filter(function(t){return t.win;}).length;
   var totalUnits=hbRoundKeys.length+nonHB.length;
   var totalWins=hbWins+nonHBWins;
+  // Use per-source PnL to avoid double-counting
+  var pnl=parseFloat((hbPnl+nonHBPnl).toFixed(2));
   var wr=totalUnits?Math.round(totalWins/totalUnits*100):0;
 
   document.getElementById('s-pnl').textContent=(pnl>=0?'+':'')+'$'+Math.abs(pnl).toFixed(2);
@@ -2735,7 +2736,15 @@ function updAnalytics(){
   }
 }
 
-function notify(icon,text,type){document.getElementById('ni').textContent=icon;document.getElementById('nt').textContent=text;var el=document.getElementById('notif');el.className='notif show '+type;setTimeout(function(){el.className='notif';},3500);}
+function notify(icon,text,type){
+  // Only show: errors, trade placed, win/loss result, connection, SL/TP stops
+  if(type==='info')return; // suppress all info toasts
+  document.getElementById('ni').textContent=icon;
+  document.getElementById('nt').textContent=text;
+  var el=document.getElementById('notif');
+  el.className='notif show '+type;
+  setTimeout(function(){el.className='notif';},3500);
+}
 function openMo(){document.getElementById('mo').classList.add('open');}
 function closeMo(){document.getElementById('mo').classList.remove('open');}
 function toggleAI(){document.getElementById('aip').classList.toggle('open');}
