@@ -754,7 +754,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
       <!-- HISTORY -->
       <div class="page" id="page-history">
         <div class="sr" style="margin-bottom:12px"><div class="sc g"><div class="sl">Net P&L</div><div class="sv g" id="h-pnl">$0.00</div></div><div class="sc b"><div class="sl">Total</div><div class="sv b" id="h-tot">0</div></div><div class="sc go"><div class="sl">Win Rate</div><div class="sv go" id="h-wr">0%</div></div><div class="sc r"><div class="sl">Avg P&L</div><div class="sv" id="h-avg">$0.00</div></div></div>
-        <div class="card"><div class="ch"><div class="ct">All Trades</div><div style="display:flex;gap:5px"><button class="btn btng" style="font-size:11px;padding:3px 9px;background:var(--ad);color:var(--ac)" onclick="filtH('all',this)">All</button><button class="btn btng" style="font-size:11px;padding:3px 9px" onclick="filtH('win',this)">Wins</button><button class="btn btng" style="font-size:11px;padding:3px 9px" onclick="filtH('loss',this)">Losses</button></div></div><div class="cb" id="histList"><div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No history yet.</div></div></div>
+        <div class="card"><div class="ch"><div class="ct">All Trades</div><div style="display:flex;gap:5px"><button class="btn btng" style="font-size:11px;padding:3px 9px;background:var(--ad);color:var(--ac)" onclick="filtH('all',this)">All</button><button class="btn btng" style="font-size:11px;padding:3px 9px" onclick="filtH('win',this)">Wins</button><button class="btn btng" style="font-size:11px;padding:3px 9px" onclick="filtH('loss',this)">Losses</button><button class="btn btng" style="font-size:11px;padding:3px 9px;background:var(--rd);color:var(--re);border-color:var(--re)" onclick="clearLog()">Clear Log</button></div></div><div class="cb" id="histList"><div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No history yet.</div></div></div>
       </div>
 
       <!-- JOURNAL -->
@@ -2513,6 +2513,19 @@ function renderJournal(filter){
 
 function filtJ(f,el){['jfAll','jfWin','jfLoss'].forEach(function(id){var b=document.getElementById(id);b.style.background='';b.style.color='';});el.style.background='var(--ad)';el.style.color='var(--ac)';renderJournal(f);}
 function saveNote(tid){var el=document.getElementById('note_'+tid);if(!el)return;S.notes[tid]=el.value;localStorage.setItem('kevoai_notes',JSON.stringify(S.notes));notify('OK','Note saved!','info');}
+
+function clearLog(){
+  if(!confirm('Clear all trade history? This cannot be undone.'))return;
+  S.trades=[];S.notes={};
+  HB.rounds=0;HB.won=0;HB.lost=0;HB.pnl=0;HB.history=[];HB.lossStreak=0;HB.bestRound=0;HB.worstRound=0;
+  DG.profit=0;DG.trades=0;DG.wins=0;DG.losses=0;
+  ['kevoai_trades','kevoai_notes','kevoai_dg_trades','kevoai_dg_wins','kevoai_dg_losses','kevoai_dg_profit','kevoai_start_bal','kevoai_start_date'].forEach(function(k){localStorage.removeItem(k);});
+  S.startingBalance=null;
+  updateStats();renderTrades();renderActive();renderJournal('all');
+  if(typeof updHBStats==='function')updHBStats();
+  if(typeof saveDG==='function')saveDG();
+  notify('OK','Trade log cleared — fresh start!','win');
+}
 function exportJournal(){
   var done=S.trades.filter(function(t){return t.status!=='active';});
   if(!done.length){notify('!','No trades to export','info');return;}
