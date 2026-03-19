@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KevoAI v7</title>
+<title>KevoAI</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg0:#070a0f;--bg1:#0c1018;--bg2:#111622;--bg3:#181f2e;--bg4:#1e2738;--bo:rgba(255,255,255,0.07);--bo2:rgba(255,255,255,0.13);--ac:#00e5a0;--ac2:#00b87a;--ad:rgba(0,229,160,0.12);--re:#ff4d6a;--rd:rgba(255,77,106,0.12);--bl:#3b82f6;--bd:rgba(59,130,246,0.12);--go:#f5a623;--gd:rgba(245,166,35,0.12);--t1:#f0f4ff;--t2:#8892a4;--t3:#4a5568;--fn:'Syne',sans-serif;--mo:'JetBrains Mono',monospace;--r:12px;--rs:8px;--sw:224px}
@@ -274,7 +274,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
       <div class="ns">Analysis</div>
       <div class="ni" onclick="showPage('history',this)">Trade History</div>
       <div class="ni" onclick="showPage('journal',this)">Journal</div>
-      <div class="ni" onclick="showPage('janalysis',this)">Journal Analysis</div>
       <div class="ni" onclick="showPage('analytics',this)">Analytics</div>
       <div class="ns">System</div>
       <div class="ni" onclick="showPage('settings',this)">Settings</div>
@@ -461,14 +460,14 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         <div class="hybrid-header" style="margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
             <div>
-              <div style="font-size:16px;font-weight:800;color:var(--ac)">WinWin Volatility Bot</div>
-              <div style="font-size:12px;color:var(--t2);margin-top:3px">EXPIRYRANGE ±0.35 — HIGHER + LOWER — wins if price stays inside</div>
+              <div style="font-size:16px;font-weight:800;color:var(--ac)">WinWin Bot — Ends Outside + Ends Between</div>
+              <div style="font-size:12px;color:var(--t2);margin-top:3px">Same barrier both sides — one ALWAYS wins — profit depends on which pays more</div>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(0,229,160,0.15);color:var(--ac)">Ends Between</span>
-              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(59,130,246,0.15);color:var(--bl)">±0.35 Offset</span>
-              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(245,166,35,0.15);color:var(--go)">Volatility Gated</span>
-              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(255,77,106,0.15);color:var(--re)">Fewer Better Trades</span>
+              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(0,229,160,0.15);color:var(--ac)">2 Trades/Round</span>
+              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(59,130,246,0.15);color:var(--bl)">One Always Wins</span>
+              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(245,166,35,0.15);color:var(--go)">226%+ Payout Target</span>
+              <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(255,77,106,0.15);color:var(--re)">Low Volatility Entry</span>
             </div>
           </div>
         </div>
@@ -491,32 +490,53 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <div style="background:var(--bg3);border-radius:var(--rs);padding:9px 12px;border:1px solid var(--bo);font-size:12px;font-weight:600;min-height:38px" id="sig-status">Start bot to see signals...</div>
             </div>
 
-            <!-- Live Chart with barrier lines - fixed height -->
-            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
-              <div style="padding:8px 12px;border-bottom:1px solid var(--bo);display:flex;align-items:center;gap:8px">
-                <span style="font-size:12px;font-weight:700" id="ww-chart-lbl">R_100</span>
-                <span style="font-size:11px;color:var(--ac);font-family:var(--mo);font-weight:700" id="ww-chart-price">--</span>
-                <span style="flex:1"></span>
+            <!-- Live barrier info — lines drawn on main Dashboard chart -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:10px 14px;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+                <span style="font-size:12px;font-weight:700">📊 Live Price</span>
+                <span style="font-size:13px;font-weight:700;color:var(--ac);font-family:var(--mo)" id="ww-chart-price">--</span>
+                <span id="ww-chart-lbl" style="font-size:10px;color:var(--t3);font-family:var(--mo)">R_100</span>
                 <span style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="ww-chart-atr">ATR: --</span>
                 <span style="font-size:10px;padding:2px 7px;border-radius:99px;font-weight:700;background:var(--bg4);color:var(--t3)" id="ww-chart-vol-badge">VOL: --</span>
+                <span style="flex:1"></span>
+                <span style="font-size:10px;color:var(--t2)">Entry + barriers drawn on
+                  <span style="color:var(--ac);cursor:pointer;font-weight:700" onclick="showPage('dashboard',document.querySelector('.ni'))">Dashboard chart ↗</span>
+                </span>
               </div>
-              <div style="position:relative;height:180px;width:100%">
-                <canvas id="wwChart" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas>
-              </div>
-              <div style="padding:6px 12px;border-top:1px solid var(--bo);display:flex;gap:8px;flex-wrap:wrap;font-size:10px;font-family:var(--mo)" id="ww-barrier-legend">
+              <div style="padding:7px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);font-size:10px;font-family:var(--mo);display:flex;gap:12px;flex-wrap:wrap;align-items:center;min-height:30px" id="ww-barrier-legend">
                 <span style="color:var(--t3)">No active round — waiting for signal</span>
               </div>
             </div>
 
-            <!-- 8 Trade breakdown -->
+
+            <!-- Trade Preview -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
-              <div style="font-size:12px;font-weight:700;margin-bottom:8px">4 EXPIRYRANGE Contracts — all ±0.35 (Ends Between)</div>
-              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:6px" id="trade-breakdown-h"></div>
-              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px" id="trade-breakdown-l"></div>
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:9px;padding-top:8px;border-top:1px solid var(--bo)">
-                <span style="font-size:11px;color:var(--t2)">Total Stake:</span>
+              <div style="font-size:12px;font-weight:700;margin-bottom:10px">↕ This Round — Same Barrier Both Sides</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+                <!-- ENDS OUTSIDE -->
+                <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.25);border-radius:var(--rs);padding:10px" id="trade-breakdown-h">
+                  <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:4px">ENDS OUTSIDE ↗↙</div>
+                  <div style="font-size:11px;color:var(--t2);margin-bottom:3px">Wins if price exits barrier</div>
+                  <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="eo-barrier">±0.00</div>
+                  <div style="font-size:11px;color:var(--t2);margin-top:3px">Stake: <span style="color:var(--t1);font-weight:700" id="eo-stake">$0.00</span></div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:2px">Target payout: <span style="color:var(--ac)" id="eo-payout">~226%</span></div>
+                </div>
+                <!-- ENDS BETWEEN -->
+                <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.25);border-radius:var(--rs);padding:10px" id="trade-breakdown-l">
+                  <div style="font-size:10px;color:var(--bl);font-weight:700;margin-bottom:4px">ENDS BETWEEN ↔</div>
+                  <div style="font-size:11px;color:var(--t2);margin-bottom:3px">Wins if price stays inside</div>
+                  <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--bl)" id="eb-barrier">±0.00</div>
+                  <div style="font-size:11px;color:var(--t2);margin-top:3px">Stake: <span style="color:var(--t1);font-weight:700" id="eb-stake">$0.00</span></div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:2px">Payout varies by range</div>
+                </div>
+              </div>
+              <div style="background:rgba(0,229,160,0.05);border:1px solid rgba(0,229,160,0.15);border-radius:var(--rs);padding:8px 10px;font-size:11px;color:var(--t2)">
+                ✅ <strong style="color:var(--t1)">One always wins.</strong> If ENDS OUTSIDE pays 226%+ → net profit regardless of direction.
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--bo)">
+                <span style="font-size:11px;color:var(--t2)">Total Risk:</span>
                 <span style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--t1)" id="ww-total-stake">$0.00</span>
-                <span style="font-size:11px;color:var(--t2)">Best case win:</span>
+                <span style="font-size:11px;color:var(--t2)">If Outside wins:</span>
                 <span style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="ww-best-win">+$0.00</span>
               </div>
             </div>
@@ -536,7 +556,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             </div>
 
             <!-- Place Button -->
-            <button class="place-all-btn" id="placeAllBtn" onclick="placeHybridRound()">↕ PLACE 2 TRADES</button>
+            <button class="place-all-btn" id="placeAllBtn" onclick="placeHybridRound()">↕ PLACE ROUND — OUTSIDE + BETWEEN</button>
 
             <!-- Daily Progress -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
@@ -618,11 +638,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Duration (Ticks)</div>
                   <div class="dr"><div class="db" onclick="HB.ticks=1;setHBActive(this)">1T</div><div class="db" onclick="HB.ticks=3;setHBActive(this)">3T</div><div class="db active" onclick="HB.ticks=5;setHBActive(this)">5T</div><div class="db" onclick="HB.ticks=8;setHBActive(this)">8T</div><div class="db" onclick="HB.ticks=10;setHBActive(this)">10T</div></div>
-                </div>
-                <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Active Band (barrier offset)</div>
-                  <div class="dr"><div class="db active" onclick="HB.activeBandIdx=0;setHBActive(this);updateBarrierPreview()">±0.35</div><div class="db" onclick="HB.activeBandIdx=1;setHBActive(this);updateBarrierPreview()">±0.25</div><div class="db" onclick="HB.activeBandIdx=2;setHBActive(this);updateBarrierPreview()">±0.50</div><div class="db" onclick="HB.activeBandIdx=3;setHBActive(this);updateBarrierPreview()">±0.06</div></div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">His exact setting: ±0.35. All 4 barriers identical — scales stake not diversifies.</div>
                 </div>
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Min Signal Score to Trade</div>
@@ -745,15 +760,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           </div>
         </div>
         <div id="journalList"><div style="text-align:center;padding:32px;color:var(--t3);font-size:12px">No trades yet.</div></div>
-      </div>
-
-      <!-- JOURNAL ANALYSIS -->
-      <div class="page" id="page-janalysis">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <div style="font-size:14px;font-weight:700">Journal Analysis <span style="font-size:11px;color:var(--t2);font-weight:400">— data-driven edge finder</span></div>
-          <button class="btn btnp" style="font-size:11px;padding:5px 12px" onclick="runJournalAnalysis()">Refresh Analysis</button>
-        </div>
-        <div id="ja-content"><div style="text-align:center;padding:40px;color:var(--t3);font-size:12px">Run at least 5 WinWin rounds then click Refresh Analysis.</div></div>
       </div>
 
       <!-- ANALYTICS -->
@@ -906,41 +912,6 @@ function subAllPrices() { for(var g in INSTR) INSTR[g].forEach(function(i){ subP
 function subPrice(sym) { wsSend({ticks:sym, subscribe:1}); }
 setInterval(function(){ if(S.ws&&S.ws.readyState===1) wsSend({ping:1}); }, 30000);
 
-// ── Global HB watchdog — clears stuck pending rounds every 15s ──
-setInterval(function(){
-  var now=Date.now();
-  Object.keys(HB.pending).forEach(function(rid){
-    var r=HB.pending[rid];
-    if(!r._placedAt)r._placedAt=now;
-    if(now-r._placedAt>25000){ // 25s timeout
-      var expected=r.expectedCount||4;
-      var filled=0;
-      var missing=expected-r.results.length;
-      for(var _si=0;_si<missing;_si++){
-        r.results.push({profit:0,win:false,exitPrice:0,direction:'TIMEOUT'});
-        filled++;
-      }
-      if(filled>0){
-        onHBResult(parseInt(rid),0,0,'WATCHDOG',0);
-        console.warn('HB watchdog cleared round '+rid+' ('+filled+' slots forced)');
-      }
-    }
-  });
-  // Also clear S.activeTrades that are HB and older than 25s
-  var stale=S.activeTrades.filter(function(t){return t.isHB&&(now-(t.startTime||now))>25000;});
-  if(stale.length>0){
-    stale.forEach(function(t){
-      S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!==t.contractId;});
-      for(var i=0;i<S.trades.length;i++){
-        if(S.trades[i].contractId===t.contractId&&S.trades[i].status==='active'){
-          S.trades[i].status='timeout';S.trades[i].pnl=0;break;
-        }
-      }
-    });
-    updateStats();renderActive();
-  }
-},15000);
-
 // Poll active trades
 setInterval(function(){
   if(!S.activeTrades.length) return;
@@ -960,21 +931,10 @@ function handleMsg(d) {
     if(code==='ProposalOpenContractDoesNotExist') { wsSend({balance:1}); return; }
     if(code==='InvalidToken'||code==='AuthorizationRequired') {
       notify('X','Invalid token: '+msg,'loss'); updateConnUI(false);
-    } else if(code==='ContractBuyValidationError'||code==='ContractCreationFailure'||code==='OfferingsValidationError'||code==='InputValidationFailed'||code==='ParameterNotAllowed') {
-      // Show FULL error so we know exactly what Deriv rejected
-      notify('BUY ERR', code+': '+msg, 'loss');
-      console.error('DERIV BUY ERROR:', code, msg, d);
-      if(d.req_id&&S.pending[d.req_id]){
-        var _fp=S.pending[d.req_id];
-        if(_fp.isHB&&_fp.hbRound!=null){
-          if(HB.pending[_fp.hbRound]){HB.pending[_fp.hbRound].results.push({profit:0,win:false,exitPrice:0,direction:'BUY_ERROR'});if(HB.pending[_fp.hbRound].results.length>=(HB.pending[_fp.hbRound].expectedCount||4))onHBResult(_fp.hbRound,-1,0,'BUY_ERROR',0);}
-        }
-        delete S.pending[d.req_id];
-      }
+    } else if(code==='ContractBuyValidationError'||code==='ContractCreationFailure') {
+      notify('Error', msg, 'loss');
     } else {
-      // Show ALL other errors too — nothing hidden
-      notify('ERR', code+': '+msg, 'loss');
-      console.warn('Deriv error:', code, msg, d);
+      console.warn('Deriv error:', code, msg);
     }
     return;
   }
@@ -1014,8 +974,6 @@ function onAuth(a) {
   setTimeout(function(){ wsSend({balance:1}); },1500);
   if(a.balance!==undefined) onBalance({balance:a.balance,currency:a.currency});
   notify('Connected!',a.loginid+(isVirtual?' (DEMO)':' (REAL)'),'win');
-  // Re-init WW chart now that ticks will start arriving
-  setTimeout(function(){initWWChart();},2000);
 }
 
 function onBalance(b) {
@@ -1099,70 +1057,88 @@ function onTick(tick) {
       updateMovesGrid();
     }
   }
-  if(sym===S.asset) {
+  // Update main price chart — either dashboard asset OR HB asset when barriers active
+  var isChartAsset = sym===S.asset || (sym===HB.asset && wwActiveBarrier);
+  if(isChartAsset) {
     var dp=q.toFixed(q>100?2:5);
-    document.getElementById('livePrice').textContent=dp;
-    document.getElementById('mktP').textContent=dp;
-    S.priceHist.push(q);
-    if(S.priceHist.length>120) S.priceHist.shift();
-    if(priceChart) {
-      priceChart.data.labels=S.priceHist.map(function(){return '';});
-      priceChart.data.datasets[0].data=S.priceHist.slice();
-      priceChart.update('none');
+    // If HB asset is different from S.asset, temporarily update chart with HB prices
+    if(sym===HB.asset && wwActiveBarrier && sym!==S.asset){
+      // Use HB price history for chart when barriers are active
+      if(!S.priceHistHB) S.priceHistHB=[];
+      S.priceHistHB.push(q);
+      if(S.priceHistHB.length>120) S.priceHistHB.shift();
+      if(priceChart){
+        priceChart.data.labels=S.priceHistHB.map(function(){return '';});
+        priceChart.data.datasets[0].data=S.priceHistHB.slice();
+        priceChart.update('none');
+        // Update barrier line lengths
+        var len=S.priceHistHB.length;
+        priceChart.data.datasets.forEach(function(d){
+          if(d._isWWBarrier)d.data=Array(len).fill(d.data[0]||0);
+        });
+      }
+      document.getElementById('livePrice').textContent=dp;
+      document.getElementById('mktP').textContent=dp;
+      document.getElementById('chartLbl').textContent=sym;
+    } else if(sym===S.asset){
+      document.getElementById('livePrice').textContent=dp;
+      document.getElementById('mktP').textContent=dp;
+      S.priceHist.push(q);
+      if(S.priceHist.length>120) S.priceHist.shift();
+      if(priceChart) {
+        priceChart.data.labels=S.priceHist.map(function(){return '';});
+        priceChart.data.datasets[0].data=S.priceHist.slice();
+        priceChart.update('none');
+      }
     }
-  }
-  // WW chart — exact same pattern as working priceChart
-  if(sym===HB.asset){
-    wwPriceHist.push(q);
-    if(wwPriceHist.length>120)wwPriceHist.shift();
-    if(wwChart){
-      drawWWChart(q);
-    }
-    var wp=document.getElementById('ww-chart-price');
-    if(wp)wp.textContent=q.toFixed(q>100?2:4);
   }
 }
 
 function onTickWrapper(tick){
   updateIndicators(tick.symbol,tick.quote);
-  onTick(tick); // onTick handles wwPriceHist + chart draw for HB.asset
+  onTick(tick);
+  // Keep WW barrier lines in sync with main chart data length
   if(tick.symbol===HB.asset){
-    // Update ATR display from indicator engine
-    var ind=getInd(HB.asset);
-    if(ind.prices.length>=6){
-      var ca=document.getElementById('ww-chart-atr');
-      var atr=getATR();
-      if(ca&&atr>0)ca.textContent='ATR:'+atr.toFixed(4);
+    updateWWBarrierLengths();
+    updateWWPriceDisplay(tick.symbol,tick.quote);
+    // Update ATR display if on WW page
+    var page=document.getElementById('page-barrier');
+    if(page&&page.classList.contains('active')){
+      var ind=getInd(HB.asset);
+      if(ind.prices.length>=14){
+        var p=ind.prices,n=p.length,atr=0;
+        for(var i=n-14;i<n;i++)atr+=Math.abs(p[i]-p[i-1]);
+        atr=atr/14;
+        var ca=document.getElementById('ww-chart-atr');if(ca)ca.textContent='ATR:'+atr.toFixed(4);
+      }
     }
   }
 }
 
-// WW chart draw — EXACT same logic as working priceChart
+// Direct chart draw — no complex throttle, just update on every tick
+var wwLastDraw=0;
 function drawWWChart(price){
   if(!wwChart)return;
-  // Exact copy of working priceChart update pattern
-  wwChart.data.labels=wwPriceHist.map(function(){return '';});
-  wwChart.data.datasets[0].data=wwPriceHist.slice();
-  // Barrier datasets — only rebuild when dirty
-  if(wwBarriersDirty){
-    while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
-    wwBarrierLines.forEach(function(bl){
-      wwChart.data.datasets.push({
-        label:bl.label,data:Array(wwPriceHist.length).fill(bl.price),
-        borderColor:bl.color,borderWidth:bl.isMain?2:1.5,
-        borderDash:[6,4],pointRadius:0,fill:false,tension:0
-      });
+  var now=Date.now();
+  if(now-wwLastDraw<250)return; // max 4 updates/sec — enough to look live
+  wwLastDraw=now;
+  var ind=getInd(HB.asset);
+  var data=ind.prices.slice(-80); // last 80 prices
+  if(!data.length)return;
+  var len=data.length;
+  wwChart.data.labels=data.map(function(){return '';});
+  wwChart.data.datasets[0].data=data;
+  // Barrier lines
+  while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
+  wwBarrierLines.forEach(function(bl){
+    wwChart.data.datasets.push({
+      label:bl.label,data:Array(len).fill(bl.price),
+      borderColor:bl.color,borderWidth:3,
+      borderDash:[8,4],pointRadius:0,fill:false,tension:0
     });
-    wwBarriersDirty=false;
-  } else {
-    for(var _i=1;_i<wwChart.data.datasets.length;_i++){
-      var ds=wwChart.data.datasets[_i];
-      if(ds.data.length!==wwPriceHist.length){
-        ds.data=Array(wwPriceHist.length).fill(ds.data[0]||0);
-      }
-    }
-  }
+  });
   wwChart.update('none');
+  // Update price display
   var ep=document.getElementById('ww-chart-price');
   if(ep)ep.textContent=price.toFixed(price>100?2:4);
 }
@@ -1200,7 +1176,7 @@ function onBuy(buy, reqId) {
       for(var i=0;i<S.trades.length;i++){
         if(S.trades[i].contractId===_cid&&S.trades[i].status==='active'){
           S.trades[i].status='timeout';S.trades[i].pnl=0;
-          if(S.trades[i].isHB&&S.trades[i].hbRound){var _pr=HB.pending[S.trades[i].hbRound];if(_pr&&_pr.results.length<(_pr.expectedCount||4)){_pr.results.push({profit:0,win:false,exitPrice:0,direction:'POLL_TIMEOUT'});}if(_pr&&_pr.results.length>=(_pr.expectedCount||4))onHBResult(S.trades[i].hbRound,-1,0,'POLL_TIMEOUT',0);}
+          if(S.trades[i].isHB&&S.trades[i].hbRound) onHBResult(S.trades[i].hbRound,S.trades[i].hbIdx,0,S.trades[i].direction);
           break;
         }
       }
@@ -1232,7 +1208,7 @@ function onContract(c) {
   // Route to Hybrid Bot — individual trade result
   // onHBResult batches all 8, so skip individual DG/balance updates
   if(t.isHB&&t.hbRound!==null) {
-    onHBResult(t.hbRound, t.hbIdx, profit, t.direction, t.exitPrice);
+    onHBResult(t.hbRound, t.hbIdx, profit, t.direction);
     // Don't fall through to the balance/stats updates below — onHBResult handles them
     localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
     return;
@@ -1272,38 +1248,28 @@ function fmtDur(ms){if(!ms||ms<0)return '--';var s=Math.floor(ms/1000);if(s<60)r
 // ══════════════════════════════════════
 
 // ══════════════════════════════════════════════════════════════════
-// WINWIN BOT — EXACT REVERSE ENGINEER OF TARGET
-// Contract: EXPIRYRANGE (Ends Between / Stays Between)
-// Win condition: exit price stays INSIDE [low_barrier, high_barrier]
-// Barriers: fixed offset ±0.06 (his exact setting from screenshot)
-// Both sides: places HIGHER & LOWER simultaneously each round
-// Signal: LOW volatility / BB squeeze = price compressed = stays inside
+// WINWIN BOT — 2 contracts, equal split, ATR×1.0 barrier
+// Only lose if price is FLAT. Any move = profit.
+// Display: WIN side + LOSS side + BOTH MISS (if flat)
 // ══════════════════════════════════════════════════════════════════
 
 const HB = {
   running:false, interval:null,
-  asset:'R_100', ticks:5, minScore:4, minGap:30,
+  asset:'R_100', ticks:5, minScore:3, minGap:45,
   useCooldown:true,
   rounds:0, won:0, lost:0, pnl:0,
   bestRound:0, worstRound:0,
   history:[], pending:{}, roundId:0,
   lastRoundTime:0, countdownTimer:null,
   lossStreak:0, coolingDown:false, cooldownEnd:0,
-  prevBBWidth:0, bbWidthHistory:[],
-  // Fixed barrier offsets — his exact ±0.06 from screenshot
-  // 4 bands: tight=0.06, mid=0.12, far=0.25, wide=0.50
-  barrierOffsets:[0.35, 0.35, 0.35, 0.35],
-  barrierLabels:['B1 ±0.35','B2 ±0.35','B3 ±0.35','B4 ±0.35'],
-  activeBandIdx:0  // 0=tight(±0.06), 1=mid, 2=far, 3=wide — matches his ±0.06 default
+  lastSqueezeTime:0, prevBBWidth:0,
+  barrierMult:1.0  // ATR × mult = barrier distance
 };
 
-// ── Stake: split risk across 4 contracts (his exact 4-barrier setup) ──
-// He places 4 identical EXPIRYRANGE contracts, all ±0.35
-// Each contract = risk ÷ 4
+// ── Stakes: equal split both sides ───────────────────────────────
 function getSideStake(){
   var risk=parseFloat(document.getElementById('ww-risk').value)||10;
-  var raw=Math.floor((risk/4)*100)/100;
-  return Math.max(0.35, raw);
+  return Math.max(0.35,parseFloat((risk/2).toFixed(2)));
 }
 
 // ── Risk Calculator ───────────────────────────────────────────────
@@ -1312,66 +1278,58 @@ function calcWWDaily(){
   var risk=parseFloat(document.getElementById('ww-risk').value)||10;
   var sl  =parseFloat(document.getElementById('ww-daily-sl').value)||30;
   var tp  =parseFloat(document.getElementById('ww-daily-tp').value)||60;
-  var perSide=Math.max(0.35,Math.floor((risk/4)*100)/100);
-  var total=parseFloat((perSide*4).toFixed(2));
-  // EXPIRYRANGE payout on tight barriers ≈ 180-220% (Deriv prices based on probability)
-  // His ±0.06 on R_100 at 5 ticks — approx 50-55% chance of staying inside
-  var payoutEst=1.95; // ~195% — between $1 and $2 profit on a $1 stake
-  var netWin=parseFloat((perSide*payoutEst - perSide).toFixed(2));
-  var netLoss=-total;
+  var side=Math.max(0.35,parseFloat((risk/2).toFixed(2)));
+  var total=parseFloat((side*2).toFixed(2));
+
+  // ENDS OUTSIDE target payout: ~226% total return = +126% profit on stake
+  // Net per round = (side × 2.26) - side - side = side × 0.26
+  var netPerWin=parseFloat((side*1.26).toFixed(2));
+  // If ENDS BETWEEN wins (flat): higher payout ~300-400% but rare
+  var netFlat=parseFloat((side*3.0-side).toFixed(2));
   var maxRounds=Math.floor(sl/total);
-  var winsNeeded=netWin>0?Math.ceil(tp/netWin):999;
+  var winsNeeded=netPerWin>0?Math.ceil(tp/netPerWin):999;
+
   var el=document.getElementById('ww-progress-target');if(el)el.textContent='$'+tp;
   var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=total.toFixed(2);
-  var curPrice=S.prices[HB.asset]||0;
-  var offset=HB.barrierOffsets[0]||0.35;
-  var hiLive=curPrice>0?(curPrice+offset).toFixed(2):('entry+'+offset);
-  var loLive=curPrice>0?(curPrice-offset).toFixed(2):('entry-'+offset);
-  var math='4 × EXPIRYRANGE contracts per round (his exact setup):\n'
-    +'  Per contract: $'+perSide.toFixed(2)+'\n'
-    +'  Total at risk: $'+total.toFixed(2)+'\n\n'
-    +'Contract type: EXPIRYRANGE (Ends Between)\n'
-    +'Win condition: exit price STAYS INSIDE band at expiry tick\n'
-    +'Barrier: ±'+offset+' offset from entry price\n'
-    +'  High barrier: '+hiLive+'\n'
-    +'  Low barrier:  '+loLive+'\n\n'
-    +'All 4 contracts: identical — they all win or all lose together\n\n'
-    +'Est. payout if ALL WIN (~200%): +$'+( perSide*4*0.95).toFixed(2)+'\n'
-    +'Loss if ALL LOSE: -$'+total.toFixed(2)+'\n\n'
-    +'Break-even win rate: ~50%\n'
-    +'His edge: signal filter pushes WR above 50%\n'
-    +'At 53% WR: +$'+((perSide*4*0.95)*0.53 - total*0.47).toFixed(2)+' expected per round\n'
+
+  var math='ENDS OUTSIDE + ENDS BETWEEN\n'
+    +'Same barrier — one ALWAYS wins\n\n'
+    +'Stake each side: $'+side.toFixed(2)+'\n'
+    +'Total risk: $'+total.toFixed(2)+'\n\n'
+    +'If ENDS OUTSIDE wins (price moves):\n'
+    +'  Payout ~226% = +$'+(side*2.26).toFixed(2)+'\n'
+    +'  Minus losing side: -$'+side.toFixed(2)+'\n'
+    +'  Net profit: +$'+netPerWin.toFixed(2)+'\n\n'
+    +'If ENDS BETWEEN wins (price flat):\n'
+    +'  Payout ~300% = +$'+(side*3.0).toFixed(2)+'\n'
+    +'  Minus losing side: -$'+side.toFixed(2)+'\n'
+    +'  Net profit: +$'+netFlat.toFixed(2)+'\n\n'
     +'Max rounds before $'+sl+' SL: '+maxRounds+'\n'
-    +'Wins needed for $'+tp+' target: ~'+winsNeeded;
+    +'Rounds to hit $'+tp+' target: ~'+winsNeeded;
+
   var mel=document.getElementById('ww-calc-math');if(mel)mel.textContent=math;
   updateBarrierPreview();
 }
 
-// ── Build barrier offset inputs (4 fixed bands) ──────────────────
+// ── Barrier input ─────────────────────────────────────────────────
 function buildMultInputs(){
   var hDiv=document.getElementById('h-mult-inputs');
   var lDiv=document.getElementById('l-mult-inputs');
-  var sides=[{div:hDiv,col:'var(--ac)',prefix:'H'},{div:lDiv,col:'var(--re)',prefix:'L'}];
-  sides.forEach(function(s){
-    if(!s.div)return;
-    var html='';
-    HB.barrierOffsets.forEach(function(b,i){
-      html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'
-        +'<span style="font-size:10px;font-weight:700;width:28px;color:'+s.col+'">'+s.prefix+(i+1)+'</span>'
-        +'<input type="number" style="width:58px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 6px;color:var(--t1);font-family:var(--mo);font-size:12px;outline:none" '
-        +'id="bo'+i+'" value="'+b+'" step="0.01" min="0.01" oninput="HB.barrierOffsets['+i+']=parseFloat(this.value)||'+b+';updateBarrierPreview()">'
-        +'<span style="font-size:9px;color:var(--t3)">offset</span>'
-        +'</div>';
-    });
-    s.div.innerHTML=html;
-  });
+  var inputHtml='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
+    +'<span style="font-size:11px;color:var(--ac);font-weight:700;width:60px">Barrier</span>'
+    +'<span style="font-size:10px;color:var(--t3)">&times; ATR</span>'
+    +'<input type="number" style="width:60px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:var(--mo);font-size:12px;outline:none" id="hm0" value="'+HB.barrierMult+'" step="0.1" min="0.1" oninput="HB.barrierMult=parseFloat(this.value)||1.0;syncBarrierMult(this.value);updateBarrierPreview()">'
+    +'<span style="font-size:10px;color:var(--t3)">both sides mirror</span></div>';
+  if(hDiv)hDiv.innerHTML=inputHtml.replace('color:var(--ac)','color:var(--ac)').replace('hm0','hm0');
+  if(lDiv)lDiv.innerHTML='<div style="font-size:10px;color:var(--t3);padding:4px 0">L1 mirrors H1 automatically — same barrier both sides</div>'
+    +'<input type="hidden" id="lm0" value="'+HB.barrierMult+'">';
 }
 
-function resetBarrierMults(){
-  HB.barrierOffsets=[0.35,0.35,0.35,0.35];
-  buildMultInputs();updateBarrierPreview();
-  notify('OK','Barriers reset to his exact setup (±0.35 × 4)','info');
+function syncBarrierMult(v){
+  var h=document.getElementById('hm0'),l=document.getElementById('lm0');
+  if(h)h.value=v;if(l)l.value=v;
 }
+function resetBarrierMults(){HB.barrierMult=1.0;syncBarrierMult('1.0');updateBarrierPreview();}
 
 function getATR(){
   var ind=getInd(HB.asset),p=ind.prices,n=p.length;
@@ -1381,224 +1339,107 @@ function getATR(){
   return atr/len;
 }
 
-// Returns the active barrier offset for this round
-// He uses band 1 (±0.06) as primary — selectable via UI
-function getActiveBarrier(){
-  // Default to band index 0 (tightest = ±0.06)
-  var idx=HB.activeBandIdx||0;
-  return HB.barrierOffsets[idx]||0.06;
-}
-
-function getBands(){
-  return HB.barrierOffsets.slice();
+function getBarrier(){
+  var atr=getATR();if(atr<=0)atr=0.06;
+  return parseFloat((atr*HB.barrierMult).toFixed(2));
 }
 
 function updateBarrierPreview(){
-  var offset=getActiveBarrier();
-  var perSide=getSideStake();
-  var total=parseFloat((perSide*2).toFixed(2));
-  var curPrice=S.prices[HB.asset]||0;
+  var b=getBarrier(),side=getSideStake(),total=parseFloat((side*2).toFixed(2));
   var pt=document.getElementById('barrier-preview-txt');
-  if(pt){
-    if(curPrice>0){
-      pt.textContent='HIGHER barrier: '+(curPrice+offset).toFixed(2)+' | LOWER barrier: '+(curPrice-offset).toFixed(2)+' | Band: ±'+offset+' | $'+perSide+'/side | Total: $'+total;
-    } else {
-      pt.textContent='Band: ±'+offset+' | $'+perSide+'/side | Total: $'+total+' (connect to see live prices)';
-    }
-  }
+  if(pt)pt.textContent='Barrier: ±'+b.toFixed(2)+' | ENDS OUTSIDE $'+side+' + ENDS BETWEEN $'+side+' = $'+total+' total';
   var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=total.toFixed(2);
-  renderTradeBreakdown([offset],perSide);
+  renderTradeBreakdown(b,side);
 }
 
-function renderTradeBreakdown(bands,perSide){
-  var hEl=document.getElementById('trade-breakdown-h'),lEl=document.getElementById('trade-breakdown-l');
-  if(!hEl||!lEl)return;
-  var offset=bands[0]||0.35;
-  var curPrice=S.prices[HB.asset]||0;
-  var hiStr=curPrice>0?'+'+(curPrice+offset).toFixed(2):'entry+'+offset;
-  var loStr=curPrice>0?'-'+(curPrice-offset).toFixed(2):'entry-'+offset;
-  // Show 4 identical contracts
-  var html='';
-  for(var _i=0;_i<4;_i++){
-    html+='<div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:6px 8px;text-align:center">'
-      +'<div style="font-size:9px;color:var(--ac);font-weight:700">C'+(_i+1)+' BETWEEN</div>'
-      +'<div style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--t1)">±'+offset+'</div>'
-      +'<div style="font-size:9px;color:var(--t3)">$'+perSide+'</div>'
-      +'<div style="font-size:9px;color:var(--ac)">~200%</div>'
-      +'</div>';
-  }
-  hEl.innerHTML=html;
-  lEl.innerHTML='<div style="font-size:10px;color:var(--t3);padding:5px;grid-column:span 4">All 4 win if exit stays inside ['+loStr+' → '+hiStr+'] • All 4 lose if price exits band</div>';
-  var total=parseFloat((perSide*4).toFixed(2));
+function renderTradeBreakdown(barrier,side){
+  // Update the 2 preview cards
+  var eoB=document.getElementById('eo-barrier'),eoS=document.getElementById('eo-stake');
+  var ebB=document.getElementById('eb-barrier'),ebS=document.getElementById('eb-stake');
+  var eoPay=document.getElementById('eo-payout');
+  if(eoB)eoB.textContent='±'+barrier.toFixed(2);
+  if(eoS)eoS.textContent='$'+side.toFixed(2);
+  if(ebB)ebB.textContent='±'+barrier.toFixed(2);
+  if(ebS)ebS.textContent='$'+side.toFixed(2);
+  var total=parseFloat((side*2).toFixed(2));
   var ts=document.getElementById('ww-total-stake');if(ts)ts.textContent='$'+total.toFixed(2);
-  var estWin=parseFloat((perSide*4*0.95).toFixed(2));
-  var bw=document.getElementById('ww-best-win');if(bw){bw.textContent='+$'+estWin.toFixed(2);bw.style.color='var(--ac)';}
+  // Best win = ENDS OUTSIDE at 226%
+  var bestWin=parseFloat((side*1.26).toFixed(2));
+  var bw=document.getElementById('ww-best-win');if(bw){bw.textContent='+$'+bestWin.toFixed(2);bw.style.color='var(--ac)';}
+  if(eoPay)eoPay.textContent='~226% (+$'+bestWin.toFixed(2)+' net)';
 }
 
-// ══════════════════════════════════════════════════════════════════
-// WW CHART — EXACT copy of working priceChart pattern
-// ══════════════════════════════════════════════════════════════════
-var wwChart=null,wwPriceHist=[],wwBarrierLines=[],wwBarriersDirty=false,wwLastDraw=0;
-var _wwYmin=null,_wwYmax=null;
-
-function initWWChart(){
-  // wwChart is created in initCharts() — just backfill data and redraw here
-  if(!wwChart)return;
-  wwBarriersDirty=false;
-  _wwYmin=null;_wwYmax=null;
-  // Clear barrier datasets
-  while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
-  wwBarrierLines=[];
-
-  // Backfill price history from indicator engine
-  var ind=getInd(HB.asset);
-  if(ind.prices.length>wwPriceHist.length){
-    wwPriceHist=ind.prices.slice(-120);
-  }
-  var curP=S.prices[HB.asset]||0;
-  if(curP>0&&(!wwPriceHist.length||wwPriceHist[wwPriceHist.length-1]!==curP)){
-    wwPriceHist.push(curP);
-    if(wwPriceHist.length>120)wwPriceHist.shift();
-  }
-  // Draw immediately
-  if(wwPriceHist.length>0)drawWWChart(wwPriceHist[wwPriceHist.length-1]);
-}
-
-function setWWBarrierLines(entry,barriers){
-  wwBarrierLines=barriers||[];
-  wwBarriersDirty=true;
-  var leg=document.getElementById('ww-barrier-legend');
-  if(leg){
-    var html='<span style="color:var(--go);font-weight:700">Entry:'+entry.toFixed(2)+'</span>';
-    barriers.forEach(function(b){html+=' <span style="color:'+b.color.replace(/,[^,)]+\)/g,')')+'">'+b.label+'</span>';});
-    leg.innerHTML=html;
-  }
-  // Force immediate redraw with barrier lines
-  var curP=S.prices[HB.asset]||0;
-  if(wwChart&&curP>0){
-    wwBarriersDirty=true;
-    // Trigger redraw without pushing a new price point
-    wwChart.data.labels=wwPriceHist.map(function(){return '';});
-    wwChart.data.datasets[0].data=wwPriceHist.slice();
-    while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
-    wwBarrierLines.forEach(function(bl){
-      wwChart.data.datasets.push({
-        label:bl.label,data:Array(wwPriceHist.length).fill(bl.price),
-        borderColor:bl.color,borderWidth:bl.isMain?2:1.5,
-        borderDash:[6,4],pointRadius:0,fill:false,tension:0
-      });
-    });
-    wwBarriersDirty=false;
-    wwChart.update('none');
-  }
-}
-
-function forceWWChartUpdate(){
-  if(!wwChart)return;
-  wwChart.update('none');
-}
-
-function clearWWBarrierLines(){
-  wwBarrierLines=[];wwBarriersDirty=false;
-  var leg=document.getElementById('ww-barrier-legend');
-  if(leg)leg.innerHTML='<span style="color:var(--t3)">No active round — waiting for signal</span>';
-  if(wwChart){
-    while(wwChart.data.datasets.length>1)wwChart.data.datasets.pop();
-    wwChart.update('none');
-  }
-}
-
-// ── Signal Engine — REVERSED to match target EXPIRYRANGE logic ───
-// Low vol + BB squeeze + price calm = stays inside band = WIN
+// ── Signal Engine — same 5-signal system, DOM throttled ──────────
 var wwSigThrottle=0;
 function getWWSignal(){
   var ind=getInd(HB.asset),prices=ind.prices,n=prices.length,score=0;
   var now=Date.now(),updateDOM=(now-wwSigThrottle)>1500;if(updateDOM)wwSigThrottle=now;
-  if(n<10){
+  if(n<25){
     if(updateDOM){
       var ss2=document.getElementById('sig-status');
-      if(ss2){ss2.textContent='Warming up... ('+n+'/10 ticks — ~'+(10-n)*2+'s)';ss2.style.color='var(--t3)';}
+      if(ss2){ss2.textContent='Warming up... ('+n+'/25 ticks)';ss2.style.color='var(--t3)';}
       var sb2=document.getElementById('sig-score-badge');
       if(sb2){sb2.textContent='Score: 0/5';sb2.style.background='var(--bg4)';sb2.style.color='var(--t3)';}
     }
     return{score:0,ready:false};
   }
-  // ── S1: ATR low-to-medium (NOT a spike — calm is good for EXPIRYRANGE) ─
-  var atr5=0,atr20=0;
-  var atr5len=Math.min(5,n-1),atr20len=Math.min(20,n-6);
-  if(atr5len>0){for(var i=n-atr5len;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=atr5len;}
-  if(atr20len>0){for(var j=n-atr5len-atr20len;j<n-atr5len;j++)atr20+=Math.abs(prices[j]-prices[j-1]);atr20/=atr20len;}
-  var atrRatio=atr20>0?atr5/atr20:1;
-  var atrOk=atrRatio<2.5;   // block extreme spikes — price will escape the band
-  var atrBest=atrRatio<1.2; // ideal: quiet price = most likely to stay inside
-  if(atrOk)score++;
+  var atr5=0,atr20=0,atrHit=false;
+  for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;
+  for(var j=n-25;j<n-5;j++)atr20+=Math.abs(prices[j]-prices[j-1]);atr20/=20;
+  // For OUTSIDE+BETWEEN we prefer LOW volatility (squeeze) not ATR spike
+  // Low ATR = price coiling = ENDS OUTSIDE will pay more when it breaks out
+  var lowVol=atr5<atr20*1.2;if(lowVol)score++;
   if(updateDOM){
     var ac=document.getElementById('sig-atr-card'),av=document.getElementById('sig-atr-val');
-    if(ac){ac.style.borderColor=atrOk?'var(--ac)':'var(--re)';ac.style.background=atrOk?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.1)';}
-    if(av){av.textContent=atrRatio.toFixed(2)+'x '+(atrBest?'LOW':atrOk?'OK':'HIGH');av.style.color=atrBest?'var(--ac)':atrOk?'var(--go)':'var(--re)';}
+    if(ac){ac.style.borderColor=lowVol?'var(--ac)':'var(--bo)';ac.style.background=lowVol?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(av){av.textContent=atr20>0?(atr5/atr20).toFixed(2)+'x':'--';av.style.color=lowVol?'var(--ac)':'var(--t3)';}
     var vb=document.getElementById('ww-chart-vol-badge');
-    if(vb){vb.textContent='VOL:'+(atrBest?'LOW':atrOk?'MED':'HIGH');vb.style.background=atrBest?'var(--ad)':atrOk?'var(--gd)':'rgba(255,77,106,0.15)';vb.style.color=atrBest?'var(--ac)':atrOk?'var(--go)':'var(--re)';}
+    if(vb){var vr=atr20>0?atr5/atr20:1;vb.textContent='VOL:'+(vr<0.8?'LOW':vr<1.2?'MED':'HIGH');vb.style.background=vr<0.8?'var(--ad)':vr<1.2?'var(--gd)':'var(--bg4)';vb.style.color=vr<0.8?'var(--ac)':vr<1.2?'var(--go)':'var(--t3)';}
     var ca=document.getElementById('ww-chart-atr');if(ca)ca.textContent='ATR:'+atr5.toFixed(4);
   }
-
-  // ── S2: BB Squeeze = price compressed = most likely to stay inside ──
-  if(ind.bbWidth>0){HB.bbWidthHistory=HB.bbWidthHistory||[];HB.bbWidthHistory.push(ind.bbWidth);if(HB.bbWidthHistory.length>50)HB.bbWidthHistory.shift();}
-  var avgBBW=HB.bbWidthHistory&&HB.bbWidthHistory.length>5?HB.bbWidthHistory.reduce(function(s,v){return s+v;},0)/HB.bbWidthHistory.length:ind.bbWidth||0.01;
-  var isSqueeze=ind.bbWidth>0&&ind.bbWidth<avgBBW*0.85;
-  var bbNormal=ind.bbWidth>0&&ind.bbWidth<avgBBW*1.1;
-  if(isSqueeze)score+=2;else if(bbNormal)score++;
+  // BB Squeeze = tight range = ENDS OUTSIDE pays more when it breaks
+  if(ind.bbSqueeze){HB.lastSqueezeTime=now;score+=2;}
   if(updateDOM){
     var bc=document.getElementById('sig-bb-card'),bv=document.getElementById('sig-bb-val');
-    if(bc){bc.style.borderColor=isSqueeze?'var(--ac)':bbNormal?'var(--bo)':'var(--re)';bc.style.background=isSqueeze?'rgba(0,229,160,0.1)':'var(--bg3)';}
-    if(bv){bv.textContent=isSqueeze?'SQUEEZE!':bbNormal?'Normal':'Expanding';bv.style.color=isSqueeze?'var(--ac)':bbNormal?'var(--go)':'var(--re)';}
+    if(bc){bc.style.borderColor=ind.bbSqueeze?'var(--ac)':'var(--bo)';bc.style.background=ind.bbSqueeze?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(bv){bv.textContent=ind.bbSqueeze?'SQUEEZE!':'Normal';bv.style.color=ind.bbSqueeze?'var(--ac)':'var(--t3)';}
   }
-
-  // ── S3: Price near BB midpoint = not at extremes = good ──────────
-  var nearMid=false;
-  if(n>=20&&ind.bbUpper&&ind.bbLower){var mid=(ind.bbUpper+ind.bbLower)/2,bw2=ind.bbUpper-ind.bbLower,curP=prices[n-1];nearMid=bw2>0&&Math.abs(curP-mid)<bw2*0.35;}
-  if(nearMid)score++;
+  var expanding=!ind.bbSqueeze&&HB.lastSqueezeTime>0&&(now-HB.lastSqueezeTime)<20000&&ind.bbWidth>HB.prevBBWidth*1.1;
+  if(expanding)score++;if(ind.bbWidth)HB.prevBBWidth=ind.bbWidth;
   if(updateDOM){
     var ec=document.getElementById('sig-expand-card'),ev=document.getElementById('sig-expand-val');
-    if(ec){ec.style.borderColor=nearMid?'var(--ac)':'var(--bo)';ec.style.background=nearMid?'rgba(0,229,160,0.1)':'var(--bg3)';}
-    if(ev){ev.textContent=nearMid?'CENTERED':'Off-mid';ev.style.color=nearMid?'var(--ac)':'var(--t3)';}
+    if(ec){ec.style.borderColor=expanding?'var(--ac)':'var(--bo)';ec.style.background=expanding?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(ev){ev.textContent=expanding?'EXPANDING!':'Waiting';ev.style.color=expanding?'var(--ac)':'var(--t3)';}
   }
-
-  // ── S4: No momentum burst (flat ticks = not about to break out) ──
-  var noMom=true;
-  if(n>=5){var sz=[];for(var k=n-4;k<n;k++)sz.push(Math.abs(prices[k]-prices[k-1]));if(sz[1]>sz[0]&&sz[2]>sz[1]&&sz[3]>sz[2])noMom=false;}
-  if(noMom)score++;
+  var momBurst=false;
+  if(n>=5){var sz=[];for(var k=n-4;k<n;k++)sz.push(Math.abs(prices[k]-prices[k-1]));if(sz[1]>sz[0]&&sz[2]>sz[1]&&sz[3]>sz[2])momBurst=true;}
+  if(momBurst)score++;
   if(updateDOM){
     var mc=document.getElementById('sig-mom-card'),mv=document.getElementById('sig-mom-val');
-    if(mc){mc.style.borderColor=noMom?'var(--ac)':'var(--re)';mc.style.background=noMom?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.1)';}
-    if(mv){mv.textContent=noMom?'Calm':'BURST!';mv.style.color=noMom?'var(--ac)':'var(--re)';}
+    if(mc){mc.style.borderColor=momBurst?'var(--ac)':'var(--bo)';mc.style.background=momBurst?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(mv){mv.textContent=momBurst?'BURST!':'Flat';mv.style.color=momBurst?'var(--ac)':'var(--t3)';}
   }
-
-  // ── S5: Cooldown / gap clear ──────────────────────────────────────
-  var gapOk=(now-HB.lastRoundTime)>=(HB.minGap||15)*1000,coolOk=!HB.coolingDown||now>HB.cooldownEnd,cdOk=gapOk&&coolOk;
-  var dsecs=Math.max(gapOk?0:Math.ceil(((HB.lastRoundTime+(HB.minGap||15)*1000)-now)/1000),coolOk?0:Math.ceil((HB.cooldownEnd-now)/1000));
+  var gapOk=(now-HB.lastRoundTime)>=(HB.minGap||45)*1000,coolOk=!HB.coolingDown||now>HB.cooldownEnd,cdOk=gapOk&&coolOk;
+  if(cdOk)score++;
+  var dsecs=Math.max(gapOk?0:Math.ceil(((HB.lastRoundTime+(HB.minGap||45)*1000)-now)/1000),coolOk?0:Math.ceil((HB.cooldownEnd-now)/1000));
   if(updateDOM){
     var cdc=document.getElementById('sig-cd-card'),cdv=document.getElementById('sig-cd-val');
     if(cdc){cdc.style.borderColor=cdOk?'var(--ac)':'var(--bo)';cdc.style.background=cdOk?'rgba(0,229,160,0.1)':'var(--bg3)';}
     if(cdv){cdv.textContent=cdOk?'READY':dsecs+'s';cdv.style.color=cdOk?'var(--ac)':'var(--re)';}
-    var minS=HB.minScore;
+    var minS=HB.minScore||3;
     var sb=document.getElementById('sig-score-badge');
     if(sb){sb.textContent='Score: '+score+'/5';sb.style.background=score>=4?'var(--ad)':score>=minS?'var(--gd)':'var(--bg4)';sb.style.color=score>=4?'var(--ac)':score>=minS?'var(--go)':'var(--t3)';sb.style.border='1px solid '+(score>=minS?'rgba(0,229,160,0.3)':'var(--bo)');}
     var ss=document.getElementById('sig-status');
     if(ss){
-      if(!cdOk){ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+dsecs+'s':'Gap: '+dsecs+'s');ss.style.color='var(--go)';}
-      else if(!atrOk){ss.textContent='❌ Too volatile ('+atrRatio.toFixed(2)+'x) — waiting for price to calm';ss.style.color='var(--re)';}
-      else if(score>=HB.minScore&&cdOk){ss.textContent='✅ SETUP — Score '+score+'/5 | '+(isSqueeze?'BB Squeeze':'BB normal')+' | Vol '+(atrBest?'LOW':atrOk?'MED':'')+' | READY TO PLACE';ss.style.color='var(--ac)';}
-      else{ss.textContent='⏳ Waiting ('+score+'/'+HB.minScore+') — need calmer conditions';ss.style.color='var(--t2)';}
+      if(!cdOk){ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+dsecs+'s':'Gap: '+dsecs+'s until ready');ss.style.color='var(--go)';}
+      else if(score>=minS){ss.textContent='✅ SETUP FOUND — Score '+score+'/5 — Placing now...';ss.style.color='var(--ac)';}
+      else{var miss=[];if(!ind.bbSqueeze&&!expanding)miss.push('BB squeeze');if(!momBurst)miss.push('momentum');if(!lowVol)miss.push('low volatility');ss.textContent='⏳ Waiting ('+score+'/'+minS+'): need '+miss.join(', ');ss.style.color='var(--t2)';}
     }
   }
-  // Hard requirement: MUST have BB squeeze or very low ATR (genuine compression)
-  // This is what gives ~75% win rate — only trade when price is genuinely stuck
-  var hasCompression=isSqueeze||atrBest;
-  var meetsScore=score>=HB.minScore;
-  return{score:score,ready:meetsScore&&cdOk&&atrOk&&hasCompression,atrRatio:atrRatio,isSqueeze:isSqueeze};
+  return{score:score,ready:score>=(HB.minScore||3)&&cdOk};
 }
 
-// ── Bot toggle ────────────────────────────────────────────────────
+// ── Bot ───────────────────────────────────────────────────────────
 function toggleHybrid(){
   HB.running=!HB.running;
   document.getElementById('hbSw').classList.toggle('on',HB.running);
@@ -1607,14 +1448,12 @@ function toggleHybrid(){
     var active=S.activeTrades.filter(function(t){return t.isHB;});
     if(active.length>0){notify('!','Wait for current round to settle','loss');HB.running=false;document.getElementById('hbSw').classList.remove('on');return;}
     HB.lossStreak=0;HB.coolingDown=false;
-    var total=parseFloat((getSideStake()*4).toFixed(2));
     document.getElementById('placeAllBtn').textContent='STOP BOT';
     document.getElementById('placeAllBtn').style.background='linear-gradient(135deg,var(--go),#ff8800)';
     runHybridAuto();
   } else {
     clearTimeout(HB.interval);clearInterval(HB.countdownTimer);
-    var total=parseFloat((getSideStake()*4).toFixed(2));
-    document.getElementById('placeAllBtn').textContent='PLACE ROUND ($'+total+' — 4×EXPIRYRANGE)';
+    document.getElementById('placeAllBtn').textContent='↕ PLACE ROUND — OUTSIDE + BETWEEN';
     document.getElementById('placeAllBtn').style.background='linear-gradient(135deg,var(--ac),#00b0ff)';
     document.getElementById('hb-countdown-txt').textContent='Bot stopped';
     document.getElementById('hb-countdown-bar').style.width='0%';
@@ -1628,60 +1467,27 @@ function runHybridAuto(){
   if(HB.pnl<=-dSL){toggleHybrid();notify('STOP','Daily SL hit','loss');return;}
   if(HB.pnl>=dTP){toggleHybrid();notify('TP','Daily target hit!','win');return;}
   if(DG.stopped){toggleHybrid();return;}
-  if(HB.coolingDown&&Date.now()>HB.cooldownEnd){HB.coolingDown=false;HB.lossStreak=0;notify('OK','Cooldown over — scanning for setups','info');}
-
-  // ── Watchdog: force-clear any HB.pending round stuck > 30s ──────
-  var nowWD=Date.now();
-  Object.keys(HB.pending).forEach(function(rid){
-    var r=HB.pending[rid];
-    if(!r._placedAt)r._placedAt=nowWD;
-    if(nowWD-r._placedAt>30000){
-      // Force settle all unsettled slots as $0
-      var expected=r.expectedCount||4;
-      for(var _si=0;_si<expected;_si++){
-        if(!r.results[_si])onHBResult(parseInt(rid),_si,0,'TIMEOUT',0);
-      }
-      notify('TIMEOUT','Round '+rid+' force-cleared after 30s','loss');
-    }
-  });
-
-  // 1 round at a time — hard block
+  if(HB.coolingDown&&Date.now()>HB.cooldownEnd){HB.coolingDown=false;HB.lossStreak=0;notify('OK','Cooldown over','info');}
   var active=S.activeTrades.filter(function(t){return t.isHB;});
   if(active.length>0){
+    // Freeze guard
     var now=Date.now();
-    var maxAge=30000; // 30s — not 60s
-    var stale=active.filter(function(t){return (now-(t.startTime||now))>maxAge;});
+    var stale=active.filter(function(t){return(now-(t.startTime||now))>60000;});
     if(stale.length>0){
       stale.forEach(function(t){
-        if(t.hbRound!==null){
-          onHBResult(t.hbRound,-1,0,t.direction,0);
-        }
+        if(t.hbRound!==null)onHBResult(t.hbRound,t.hbIdx,0,t.direction);
         S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!==t.contractId;});
       });
-      // Also wipe any fully-stuck pending rounds
-      Object.keys(HB.pending).forEach(function(rid){
-        var r=HB.pending[rid];
-        var missing2=(r.expectedCount||4)-r.results.length;
-        for(var _si=0;_si<missing2;_si++){
-          r.results.push({profit:0,win:false,exitPrice:0,direction:'TIMEOUT'});
-        }
-        if(r.results.length>=(r.expectedCount||4))onHBResult(parseInt(rid),-1,0,'TIMEOUT',0);
-      });
-      notify('TIMEOUT','Stale trades cleared — resuming','loss');
+      notify('TIMEOUT','Stale trades cleared','loss');
       HB.interval=setTimeout(runHybridAuto,1000);return;
     }
     document.getElementById('hb-active-count').textContent=active.length+' ACTIVE';
-    document.getElementById('hb-countdown-txt').textContent='Settling '+active.length+' contract(s)...';
+    document.getElementById('hb-countdown-txt').textContent='Settling...';
     HB.interval=setTimeout(runHybridAuto,1000);return;
   }
-
   var sig=getWWSignal();
-  if(!sig.ready){
-    document.getElementById('hb-active-count').textContent='0 ACTIVE';
-    HB.interval=setTimeout(runHybridAuto,2000);return;
-  }
+  if(!sig.ready){document.getElementById('hb-active-count').textContent='0 ACTIVE';HB.interval=setTimeout(runHybridAuto,2000);return;}
   placeHybridRound();
-  // Wait = ticks duration + buffer for settlement
   var waitMs=(HB.ticks*1000)+10000;
   startCountdown(Math.floor(waitMs/1000));
   HB.interval=setTimeout(runHybridAuto,waitMs);
@@ -1693,7 +1499,7 @@ function startCountdown(secs){
   HB.countdownTimer=setInterval(function(){
     rem--;
     var txt=document.getElementById('hb-countdown-txt'),bar=document.getElementById('hb-countdown-bar');
-    if(rem<=0){clearInterval(HB.countdownTimer);if(txt)txt.textContent='Scanning for next setup...';if(bar)bar.style.width='0%';return;}
+    if(rem<=0){clearInterval(HB.countdownTimer);if(txt)txt.textContent='Scanning...';if(bar)bar.style.width='0%';return;}
     if(txt)txt.textContent='Settling: '+rem+'s';if(bar)bar.style.width=((rem/total)*100).toFixed(0)+'%';
   },1000);
 }
@@ -1703,141 +1509,104 @@ function placeHybridRound(){
   if(DG.stopped){notify('STOP','Daily limit hit','loss');return;}
   var active=S.activeTrades.filter(function(t){return t.isHB;});
   if(active.length>0){notify('!','Round already active','loss');return;}
-
-  var perSide=getSideStake();
-  var offset=getActiveBarrier(); // ← was missing — caused ReferenceError crash
-  var entry=S.prices[HB.asset]||0;
   var sig=getWWSignal();
+  if(!sig.ready){notify('!','Signal not ready (Score:'+sig.score+'/5) — trade blocked','loss');return;}
 
-  if(!sig.ready){
-    notify('!','Signal not ready (Score:'+sig.score+'/5, ATR required) — trade blocked','loss');
-    return;
-  }
+  var barrier=getBarrier();
+  var side=getSideStake();
+  var entry=S.prices[HB.asset]||0;
   if(entry<=0){notify('!','No price data for '+HB.asset,'loss');return;}
 
   HB.roundId++;var rid=HB.roundId;
   HB.rounds++;HB.lastRoundTime=Date.now();
-
-  // ── Signal snapshot for journal ──
-  var ind=getInd(HB.asset),prices=ind.prices,n=prices.length;
-  var atr5=0,atr20=0;
-  if(n>=25){for(var _i=n-5;_i<n;_i++)atr5+=Math.abs(prices[_i]-prices[_i-1]);atr5/=5;for(var _j=n-25;_j<n-5;_j++)atr20+=Math.abs(prices[_j]-prices[_j-1]);atr20/=20;}
-  var atrRatio=atr20>0?parseFloat((atr5/atr20).toFixed(3)):0;
-  var ema21=0;
-  if(n>=21){var k=2/22;ema21=prices[n-21];for(var _e=n-20;_e<n;_e++)ema21=prices[_e]*k+ema21*(1-k);}
-  var trendDir=entry>ema21?'ABOVE':'BELOW';
-  var bbSq=ind.bbSqueeze||false;
-  var momB=false;
-  if(n>=5){var _sz=[];for(var _k=n-4;_k<n;_k++)_sz.push(Math.abs(prices[_k]-prices[_k-1]));if(_sz[1]>_sz[0]&&_sz[2]>_sz[1]&&_sz[3]>_sz[2])momB=true;}
-  var confluences=[];
-  if(atrRatio>=1.8)confluences.push('ATR '+atrRatio+'x');
-  if(bbSq)confluences.push('BB Squeeze');
-  if(!bbSq&&HB.lastSqueezeTime>0&&(Date.now()-HB.lastSqueezeTime)<20000)confluences.push('BB Expanding');
-  if(momB)confluences.push('Mom Burst');
-  confluences.push(trendDir==='ABOVE'?'Above EMA21':'Below EMA21');
-
-  // 8 slots: idx 0-3 = HIGHER bands (OUT above upper), idx 4-7 = LOWER bands (OUT below lower)
   HB.pending[rid]={
-    results:[], expectedCount:4, _placedAt:Date.now(),
-    entry:entry, perSide:perSide, barrier:offset,
-    time:new Date().toLocaleTimeString(), asset:HB.asset, score:sig.score,
-    atrRatio:atrRatio, trendDir:trendDir,
-    bbSqueeze:bbSq, momBurst:momB, confluences:confluences,
-    barrierOffset:offset
+    results:[null,null],settled:0,
+    barrier:barrier,side:side,entry:entry,
+    time:new Date().toLocaleTimeString(),asset:HB.asset,score:sig.score
   };
 
-  var chartBarriers=[
-    {price:entry,color:'rgba(245,166,35,1)',label:'Entry '+entry.toFixed(2),isMain:true},
-    {price:entry+offset,color:'rgba(0,229,160,1)',label:'H +'+offset,isMain:true},
-    {price:entry-offset,color:'rgba(255,77,106,1)',label:'L -'+offset,isMain:true}
-  ];
-  setWWBarrierLines(entry,chartBarriers);
-  renderTradeBreakdown([offset],perSide);
+  // Draw barriers on main chart
+  setWWBarrierLines(entry,barrier);
+  renderTradeBreakdown(barrier,side);
 
-  // His exact method: 4 identical EXPIRYRANGE contracts, all ±0.35 offset
-  var hiBarrier='+'+offset.toFixed(2);
-  var loBarrier='-'+offset.toFixed(2);
-
-  for(var _ci=0;_ci<4;_ci++){
-    var _r=wsSend({buy:1,price:perSide,parameters:{
-      amount:perSide,
-      basis:'stake',
-      contract_type:'EXPIRYRANGE',
-      currency:S.currency,
-      duration:HB.ticks,
-      duration_unit:'t',
-      symbol:HB.asset,
-      barrier:hiBarrier,
-      barrier2:loBarrier
-    }});
-    if(_r)S.pending[_r]={
-      dir:'BETWEEN_'+(_ci+1),
-      stake:perSide,asset:HB.asset,
-      isBot:true,isHB:true,hbRound:rid,hbIdx:_ci,
-      barrier:offset,durVal:HB.ticks,durUnit:'t'
-    };
+  // Auto-switch dashboard chart to HB asset
+  if(HB.asset!==S.asset){
+    S.priceHistHB=getInd(HB.asset).prices.slice(-80);
+    document.getElementById('chartLbl').textContent=HB.asset;
   }
 
-  document.getElementById('hb-active-count').textContent='4 ACTIVE';
-  notify('WW','R'+HB.rounds+': 4×$'+perSide.toFixed(2)+' EXPIRYRANGE ±'+offset+' | Score:'+sig.score,'info');
+  // ── Place ENDS OUTSIDE (idx 0) ────────────────────────────────
+  // CALL with barrier = ENDS OUTSIDE (price exits above)
+  // Actually Deriv uses EXPIRYRANGEE for ends outside
+  // contract_type: 'EXPIRYRANGEE' = Ends Outside
+  // contract_type: 'EXPIRYRANGE'  = Ends Between
+  var rEO=wsSend({buy:1,price:side,parameters:{
+    amount:side,basis:'stake',
+    contract_type:'EXPIRYRANGEE',
+    currency:S.currency,
+    duration:HB.ticks,duration_unit:'t',
+    symbol:HB.asset,
+    barrier:'+'+barrier.toFixed(2),
+    barrier2:'-'+barrier.toFixed(2)
+  }});
+  if(rEO)S.pending[rEO]={dir:'OUTSIDE',stake:side,asset:HB.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:0,barrier:barrier,durVal:HB.ticks,durUnit:'t'};
+
+  // ── Place ENDS BETWEEN (idx 1) ────────────────────────────────
+  var rEB=wsSend({buy:1,price:side,parameters:{
+    amount:side,basis:'stake',
+    contract_type:'EXPIRYRANGE',
+    currency:S.currency,
+    duration:HB.ticks,duration_unit:'t',
+    symbol:HB.asset,
+    barrier:'+'+barrier.toFixed(2),
+    barrier2:'-'+barrier.toFixed(2)
+  }});
+  if(rEB)S.pending[rEB]={dir:'BETWEEN',stake:side,asset:HB.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:1,barrier:barrier,durVal:HB.ticks,durUnit:'t'};
+
+  document.getElementById('hb-active-count').textContent='2 ACTIVE';
+  notify('WW','R'+HB.rounds+': OUTSIDE+BETWEEN ±'+barrier.toFixed(2)+' $'+side+'/side | Score:'+sig.score,'info');
   updHBStats();
 }
 
-function onHBResult(roundId,idx,profit,direction,exitSpot){
+function onHBResult(roundId,idx,profit,direction){
   if(!HB.pending[roundId])return;
-  // Exact same pattern as working onWWResult — push to array, check length
-  HB.pending[roundId].results.push({profit:profit,direction:direction,win:profit>0,exitPrice:exitSpot||0});
-  var expected=HB.pending[roundId].expectedCount||4;
-  if(HB.pending[roundId].results.length>=expected){
+  HB.pending[roundId].results[idx]={profit:profit,direction:direction,win:profit>0};
+  HB.pending[roundId].settled++;
+  if(HB.pending[roundId].settled>=2){
     var r=HB.pending[roundId];
-    var results=r.results;
-    // Exact same tally as working onWWResult
-    var totalPnl=r.results.reduce(function(s,res){return s+res.profit;},0);
-    totalPnl=parseFloat(totalPnl.toFixed(2));
-    var anyWin=r.results.some(function(res){return res.profit>0;});
-    var perS=r.perSide||1;
-    var bandResults=r.results.map(function(res){
-      return{win:res.win,pnl:res.profit,exitPrice:res.exitPrice||0};
-    });
-    totalPnl=parseFloat(totalPnl.toFixed(2));
-    var allMiss=!anyWin;
+    var eoResult=r.results[0]||{profit:0,direction:'OUTSIDE',win:false};
+    var ebResult=r.results[1]||{profit:0,direction:'BETWEEN',win:false};
+    // Correct P&L: winner gets payout - stake, loser loses stake
+    var eoPnl=parseFloat((eoResult.win?eoResult.profit:-r.side).toFixed(2));
+    var ebPnl=parseFloat((ebResult.win?ebResult.profit:-r.side).toFixed(2));
+    var totalPnl=parseFloat((eoPnl+ebPnl).toFixed(2));
     var isWin=totalPnl>0;
+    // One always wins — both can win if payout is huge, but net could be negative
+    // if payout < 200% on winner (shouldn't happen with proper barrier setting)
 
     HB.pnl+=totalPnl;
     if(isWin){HB.won++;HB.lossStreak=0;}
-    else{HB.lost++;HB.lossStreak++;if(HB.lossStreak>=3&&HB.useCooldown&&!HB.coolingDown){HB.coolingDown=true;HB.cooldownEnd=Date.now()+120000;notify('PAUSE','3 losses — 2 min cooldown','loss');}}
+    else{HB.lost++;HB.lossStreak++;if(HB.lossStreak>=3&&HB.useCooldown&&!HB.coolingDown){HB.coolingDown=true;HB.cooldownEnd=Date.now()+120000;notify('PAUSE','3 net-negative rounds — pausing 2 mins','loss');}}
     if(totalPnl>HB.bestRound)HB.bestRound=totalPnl;
     if(totalPnl<HB.worstRound)HB.worstRound=totalPnl;
-    // Exact same DG storage as working version
-    DG.trades++;DG.profit+=totalPnl;
-    if(isWin)DG.wins++;else DG.losses++;
-    saveDG();updDG();
 
-    // Summary trades — 2 contracts: HIGHER + LOWER
-    S.trades=S.trades.filter(function(t){return !(t.isHB&&t.hbRound===roundId&&!t.isHBSummary);});
-    var exitPrice=parseFloat((bandResults[0].exitPrice||bandResults[1].exitPrice||r.entry).toFixed(2));
-    var moveSize=parseFloat(Math.abs(exitPrice-r.entry).toFixed(4));
-    var perS=r.perSide||1;
-    var totalPerContract=bandResults[0].pnl; // all 4 identical — use first as representative
-    var anyWin2=bandResults[0].win;
-    // Store one summary trade representing all 4 contracts
-    var sSum={id:roundId+'S',contractId:roundId+'S',asset:r.asset,direction:'EXPIRYRANGE ±'+r.barrier,stake:perS*4,pnl:totalPnl,win:isWin,status:isWin?'win':'loss',time:r.time,durationStr:HB.ticks+'T',price:r.entry,exitPrice:exitPrice,isHB:true,hbRound:roundId,isHBSummary:true,note:''};
-    S.trades.unshift(sSum);
+    // Store 2 summary trades
+    S.trades=S.trades.filter(function(t){return!(t.isHB&&t.hbRound===roundId&&!t.isHBSummary);});
+    var summaryEO={id:roundId+'EO',contractId:roundId+'EO',asset:r.asset,direction:'OUTSIDE',stake:r.side,pnl:eoPnl,win:eoResult.win,status:eoResult.win?'win':'loss',time:r.time,durationStr:HB.ticks+'T',price:r.entry,exitPrice:r.entry,isHB:true,hbRound:roundId,isHBSummary:true,note:''};
+    var summaryEB={id:roundId+'EB',contractId:roundId+'EB',asset:r.asset,direction:'BETWEEN',stake:r.side,pnl:ebPnl,win:ebResult.win,status:ebResult.win?'win':'loss',time:r.time,durationStr:HB.ticks+'T',price:r.entry,exitPrice:r.entry,isHB:true,hbRound:roundId,isHBSummary:true,note:''};
+    S.trades.unshift(summaryEB);S.trades.unshift(summaryEO);
 
     HB.history.unshift({
       round:HB.rounds,time:r.time,asset:r.asset,
-      profit:totalPnl,won:isWin,bothMiss:allMiss,cumPnl:HB.pnl,
-      bandResults:bandResults,barrier:r.barrier||getActiveBarrier(),perSide:r.perSide||1,
-      entry:r.entry,score:r.score,exitPrice:exitPrice,moveSize:moveSize,hWin:bandResults[0].win,lWin:bandResults[1]?bandResults[1].win:false,
-      atrRatio:r.atrRatio||0,atr5:r.atr5||0,atr20:r.atr20||0,
-      ema21:r.ema21||0,trendDir:r.trendDir||'--',
-      bbSqueeze:r.bbSqueeze||false,momBurst:r.momBurst||false,
-      confluences:r.confluences||[],bandMults:r.bandMults||HB.bandMults.slice()
+      profit:totalPnl,won:isWin,cumPnl:HB.pnl,
+      eoPnl:eoPnl,ebPnl:ebPnl,eoWin:eoResult.win,ebWin:ebResult.win,
+      barrier:r.barrier,side:r.side,entry:r.entry,score:r.score
     });
     if(HB.history.length>100)HB.history.pop();
     delete HB.pending[roundId];
 
     clearWWBarrierLines();
+    S.priceHistHB=null;
     DG.trades++;if(isWin)DG.wins++;else DG.losses++;saveDG();
     localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
     updHBStats();renderHBHistory('all');
@@ -1845,11 +1614,8 @@ function onHBResult(roundId,idx,profit,direction,exitSpot){
     wsSend({balance:1});
     setTimeout(function(){wsSend({balance:1});},1500);
 
-    var winsCount=bandResults.filter(function(b){return b.win;}).length;
-    var msg=allMiss
-      ?'R'+HB.rounds+': BOTH OUT — Price exited ±'+getActiveBarrier()+' band (-$'+Math.abs(totalPnl).toFixed(2)+')'
-      :(isWin?'ALL 4 WON — price stayed inside ±'+getActiveBarrier()+' — +$'+Math.abs(totalPnl).toFixed(2):'R'+HB.rounds+': EXITED ±'+getActiveBarrier()+' — all 4 lost -$'+Math.abs(totalPnl).toFixed(2));
-    notify(allMiss?'OUT':isWin?'WIN':'LOSS',msg,allMiss?'loss':isWin?'win':'loss');
+    var winSide=eoResult.win?'OUTSIDE':'BETWEEN';
+    notify(isWin?'WIN':'CHECK','R'+HB.rounds+': '+winSide+' won | Net: '+(totalPnl>=0?'+':'')+'$'+Math.abs(totalPnl).toFixed(2),isWin?'win':totalPnl===0?'info':'loss');
     document.getElementById('hb-active-count').textContent='0 ACTIVE';
   }
 }
@@ -1859,13 +1625,12 @@ function updHBStats(){
   var S2=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
   S2('hb-rounds',HB.rounds);S2('hb-won',HB.won);S2('hb-lost',HB.lost);
   S2('hb-filter-all','All ('+HB.history.length+')');S2('hb-filter-win','Wins ('+HB.won+')');S2('hb-filter-loss','Losses ('+HB.lost+')');
-  S2('hb-round-info',HB.won+' won / '+HB.lost+' lost | Net: '+(HB.pnl>=0?'+':'')+'$'+HB.pnl.toFixed(2));
+  S2('hb-round-info',HB.won+' profitable / '+HB.lost+' negative | Net: '+(HB.pnl>=0?'+':'')+'$'+HB.pnl.toFixed(2));
   S2('hb-wr',wr+'%');S2('hb-wr-pct',wr+'%');
-  S2('hb-best',(HB.bestRound>0?'+':'')+'$'+HB.bestRound.toFixed(2));
+  S2('hb-best',(HB.bestRound>=0?'+':'')+'$'+HB.bestRound.toFixed(2));
   S2('hb-worst','$'+HB.worstRound.toFixed(2));
   var hp=document.getElementById('hb-pnl');if(hp){hp.textContent=(HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);hp.style.color=HB.pnl>=0?'var(--ac)':'var(--re)';}
   var hn=document.getElementById('hb-net');if(hn){hn.textContent=(HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);hn.style.color=HB.pnl>=0?'var(--ac)':'var(--re)';}
-  // Daily progress bar
   var dtp=parseFloat((document.getElementById('ww-daily-tp')||{value:60}).value)||60;
   var dsl=parseFloat((document.getElementById('ww-daily-sl')||{value:30}).value)||30;
   var tp2=document.getElementById('ww-today-pnl');if(tp2){tp2.textContent=(HB.pnl>=0?'+':'')+'$'+Math.abs(HB.pnl).toFixed(2);tp2.style.color=HB.pnl>=0?'var(--ac)':'var(--re)';}
@@ -1873,15 +1638,7 @@ function updHBStats(){
   var pb=document.getElementById('ww-progress-bar');if(pb){pb.style.width=pct.toFixed(1)+'%';pb.style.background=HB.pnl>=0?'linear-gradient(90deg,var(--ac),#00b0ff)':'linear-gradient(90deg,var(--re),#ff8800)';}
   var pp=document.getElementById('ww-progress-pct');if(pp)pp.textContent=pct.toFixed(1)+'%';
   var stat=document.getElementById('ww-daily-status');
-  if(stat){if(HB.pnl>=dtp){stat.textContent='🎯 TARGET HIT!';stat.style.color='var(--ac)';}
-    else if(HB.pnl<=-dsl){stat.textContent='🛑 SL HIT';stat.style.color='var(--re)';}
-    else if(HB.pnl>0){stat.textContent='+$'+HB.pnl.toFixed(2)+' / $'+dtp;stat.style.color='var(--ac)';}
-    else if(HB.pnl<0){stat.textContent='-$'+Math.abs(HB.pnl).toFixed(2)+' / SL $'+dsl;stat.style.color='var(--re)';}
-    else{stat.textContent='Ready';stat.style.color='var(--t2)';}}
-  // Update button text
-  var total=parseFloat((getSideStake()*4).toFixed(2));
-  var btn=document.getElementById('placeAllBtn');
-  if(btn&&!HB.running)btn.textContent='PLACE ROUND ($'+total+' — 4×EXPIRYRANGE)';
+  if(stat){if(HB.pnl>=dtp){stat.textContent='TARGET HIT!';stat.style.color='var(--ac)';}else if(HB.pnl<=-dsl){stat.textContent='SL HIT';stat.style.color='var(--re)';}else if(HB.pnl>0){stat.textContent='+$'+HB.pnl.toFixed(2)+' / $'+dtp;stat.style.color='var(--ac)';}else if(HB.pnl<0){stat.textContent='-$'+Math.abs(HB.pnl).toFixed(2)+' / SL $'+dsl;stat.style.color='var(--re)';}else{stat.textContent='Ready';stat.style.color='var(--t2)';}}
 }
 
 function filterHBHistory(filter,el){
@@ -1897,37 +1654,29 @@ function renderHBHistory(filter){
   if(filter==='loss')list=list.filter(function(r){return !r.won;});
   if(!list.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No rounds yet.</div>';return;}
   el.innerHTML=list.map(function(r){
-    var won=r.won,bothMiss=r.bothMiss;
-    var borderCol=bothMiss?'var(--go)':won?'var(--ac)':'var(--re)';
-    var html='<div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:10px 12px;margin-bottom:7px;border-left:3px solid '+borderCol+';">';
-    // Header
+    var won=r.won;
+    var html='<div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:10px 12px;margin-bottom:7px;border-left:3px solid '+(won?'var(--ac)':'var(--re)')+';">';
     html+='<div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">';
-    if(bothMiss){html+='<span style="background:rgba(245,166,35,0.15);color:var(--go);padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700">FLAT</span>';}
-    else{html+='<span style="background:'+(won?'var(--ad)':'var(--rd)')+';color:'+(won?'var(--ac)':'var(--re)')+';padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700">'+(won?'WIN':'LOSS')+'</span>';}
+    html+='<span style="background:'+(won?'var(--ad)':'var(--rd)')+';color:'+(won?'var(--ac)':'var(--re)')+';padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700">'+(won?'WIN':'LOSS')+'</span>';
     html+='<span style="font-size:12px;font-weight:700">'+r.asset+'</span>';
     html+='<span style="font-size:10px;color:var(--t3)">R'+r.round+' • '+r.time+' • Score:'+r.score+'/5</span>';
-    html+='<span style="font-size:10px;color:var(--t3)">$'+(r.perSide||r.perContract||'--')+'/side • Entry:'+r.entry.toFixed(2)+'</span>';
-    html+='<span style="margin-left:auto;font-size:14px;font-weight:700;font-family:var(--mo);color:'+(bothMiss?'var(--go)':won?'var(--ac)':'var(--re)')+'">'+( r.profit>=0?'+':'')+'$'+r.profit.toFixed(2)+'</span>';
+    html+='<span style="font-size:10px;color:var(--t3)">$'+r.side+'/side • Barrier:±'+r.barrier.toFixed(2)+' • Entry:'+r.entry.toFixed(2)+'</span>';
+    html+='<span style="margin-left:auto;font-size:14px;font-weight:700;font-family:var(--mo);color:'+(won?'var(--ac)':'var(--re)')+'">'+( r.profit>=0?'+':'')+'$'+r.profit.toFixed(2)+'</span>';
     html+='</div>';
-    // Band results grid
-    var bR=r.bandResults||[];
-    var isWinRound=r.won;
-    var barrier=r.barrier||0.35;
-    var perS=r.perSide||1;
-    html+='<div style="background:'+(isWinRound?'rgba(0,229,160,0.08)':'rgba(255,77,106,0.05)')+';border:1px solid '+(isWinRound?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.2)')+';border-radius:var(--rs);padding:10px;text-align:center">';
-    if(isWinRound){
-      html+='<div style="font-size:13px;font-weight:700;color:var(--ac);margin-bottom:4px">PRICE STAYED INSIDE ±'+barrier+'</div>';
-      html+='<div style="font-size:11px;color:var(--t2);margin-bottom:4px">All 4 contracts won — exit price within band</div>';
-      html+='<div style="font-size:20px;font-weight:800;font-family:var(--mo);color:var(--ac)">+$'+Math.abs(r.profit).toFixed(2)+'</div>';
-      html+='<div style="font-size:10px;color:var(--t3);margin-top:3px">4 × $'+perS.toFixed(2)+' × ~200% payout</div>';
-    } else {
-      html+='<div style="font-size:13px;font-weight:700;color:var(--re);margin-bottom:4px">PRICE EXITED BAND ±'+barrier+'</div>';
-      html+='<div style="font-size:11px;color:var(--t2);margin-bottom:4px">All 4 contracts lost — exit price outside band</div>';
-      html+='<div style="font-size:20px;font-weight:800;font-family:var(--mo);color:var(--re)">-$'+Math.abs(r.profit).toFixed(2)+'</div>';
-      html+='<div style="font-size:10px;color:var(--t3);margin-top:3px">4 × $'+perS.toFixed(2)+' staked</div>';
-    }
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    // ENDS OUTSIDE card
+    html+='<div style="background:'+(r.eoWin?'rgba(0,229,160,0.08)':'rgba(255,77,106,0.05)')+';border:1px solid '+(r.eoWin?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.2)')+';border-radius:var(--rs);padding:10px">';
+    html+='<div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:4px">ENDS OUTSIDE '+(r.eoWin?'✓ WON':'LOST')+'</div>';
+    html+='<div style="font-size:11px;color:var(--t2);margin-bottom:3px">Price exited ±'+r.barrier.toFixed(2)+'</div>';
+    html+='<div style="font-size:18px;font-weight:800;font-family:var(--mo);color:'+(r.eoWin?'var(--ac)':'var(--re)')+'">'+( r.eoPnl>=0?'+':'')+'$'+Math.abs(r.eoPnl).toFixed(2)+'</div>';
     html+='</div>';
+    // ENDS BETWEEN card
+    html+='<div style="background:'+(r.ebWin?'rgba(59,130,246,0.08)':'rgba(255,77,106,0.05)')+';border:1px solid '+(r.ebWin?'rgba(59,130,246,0.3)':'rgba(255,77,106,0.2)')+';border-radius:var(--rs);padding:10px">';
+    html+='<div style="font-size:10px;color:var(--bl);font-weight:700;margin-bottom:4px">ENDS BETWEEN '+(r.ebWin?'✓ WON':'LOST')+'</div>';
+    html+='<div style="font-size:11px;color:var(--t2);margin-bottom:3px">Price stayed inside ±'+r.barrier.toFixed(2)+'</div>';
+    html+='<div style="font-size:18px;font-weight:800;font-family:var(--mo);color:'+(r.ebWin?'var(--bl)':'var(--re)')+'">'+( r.ebPnl>=0?'+':'')+'$'+Math.abs(r.ebPnl).toFixed(2)+'</div>';
     html+='</div>';
+    html+='</div></div>';
     return html;
   }).join('');
 }
@@ -1935,8 +1684,7 @@ function renderHBHistory(filter){
 function resetHB(){
   HB.rounds=0;HB.won=0;HB.lost=0;HB.pnl=0;HB.history=[];
   HB.bestRound=0;HB.worstRound=0;HB.lossStreak=0;
-  clearWWBarrierLines();
-  updHBStats();renderHBHistory('all');
+  clearWWBarrierLines();updHBStats();renderHBHistory('all');
   notify('R','WinWin reset','info');
 }
 
@@ -1944,6 +1692,8 @@ function setHBActive(el){
   el.closest('.dr').querySelectorAll('.db').forEach(function(b){b.classList.remove('active');});
   el.classList.add('active');
 }
+
+
 
 
 
@@ -2107,7 +1857,7 @@ function buildDDasset(id,type){
       opt.innerHTML=i.name+'<span style="font-size:10px;color:var(--t3);font-family:var(--mo)">'+i.sym+'</span>';
       opt.addEventListener('click',function(){
         el.classList.remove('open');
-        if(type==='HB'){HB.asset=i.sym;document.getElementById('hb-asset-n').textContent=i.sym;document.getElementById('hb-asset-i').textContent=i.name;wwPriceHist=[];wwLastDraw=0;_wwYmin=null;_wwYmax=null;calcWWDaily();}
+        if(type==='HB'){HB.asset=i.sym;document.getElementById('hb-asset-n').textContent=i.sym;document.getElementById('hb-asset-i').textContent=i.name;}
         else{DD.asset=i.sym;document.getElementById('dd-asset-n').textContent=i.sym;document.getElementById('dd-asset-i').textContent=i.name;}
       });
       el.appendChild(opt);
@@ -2164,19 +1914,21 @@ function showPage(id,navEl){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
   document.getElementById('page-'+id).classList.add('active');
   if(navEl)navEl.classList.add('active');
-  var T={dashboard:'Dashboard',trade:'Trade',bot:'Auto Bot',barrier:'WinWin Hybrid',differs:'Differs Bot',history:'Trade History',journal:'Journal',janalysis:'Journal Analysis',analytics:'Analytics',settings:'Settings'};
-  var Sub={dashboard:'Overview',trade:'Manual Trading',bot:'Automated Trading',barrier:'Ends Between — Stays Inside Strategy',differs:'Digit Prediction',history:'All Trades',journal:'Detailed Log',janalysis:'Edge Finder',analytics:'Performance',settings:'Configuration'};
+  var T={dashboard:'Dashboard',trade:'Trade',bot:'Auto Bot',barrier:'WinWin Hybrid',differs:'Differs Bot',history:'Trade History',journal:'Journal',analytics:'Analytics',settings:'Settings'};
+  var Sub={dashboard:'Overview',trade:'Manual Trading',bot:'Automated Trading',barrier:'WinWin 2-Contract Strategy',differs:'Digit Prediction',history:'All Trades',journal:'Detailed Log',analytics:'Performance',settings:'Configuration'};
   document.getElementById('ptitle').innerHTML=T[id]+' <span>'+(Sub[id]||'')+'</span>';
   if(id==='analytics')updAnalytics();
   if(id==='history')rendHist('all');
   if(id==='journal')renderJournal('all');
-  if(id==='janalysis')runJournalAnalysis();
   if(id==='barrier'){
     calcWWDaily();
     if(typeof updateMovesGrid==='function')updateMovesGrid();
     if(typeof updatePrediction==='function')updatePrediction();
-    // Re-init to resize canvas to container, backfill data, redraw immediately
-    initWWChart();
+    // Update price display from current price
+    var _curP=S.prices[HB.asset];
+    if(_curP)updateWWPriceDisplay(HB.asset,_curP);
+    // Re-draw barrier lines if a round is active
+    if(wwActiveBarrier)_drawWWBarriersOnPriceChart();
   }
 }
 
@@ -2365,12 +2117,22 @@ setInterval(function(){
 function renderJournal(filter){
   var all=S.trades.filter(function(t){return t.status!=='active';});
   if(!all.length){document.getElementById('journalList').innerHTML='<div style="text-align:center;padding:32px;color:var(--t3);font-size:12px">No completed trades yet.</div>';return;}
+
+  // Group HB summary trades by round; keep non-HB individual
   var roundMap={}, individuals=[];
   all.forEach(function(t){
-    if(t.isHB&&t.isHBSummary&&t.hbRound!==null){if(!roundMap[t.hbRound])roundMap[t.hbRound]=[];roundMap[t.hbRound].push(t);}
-    else if(!t.isHB){individuals.push(t);}
+    if(t.isHB&&t.isHBSummary&&t.hbRound!==null){
+      if(!roundMap[t.hbRound])roundMap[t.hbRound]=[];
+      roundMap[t.hbRound].push(t);
+    } else if(!t.isHB){
+      individuals.push(t);
+    }
+    // skip raw HB individual contracts
   });
+
   var html='';
+
+  // WinWin rounds — 2 cards each (HIGHER + LOWER)
   var roundKeys=Object.keys(roundMap).sort(function(a,b){return b-a;});
   roundKeys.forEach(function(rid){
     var trades=roundMap[rid];
@@ -2383,72 +2145,43 @@ function renderJournal(filter){
     var lT=trades.find(function(t){return t.direction==='LOWER';})||(trades[1]||trades[0]);
     var rNote=S.notes['hb_'+rid]||'';
     var borderCol=bothMiss?'var(--go)':isWin?'var(--ac)':'var(--re)';
-    // Get history record for this round
-    var hRec=HB.history.find(function(r){return r.round===parseInt(rid);})||{};
-    html+='<div class="jrow '+(isWin?'win-row':'loss-row')+'" style="margin-bottom:14px">';
-    // Header row
+
+    html+='<div class="jrow '+(isWin?'win-row':'loss-row')+'" style="margin-bottom:12px">';
+    // Header
     html+='<div class="jrow-top">';
     if(bothMiss){html+='<span class="tbadge" style="background:rgba(245,166,35,0.15);color:var(--go)">FLAT</span>';}
     else{html+=(isWin?'<span class="tbadge bw">WIN</span>':'<span class="tbadge bl2">LOSS</span>');}
-    html+='<span style="font-size:10px;padding:2px 7px;border-radius:99px;background:rgba(0,229,160,0.15);color:var(--ac);font-weight:700">WW R'+rid+'</span>';
+    html+='<span style="font-size:10px;padding:2px 7px;border-radius:99px;background:rgba(0,229,160,0.15);color:var(--ac);font-weight:700">WW ROUND '+rid+'</span>';
     html+='<span style="font-size:13px;font-weight:700">'+hT.asset+'</span>';
-    html+='<span style="font-size:10px;color:var(--t3)">'+hT.time+'</span>';
+    html+='<span style="font-size:10px;color:var(--t3)">'+hT.time+' • 2 trades</span>';
     html+='<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+(isWin?'var(--ac)':bothMiss?'var(--go)':'var(--re)')+'">'+( totalPnl>=0?'+':'')+'$'+totalPnl.toFixed(2)+'</span>';
     html+='</div>';
-    // ── Entry / Exit / Move row ──
-    html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">';
-    html+='<div class="jcell"><div class="jcell-lbl">Entry price</div><div class="jcell-val" style="color:var(--go)">'+(hRec.entry?hRec.entry.toFixed(2):(hT.price?parseFloat(hT.price).toFixed(2):'--'))+'</div></div>';
-    html+='<div class="jcell"><div class="jcell-lbl">Exit price</div><div class="jcell-val" style="color:'+(isWin?'var(--ac)':'var(--re)')+'">'+(hRec.exitPrice?hRec.exitPrice.toFixed(2):(hT.exitPrice?parseFloat(hT.exitPrice).toFixed(2):'--'))+'</div></div>';
-    html+='<div class="jcell"><div class="jcell-lbl">Move size</div><div class="jcell-val">'+(hRec.moveSize!==undefined?hRec.moveSize.toFixed(4):'--')+'</div></div>';
-    html+='<div class="jcell"><div class="jcell-lbl">Barrier ±</div><div class="jcell-val">'+(hRec.barrier?hRec.barrier.toFixed(2):(trades[0].barrier||'--'))+'</div></div>';
-    html+='</div>';
-    // ── Signal / Confluence row ──
-    html+='<div style="background:var(--bg3);border-radius:var(--rs);padding:9px 11px;margin-bottom:8px;border:1px solid var(--bo)">';
-    html+='<div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Confluences that triggered this trade</div>';
-    html+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">';
-    var confs=hRec.confluences||[];
-    if(confs.length){
-      confs.forEach(function(c){
-        var isAtr=c.indexOf('ATR')!==-1,isMom=c.indexOf('Mom')!==-1,isBB=c.indexOf('BB')!==-1,isEma=c.indexOf('EMA')!==-1||c.indexOf('Above')!==-1||c.indexOf('Below')!==-1;
-        var bg=isAtr?'rgba(0,229,160,0.15)':isMom?'rgba(59,130,246,0.15)':isBB?'rgba(245,166,35,0.15)':'rgba(255,255,255,0.07)';
-        var col=isAtr?'var(--ac)':isMom?'var(--bl)':isBB?'var(--go)':'var(--t2)';
-        html+='<span style="padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;background:'+bg+';color:'+col+'">'+c+'</span>';
-      });
-    } else {
-      html+='<span style="font-size:11px;color:var(--t3)">Signal data not captured (pre-v5 trade)</span>';
-    }
-    html+='</div>';
-    // Signal detail values
-    html+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">';
-    html+='<div style="text-align:center"><div style="font-size:9px;color:var(--t3);text-transform:uppercase">Score</div><div style="font-size:13px;font-weight:700;color:'+(hRec.score>=4?'var(--ac)':hRec.score>=3?'var(--go)':'var(--re)')+'">'+(hRec.score||'--')+'/5</div></div>';
-    html+='<div style="text-align:center"><div style="font-size:9px;color:var(--t3);text-transform:uppercase">ATR ratio</div><div style="font-size:13px;font-weight:700;color:'+(hRec.atrRatio>=2.5?'var(--bl)':hRec.atrRatio>=1.8?'var(--ac)':'var(--re)')+'">'+(hRec.atrRatio?hRec.atrRatio.toFixed(2):'--')+'x</div></div>';
-    html+='<div style="text-align:center"><div style="font-size:9px;color:var(--t3);text-transform:uppercase">EMA21</div><div style="font-size:13px;font-weight:700;color:'+(hRec.trendDir==='ABOVE'?'var(--ac)':'var(--re)')+'">'+(hRec.trendDir||'--')+'</div></div>';
-    html+='<div style="text-align:center"><div style="font-size:9px;color:var(--t3);text-transform:uppercase">BB Squeeze</div><div style="font-size:13px;font-weight:700;color:'+(hRec.bbSqueeze?'var(--ac)':'var(--t3)')+'">'+(hRec.confluences&&hRec.confluences.length?( hRec.bbSqueeze?'YES':'NO'):'--')+'</div></div>';
-    html+='<div style="text-align:center"><div style="font-size:9px;color:var(--t3);text-transform:uppercase">Mom Burst</div><div style="font-size:13px;font-weight:700;color:'+(hRec.momBurst?'var(--bl)':'var(--t3)')+'">'+(hRec.confluences&&hRec.confluences.length?( hRec.momBurst?'YES':'NO'):'--')+'</div></div>';
-    html+='</div></div>';
-    // ── Side cards ──
+
     if(bothMiss){
+      // Both missed
       html+='<div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:var(--rs);padding:10px;margin-bottom:10px;text-align:center">';
-      html+='<div style="font-size:12px;font-weight:700;color:var(--go)">BOTH MISSED — Price stayed flat inside barrier</div>';
-      html+='<div style="font-size:11px;color:var(--t2);margin-top:3px">Neither HIGHER nor LOWER barrier was reached</div>';
+      html+='<div style="font-size:12px;font-weight:700;color:var(--go)">⚠ BOTH MISSED — Price stayed flat</div>';
+      html+='<div style="font-size:11px;color:var(--t2);margin-top:3px">Barrier not reached on either side</div>';
       html+='<div style="font-size:13px;font-weight:700;color:var(--re);margin-top:4px">Loss: -$'+Math.abs(totalPnl).toFixed(2)+'</div>';
       html+='</div>';
     } else {
+      // 2 side cards
       html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
       [hT,lT].forEach(function(t){
         var isH=t.direction==='HIGHER';
         var col=isH?'var(--ac)':'var(--re)';
+        // P&L: if win show actual pnl, if loss show -stake (what was actually lost)
         var pnlDisplay=t.win?('+$'+t.pnl.toFixed(2)):('-$'+t.stake.toFixed(2));
+        var pnlColor=t.win?'var(--ac)':'var(--re)';
         html+='<div style="background:'+(t.win?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.07)')+';border:1px solid '+(t.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.25)')+';border-radius:var(--rs);padding:10px">';
         html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
         html+='<span style="font-size:11px;color:'+col+';font-weight:700">'+(isH?'↗ HIGHER':'↘ LOWER')+'</span>';
-        html+='<span style="font-size:12px;font-weight:700;color:'+(t.win?'var(--ac)':'var(--re)')+'">'+pnlDisplay+'</span>';
+        html+='<span style="font-size:12px;font-weight:700;color:'+pnlColor+'">'+pnlDisplay+'</span>';
         html+='</div>';
         html+='<div style="font-size:10px;color:var(--t2)">Stake: <b>$'+t.stake.toFixed(2)+'</b></div>';
         html+='<div style="font-size:10px;color:var(--t3)">Entry: '+(t.price?parseFloat(t.price).toFixed(2):'--')+'</div>';
-        html+='<div style="font-size:10px;color:var(--t3)">Exit: '+(t.exitPrice?parseFloat(t.exitPrice).toFixed(2):'--')+'</div>';
         html+='<div style="font-size:10px;color:var(--t3)">Dur: '+(t.durationStr||HB.ticks+'T')+'</div>';
-        html+='<div style="font-size:10px;font-weight:600;color:'+(t.win?'var(--ac)':'var(--re)')+';margin-top:4px">'+(t.win?'BARRIER HIT':'BARRIER MISSED')+'</div>';
+        html+='<div style="font-size:10px;font-weight:600;color:'+(t.win?'var(--ac)':'var(--re)')+';margin-top:4px">'+(t.win?'✓ BARRIER HIT':'✗ BARRIER MISSED')+'</div>';
         html+='</div>';
       });
       html+='</div>';
@@ -2478,173 +2211,13 @@ function renderJournal(filter){
   document.getElementById('journalList').innerHTML=html||'<div style="text-align:center;padding:32px;color:var(--t3);font-size:12px">No trades match this filter.</div>';
 }
 
-// ══════════════════════════════════════
-// JOURNAL ANALYSIS ENGINE
-// ══════════════════════════════════════
-function runJournalAnalysis(){
-  var el=document.getElementById('ja-content');
-  var hist=HB.history.filter(function(r){return r.confluences&&r.confluences.length>0;});
-  if(hist.length<3){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--t3);font-size:12px">Need at least 3 WinWin rounds with signal data. Keep trading on demo and come back.</div>';return;}
-
-  var total=hist.length,wins=hist.filter(function(r){return r.won;}),losses=hist.filter(function(r){return !r.won&&!r.bothMiss;}),flats=hist.filter(function(r){return r.bothMiss;});
-  var totalWR=total?Math.round(wins.length/total*100):0;
-
-  // ── ATR Bucket Analysis ──
-  var atrLow=hist.filter(function(r){return r.atrRatio>0&&r.atrRatio<1.8;}); // shouldn't happen but just in case
-  var atrMid=hist.filter(function(r){return r.atrRatio>=1.8&&r.atrRatio<2.5;});
-  var atrHigh=hist.filter(function(r){return r.atrRatio>=2.5&&r.atrRatio<3.5;});
-  var atrExtreme=hist.filter(function(r){return r.atrRatio>=3.5;});
-  function bucketWR(arr){return arr.length?Math.round(arr.filter(function(r){return r.won;}).length/arr.length*100):null;}
-  function bucketAvgPnl(arr){return arr.length?parseFloat((arr.reduce(function(s,r){return s+r.profit;},0)/arr.length).toFixed(2)):null;}
-  function wrColor(wr){return wr===null?'var(--t3)':wr>=65?'var(--ac)':wr>=50?'var(--go)':'var(--re)';}
-
-  // ── Confluence Combo Analysis ──
-  var comboMap={};
-  hist.forEach(function(r){
-    var key=r.confluences.filter(function(c){return c.indexOf('EMA')===-1&&c.indexOf('Above')===-1&&c.indexOf('Below')===-1;}).sort().join(' + ');
-    if(!key)return;
-    if(!comboMap[key])comboMap[key]={wins:0,losses:0,flats:0,pnl:0};
-    if(r.won)comboMap[key].wins++;
-    else if(r.bothMiss)comboMap[key].flats++;
-    else comboMap[key].losses++;
-    comboMap[key].pnl+=r.profit;
-  });
-  var combos=Object.keys(comboMap).map(function(k){var v=comboMap[k];var t2=v.wins+v.losses+v.flats;return{key:k,total:t2,wr:Math.round(v.wins/t2*100),avgPnl:parseFloat((v.pnl/t2).toFixed(2)),wins:v.wins,losses:v.losses,flats:v.flats};}).sort(function(a,b){return b.wr-a.wr;});
-
-  // ── EMA Trend Filter ──
-  var aboveEMA=hist.filter(function(r){return r.trendDir==='ABOVE';});
-  var belowEMA=hist.filter(function(r){return r.trendDir==='BELOW';});
-
-  // ── Move Size Analysis ──
-  var avgWinMove=wins.length?parseFloat((wins.reduce(function(s,r){return s+(r.moveSize||0);},0)/wins.length).toFixed(4)):0;
-  var avgLossMove=losses.length?parseFloat((losses.reduce(function(s,r){return s+(r.moveSize||0);},0)/losses.length).toFixed(4)):0;
-  var avgFlatMove=flats.length?parseFloat((flats.reduce(function(s,r){return s+(r.moveSize||0);},0)/flats.length).toFixed(4)):0;
-
-  // ── BB Squeeze impact ──
-  var withSqueeze=hist.filter(function(r){return r.bbSqueeze;});
-  var withExpand=hist.filter(function(r){return !r.bbSqueeze&&r.confluences.indexOf('BB Expanding')!==-1;});
-  var noSqueeze=hist.filter(function(r){return !r.bbSqueeze&&r.confluences.indexOf('BB Expanding')===-1;});
-
-  // ── Mom Burst impact ──
-  var withMom=hist.filter(function(r){return r.momBurst;});
-  var noMom=hist.filter(function(r){return !r.momBurst;});
-
-  // ── Flat round ATR pattern ──
-  var flatAvgATR=flats.length?parseFloat((flats.reduce(function(s,r){return s+r.atrRatio;},0)/flats.length).toFixed(2)):0;
-  var winAvgATR=wins.length?parseFloat((wins.reduce(function(s,r){return s+r.atrRatio;},0)/wins.length).toFixed(2)):0;
-
-  // ── Suggested upgrades ──
-  var upgrades=[];
-  if(atrExtreme.length>=2&&bucketWR(atrExtreme)<bucketWR(atrHigh))upgrades.push('ATR > 3.5x shows lower win rate ('+bucketWR(atrExtreme)+'%) vs ATR 2.5–3.5x ('+bucketWR(atrHigh)+'%). Consider capping trades at ATR < 3.5 to avoid reversal spikes.');
-  if(flatAvgATR<winAvgATR-0.3)upgrades.push('Most flat rounds happen at lower ATR (avg '+flatAvgATR+'x) vs winning rounds (avg '+winAvgATR+'x). Raising minimum ATR threshold to '+parseFloat((winAvgATR*0.85).toFixed(2))+'x could reduce flat losses.');
-  if(withMom.length>=3&&noMom.length>=3&&bucketWR(withMom)>bucketWR(noMom)+10)upgrades.push('Momentum burst adds significant edge ('+bucketWR(withMom)+'% WR vs '+bucketWR(noMom)+'% without). Consider requiring momentum burst as mandatory signal.');
-  if(withSqueeze.length>=3&&bucketWR(withSqueeze)!==null&&bucketWR(withExpand)!==null&&Math.abs(bucketWR(withSqueeze)-bucketWR(withExpand))>15)upgrades.push('BB squeeze entry ('+bucketWR(withSqueeze)+'% WR) differs significantly from post-squeeze expansion ('+bucketWR(withExpand)+'% WR). Consider tightening barrier multiplier during squeeze phase.');
-  if(avgWinMove>0&&avgLossMove>0&&avgWinMove>avgLossMove*1.5)upgrades.push('Winning rounds show '+avgWinMove+' avg move vs '+avgLossMove+' on losses. Consider using a tighter barrier ('+parseFloat((HB.barrierMult*0.8).toFixed(2))+'x) to catch more of these moves early.');
-  if(!upgrades.length)upgrades.push('Not enough data variation yet to make confident recommendations. Keep collecting trades.');
-
-  function statCell(label,val,color){return '<div style="background:var(--bg3);border-radius:var(--rs);padding:8px 10px;border:1px solid var(--bo);text-align:center"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">'+label+'</div><div style="font-size:15px;font-weight:700;font-family:var(--mo);color:'+(color||'var(--t1)')+'">'+val+'</div></div>';}
-  function sectionHead(t){return '<div style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.07em;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--bo)">'+t+'</div>';}
-
-  var html='';
-
-  // Overview
-  html+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:4px">';
-  html+=statCell('Rounds analysed',total,'var(--bl)');
-  html+=statCell('Win rate',totalWR+'%',wrColor(totalWR));
-  html+=statCell('Wins',wins.length,'var(--ac)');
-  html+=statCell('Losses',losses.length,'var(--re)');
-  html+=statCell('Flats',flats.length,'var(--go)');
-  html+='</div>';
-
-  // ATR bucket analysis
-  html+=sectionHead('ATR ratio performance — does a higher ATR always help?');
-  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px">';
-  [[atrMid,'1.8–2.5x (normal)','var(--go)'],[atrHigh,'2.5–3.5x (high)','var(--ac)'],[atrExtreme,'> 3.5x (extreme)','var(--re)'],[atrLow,'< 1.8x (edge case)','var(--t3)']].forEach(function(bucket){
-    var arr=bucket[0],lbl=bucket[1],col=bucket[2];
-    var wr=bucketWR(arr),avg=bucketAvgPnl(arr);
-    html+='<div style="background:var(--bg3);border-radius:var(--rs);padding:9px 11px;border:1px solid var(--bo)">';
-    html+='<div style="font-size:10px;font-weight:700;color:'+col+';margin-bottom:5px">'+lbl+'</div>';
-    html+='<div style="font-size:10px;color:var(--t3)">Rounds: <b style="color:var(--t1)">'+arr.length+'</b></div>';
-    html+='<div style="font-size:10px;color:var(--t3)">Win rate: <b style="color:'+wrColor(wr)+'">'+( wr!==null?wr+'%':'--')+'</b></div>';
-    html+='<div style="font-size:10px;color:var(--t3)">Avg PnL: <b style="color:'+(avg!==null?(avg>0?'var(--ac)':'var(--re)'):'var(--t3)')+'">'+( avg!==null?(avg>=0?'+':'')+avg:'--')+'</b></div>';
-    html+='</div>';
-  });
-  html+='</div>';
-
-  // Move size analysis
-  html+=sectionHead('Typical exit price vs entry — how far does price move?');
-  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px">';
-  html+=statCell('Avg move on WIN',avgWinMove||'--','var(--ac)');
-  html+=statCell('Avg move on LOSS',avgLossMove||'--','var(--re)');
-  html+=statCell('Avg move on FLAT',avgFlatMove||'--','var(--go)');
-  html+='</div>';
-  if(avgWinMove>0){html+='<div style="font-size:11px;color:var(--t2);margin-bottom:4px;padding:6px 10px;background:var(--bg3);border-radius:var(--rs)">Current barrier ±'+getBarrier().toFixed(2)+' vs avg win move '+avgWinMove+'. '+(getBarrier()>avgWinMove*1.3?'Your barrier may be too wide — winning trades exit well before it. Try a tighter multiplier.':getBarrier()<avgWinMove*0.6?'Your barrier is catching moves early — good alignment.':'Barrier is reasonably aligned with typical move size.')+'</div>';}
-
-  // Confluence combo leaderboard
-  html+=sectionHead('Confluence combinations — which signals actually matter?');
-  if(combos.length){
-    combos.slice(0,6).forEach(function(c){
-      var barW=c.total>0?Math.round(c.wr):0;
-      html+='<div style="background:var(--bg3);border-radius:var(--rs);padding:9px 12px;margin-bottom:6px;border:1px solid var(--bo)">';
-      html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">';
-      html+='<div style="font-size:11px;font-weight:700;color:var(--t1);flex:1">'+c.key+'</div>';
-      html+='<div style="font-size:13px;font-weight:700;font-family:var(--mo);color:'+wrColor(c.wr)+'">'+c.wr+'%</div>';
-      html+='<div style="font-size:10px;color:var(--t3);margin-left:10px">'+c.total+' rounds</div>';
-      html+='</div>';
-      html+='<div style="height:5px;background:var(--bg4);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+barW+'%;background:'+(c.wr>=65?'var(--ac)':c.wr>=50?'var(--go)':'var(--re)')+';border-radius:3px;transition:width .5s"></div></div>';
-      html+='<div style="font-size:10px;color:var(--t3);margin-top:4px">'+c.wins+' W · '+c.losses+' L · '+c.flats+' flat · avg '+(c.avgPnl>=0?'+':'')+c.avgPnl+'</div>';
-      html+='</div>';
-    });
-  } else {html+='<div style="color:var(--t3);font-size:12px">Not enough data yet.</div>';}
-
-  // EMA trend filter
-  html+=sectionHead('EMA21 trend filter — does direction matter?');
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">';
-  [[aboveEMA,'Price ABOVE EMA21','var(--ac)'],[belowEMA,'Price BELOW EMA21','var(--re)']].forEach(function(b){
-    var arr=b[0],lbl=b[1],col=b[2];
-    var wr=bucketWR(arr),avg=bucketAvgPnl(arr);
-    html+='<div style="background:var(--bg3);border-radius:var(--rs);padding:10px 12px;border:1px solid var(--bo)">';
-    html+='<div style="font-size:11px;font-weight:700;color:'+col+';margin-bottom:6px">'+lbl+'</div>';
-    html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">';
-    html+=statCell('Rounds',arr.length,'var(--bl)');
-    html+=statCell('Win %',wr!==null?wr+'%':'--',wrColor(wr));
-    html+=statCell('Avg PnL',avg!==null?(avg>=0?'+':'')+avg:'--',avg!==null?(avg>0?'var(--ac)':'var(--re)'):'var(--t3)');
-    html+='</div></div>';
-  });
-  html+='</div>';
-
-  // BB and Momentum
-  html+=sectionHead('BB Squeeze & Momentum Burst — signal quality check');
-  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px">';
-  [[withSqueeze,'BB Squeeze','var(--go)'],[withExpand,'BB Expanding','var(--ac)'],[withMom,'Mom Burst','var(--bl)'],[noMom,'No Burst','var(--t3)']].forEach(function(b){
-    var arr=b[0],lbl=b[1],col=b[2];
-    var wr=bucketWR(arr);
-    html+='<div style="background:var(--bg3);border-radius:var(--rs);padding:9px 11px;border:1px solid var(--bo)">';
-    html+='<div style="font-size:10px;font-weight:700;color:'+col+';margin-bottom:4px">'+lbl+'</div>';
-    html+='<div style="font-size:10px;color:var(--t3)">Rounds: <b style="color:var(--t1)">'+arr.length+'</b></div>';
-    html+='<div style="font-size:10px;color:var(--t3)">Win rate: <b style="color:'+wrColor(wr)+'">'+( wr!==null?wr+'%':'--')+'</b></div>';
-    html+='</div>';
-  });
-  html+='</div>';
-
-  // Recommended upgrades
-  html+=sectionHead('Recommended upgrades — based on your data');
-  upgrades.forEach(function(u,i){
-    html+='<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:var(--bg3);border-radius:var(--rs);margin-bottom:7px;border:1px solid var(--bo);border-left:3px solid var(--ac)">';
-    html+='<span style="font-size:11px;font-weight:700;color:var(--ac);flex-shrink:0">'+(i+1)+'</span>';
-    html+='<span style="font-size:11px;color:var(--t1);line-height:1.5">'+u+'</span>';
-    html+='</div>';
-  });
-
-  el.innerHTML=html;
-}
-
 function filtJ(f,el){['jfAll','jfWin','jfLoss'].forEach(function(id){var b=document.getElementById(id);b.style.background='';b.style.color='';});el.style.background='var(--ad)';el.style.color='var(--ac)';renderJournal(f);}
 function saveNote(tid){var el=document.getElementById('note_'+tid);if(!el)return;S.notes[tid]=el.value;localStorage.setItem('kevoai_notes',JSON.stringify(S.notes));notify('OK','Note saved!','info');}
 function exportJournal(){
   var done=S.trades.filter(function(t){return t.status!=='active';});
   if(!done.length){notify('!','No trades to export','info');return;}
   var rows=[];
+  // Group HB by round
   var roundMap={}, individuals=[];
   done.forEach(function(t){
     if(t.isHB&&t.hbRound!==null){if(!roundMap[t.hbRound])roundMap[t.hbRound]=[];roundMap[t.hbRound].push(t);}
@@ -2654,30 +2227,14 @@ function exportJournal(){
     var trades=roundMap[rid];
     var totalPnl=trades.reduce(function(s,t){return s+t.pnl;},0);
     var anyWin=trades.some(function(t){return t.win;});
-    var hRec=HB.history.find(function(r){return r.round===parseInt(rid);})||{};
-    var confs=(hRec.confluences||[]).join('|');
-    rows.push([
-      'WW Round '+rid, trades[0].asset, 'HYBRID',
-      '$'+(trades[0].stake||'--'),
-      hRec.entry?hRec.entry.toFixed(2):'--',
-      hRec.exitPrice?hRec.exitPrice.toFixed(2):'--',
-      hRec.moveSize!==undefined?hRec.moveSize.toFixed(4):'--',
-      (totalPnl>=0?'+':'')+totalPnl.toFixed(2),
-      anyWin?'WIN':'LOSS',
-      hRec.score||'--',
-      hRec.atrRatio?hRec.atrRatio.toFixed(2):'--',
-      hRec.trendDir||'--',
-      hRec.bbSqueeze?'YES':'NO',
-      hRec.momBurst?'YES':'NO',
-      '"'+confs+'"',
-      hRec.barrierMult||'--'
-    ].join(','));
+    rows.push(['HB Round '+rid,trades[0].asset,'HYBRID',trades.map(function(t){return t.stake;}).join('|'),trades[0].time,'--','--',(totalPnl>=0?'+':'')+totalPnl.toFixed(2),anyWin?'WIN':'LOSS'].join(','));
+    trades.forEach(function(t,i){
+      rows.push(['  '+t.time,t.asset,t.direction,'$'+t.stake,t.price?parseFloat(t.price).toFixed(2):'--',t.exitPrice?parseFloat(t.exitPrice).toFixed(2):'--',t.durationStr||'--',(t.pnl>=0?'+':'')+t.pnl.toFixed(2),t.win?'WIN':'LOSS'].join(','));
+    });
   });
-  individuals.forEach(function(t){
-    rows.push([t.time,t.asset,t.direction,'$'+t.stake,t.price?parseFloat(t.price).toFixed(2):'--',t.exitPrice?parseFloat(t.exitPrice).toFixed(2):'--','--',(t.pnl>=0?'+':'')+t.pnl.toFixed(2),t.win?'WIN':'LOSS','--','--','--','--','--','--','--'].join(','));
-  });
-  var csv='Round,Asset,Type,Stake,Entry,Exit,MoveSize,PnL,Result,Score,ATR_Ratio,EMA_Trend,BB_Squeeze,Mom_Burst,Confluences,BarrierMult\n'+rows.join('\n');
-  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='kevoai_v5_'+new Date().toISOString().slice(0,10)+'.csv';a.click();notify('OK','Journal exported!','win');
+  individuals.forEach(function(t){rows.push([t.time,t.asset,t.direction,'$'+t.stake,t.price?parseFloat(t.price).toFixed(2):'--',t.exitPrice?parseFloat(t.exitPrice).toFixed(2):'--',t.durationStr||'--',(t.pnl>=0?'+':'')+t.pnl.toFixed(2),t.win?'WIN':'LOSS'].join(','));});
+  var csv='Type,Asset,Direction,Stake,Entry,Exit,Duration,PnL,Result\n'+rows.join('\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='kevoai_'+new Date().toISOString().slice(0,10)+'.csv';a.click();notify('OK','Journal exported!','win');
 }
 
 function updAnalytics(){
@@ -2725,22 +2282,6 @@ function initCharts(){
   priceChart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[{data:[],borderColor:'#00e5a0',borderWidth:1.5,fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,230);g.addColorStop(0,'rgba(0,229,160,.15)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},pointRadius:0,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:10},maxTicksLimit:5}}},animation:{duration:0}}});
   var pctx=document.getElementById('pnlChart').getContext('2d');
   pnlChart=new Chart(pctx,{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4a5568',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#4a5568',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}}}});
-  // Create wwChart here — temporarily show the barrier page so canvas gets real dimensions
-  var barrierPage=document.getElementById('page-barrier');
-  if(barrierPage){
-    barrierPage.style.display='block';
-    barrierPage.style.visibility='hidden'; // invisible but has dimensions
-    var wctx=document.getElementById('wwChart');
-    if(wctx){
-      wwChart=new Chart(wctx.getContext('2d'),{
-        type:'line',
-        data:{labels:[],datasets:[{label:'Price',data:[],borderColor:'#00e5a0',borderWidth:1.5,fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(0,229,160,.18)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},pointRadius:0,tension:0.3}]},
-        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:9},maxTicksLimit:4}}},animation:{duration:0}}
-      });
-    }
-    barrierPage.style.display='';
-    barrierPage.style.visibility='';
-  }
 }
 
 window.addEventListener('load',function(){
@@ -2760,7 +2301,7 @@ window.addEventListener('load',function(){
   if(!S.apiToken&&savedDemo)S.apiToken=savedDemo;
   if(!S.apiToken&&savedReal)S.apiToken=savedReal;
   // Version check — clear stale data from old 8-trade version
-var _wwVersion = '7.0';
+var _wwVersion = '4.8';
 if(localStorage.getItem('kevoai_version')!==_wwVersion){
   localStorage.removeItem('kevoai_trades');
   localStorage.removeItem('kevoai_dg_trades');
@@ -2769,7 +2310,7 @@ if(localStorage.getItem('kevoai_version')!==_wwVersion){
   localStorage.removeItem('kevoai_dg_profit');
   S.trades=[];
   localStorage.setItem('kevoai_version',_wwVersion);
-  console.log('KevoAI v7.0 — EXPIRYRANGE ±0.35 × 4 — exact reverse engineer');
+  console.log('KevoAI v4.2 — cleared stale trade data');
 }
 connectWS(); switchAcc(S.accType);
   document.querySelector('.ni').classList.add('active');
