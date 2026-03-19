@@ -635,8 +635,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   </div>
                 </div>
                 <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Duration (Ticks)</div>
-                  <div class="dr"><div class="db" onclick="HB.ticks=1;setHBActive(this)">1T</div><div class="db" onclick="HB.ticks=3;setHBActive(this)">3T</div><div class="db active" onclick="HB.ticks=5;setHBActive(this)">5T</div><div class="db" onclick="HB.ticks=8;setHBActive(this)">8T</div><div class="db" onclick="HB.ticks=10;setHBActive(this)">10T</div></div>
+                  <div class="il">Duration (Minutes) — auto-set from Deriv</div>
+                  <div class="dr"><div class="db" onclick="HB._validDurVal=1;HB._validDurUnit='m';setHBActive(this)">1M</div><div class="db active" onclick="HB._validDurVal=2;HB._validDurUnit='m';setHBActive(this)">2M</div><div class="db" onclick="HB._validDurVal=5;HB._validDurUnit='m';setHBActive(this)">5M</div><div class="db" onclick="HB._validDurVal=10;HB._validDurUnit='m';setHBActive(this)">10M</div><div class="db" onclick="HB._validDurVal=15;HB._validDurUnit='m';setHBActive(this)">15M</div></div>
                 </div>
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Min Signal Score to Trade</div>
@@ -964,27 +964,18 @@ function handleMsg(d) {
     if(code==='ProposalOpenContractDoesNotExist') { wsSend({balance:1}); return; }
     if(code==='InvalidToken'||code==='AuthorizationRequired') {
       notify('X','Invalid token: '+msg,'loss'); updateConnUI(false);
-    } else if(code==='ContractBuyValidationError'||code==='ContractCreationFailure'||code==='OfferingsValidationError'||code==='InputValidationFailed') {
-      notify('Trade Error', msg, 'loss');
-      // Clear any pending HB round so bot doesn't freeze
-      if(d.req_id && S.pending[d.req_id] && S.pending[d.req_id].isHB){
-        var failedRid = S.pending[d.req_id].hbRound;
-        // Remove both pending entries for this round
-        Object.keys(S.pending).forEach(function(k){
-          if(S.pending[k].isHB && S.pending[k].hbRound===failedRid) delete S.pending[k];
-        });
-        // Clear the HB pending round too
-        if(HB.pending[failedRid]) delete HB.pending[failedRid];
-        HB.rounds = Math.max(0, HB.rounds-1);
-        clearWWBarrierLines();
-        document.getElementById('hb-active-count').textContent='0 ACTIVE';
-        notify('!','Round cancelled: '+msg+' — check barrier/duration settings','loss');
-      }
-      delete S.pending[d.req_id];
     } else {
+      // Show ALL errors
+      notify('Err:'+code, msg.substring(0,80), 'loss');
       console.warn('Deriv error:', code, msg, 'req_id:', d.req_id);
-      // Show error prominently — always helpful for debugging
-      notify('Err:'+code, msg.substring(0,60), 'loss');
+      // Check if this error belongs to an HB proposal or buy
+      var pend = d.req_id ? S.pending[d.req_id] : null;
+      if(pend && (pend.isHB || pend.type==='hb_proposal')){
+        var failedRid = pend.hbRound;
+        _hbCleanupOnError(failedRid);
+        notify('!', 'WW round cancelled: '+msg.substring(0,60), 'loss');
+      }
+      if(d.req_id) delete S.pending[d.req_id];
     }
     return;
   }
@@ -996,12 +987,12 @@ function handleMsg(d) {
     case 'proposal_open_contract': onContract(d.proposal_open_contract); break;
     case 'balance': onBalance(d.balance); break;
     case 'transaction': setTimeout(function(){ wsSend({balance:1,subscribe:1}); },500); break;
+    case 'contracts_for': onContractsFor(d.contracts_for); break;
   }
 }
 
 function _hbCleanupOnError(roundId){
   if(!roundId) return;
-  // Remove all pending entries for this round
   Object.keys(S.pending).forEach(function(k){
     if(S.pending[k] && S.pending[k].hbRound===roundId) delete S.pending[k];
   });
@@ -1009,6 +1000,37 @@ function _hbCleanupOnError(roundId){
   HB.rounds = Math.max(0, HB.rounds-1);
   clearWWBarrierLines();
   document.getElementById('hb-active-count').textContent='0 ACTIVE';
+}
+
+// ── Query Deriv for valid EXPIRYRANGE durations on the HB asset ──
+function queryContractsFor(sym){
+  wsSend({contracts_for: sym, currency: S.currency||'USD', landing_company:'svg', product_type:'basic'});
+}
+
+function onContractsFor(data){
+  if(!data||!data.available) return;
+  // Find EXPIRYRANGE entry — extract min_duration
+  data.available.forEach(function(c){
+    if(c.contract_type==='EXPIRYRANGE'||c.contract_type==='EXPIRYRANGEE'){
+      var minD = c.min_duration||'';
+      var maxD = c.max_duration||'';
+      console.log('[contracts_for]', c.contract_type, 'min:', minD, 'max:', maxD, 'expiry_type:', c.expiry_type);
+      // Parse min duration — format is e.g. "15s" or "1m" or "5t"
+      if(minD && c.contract_type==='EXPIRYRANGEE'){
+        var val = parseInt(minD);
+        var unit = minD.replace(/[0-9]/g,'');
+        // Store valid duration
+        if(!isNaN(val) && val>0){
+          HB._validDurVal = val;
+          HB._validDurUnit = unit;
+          // Update the duration display
+          var durSecs = unit==='s'?val:unit==='m'?val*60:unit==='t'?val*2:val;
+          console.log('[WW] Valid EXPIRYRANGE duration:', val, unit, '(~'+durSecs+'s)');
+          notify('OK','WW contract: min '+val+unit+' for '+HB.asset,'info');
+        }
+      }
+    }
+  });
 }
 
 function onProposal(proposal, reqId){
@@ -1064,6 +1086,8 @@ function onAuth(a) {
   setTimeout(function(){ wsSend({balance:1}); },1500);
   if(a.balance!==undefined) onBalance({balance:a.balance,currency:a.currency});
   notify('Connected!',a.loginid+(isVirtual?' (DEMO)':' (REAL)'),'win');
+  // Query valid contract durations for EXPIRYRANGE on HB asset
+  setTimeout(function(){ queryContractsFor(HB.asset); }, 2000);
 }
 
 function onBalance(b) {
@@ -1626,7 +1650,8 @@ function runHybridAuto(){
   var sig=getWWSignal();
   if(!sig.ready){document.getElementById('hb-active-count').textContent='0 ACTIVE';HB.interval=setTimeout(runHybridAuto,2000);return;}
   placeHybridRound();
-  var waitMs=(HB.ticks*1000)+10000;
+  var _durSecs = (HB._validDurUnit==='m'?(HB._validDurVal||15)*60:(HB._validDurVal||15));
+  var waitMs = (_durSecs * 1000) + 8000;
   startCountdown(Math.floor(waitMs/1000));
   HB.interval=setTimeout(runHybridAuto,waitMs);
 }
@@ -1706,18 +1731,17 @@ function placeHybridRound(){
     }
   }
 
-  // ── EXPIRYRANGE/EXPIRYRANGEE require proposal→buy flow ──────────
-  // Step 1: Send proposals for both contracts
-  // Step 2: On proposal response → buy with proposal ID
-  // This is different from CALL/PUT which can be direct-bought
-  var durSecs = HB.ticks * 2; // 5 ticks ≈ 10 seconds
+  // Use duration validated by contracts_for query — fallback 15s if not yet queried
+  var durVal  = HB._validDurVal  || 15;
+  var durUnit = HB._validDurUnit || 's';
+  console.log('[WW PLACING] dur:', durVal, durUnit, 'barrier:±'+barrier.toFixed(2));
 
   var propEO = wsSend({
     proposal:1,
     amount:side, basis:'stake',
     contract_type:'EXPIRYRANGEE',
     currency:S.currency,
-    duration:durSecs, duration_unit:'s',
+    duration:durVal, duration_unit:durUnit,
     symbol:HB.asset,
     barrier:'+'+barrier.toFixed(2),
     barrier2:'-'+barrier.toFixed(2)
@@ -1725,7 +1749,7 @@ function placeHybridRound(){
   if(propEO) S.pending[propEO]={
     type:'hb_proposal', dir:'OUTSIDE', idx:0,
     stake:side, asset:HB.asset, hbRound:rid,
-    barrier:barrier, durVal:durSecs, durUnit:'s'
+    barrier:barrier, durVal:durVal, durUnit:durUnit
   };
 
   var propEB = wsSend({
@@ -1733,7 +1757,7 @@ function placeHybridRound(){
     amount:side, basis:'stake',
     contract_type:'EXPIRYRANGE',
     currency:S.currency,
-    duration:durSecs, duration_unit:'s',
+    duration:durVal, duration_unit:durUnit,
     symbol:HB.asset,
     barrier:'+'+barrier.toFixed(2),
     barrier2:'-'+barrier.toFixed(2)
@@ -1741,7 +1765,7 @@ function placeHybridRound(){
   if(propEB) S.pending[propEB]={
     type:'hb_proposal', dir:'BETWEEN', idx:1,
     stake:side, asset:HB.asset, hbRound:rid,
-    barrier:barrier, durVal:durSecs, durUnit:'s'
+    barrier:barrier, durVal:durVal, durUnit:durUnit
   };
 
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
