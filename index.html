@@ -1337,7 +1337,7 @@ function onContract(c) {
   // Route to Hybrid Bot — individual trade result
   // onHBResult batches all 8, so skip individual DG/balance updates
   if(t.isHB&&t.hbRound!==null) {
-    onHBResult(t.hbRound, t.hbIdx, profit, t.direction);
+    onHBResult(t.hbRound, t.hbIdx, profit, t.direction, t.exitPrice);
     // Don't fall through to the balance/stats updates below — onHBResult handles them
     localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
     return;
@@ -1824,10 +1824,10 @@ function placeHybridRound(){
   updHBStats();
 }
 
-function onHBResult(roundId,idx,profit,direction){
+function onHBResult(roundId,idx,profit,direction,exitSpot){
   if(!HB.pending[roundId])return;
   var won=profit>0;
-  HB.pending[roundId].results[idx]={profit:profit,direction:direction,win:won};
+  HB.pending[roundId].results[idx]={profit:profit,direction:direction,win:won,exitSpot:exitSpot||0};
   HB.pending[roundId].settled++;
   console.log('[HBResult] round:'+roundId+' idx:'+idx+' profit:'+profit+' settled:'+HB.pending[roundId].settled);
   // Single leg — settle immediately on first result
@@ -1864,7 +1864,7 @@ function _settleHBRound(roundId){
     stake:r.side,pnl:eoPnl,win:eoResult.win,
     status:eoResult.win?'win':'loss',
     time:r.time,durationStr:(HB._durSecs||15)+'s',
-    price:r.entry,exitPrice:r.entry,
+    price:r.entry,exitPrice:eoResult.exitSpot||r.entry,
     isHB:true,hbRound:roundId,isHBSummary:true,note:''};
   S.trades.unshift(summaryEO);
 
@@ -1872,7 +1872,7 @@ function _settleHBRound(roundId){
     round:HB.rounds,time:r.time,asset:r.asset,
     profit:totalPnl,won:isWin,cumPnl:HB.pnl,
     eoPnl:eoPnl,ebPnl:ebPnl,eoWin:eoResult.win,ebWin:ebResult.win,
-    barrier:r.barrier,side:r.side,entry:r.entry,score:r.score,
+    barrier:r.barrier,side:r.side,entry:r.entry,exitSpot:eoResult.exitSpot||0,score:r.score,
     snap:r.snap||null
   });
   if(HB.history.length>100)HB.history.pop();
@@ -2446,7 +2446,9 @@ function renderJournal(filter){
     html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">';
     html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Entry Price</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--go)">'+(entry?entry.toFixed(entry>100?2:4):'--')+'</div></div>';
     html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Barrier ±</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--go)">'+(barrier?'±'+barrier.toFixed(2):'--')+'</div><div style="font-size:9px;color:var(--t3);margin-top:1px">Mult: '+(snap?'×'+snap.barrierMult:'--')+'</div></div>';
-    html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Won Side</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:'+(eoT&&eoT.win?'var(--ac)':'var(--bl)')+'">'+winSide+'</div><div style="font-size:9px;color:var(--t3);margin-top:1px">'+(eoT&&eoT.win?'Price EXITED barrier':'Price STAYED inside')+'</div></div>';
+    var exitSp=parseFloat((hist?hist.exitSpot:eoT.exitPrice)||0);
+    var exitDiff=exitSp&&entry?parseFloat((exitSp-entry).toFixed(4)):0;
+    html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Exit Price</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:'+(exitSp?'var(--t1)':'var(--t3)')+'">'+(exitSp?exitSp.toFixed(exitSp>100?2:4):'--')+'</div><div style="font-size:9px;color:'+(exitDiff>0?'var(--ac)':exitDiff<0?'var(--re)':'var(--t3)')+';margin-top:1px">'+(exitDiff?( exitDiff>0?'▲':exitDiff<0?'▼':'')+Math.abs(exitDiff).toFixed(4)+' move':'--')+'</div></div>';
     html+='</div>';
     // Confluences block
     if(snap){
@@ -2485,6 +2487,7 @@ function renderJournal(filter){
     html+='<div style="display:flex;gap:14px;font-size:10px;font-family:var(--mo);color:var(--t2)">';
     html+='<span>Stake: <b style="color:var(--t1)">$'+(eoT.stake||0).toFixed(2)+'</b></span>';
     html+='<span>Entry: <b style="color:var(--go)">'+(entry?entry.toFixed(entry>100?2:4):'--')+'</b></span>';
+    html+='<span>Exit: <b style="color:'+(exitSp?'var(--t1)':'var(--t3)')+'">'+(exitSp?exitSp.toFixed(exitSp>100?2:4):'--')+'</b></span>';
     html+='<span>Barrier: <b style="color:var(--go)">'+(barrier?'±'+barrier.toFixed(2):'--')+'</b></span>';
     html+='<span>Dur: <b style="color:var(--t1)">'+(eoT.durationStr||'15s')+'</b></span>';
     html+='</div>';
