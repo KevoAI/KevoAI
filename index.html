@@ -471,32 +471,22 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
 
             <!-- Trade Preview -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
-              <div style="font-size:12px;font-weight:700;margin-bottom:10px">↕ This Round — Same Barrier Both Sides</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-                <!-- ENDS OUTSIDE -->
-                <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.25);border-radius:var(--rs);padding:10px" id="trade-breakdown-h">
-                  <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:4px">ENDS OUTSIDE ↗↙</div>
-                  <div style="font-size:11px;color:var(--t2);margin-bottom:3px">Wins if price exits barrier</div>
-                  <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="eo-barrier">±0.00</div>
-                  <div style="font-size:11px;color:var(--t2);margin-top:3px">Stake: <span style="color:var(--t1);font-weight:700" id="eo-stake">$0.00</span></div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:2px">Target payout: <span style="color:var(--ac)" id="eo-payout">~226%</span></div>
+              <div style="font-size:12px;font-weight:700;margin-bottom:10px" id="trade-preview-title">↕ Next Trade — Waiting for signal</div>
+              <!-- Single leg card — updated dynamically -->
+              <div style="border-radius:var(--rs);padding:12px;margin-bottom:10px;border:1px solid rgba(0,229,160,0.25);background:rgba(0,229,160,0.07)" id="trade-breakdown-h">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                  <div style="font-size:11px;color:var(--ac);font-weight:700" id="trade-dir-label">CALL ↗ — price must end above barrier</div>
+                  <div style="font-size:12px;color:var(--t3);font-family:var(--mo)" id="trade-barrier-display">±0.00</div>
                 </div>
-                <!-- ENDS BETWEEN -->
-                <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.25);border-radius:var(--rs);padding:10px" id="trade-breakdown-l">
-                  <div style="font-size:10px;color:var(--bl);font-weight:700;margin-bottom:4px">ENDS BETWEEN ↔</div>
-                  <div style="font-size:11px;color:var(--t2);margin-bottom:3px">Wins if price stays inside</div>
-                  <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--bl)" id="eb-barrier">±0.00</div>
-                  <div style="font-size:11px;color:var(--t2);margin-top:3px">Stake: <span style="color:var(--t1);font-weight:700" id="eb-stake">$0.00</span></div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:2px">Payout varies by range</div>
+                <div style="display:flex;gap:16px;font-size:11px;color:var(--t2)">
+                  <span>Stake: <b style="color:var(--t1);font-family:var(--mo)" id="eo-stake">$0.00</b></span>
+                  <span>Target payout: <b style="color:var(--ac);font-family:var(--mo)" id="eo-payout">~95%</b></span>
                 </div>
               </div>
-              <div style="background:rgba(0,229,160,0.05);border:1px solid rgba(0,229,160,0.15);border-radius:var(--rs);padding:8px 10px;font-size:11px;color:var(--t2)">
-                ✅ <strong style="color:var(--t1)">One always wins.</strong> If ENDS OUTSIDE pays 226%+ → net profit regardless of direction.
-              </div>
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--bo)">
-                <span style="font-size:11px;color:var(--t2)">Total Risk:</span>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--bo)">
+                <span style="font-size:11px;color:var(--t2)">Stake:</span>
                 <span style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--t1)" id="ww-total-stake">$0.00</span>
-                <span style="font-size:11px;color:var(--t2)">If Outside wins:</span>
+                <span style="font-size:11px;color:var(--t2)">If wins:</span>
                 <span style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="ww-best-win">+$0.00</span>
               </div>
             </div>
@@ -516,7 +506,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             </div>
 
             <!-- Place Button -->
-            <button class="place-all-btn" id="placeAllBtn" onclick="placeHybridRound()">↕ PLACE ROUND — OUTSIDE + BETWEEN</button>
+            <button class="place-all-btn" id="placeAllBtn" onclick="placeHybridRound()">▶ PLACE TRADE</button>
 
             <!-- Daily Progress -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
@@ -1500,22 +1490,23 @@ function calcWWDaily(){
   var winsNeeded=netPerWin>0?Math.ceil(tp/netPerWin):999;
 
   var el=document.getElementById('ww-progress-target');if(el)el.textContent='$'+tp;
-  var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=total.toFixed(2);
+  var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=side.toFixed(2);
 
-  var math='ENDS OUTSIDE + ENDS BETWEEN\n'
-    +'Same barrier — one ALWAYS wins\n\n'
-    +'Stake each side: $'+side.toFixed(2)+'\n'
-    +'Total risk: $'+total.toFixed(2)+'\n\n'
-    +'If ENDS OUTSIDE wins (price moves):\n'
-    +'  Payout ~226% = +$'+(side*2.26).toFixed(2)+'\n'
-    +'  Minus losing side: -$'+side.toFixed(2)+'\n'
+  // Single leg math
+  var winPayout=parseFloat((side*0.95).toFixed(2)); // ~95% profit on win (Deriv CALL/PUT with barrier)
+  var netPerWin=winPayout;
+  var maxRounds=Math.floor(sl/side);
+  var winsNeeded=netPerWin>0?Math.ceil(tp/netPerWin):999;
+
+  var math='CALL or PUT — single directional trade\n\n'
+    +'Stake: $'+side.toFixed(2)+'\n'
+    +'If barrier hit (WIN):\n'
+    +'  Payout ~195% = +$'+(side*1.95).toFixed(2)+'\n'
     +'  Net profit: +$'+netPerWin.toFixed(2)+'\n\n'
-    +'If ENDS BETWEEN wins (price flat):\n'
-    +'  Payout ~300% = +$'+(side*3.0).toFixed(2)+'\n'
-    +'  Minus losing side: -$'+side.toFixed(2)+'\n'
-    +'  Net profit: +$'+netFlat.toFixed(2)+'\n\n'
-    +'Max rounds before $'+sl+' SL: '+maxRounds+'\n'
-    +'Rounds to hit $'+tp+' target: ~'+winsNeeded;
+    +'If barrier missed (LOSS):\n'
+    +'  Lost: -$'+side.toFixed(2)+'\n\n'
+    +'Max losses before $'+sl+' SL: '+maxRounds+'\n'
+    +'Wins needed for $'+tp+' target: ~'+winsNeeded;
 
   var mel=document.getElementById('ww-calc-math');if(mel)mel.textContent=math;
   updateBarrierPreview();
@@ -1555,28 +1546,23 @@ function getBarrier(){
 }
 
 function updateBarrierPreview(){
-  var b=getBarrier(),side=getSideStake(),total=parseFloat((side*2).toFixed(2));
+  var b=getBarrier(),side=getSideStake();
   var pt=document.getElementById('barrier-preview-txt');
-  if(pt)pt.textContent='Barrier: ±'+b.toFixed(2)+' | ENDS OUTSIDE $'+side+' + ENDS BETWEEN $'+side+' = $'+total+' total';
-  var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=total.toFixed(2);
+  if(pt)pt.textContent='Barrier: ±'+b.toFixed(2)+' | Stake: $'+side.toFixed(2)+' | Win: +$'+(side*0.95).toFixed(2);
+  var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=side.toFixed(2);
   renderTradeBreakdown(b,side);
 }
 
 function renderTradeBreakdown(barrier,side){
-  // Update the 2 preview cards
-  var eoB=document.getElementById('eo-barrier'),eoS=document.getElementById('eo-stake');
-  var ebB=document.getElementById('eb-barrier'),ebS=document.getElementById('eb-stake');
+  var eoS=document.getElementById('eo-stake');
   var eoPay=document.getElementById('eo-payout');
-  if(eoB)eoB.textContent='±'+barrier.toFixed(2);
+  var barDisplay=document.getElementById('trade-barrier-display');
   if(eoS)eoS.textContent='$'+side.toFixed(2);
-  if(ebB)ebB.textContent='±'+barrier.toFixed(2);
-  if(ebS)ebS.textContent='$'+side.toFixed(2);
-  var total=parseFloat((side*2).toFixed(2));
-  var ts=document.getElementById('ww-total-stake');if(ts)ts.textContent='$'+total.toFixed(2);
-  // Best win = ENDS OUTSIDE at 226%
-  var bestWin=parseFloat((side*1.26).toFixed(2));
+  if(barDisplay)barDisplay.textContent='±'+barrier.toFixed(2);
+  var ts=document.getElementById('ww-total-stake');if(ts)ts.textContent='$'+side.toFixed(2);
+  var bestWin=parseFloat((side*0.95).toFixed(2));
   var bw=document.getElementById('ww-best-win');if(bw){bw.textContent='+$'+bestWin.toFixed(2);bw.style.color='var(--ac)';}
-  if(eoPay)eoPay.textContent='~226% (+$'+bestWin.toFixed(2)+' net)';
+  if(eoPay)eoPay.textContent='~95% (+$'+bestWin.toFixed(2)+' net)';
 }
 
 // ── Signal Engine — same 5-signal system, DOM throttled ──────────
@@ -1897,6 +1883,19 @@ function placeHybridRound(){
 
   // Draw barriers on main chart
   setWWBarrierLines(entry,barrier);
+  // Update preview UI to show direction
+  var titleEl=document.getElementById('trade-preview-title');
+  var dirEl=document.getElementById('trade-dir-label');
+  var cardEl=document.getElementById('trade-breakdown-h');
+  if(titleEl)titleEl.textContent='↕ This Trade — '+dir+' with ±'+barrier.toFixed(2)+' barrier';
+  if(dirEl){
+    dirEl.textContent=dir==='CALL'?'CALL ↗ — price must end ABOVE +'+barrier.toFixed(2):'PUT ↘ — price must end BELOW -'+barrier.toFixed(2);
+    dirEl.style.color=dir==='CALL'?'var(--ac)':'var(--re)';
+  }
+  if(cardEl){
+    cardEl.style.background=dir==='CALL'?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.05)';
+    cardEl.style.borderColor=dir==='CALL'?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.2)';
+  }
   renderTradeBreakdown(barrier,side);
 
   // Switch dashboard chart to HB asset so barriers are visible
@@ -1986,12 +1985,13 @@ function _settleHBRound(roundId){
   // Store 1 summary trade (single leg)
   S.trades=S.trades.filter(function(t){return!(t.isHB&&t.hbRound===roundId&&!t.isHBSummary);});
   var summaryEO={id:roundId+'EO',contractId:roundId+'EO',asset:r.asset,
-    direction:eoResult.direction||'OUTSIDE',
+    direction:r.dir||eoResult.direction||'CALL',   // 'CALL' or 'PUT'
+    barrier:r.barrier,                              // barrier distance (numeric)
     stake:r.side,pnl:eoPnl,win:eoResult.win,
     status:eoResult.win?'win':'loss',
     time:r.time,durationStr:(HB._durSecs||15)+'s',
     price:r.entry,
-    exitPrice:eoResult.exitSpot>0?eoResult.exitSpot:(r.exitPrice||S.prices[r.asset]||null),
+    exitPrice:eoResult.exitSpot>0?eoResult.exitSpot:null,  // null if unknown — never use live price
     _exitConfirmed:eoResult.exitSpot>0,
     isHB:true,hbRound:roundId,isHBSummary:true,note:''};
   S.trades.unshift(summaryEO);
@@ -2620,7 +2620,7 @@ function renderJournal(filter){
     // Single leg result card
     html+='<div style="background:'+(eoT.win?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.05)')+';border:1px solid '+(eoT.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.2)')+';border-radius:var(--rs);padding:12px;margin-bottom:8px">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
-    html+='<span style="font-size:11px;color:'+(eoT.direction==='OUTSIDE'?'var(--ac)':'var(--bl)')+';font-weight:700">'+(eoT.direction==='OUTSIDE'?'↗ CALL — price above barrier':'↘ PUT — price below barrier')+'</span>';
+    html+='<span style="font-size:11px;color:'+(eoT.direction==='CALL'?'var(--ac)':'var(--re)')+';font-weight:700">'+(eoT.direction==='CALL'?'↗ CALL — price above barrier':'↘ PUT — price below barrier')+'</span>';
     html+='<span style="font-size:14px;font-weight:800;font-family:var(--mo);color:'+(eoT.win?'var(--ac)':'var(--re)')+'">'+( eoT.pnl>=0?'+':'')+'$'+eoT.pnl.toFixed(2)+'</span>';
     html+='</div>';
     html+='<div style="display:flex;gap:14px;font-size:10px;font-family:var(--mo);color:var(--t2)">';
@@ -2628,7 +2628,7 @@ function renderJournal(filter){
     html+='<span>Entry: <b style="color:var(--go)">'+(entry?entry.toFixed(entry>100?2:4):'--')+'</b></span>';
     var _legExit=exitSp>0?exitSp:null;
     html+='<span>Exit: <b style="color:'+(_legExit?'var(--t1)':'var(--t3)')+'">'+(_legExit?_legExit.toFixed(_legExit>100?2:4):'--')+'</b></span>';
-    html+='<span>Barrier: <b style="color:var(--go)">'+(barrier?'±'+barrier.toFixed(2):'--')+'</b></span>';
+    html+='<span>Barrier: <b style="color:var(--go)">'+(barrier?(eoT.direction==='CALL'?'+':'-')+barrier.toFixed(2):'--')+'</b></span>';
     html+='<span>Dur: <b style="color:var(--t1)">'+(eoT.durationStr||'15s')+'</b></span>';
     html+='</div>';
     html+='<div style="font-size:11px;font-weight:700;color:'+(eoT.win?'var(--ac)':'var(--re)')+';margin-top:6px">'+(eoT.win?'✓ BARRIER HIT — WON':'✗ BARRIER MISSED — LOST')+'</div>';
