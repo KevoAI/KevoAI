@@ -827,19 +827,19 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           <!-- LEFT: Config -->
           <div>
             <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct" style="color:var(--go)">Contract A — Ends Outside (EXPIRYMISS)</div></div>
+              <div class="ch"><div class="ct" style="color:var(--go)">Contract A — Goes Outside (UPORDOWN)</div></div>
               <div class="cb">
-                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">Wins if price ENDS outside barriers at expiry. Use SAME barrier as Stays Between — one always wins.</div>
+                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">Wins if price TOUCHES either barrier at ANY point. Settles instantly on touch. Same barrier as RANGE.</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
                   <div class="ig"><div class="il">Stake ($)</div><input type="number" class="iif" id="hl-go-stake" value="0.35" step="0.05" min="0.35"></div>
-                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-go-barrier" value="0.20" step="0.01" min="0.01" max="1.00"></div>
+                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-go-barrier" value="0.15" step="0.01" min="0.01" max="1.00"></div>
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db" onclick="HL.goDur=30;hlSetA(this)">30s</div>
-                    <div class="db" onclick="HL.goDur=60;hlSetA(this)">60s</div>
-                    <div class="db active" onclick="HL.goDur=120;hlSetA(this)">2m</div>
-                    <div class="db" onclick="HL.goDur=300;hlSetA(this)">5m</div>
+                    <div class="db active" onclick="HL.goDur=5;HL.goDurU='t';hlSetA(this)">5T</div>
+                    <div class="db" onclick="HL.goDur=10;HL.goDurU='t';hlSetA(this)">10T</div>
+                    <div class="db" onclick="HL.goDur=15;HL.goDurU='t';hlSetA(this)">15T</div>
+                    <div class="db" onclick="HL.goDur=30;HL.goDurU='s';hlSetA(this)">30s</div>
                   </div>
                 </div>
               </div>
@@ -848,17 +848,17 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <div class="card" style="margin-bottom:12px">
               <div class="ch"><div class="ct" style="color:var(--bl)">Contract B — Stays Between</div></div>
               <div class="cb">
-                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">Wins if price STAYS INSIDE barriers entire duration. Use SAME barrier as Goes Outside — they are perfect opposites, one always wins.</div>
+                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">Wins if price NEVER touches either barrier. Settles instantly on touch. Same barrier as UPORDOWN — one ALWAYS wins.</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
                   <div class="ig"><div class="il">Stake ($)</div><input type="number" class="iif" id="hl-nt-stake" value="0.35" step="0.05" min="0.35"></div>
-                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-nt-barrier" value="0.20" step="0.05" min="0.05" max="5.00"></div>
+                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-nt-barrier" value="0.15" step="0.05" min="0.05" max="5.00"></div>
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db" onclick="HL.ntDur=30;hlSetB(this)">30s</div>
-                    <div class="db" onclick="HL.ntDur=60;hlSetB(this)">60s</div>
-                    <div class="db active" onclick="HL.ntDur=120;hlSetB(this)">2m</div>
-                    <div class="db" onclick="HL.ntDur=300;hlSetB(this)">5m</div>
+                    <div class="db active" onclick="HL.ntDur=5;HL.ntDurU='t';hlSetB(this)">5T</div>
+                    <div class="db" onclick="HL.ntDur=10;HL.ntDurU='t';hlSetB(this)">10T</div>
+                    <div class="db" onclick="HL.ntDur=15;HL.ntDurU='t';hlSetB(this)">15T</div>
+                    <div class="db" onclick="HL.ntDur=30;HL.ntDurU='s';hlSetB(this)">30s</div>
                   </div>
                 </div>
               </div>
@@ -3213,8 +3213,8 @@ function hb2Reset(){
 // ══════════════════════════════════════════════════════════════
 var HL = {
   running: false, mode: 'both',
-  goDur: 120, goDurU: 's',
-  ntDur: 120, ntDurU: 's',
+  goDur: 5, goDurU: 't',
+  ntDur: 5, ntDurU: 't',
   cyclesDone: 0, cyclesTarget: 10,
   cycleActive: false,
   // Goes Outside stats
@@ -3288,26 +3288,16 @@ function hlNextCycle(){
   document.getElementById('hl-status').textContent='Cycle '+(HL.cyclesDone+1)+'/'+HL.cyclesTarget+' — placing...';
 
   if(HL.mode==='both'||HL.mode==='go'){
-    // Probe all durations — use proposal first to find valid one
-    var _durs=[15,30,60,120,300,600,1800,3600];
-    var _el=document.getElementById('hl-query-result');
-    if(_el){_el.style.display='block';_el.innerHTML='Finding valid EXPIRYRANGEE duration...';}
-    S._hlDurTest=S._hlDurTest||{};
-    _durs.forEach(function(dur,i){
-      setTimeout(function(){
-        var reqId=7000+i;
-        S._hlDurTest[reqId]={dur:dur,goStake:goStake,goBarrier:goBarrier,cycleId:cycleId};
-        var msg=JSON.stringify({proposal:1,amount:goStake,basis:'stake',
-          contract_type:'EXPIRYRANGEE',currency:S.currency||'USD',
-          duration:dur,duration_unit:'s',symbol:HB.asset,
-          barrier:'+'+(goBarrier.toFixed(2)),barrier2:'-'+(goBarrier.toFixed(2)),
-          req_id:reqId});
-        if(S.ws&&S.ws.readyState===1) S.ws.send(msg);
-      },i*500);
-    });
-    // Pause cycle — will resume when valid proposal found
-    HL.cycleActive=true;
-    return;
+    var rGO=wsSend({buy:1,price:goStake,parameters:{
+      amount:goStake,basis:'stake',
+      contract_type:'UPORDOWN',
+      currency:S.currency,
+      duration:HL.goDur,duration_unit:HL.goDurU,
+      symbol:HB.asset,
+      barrier:'+'+(goBarrier.toFixed(2)),
+      barrier2:'-'+(goBarrier.toFixed(2))
+    }});
+    if(rGO) S.pending[rGO]={_hl:true,_hlId:cycleId,_hlType:'go',dir:'OUTSIDE',stake:goStake,asset:HB.asset,isBot:true};
   } else {
     HL.pending[cycleId].goSettled=true;
   }
@@ -3318,7 +3308,7 @@ function hlNextCycle(){
         amount:ntStake,basis:'stake',
         contract_type:'RANGE',
         currency:S.currency,
-        duration:HL.ntDur,duration_unit:'s',
+        duration:HL.ntDur,duration_unit:HL.ntDurU,
         symbol:HB.asset,
         barrier:'+'+(ntBarrier.toFixed(2)),
         barrier2:'-'+(ntBarrier.toFixed(2))
@@ -4678,19 +4668,19 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           <!-- LEFT: Config -->
           <div>
             <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct" style="color:var(--go)">Contract A — Ends Outside (EXPIRYMISS)</div></div>
+              <div class="ch"><div class="ct" style="color:var(--go)">Contract A — Goes Outside (UPORDOWN)</div></div>
               <div class="cb">
-                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">Wins if price ENDS outside barriers at expiry. Use SAME barrier as Stays Between — one always wins.</div>
+                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">Wins if price TOUCHES either barrier at ANY point. Settles instantly on touch. Same barrier as RANGE.</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
                   <div class="ig"><div class="il">Stake ($)</div><input type="number" class="iif" id="hl-go-stake" value="0.35" step="0.05" min="0.35"></div>
-                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-go-barrier" value="0.20" step="0.01" min="0.01" max="1.00"></div>
+                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-go-barrier" value="0.15" step="0.01" min="0.01" max="1.00"></div>
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db" onclick="HL.goDur=30;hlSetA(this)">30s</div>
-                    <div class="db" onclick="HL.goDur=60;hlSetA(this)">60s</div>
-                    <div class="db active" onclick="HL.goDur=120;hlSetA(this)">2m</div>
-                    <div class="db" onclick="HL.goDur=300;hlSetA(this)">5m</div>
+                    <div class="db active" onclick="HL.goDur=5;HL.goDurU='t';hlSetA(this)">5T</div>
+                    <div class="db" onclick="HL.goDur=10;HL.goDurU='t';hlSetA(this)">10T</div>
+                    <div class="db" onclick="HL.goDur=15;HL.goDurU='t';hlSetA(this)">15T</div>
+                    <div class="db" onclick="HL.goDur=30;HL.goDurU='s';hlSetA(this)">30s</div>
                   </div>
                 </div>
               </div>
@@ -4699,17 +4689,17 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <div class="card" style="margin-bottom:12px">
               <div class="ch"><div class="ct" style="color:var(--bl)">Contract B — Stays Between</div></div>
               <div class="cb">
-                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">Wins if price STAYS INSIDE barriers entire duration. Use SAME barrier as Goes Outside — they are perfect opposites, one always wins.</div>
+                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">Wins if price NEVER touches either barrier. Settles instantly on touch. Same barrier as UPORDOWN — one ALWAYS wins.</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
                   <div class="ig"><div class="il">Stake ($)</div><input type="number" class="iif" id="hl-nt-stake" value="0.35" step="0.05" min="0.35"></div>
-                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-nt-barrier" value="0.20" step="0.05" min="0.05" max="5.00"></div>
+                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-nt-barrier" value="0.15" step="0.05" min="0.05" max="5.00"></div>
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db" onclick="HL.ntDur=30;hlSetB(this)">30s</div>
-                    <div class="db" onclick="HL.ntDur=60;hlSetB(this)">60s</div>
-                    <div class="db active" onclick="HL.ntDur=120;hlSetB(this)">2m</div>
-                    <div class="db" onclick="HL.ntDur=300;hlSetB(this)">5m</div>
+                    <div class="db active" onclick="HL.ntDur=5;HL.ntDurU='t';hlSetB(this)">5T</div>
+                    <div class="db" onclick="HL.ntDur=10;HL.ntDurU='t';hlSetB(this)">10T</div>
+                    <div class="db" onclick="HL.ntDur=15;HL.ntDurU='t';hlSetB(this)">15T</div>
+                    <div class="db" onclick="HL.ntDur=30;HL.ntDurU='s';hlSetB(this)">30s</div>
                   </div>
                 </div>
               </div>
