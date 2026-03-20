@@ -878,10 +878,11 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div class="il">Cycles</div>
                   <input type="number" class="iif" id="hl-cycles" value="10" min="1" max="50">
                 </div>
-                <div style="display:flex;gap:8px">
+                <div style="display:flex;gap:8px;margin-bottom:8px">
                   <button class="btn" style="flex:1;padding:11px;font-size:13px;font-weight:700;background:var(--go);color:var(--bg0)" id="hl-btn" onclick="hlRun()">Run Test</button>
                   <button class="btn btng" style="padding:11px 14px" onclick="hlReset()">Reset</button>
                 </div>
+                <button class="btn btng" style="width:100%;padding:8px;font-size:11px" onclick="hlQueryContracts()">Query Valid Contracts (check console)</button>
               </div>
             </div>
 
@@ -1006,10 +1007,11 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div class="il">Cycles</div>
                   <input type="number" class="iif" id="hl-cycles" value="10" min="1" max="50">
                 </div>
-                <div style="display:flex;gap:8px">
+                <div style="display:flex;gap:8px;margin-bottom:8px">
                   <button class="btn" style="flex:1;padding:11px;font-size:13px;font-weight:700;background:var(--go);color:var(--bg0)" id="hl-btn" onclick="hlRun()">Run Test</button>
                   <button class="btn btng" style="padding:11px 14px" onclick="hlReset()">Reset</button>
                 </div>
+                <button class="btn btng" style="width:100%;padding:8px;font-size:11px" onclick="hlQueryContracts()">Query Valid Contracts (check console)</button>
               </div>
             </div>
 
@@ -3492,6 +3494,44 @@ function hlUpdStats(){
         +'<br>Overall: <b style="color:'+(HL.totalPnl>=0?'#00e5a0':'#ff4d6a')+'">'+(HL.totalPnl>=0?'PROFITABLE':'LOSING')+' at $'+(HL.totalPnl>=0?'+':'')+HL.totalPnl.toFixed(2)+'</b>';
     }
   }
+}
+
+function hlQueryContracts(){
+  if(!S.connected){notify('!','Connect first','loss');return;}
+  var asset = HB.asset || 'R_100';
+  notify('INFO','Querying contracts for '+asset+'...','info');
+  var rid = wsSend({contracts_for: asset, currency: S.currency||'USD', landing_company:'svg', product_type:'basic'});
+  S.pending[rid] = {_hlQuery: true};
+  // Override handleMsg temporarily to capture full response
+  var origCase = null;
+  wsSend({contracts_for: asset, currency: S.currency||'USD', landing_company:'svg', product_type:'basic'});
+}
+
+// Extend onContractsFor to also log HL-relevant contracts
+var _origOnContractsFor = onContractsFor;
+function onContractsFor(data){
+  _origOnContractsFor(data);
+  if(!data||!data.available) return;
+  console.log('=== ALL AVAILABLE CONTRACTS FOR', data.available[0]&&data.available[0].underlying_symbol, '===');
+  var seen = {};
+  data.available.forEach(function(c){
+    var key = c.contract_type + '|' + c.expiry_type;
+    if(!seen[key]){
+      seen[key] = true;
+      var minDur = c.min_contract_duration || '--';
+      var maxDur = c.max_contract_duration || '--';
+      console.log(c.contract_type, '| expiry:', c.expiry_type, '| min:', minDur, '| max:', maxDur, '| barriers:', c.barriers||0);
+    }
+  });
+  // Show in status
+  var goTypes = data.available.filter(function(c){ return c.contract_type==='EXPIRYRANGEE'; });
+  var ntTypes = data.available.filter(function(c){ return c.contract_type==='NOTOUCH'; });
+  var stTypes = data.available.filter(function(c){ return c.contract_type==='RANGE'; });
+  console.log('EXPIRYRANGEE entries:', goTypes.length, goTypes[0]||'none');
+  console.log('NOTOUCH entries:', ntTypes.length, ntTypes[0]||'none');
+  console.log('RANGE (Stays Between) entries:', stTypes.length, stTypes[0]||'none');
+  var el = document.getElementById('hl-status');
+  if(el) el.textContent = 'GO:'+goTypes.length+' NT:'+ntTypes.length+' RANGE:'+stTypes.length+' — check console for details';
 }
 
 function saveNote(tid){var el=document.getElementById('note_'+tid);if(!el)return;S.notes[tid]=el.value;localStorage.setItem('kevoai_notes',JSON.stringify(S.notes));notify('OK','Note saved!','info');}
