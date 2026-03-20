@@ -836,10 +836,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db active" onclick="HL.goDur=5;HL.goDurU='t';hlSetA(this)">5T</div>
-                    <div class="db" onclick="HL.goDur=10;HL.goDurU='t';hlSetA(this)">10T</div>
-                    <div class="db" onclick="HL.goDur=15;HL.goDurU='t';hlSetA(this)">15T</div>
-                    <div class="db" onclick="HL.goDur=20;HL.goDurU='t';hlSetA(this)">20T</div>
+                    <div class="db active" onclick="HL.goDur=15;HL.goDurU='s';hlSetA(this)">15s</div>
+                    <div class="db" onclick="HL.goDur=30;HL.goDurU='s';hlSetA(this)">30s</div>
+                    <div class="db" onclick="HL.goDur=60;HL.goDurU='s';hlSetA(this)">60s</div>
+                    <div class="db" onclick="HL.goDur=120;HL.goDurU='s';hlSetA(this)">2m</div>
                   </div>
                 </div>
               </div>
@@ -855,10 +855,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db active" onclick="HL.ntDur=5;HL.ntDurU='t';hlSetB(this)">5T</div>
-                    <div class="db" onclick="HL.ntDur=10;HL.ntDurU='t';hlSetB(this)">10T</div>
-                    <div class="db" onclick="HL.ntDur=15;HL.ntDurU='t';hlSetB(this)">15T</div>
-                    <div class="db" onclick="HL.ntDur=20;HL.ntDurU='t';hlSetB(this)">20T</div>
+                    <div class="db active" onclick="HL.ntDur=15;HL.ntDurU='s';hlSetB(this)">15s</div>
+                    <div class="db" onclick="HL.ntDur=30;HL.ntDurU='s';hlSetB(this)">30s</div>
+                    <div class="db" onclick="HL.ntDur=60;HL.ntDurU='s';hlSetB(this)">60s</div>
+                    <div class="db" onclick="HL.ntDur=120;HL.ntDurU='s';hlSetB(this)">2m</div>
                   </div>
                 </div>
               </div>
@@ -3154,8 +3154,8 @@ function hb2Reset(){
 // ══════════════════════════════════════════════════════════════
 var HL = {
   running: false, mode: 'both',
-  goDur: 5, goDurU: 't',
-  ntDur: 5, ntDurU: 't',
+  goDur: 15, goDurU: 's',
+  ntDur: 15, ntDurU: 's',
   cyclesDone: 0, cyclesTarget: 10,
   cycleActive: false,
   // Goes Outside stats
@@ -3243,11 +3243,14 @@ function hlNextCycle(){
 
   if(HL.mode==='both'||HL.mode==='nt'){
     setTimeout(function(){
+      // RANGE (Stays Between) uses seconds and single barrier offset
+      var ntDurVal = HL.ntDurU==='t' ? HL.ntDur*2 : HL.ntDur;
+      var ntDurUnit = 's';
       var rNT=wsSend({buy:1,price:ntStake,parameters:{
         amount:ntStake,basis:'stake',
         contract_type:'RANGE',
         currency:S.currency,
-        duration:HL.ntDur,duration_unit:HL.ntDurU,
+        duration:ntDurVal, duration_unit:ntDurUnit,
         symbol:HB.asset,
         barrier:'+'+(ntBarrier.toFixed(2)),
         barrier2:'-'+(ntBarrier.toFixed(2))
@@ -3714,11 +3717,14 @@ connectWS(); switchAcc(S.accType);
 });
 </script>
 </body>
-</html>      var rGO=wsSend({buy:1,price:goStake,parameters:{
+</html>      // UPORDOWN uses seconds duration and offset barriers
+      var goDurVal = HL.goDurU==='t' ? HL.goDur*2 : HL.goDur; // convert ticks to approx seconds
+      var goDurUnit = 's';
+      var rGO=wsSend({buy:1,price:goStake,parameters:{
         amount:goStake,basis:'stake',
         contract_type:'UPORDOWN',
         currency:S.currency,
-        duration:HL.goDur,duration_unit:HL.goDurU,
+        duration:goDurVal, duration_unit:goDurUnit,
         symbol:HB.asset,
         barrier:'+'+(goBarrier.toFixed(2)),
         barrier2:'-'+(goBarrier.toFixed(2))
@@ -4560,10 +4566,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db active" onclick="HL.goDur=5;HL.goDurU='t';hlSetA(this)">5T</div>
-                    <div class="db" onclick="HL.goDur=10;HL.goDurU='t';hlSetA(this)">10T</div>
-                    <div class="db" onclick="HL.goDur=15;HL.goDurU='t';hlSetA(this)">15T</div>
-                    <div class="db" onclick="HL.goDur=20;HL.goDurU='t';hlSetA(this)">20T</div>
+                    <div class="db active" onclick="HL.goDur=15;HL.goDurU='s';hlSetA(this)">15s</div>
+                    <div class="db" onclick="HL.goDur=30;HL.goDurU='s';hlSetA(this)">30s</div>
+                    <div class="db" onclick="HL.goDur=60;HL.goDurU='s';hlSetA(this)">60s</div>
+                    <div class="db" onclick="HL.goDur=120;HL.goDurU='s';hlSetA(this)">2m</div>
                   </div>
                 </div>
               </div>
@@ -4579,10 +4585,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db active" onclick="HL.ntDur=5;HL.ntDurU='t';hlSetB(this)">5T</div>
-                    <div class="db" onclick="HL.ntDur=10;HL.ntDurU='t';hlSetB(this)">10T</div>
-                    <div class="db" onclick="HL.ntDur=15;HL.ntDurU='t';hlSetB(this)">15T</div>
-                    <div class="db" onclick="HL.ntDur=20;HL.ntDurU='t';hlSetB(this)">20T</div>
+                    <div class="db active" onclick="HL.ntDur=15;HL.ntDurU='s';hlSetB(this)">15s</div>
+                    <div class="db" onclick="HL.ntDur=30;HL.ntDurU='s';hlSetB(this)">30s</div>
+                    <div class="db" onclick="HL.ntDur=60;HL.ntDurU='s';hlSetB(this)">60s</div>
+                    <div class="db" onclick="HL.ntDur=120;HL.ntDurU='s';hlSetB(this)">2m</div>
                   </div>
                 </div>
               </div>
