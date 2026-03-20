@@ -835,10 +835,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db" onclick="HL.goDur=15;HL.goDurU='s';hlSetA(this)">15s</div>
-                    <div class="db active" onclick="HL.goDur=30;HL.goDurU='s';hlSetA(this)">30s</div>
-                    <div class="db" onclick="HL.goDur=60;HL.goDurU='s';hlSetA(this)">60s</div>
-                    <div class="db" onclick="HL.goDur=5;HL.goDurU='t';hlSetA(this)">5T</div>
+                    <div class="db active" onclick="HL.goDur=5;HL.goDurU='t';hlSetA(this)">5T</div>
+                    <div class="db" onclick="HL.goDur=10;HL.goDurU='t';hlSetA(this)">10T</div>
+                    <div class="db" onclick="HL.goDur=15;HL.goDurU='t';hlSetA(this)">15T</div>
+                    <div class="db" onclick="HL.goDur=20;HL.goDurU='t';hlSetA(this)">20T</div>
                   </div>
                 </div>
               </div>
@@ -854,10 +854,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db" onclick="HL.ntDur=15;HL.ntDurU='s';hlSetB(this)">15s</div>
-                    <div class="db active" onclick="HL.ntDur=30;HL.ntDurU='s';hlSetB(this)">30s</div>
-                    <div class="db" onclick="HL.ntDur=60;HL.ntDurU='s';hlSetB(this)">60s</div>
-                    <div class="db" onclick="HL.ntDur=5;HL.ntDurU='t';hlSetB(this)">5T</div>
+                    <div class="db active" onclick="HL.ntDur=5;HL.ntDurU='t';hlSetB(this)">5T</div>
+                    <div class="db" onclick="HL.ntDur=10;HL.ntDurU='t';hlSetB(this)">10T</div>
+                    <div class="db" onclick="HL.ntDur=15;HL.ntDurU='t';hlSetB(this)">15T</div>
+                    <div class="db" onclick="HL.ntDur=20;HL.ntDurU='t';hlSetB(this)">20T</div>
                   </div>
                 </div>
               </div>
@@ -963,10 +963,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db" onclick="HL.goDur=15;HL.goDurU='s';hlSetA(this)">15s</div>
-                    <div class="db active" onclick="HL.goDur=30;HL.goDurU='s';hlSetA(this)">30s</div>
-                    <div class="db" onclick="HL.goDur=60;HL.goDurU='s';hlSetA(this)">60s</div>
-                    <div class="db" onclick="HL.goDur=5;HL.goDurU='t';hlSetA(this)">5T</div>
+                    <div class="db active" onclick="HL.goDur=5;HL.goDurU='t';hlSetA(this)">5T</div>
+                    <div class="db" onclick="HL.goDur=10;HL.goDurU='t';hlSetA(this)">10T</div>
+                    <div class="db" onclick="HL.goDur=15;HL.goDurU='t';hlSetA(this)">15T</div>
+                    <div class="db" onclick="HL.goDur=20;HL.goDurU='t';hlSetA(this)">20T</div>
                   </div>
                 </div>
               </div>
@@ -982,10 +982,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db" onclick="HL.ntDur=15;HL.ntDurU='s';hlSetB(this)">15s</div>
-                    <div class="db active" onclick="HL.ntDur=30;HL.ntDurU='s';hlSetB(this)">30s</div>
-                    <div class="db" onclick="HL.ntDur=60;HL.ntDurU='s';hlSetB(this)">60s</div>
-                    <div class="db" onclick="HL.ntDur=5;HL.ntDurU='t';hlSetB(this)">5T</div>
+                    <div class="db active" onclick="HL.ntDur=5;HL.ntDurU='t';hlSetB(this)">5T</div>
+                    <div class="db" onclick="HL.ntDur=10;HL.ntDurU='t';hlSetB(this)">10T</div>
+                    <div class="db" onclick="HL.ntDur=15;HL.ntDurU='t';hlSetB(this)">15T</div>
+                    <div class="db" onclick="HL.ntDur=20;HL.ntDurU='t';hlSetB(this)">20T</div>
                   </div>
                 </div>
               </div>
@@ -3280,8 +3280,8 @@ function hb2Reset(){
 // ══════════════════════════════════════════════════════════════
 var HL = {
   running: false, mode: 'both',
-  goDur: 30, goDurU: 's',
-  ntDur: 30, ntDurU: 's',
+  goDur: 5, goDurU: 't',
+  ntDur: 5, ntDurU: 't',
   cyclesDone: 0, cyclesTarget: 10,
   cycleActive: false,
   // Goes Outside stats
@@ -3375,7 +3375,8 @@ function hlNextCycle(){
         currency:S.currency,
         duration:HL.ntDur,duration_unit:HL.ntDurU,
         symbol:HB.asset,
-        barrier:'+'+(ntBarrier.toFixed(2))
+        barrier:'+'+(ntBarrier.toFixed(2)),
+        barrier2:'-'+(ntBarrier.toFixed(2))
       }});
       if(rNT) S.pending[rNT]={_hl:true,_hlId:cycleId,_hlType:'nt',dir:'OUTSIDE',stake:ntStake,asset:HB.asset,isBot:true};
     },300);
