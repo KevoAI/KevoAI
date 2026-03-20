@@ -1426,7 +1426,7 @@ function onBuy(buy, reqId) {
   if(!durMs||durMs<=0) durMs=15000;
   var t = {
     id:buy.contract_id, contractId:buy.contract_id,
-    asset:p.asset||S.asset, direction:p.dir||'HIGHER',
+    asset:p.asset||S.asset, direction:p.dir||'CALL',
     stake:p.stake||1, pnl:0, win:null, status:'active',
     time:new Date().toLocaleTimeString(),
     startTime:Date.now(), endTime:null, duration:null,
@@ -2053,7 +2053,27 @@ function placeHybridRound(){
   var loBar = '-' + barrier.toFixed(2);
   var barUsed = dir==='CALL' ? hiBar : loBar;
 
-  console.log('[WW PLACING] dir:', dir, 'barrier:', barUsed, 'dec:.'+Math.round(decPart*100).toString().padStart(2,'0'), 'stake:$'+side);
+  // ── BARRIER VIABILITY CHECK ────────────────────────────────────
+  // Skip if price is already past the barrier or within 30% of it
+  // CALL needs price to end ABOVE entry+barrier — so price must be below it now
+  // PUT needs price to end BELOW entry-barrier — so price must be above it now
+  var absBarrier = barrier;
+  var prices10 = ind.prices.slice(-10);
+  var recentAvg = prices10.reduce(function(s,p){return s+p;},0)/prices10.length;
+  var priceDriftFromEntry = recentAvg - entry; // positive = price drifted up from entry
+  // For CALL: if price has already drifted UP past 70% of the barrier, it's too late — barrier likely already crossed or about to be missed on return
+  // For CALL: if price drifted DOWN more than 30% of barrier, price is moving away — skip
+  var callViable = priceDriftFromEntry > -(absBarrier * 0.8) && priceDriftFromEntry < (absBarrier * 0.7);
+  var putViable  = priceDriftFromEntry < (absBarrier * 0.8) && priceDriftFromEntry > -(absBarrier * 0.7);
+  var viable = dir==='CALL' ? callViable : putViable;
+  if(!viable){
+    var drift = priceDriftFromEntry >= 0 ? ('+'+priceDriftFromEntry.toFixed(3)) : priceDriftFromEntry.toFixed(3);
+    notify('SKIP','Price drift '+drift+' vs barrier ±'+absBarrier.toFixed(2)+' — bad entry for '+dir+', skipping','info');
+    _hbCleanupOnError(rid);
+    return;
+  }
+
+  console.log('[WW PLACING] dir:', dir, 'barrier:', barUsed, 'drift:'+(priceDriftFromEntry>=0?'+':'')+priceDriftFromEntry.toFixed(3), 'dec:.'+Math.round(decPart*100).toString().padStart(2,'0'), 'stake:$'+side);
 
   // Single contract — full stake, full payout
   var r1 = wsSend({buy:1, price:side, parameters:{
@@ -2065,15 +2085,15 @@ function placeHybridRound(){
     barrier: barUsed
   }});
   if(r1) S.pending[r1]={
-    dir:'OUTSIDE', contractDir:dir,
+    dir:dir,          // 'CALL' or 'PUT'
     stake:side, asset:HB.asset,
     isBot:true, isHB:true,
     hbRound:rid, hbIdx:0,
     barrier:barrier, durVal:durSecs, durUnit:'s',
-    entryPrice:entry  // exact price at placement moment
+    entryPrice:entry
   };
 
-  document.getElementById('hb-active-count').textContent='2 ACTIVE';
+  document.getElementById('hb-active-count').textContent='1 ACTIVE';
   notify('WW R'+HB.rounds,'$'+parseFloat((side).toFixed(2))+' placed — ±'+barrier.toFixed(2)+' barrier','win');
   updHBStats();
 }
@@ -2549,12 +2569,12 @@ function tRow(t){
 
 // HB round summary row for history page
 function hbRoundRow(roundId, trades){
-  var net=trades.reduce(function(s,t){return s+t.pnl;},0);
-  var isWin=net>0;
-  var bothMiss=!trades.some(function(t){return t.win;});
-  var asset=trades[0].asset,time=trades[0].time;
-  var hT=trades.find(function(t){return t.direction==='HIGHER';})||trades[0];
-  var lT=trades.find(function(t){return t.direction==='LOWER';})||(trades[1]||trades[0]);
+  var t=trades[0]; if(!t) return '';
+  var net=parseFloat(t.pnl||0);
+  var isWin=t.win;
+  var bothMiss=false;
+  var asset=t.asset, time=t.time;
+  var hT=t, lT=null;
   var bCol=bothMiss?'var(--go)':isWin?'var(--ac)':'var(--re)';
   var html='<div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:10px 13px;margin-bottom:8px;border-left:3px solid '+bCol+';">';
   html+='<div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">';
@@ -2635,7 +2655,7 @@ function renderActive(){
   var html='';
   S.activeTrades.forEach(function(t){
     var now=Date.now(),elapsed=now-(t.startTime||now),durMs=t.durMs||8000,remaining=Math.max(0,durMs-elapsed),secs=Math.ceil(remaining/1000),pct=Math.min(100,(elapsed/durMs)*100);
-    var entryP=parseFloat(t.price)||0,curP=S.prices[t.asset]||entryP,winning=t.direction==='HIGHER'?curP>entryP:curP<entryP;
+    var entryP=parseFloat(t.price)||0,curP=S.prices[t.asset]||entryP,winning=t.direction==='CALL'?curP>entryP:t.direction==='PUT'?curP<entryP:t.direction==='HIGHER'?curP>entryP:curP<entryP;
     var cardColor=winning?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.1)',borderColor=winning?'rgba(0,229,160,0.4)':'rgba(255,77,106,0.4)',textColor=winning?'var(--ac)':'var(--re)';
     html+='<div style="background:'+cardColor+';border:1px solid '+borderColor+';border-radius:var(--rs);padding:9px 12px;margin-bottom:7px;display:flex;align-items:center;gap:10px" id="atc_'+t.contractId+'">';
     html+='<span style="font-size:12px;font-weight:700;color:'+textColor+'">'+t.asset+'</span>';
@@ -2696,10 +2716,10 @@ function renderJournal(filter){
     var hist=HB.history.find(function(h){return h.round==rid;})||null;
     var snap=hist?hist.snap:null;
     var rNote=S.notes['hb_'+rid]||'';
-    var eoT=trades.find(function(t){return t.direction==='OUTSIDE';})||trades[0];
-    var ebT=trades.find(function(t){return t.direction==='BETWEEN';})||(trades[1]||trades[0]);
+    var eoT=trades[0];
+    var ebT=null;
     var _jCdir=(hist&&hist.snap&&hist.snap.contractDir)||eoT.contractDir||'';
-    var _jWinLabel=eoT&&eoT.win?(_jCdir==='CALL'?'CALL ↑':_jCdir==='PUT'?'PUT ↓':'OUTSIDE'):(ebT&&ebT.win?'BETWEEN':'MISSED');
+    var _jWinLabel=eoT&&eoT.win?(eoT.direction==='CALL'?'CALL ↑':'PUT ↓'):'MISSED';
     var winSide=_jWinLabel;
     var entry=parseFloat((hist?hist.entry:eoT.price)||0);
     var barrier=parseFloat((hist?hist.barrier:eoT.barrier)||0);
