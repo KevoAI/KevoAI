@@ -1427,7 +1427,7 @@ function fmtDur(ms){if(!ms||ms<0)return '--';var s=Math.floor(ms/1000);if(s<60)r
 
 const HB = {
   running:false, interval:null,
-  asset:'R_100', ticks:5, minScore:3, minGap:45,
+  asset:'R_100', ticks:5, minScore:4, minGap:45,
   useCooldown:true,
   rounds:0, won:0, lost:0, pnl:0,
   bestRound:0, worstRound:0,
@@ -1437,8 +1437,8 @@ const HB = {
   lastSqueezeTime:0, prevBBWidth:0,
   barrierMult:1.0,
   // ── HYBRID ASYMMETRIC DUAL TRADE ─────────────────────────────
-  trendMult:5.0,    // ATR×5 — trend side (further out, higher payout)
-  counterMult:3.0   // ATR×3 — counter side (closer in, protects round)
+  trendMult:3.0,    // ATR×3 — tuned: R_100 moves 0.4-0.7, barrier sized to match
+  counterMult:1.5   // ATR×1.5 — close barrier, always covers trend loss
 };
 
 // ── HYBRID DUAL TRADE STAKE SOLVER ──────────────────────────────
@@ -1643,7 +1643,11 @@ function getWWSignal(){
       else{var miss=[];if(!ind.bbSqueeze&&!expanding)miss.push('BB squeeze');if(!momBurst)miss.push('momentum');if(!lowVol)miss.push('low volatility');ss.textContent='⏳ Waiting ('+score+'/'+minS+'): need '+miss.join(', ');ss.style.color='var(--t2)';}
     }
   }
-  return{score:score,ready:score>=(HB.minScore||3)&&cdOk};
+  var _af=0,_pp=getInd(HB.asset).prices,_np=_pp.length;
+  if(_np>=5){for(var _fi=_np-5;_fi<_np;_fi++)_af+=Math.abs(_pp[_fi]-_pp[_fi-1]);_af/=5;}
+  var atrOk=_af>=0.05;
+  if(updateDOM&&!atrOk){var _av=document.getElementById('sig-atr-val');if(_av)_av.textContent='FLAT!';}
+  return{score:score,ready:score>=(HB.minScore||3)&&cdOk&&atrOk};
 }
 
 // ── Bot ───────────────────────────────────────────────────────────
@@ -1836,14 +1840,26 @@ function placeHybridRound(){
     HB.rounds--;HB.roundId--;delete HB.pending[rid];return;
   }
 
-  // ── Trend direction ──────────────────────────────────────────
+  // ── Trend detection — 3-layer 2/3 vote ──────────────────────
+  // Layer 1: EMA9/21 | Layer 2: 80-tick slope | Layer 3: Pred bar
+  // 2 of 3 must agree — stops fighting the real trend
   var ind=getInd(HB.asset);
-  var trendDir=ind.trend==='up'?'up':ind.trend==='down'?'down':null;
+  var prices=ind.prices,n=prices.length;
+  if(n<10){notify('!','Not enough ticks','info');return;}
+  var votes={up:0,down:0};
+  var emaDir=ind.trend==='up'?'up':ind.trend==='down'?'down':null;
+  if(emaDir==='up')votes.up++;else if(emaDir==='down')votes.down++;
+  var lk=Math.min(80,n-1),slope=prices[n-1]-prices[n-1-lk];
+  if(slope>0)votes.up++;else if(slope<0)votes.down++;
+  var _pue=document.getElementById('pred-up-pct');
+  var _pup=_pue?parseInt(_pue.textContent)||50:50;
+  if(_pup>55)votes.up++;else if(_pup<45)votes.down++;
+  var trendDir=votes.up>=2?'up':votes.down>=2?'down':null;
   if(!trendDir){
-    var prices=ind.prices,n=prices.length;
-    if(n>=5){var mom=prices[n-1]-prices[n-5];trendDir=mom>0?'up':'down';}
-    else{notify('!','No trend — skipping','info');return;}
+    notify('SKIP','Trend unclear ('+votes.up+'up/'+votes.down+'dn) — need 2/3','info');
+    HB.rounds--;HB.roundId--;delete HB.pending[rid];return;
   }
+  console.log('[TREND] ema:'+emaDir+' slope:'+(slope>0?'up':'dn')+' pred:'+_pup+'% => '+trendDir);
 
   // ── Asymmetric barriers ──────────────────────────────────────
   var bTrend=getTrendBarrier();     // ATR×5 — with trend, further out
