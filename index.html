@@ -1266,6 +1266,21 @@ function queryContractsFor(sym){
 
 function onContractsFor(data){
   if(!data||!data.available) return;
+  // ── PRINT ALL CONTRACT TYPES FOR DEBUGGING ──────────────────
+  console.log('%c=== R_100 AVAILABLE CONTRACTS ===', 'color:lime;font-size:14px;font-weight:bold');
+  var seen={};
+  data.available.forEach(function(c){
+    var key=c.contract_type;
+    if(!seen[key]){
+      seen[key]=true;
+      console.log('%c'+c.contract_type,'color:cyan;font-weight:bold',
+        '| expiry:'+c.expiry_type,
+        '| min:'+( c.min_contract_duration||'?'),
+        '| max:'+(c.max_contract_duration||'?'),
+        '| barriers:'+(c.barriers||0));
+    }
+  });
+  console.log('%c=== END CONTRACT LIST ===','color:lime;font-size:14px;font-weight:bold');
   // Find all EXPIRYRANGE intraday contracts and store their trading periods
   HB._tradingPeriods = HB._tradingPeriods || [];
   data.available.forEach(function(c){
@@ -1357,6 +1372,10 @@ function onAuth(a) {
   setTimeout(function(){ wsSend({balance:1}); },1500);
   if(a.balance!==undefined) onBalance({balance:a.balance,currency:a.currency});
   notify('Connected!',a.loginid+(isVirtual?' (DEMO)':' (REAL)'),'win');
+  // Auto-query available contracts for R_100 on connect
+  setTimeout(function(){
+    wsSend({contracts_for:'R_100', currency:'USD', landing_company:'svg', product_type:'basic'});
+  }, 1500);
   // Query valid contract durations for EXPIRYRANGE on HB asset
   setTimeout(function(){ queryContractsFor(HB.asset); }, 2000);
 }
