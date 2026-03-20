@@ -601,6 +601,45 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
 
           <!-- RIGHT COLUMN -->
           <div>
+            <!-- Market Direction Prediction -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:13px;font-weight:700">📊 Market Direction</div>
+                <div style="font-size:10px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--t3)" id="pred-label">Analysing...</div>
+              </div>
+              <!-- UP vs DOWN bar -->
+              <div style="margin-bottom:10px">
+                <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;margin-bottom:4px">
+                  <span style="color:var(--ac)">▲ UP <span id="pred-up-pct">50%</span></span>
+                  <span style="color:var(--re)">▼ DOWN <span id="pred-dn-pct">50%</span></span>
+                </div>
+                <div style="height:10px;border-radius:5px;background:var(--bg4);overflow:hidden;position:relative">
+                  <div id="pred-bar-up" style="position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--ac),#00ff88);border-radius:5px 0 0 5px;transition:width .8s ease;width:50%"></div>
+                  <div id="pred-bar-dn" style="position:absolute;right:0;top:0;bottom:0;background:linear-gradient(270deg,var(--re),#ff8800);border-radius:0 5px 5px 0;transition:width .8s ease;width:50%"></div>
+                </div>
+              </div>
+              <!-- Tick history pills -->
+              <div style="margin-bottom:10px">
+                <div style="font-size:10px;color:var(--t3);margin-bottom:5px">Last 20 ticks</div>
+                <div style="display:flex;gap:2px;flex-wrap:wrap" id="pred-tick-pills"></div>
+              </div>
+              <!-- Stats row -->
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:7px;text-align:center;border:1px solid var(--bo)">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase">Trend</div>
+                  <div style="font-size:13px;font-weight:700;margin-top:2px" id="pred-trend">--</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:7px;text-align:center;border:1px solid var(--bo)">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase">Momentum</div>
+                  <div style="font-size:13px;font-weight:700;margin-top:2px" id="pred-mom">--</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:7px;text-align:center;border:1px solid var(--bo)">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase">Confidence</div>
+                  <div style="font-size:13px;font-weight:700;margin-top:2px;color:var(--go)" id="pred-conf">--</div>
+                </div>
+              </div>
+            </div>
+
             <!-- Risk Calculator -->
             <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:14px;margin-bottom:12px">
               <div style="font-size:13px;font-weight:700;color:var(--ac);margin-bottom:10px">⚙ Risk Calculator</div>
@@ -1157,6 +1196,8 @@ function onTick(tick) {
       t._exitConfirmed=false; // locally captured — not API-confirmed
     }
   });
+  // Update prediction on every HB asset tick
+  if(sym===HB.asset) updatePrediction();
 }
 function dp(q){return q.toFixed(q>100?2:4);}
 
@@ -1307,34 +1348,21 @@ function onContract(c) {
   }
 
   // ── EXIT PRICE ──────────────────────────────────────────────────
-  // is_sold=1 → use exit_tick (final settled tick)
-  // expired/lost → exit_tick if present, else exit_spot
-  // Never use current_spot or entry as exit — show null if unknown
+  // Deriv exit_tick object has {epoch, quote, value} — NOT .tick
+  // audit_details.contract_end last entry has .tick but that's a different path
+  // Safe priority: exit_tick.quote → exit_tick.value → exit_spot → _liveExit
   var exitPrice=null;
-  if(c.is_sold){
-    // Won: exit_tick is the exact tick that crossed the barrier
-    exitPrice = c.exit_tick
-      ? parseFloat(c.exit_tick.quote||c.exit_tick.value||0)||null
-      : (parseFloat(c.exit_spot||0)||null);
-    if(exitPrice) t._exitConfirmed=true;
-  } else {
-    // Expired/lost: barrier was never crossed — Deriv won't send exit_tick
-    // Use exit_tick if present, else exit_spot, else the last current_spot we tracked
-    if(c.exit_tick && (c.exit_tick.quote||c.exit_tick.value)){
-      exitPrice=parseFloat(c.exit_tick.quote||c.exit_tick.value)||null;
-    } else if(c.exit_spot && parseFloat(c.exit_spot)>0){
-      exitPrice=parseFloat(c.exit_spot);
-    } else if(c.sell_spot && parseFloat(c.sell_spot)>0){
-      exitPrice=parseFloat(c.sell_spot);
-    } else if(t.exitPrice && t._exitCaptured){
-      exitPrice=t.exitPrice; // locally captured at exact expiry tick
-    } else if(t._liveExit && t._liveExit>0){
-      exitPrice=t._liveExit; // last known price before expiry
-    }
+  var _etq = c.exit_tick ? parseFloat(c.exit_tick.quote||c.exit_tick.value||0) : 0;
+  if(_etq > 0) { exitPrice=_etq; t._exitConfirmed=true; }
+  else if(c.exit_spot && parseFloat(c.exit_spot)>0){ exitPrice=parseFloat(c.exit_spot); }
+  else if(c.sell_spot && parseFloat(c.sell_spot)>0){ exitPrice=parseFloat(c.sell_spot); }
+  else if(t._liveExit && t._liveExit>0){ exitPrice=t._liveExit; }
+  // Sanity check: reject exit prices that are impossibly far from entry
+  // (catches the 2908 bug where wrong field got parsed)
+  if(exitPrice && t.price && t.price>0){
+    var pctDiff=Math.abs(exitPrice-t.price)/t.price;
+    if(pctDiff>0.10) exitPrice=null; // >10% away = bad data
   }
-  // Only wipe exit===entry for WON contracts (where exit_tick should differ from entry)
-  // For LOST/expired, price barely moved so exit near entry is valid
-  if(exitPrice && t.price && exitPrice===t.price && c.is_sold) exitPrice=null;
   if(exitPrice && isNaN(exitPrice)) exitPrice=null;
 
   console.log('[SETTLED] cid:',c.contract_id,'is_sold:',c.is_sold,'profit:',profit,
@@ -1838,12 +1866,20 @@ function placeHybridRound(){
 
   notify('WW R'+HB.rounds,'Fetching payouts — trend:'+trendType+' ±'+bTrend+' | counter:'+counterType+' ±'+bCounter,'info');
 
-  // Fire BOTH proposals simultaneously
-  var p1=wsSend({proposal:1,amount:1,basis:'stake',contract_type:trendType,currency:S.currency,duration:dur,duration_unit:'s',symbol:HB.asset,barrier:trendBar});
-  if(p1)S.pending[p1]={type:'hb_proposal',hbRound:rid,hbSide:'trend',contractType:trendType,barrier:bTrend,barrierStr:trendBar,durVal:dur,durUnit:'s',asset:HB.asset};
+  // Pre-estimate stakes using estimated payouts so proposals are at correct amounts
+  // This avoids ContractCreationFailure (stake > max purchase price)
+  var estPt=1.85,estPc=1.40;
+  var estRes=solveHybridStakes(budget,estPt,estPc)||{S_t:budget*0.55,S_c:budget*0.45};
+  var estSt=Math.max(0.35,estRes.S_t);
+  var estSc=Math.max(0.35,estRes.S_c);
 
-  var p2=wsSend({proposal:1,amount:1,basis:'stake',contract_type:counterType,currency:S.currency,duration:dur,duration_unit:'s',symbol:HB.asset,barrier:counterBar});
-  if(p2)S.pending[p2]={type:'hb_proposal',hbRound:rid,hbSide:'counter',contractType:counterType,barrier:bCounter,barrierStr:counterBar,durVal:dur,durUnit:'s',asset:HB.asset};
+  // Fire BOTH proposals at the estimated stake amounts
+  // Deriv then returns ask_price for exactly that stake
+  var p1=wsSend({proposal:1,amount:estSt,basis:'stake',contract_type:trendType,currency:S.currency,duration:dur,duration_unit:'s',symbol:HB.asset,barrier:trendBar});
+  if(p1)S.pending[p1]={type:'hb_proposal',hbRound:rid,hbSide:'trend',estStake:estSt,contractType:trendType,barrier:bTrend,barrierStr:trendBar,durVal:dur,durUnit:'s',asset:HB.asset};
+
+  var p2=wsSend({proposal:1,amount:estSc,basis:'stake',contract_type:counterType,currency:S.currency,duration:dur,duration_unit:'s',symbol:HB.asset,barrier:counterBar});
+  if(p2)S.pending[p2]={type:'hb_proposal',hbRound:rid,hbSide:'counter',estStake:estSc,contractType:counterType,barrier:bCounter,barrierStr:counterBar,durVal:dur,durUnit:'s',asset:HB.asset};
 
   setWWBarrierLines(entry,bTrend);
   var prev=solveHybridStakes(budget,1.85,1.40)||{S_t:budget*0.57,S_c:budget*0.43,profitA:0,profitB:0,totalRisk:budget,valid:false};
@@ -1903,14 +1939,12 @@ function onHBProposal(proposal,reqId,pendInfo){
   notify('WW R'+HB.rounds,'Pt×Pc='+product.toFixed(2)+' ✅ | $'+res.S_t+' trend / $'+res.S_c+' counter | A:+$'+res.profitA.toFixed(2)+' B:+$'+res.profitB.toFixed(2),'win');
 
   // ── Fire both buys simultaneously ────────────────────────────
-  // Deriv buy: {buy: proposal_id, price: stake_amount}
-  // When basis='stake', price = the stake you want to risk.
-  // Deriv scales the contract to your stake automatically.
-  // DO NOT multiply by ask_price — just send S_t and S_c directly.
-  var b1=wsSend({buy:round.trendProposalId,price:round.S_t});
+  // Buy at ask_price — proposal was already at the correct stake amount
+  // ask_price is what Deriv charges for that exact contract
+  var b1=wsSend({buy:round.trendProposalId,price:round.trendAsk});
   if(b1)S.pending[b1]={dir:'TREND',contractDir:round.trendType,stake:round.S_t,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:0,barrier:round.bTrend,durVal:round.trendDur,durUnit:round.trendUnit,entryPrice:round.entry};
 
-  var b2=wsSend({buy:round.counterProposalId,price:round.S_c});
+  var b2=wsSend({buy:round.counterProposalId,price:round.counterAsk});
   if(b2)S.pending[b2]={dir:'COUNTER',contractDir:round.counterType,stake:round.S_c,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:1,barrier:round.bCounter,durVal:round.counterDur,durUnit:round.counterUnit,entryPrice:round.entry};
 
   renderTradeBreakdown(round.bTrend,round.bCounter,round.S_t,round.S_c,P_t,P_c,res);
@@ -2016,6 +2050,75 @@ function updHBStats(){
   var pp=document.getElementById('ww-progress-pct');if(pp)pp.textContent=pct.toFixed(1)+'%';
   var stat=document.getElementById('ww-daily-status');
   if(stat){if(HB.pnl>=dtp){stat.textContent='TARGET HIT!';stat.style.color='var(--ac)';}else if(HB.pnl<=-dsl){stat.textContent='SL HIT';stat.style.color='var(--re)';}else if(HB.pnl>0){stat.textContent='+$'+HB.pnl.toFixed(2)+' / $'+dtp;stat.style.color='var(--ac)';}else if(HB.pnl<0){stat.textContent='-$'+Math.abs(HB.pnl).toFixed(2)+' / SL $'+dsl;stat.style.color='var(--re)';}else{stat.textContent='Ready';stat.style.color='var(--t2)';}}
+}
+
+// ══════════════════════════════════════════════════════════════
+// MARKET DIRECTION PREDICTION
+// ══════════════════════════════════════════════════════════════
+var predThrottle=0;
+function updatePrediction(){
+  var now=Date.now();
+  if(now-predThrottle<500)return; // max 2 updates/sec
+  predThrottle=now;
+
+  var ind=getInd(HB.asset),prices=ind.prices,n=prices.length;
+  if(n<5){
+    var lbl=document.getElementById('pred-label');
+    if(lbl)lbl.textContent='Warming up...';
+    return;
+  }
+
+  // ── Count UP vs DOWN ticks (last 20) ──────────────────────
+  var lookback=Math.min(20,n-1);
+  var ups=0,downs=0,tickPills='';
+  for(var i=n-lookback;i<n;i++){
+    var diff=prices[i]-prices[i-1];
+    if(diff>0){ups++;tickPills+='<div style="width:10px;height:10px;border-radius:2px;background:var(--ac);opacity:0.85"></div>';}
+    else if(diff<0){downs++;tickPills+='<div style="width:10px;height:10px;border-radius:2px;background:var(--re);opacity:0.85"></div>';}
+    else{tickPills+='<div style="width:10px;height:10px;border-radius:2px;background:var(--bg4)"></div>';}
+  }
+  var total=ups+downs||1;
+  var upPct=Math.round(ups/total*100);
+  var dnPct=100-upPct;
+
+  // ── Momentum: last 5 vs previous 5 ────────────────────────
+  var momUp=0,momDn=0;
+  if(n>=10){
+    for(var j=n-5;j<n;j++)if(prices[j]>prices[j-1])momUp++;else if(prices[j]<prices[j-1])momDn++;
+  }
+  var momLabel=momUp>momDn?'▲ Rising':momDn>momUp?'▼ Falling':'→ Flat';
+  var momColor=momUp>momDn?'var(--ac)':momDn>momUp?'var(--re)':'var(--t3)';
+
+  // ── Trend: slope of last 30 ticks ─────────────────────────
+  var trendLook=Math.min(30,n-1);
+  var slope=prices[n-1]-prices[n-1-trendLook];
+  var trendLabel=slope>0?'▲ UP':slope<0?'▼ DOWN':'→ FLAT';
+  var trendColor=slope>0?'var(--ac)':slope<0?'var(--re)':'var(--t3)';
+
+  // ── Confidence: how skewed is the up/down split ────────────
+  var bias=Math.abs(upPct-50); // 0=equal, 50=all one way
+  var confLabel=bias>=20?'HIGH':bias>=10?'MED':'LOW';
+
+  // ── Direction label ────────────────────────────────────────
+  var dirLabel=upPct>55?'↗ BULLISH':upPct<45?'↘ BEARISH':'↔ NEUTRAL';
+  var dirColor=upPct>55?'var(--ac)':upPct<45?'var(--re)':'var(--go)';
+
+  // ── Update DOM ─────────────────────────────────────────────
+  var setEl=function(id,val,col){var e=document.getElementById(id);if(e){e.textContent=val;if(col)e.style.color=col;}};
+  setEl('pred-up-pct',upPct+'%');
+  setEl('pred-dn-pct',dnPct+'%');
+  setEl('pred-label',dirLabel,dirColor);
+  setEl('pred-trend',trendLabel,trendColor);
+  setEl('pred-mom',momLabel,momColor);
+  setEl('pred-conf',confLabel,bias>=20?'var(--ac)':bias>=10?'var(--go)':'var(--re)');
+
+  var upBar=document.getElementById('pred-bar-up');
+  var dnBar=document.getElementById('pred-bar-dn');
+  if(upBar)upBar.style.width=upPct+'%';
+  if(dnBar)dnBar.style.width=dnPct+'%';
+
+  var pills=document.getElementById('pred-tick-pills');
+  if(pills)pills.innerHTML=tickPills;
 }
 
 function filterHBHistory(filter,el){
