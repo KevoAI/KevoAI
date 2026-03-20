@@ -271,7 +271,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
       <div class="ni" onclick="showPage('bot',this)">Auto Bot</div>
       <div class="ni" onclick="showPage('barrier',this)">WinWin Hybrid</div>
       <div class="ni" onclick="showPage('differs',this)">Differs Bot</div>
-      <div class="ni" onclick="showPage('ticktest',this)" style="color:var(--go)">5-Tick Lab</div>
+      <div class="ni" onclick="showPage('hybrid',this)" style="color:#3b82f6">Hybrid Bot</div>
       <div class="ns">Analysis</div>
       <div class="ni" onclick="showPage('history',this)">Trade History</div>
       <div class="ni" onclick="showPage('journal',this)">Journal</div>
@@ -701,74 +701,113 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
       </div>
 
 
-      <!-- 5-TICK LAB -->
-      <div class="page" id="page-ticktest">
-        <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:var(--r);padding:14px 16px;margin-bottom:14px">
-          <div style="font-size:15px;font-weight:700;color:var(--go)">5-Tick Payout Lab</div>
-          <div style="font-size:12px;color:var(--t2);margin-top:4px">Test real Deriv payouts on 5-tick Higher/Lower. Tells you if the Hybrid strategy is profitable before you commit.</div>
+      <!-- HYBRID BOT -->
+      <div class="page" id="page-hybrid">
+        <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.3);border-radius:var(--r);padding:14px 16px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:15px;font-weight:700;color:var(--bl)">Hybrid Bot</div>
+              <div style="font-size:12px;color:var(--t2);margin-top:4px">4 Higher + 4 Lower per cycle. Direction prediction weights more contracts on the predicted side.</div>
+            </div>
+            <div id="hb2-status-badge" style="background:rgba(59,130,246,0.15);border-radius:var(--rs);padding:5px 12px;font-size:11px;font-weight:700;color:var(--bl)">STOPPED</div>
+          </div>
         </div>
         <div class="g2">
+          <!-- LEFT -->
           <div>
+            <!-- Controls -->
             <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct" style="color:var(--go)">Test Config</div></div>
+              <div class="ch"><div class="ct" style="color:var(--bl)">Bot Controls</div></div>
               <div class="cb">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px">
-                  <div class="ig"><div class="il">Stake ($)</div><input type="number" class="iif" id="tt-stake" value="0.35" step="0.05" min="0.35"></div>
-                  <div class="ig"><div class="il">Barrier offset</div><input type="number" class="iif" id="tt-barrier" value="0.06" step="0.01" min="0.01" max="0.50"></div>
+                  <div class="ig"><div class="il">Stake per contract ($)</div><input type="number" class="iif" id="hb2-stake" value="0.35" step="0.05" min="0.35"></div>
+                  <div class="ig"><div class="il">Contracts per side</div>
+                    <div class="dr" style="grid-template-columns:repeat(4,1fr)">
+                      <div class="db" onclick="HB2.contracts=2;hb2SetActive(this)">2</div>
+                      <div class="db active" onclick="HB2.contracts=4;hb2SetActive(this)">4</div>
+                      <div class="db" onclick="HB2.contracts=5;hb2SetActive(this)">5</div>
+                      <div class="db" onclick="HB2.contracts=6;hb2SetActive(this)">6</div>
+                    </div>
+                  </div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px">
+                  <div class="ig"><div class="il">Barrier offset</div><input type="number" class="iif" id="hb2-barrier" value="0.06" step="0.01" min="0.01" max="0.50"></div>
                   <div class="ig"><div class="il">Duration</div>
                     <div class="dr" style="grid-template-columns:repeat(3,1fr)">
-                      <div class="db active" id="tt-d5" onclick="ttSetDur(5,'t',this)">5T</div>
-                      <div class="db" id="tt-d3" onclick="ttSetDur(3,'t',this)">3T</div>
-                      <div class="db" id="tt-d7" onclick="ttSetDur(7,'t',this)">7T</div>
+                      <div class="db active" onclick="HB2.durVal=5;HB2.durUnit='t';hb2SetActive(this)">5T</div>
+                      <div class="db" onclick="HB2.durVal=3;HB2.durUnit='t';hb2SetActive(this)">3T</div>
+                      <div class="db" onclick="HB2.durVal=7;HB2.durUnit='t';hb2SetActive(this)">7T</div>
                     </div>
                   </div>
-                  <div class="ig"><div class="il">Mode</div>
-                    <div class="dr" style="grid-template-columns:1fr 1fr">
-                      <div class="db active" id="tt-mboth" onclick="ttSetMode('both',this)">H+L</div>
-                      <div class="db" id="tt-mone" onclick="ttSetMode('one',this)">H only</div>
+                </div>
+                <!-- Direction weighting -->
+                <div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:var(--rs);padding:11px;margin-bottom:11px">
+                  <div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:8px">Direction Weighting</div>
+                  <div style="font-size:11px;color:var(--t2);margin-bottom:8px">Counts last N ticks. Puts more contracts on predicted direction.</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                    <div class="ig"><div class="il">Ticks to analyse</div><input type="number" class="iif" id="hb2-lookback" value="10" min="5" max="30" step="1"></div>
+                    <div class="ig"><div class="il">Bias contracts (extra)</div>
+                      <div class="dr" style="grid-template-columns:repeat(3,1fr)">
+                        <div class="db" onclick="HB2.bias=0;hb2SetActive(this)">0</div>
+                        <div class="db active" onclick="HB2.bias=1;hb2SetActive(this)">+1</div>
+                        <div class="db" onclick="HB2.bias=2;hb2SetActive(this)">+2</div>
+                      </div>
                     </div>
                   </div>
+                  <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 10px;font-size:11px;font-family:var(--mo)" id="hb2-pred-display">Prediction: waiting for price data...</div>
+                </div>
+                <!-- Risk -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px">
+                  <div class="ig"><div class="il">Stop Loss ($)</div><input type="number" class="iif" id="hb2-sl" value="10" min="1"></div>
+                  <div class="ig"><div class="il">Take Profit ($)</div><input type="number" class="iif" id="hb2-tp" value="20" min="1"></div>
                 </div>
                 <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Cycles to run</div>
-                  <input type="number" class="iif" id="tt-cycles" value="10" min="1" max="50">
+                  <div class="il">Max cycles per session</div>
+                  <input type="number" class="iif" id="hb2-maxcycles" value="50" min="1" max="200">
                 </div>
-                <div style="display:flex;gap:8px">
-                  <button class="btn" style="flex:1;padding:10px;background:var(--go);color:var(--bg0);font-size:13px;font-weight:700" id="tt-btn" onclick="ttRun()">Run Test</button>
-                  <button class="btn btng" style="padding:10px 14px" onclick="ttReset()">Reset</button>
-                </div>
+                <button class="btn" style="width:100%;padding:11px;font-size:13px;font-weight:700;background:var(--bl);color:#fff" id="hb2-btn" onclick="hb2Toggle()">Start Hybrid Bot</button>
               </div>
             </div>
+            <!-- Per-cycle breakdown -->
             <div class="card">
-              <div class="ch"><div class="ct">Live Status</div></div>
+              <div class="ch"><div class="ct">Current Cycle</div></div>
               <div class="cb">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-                  <div class="bst"><div class="bsl">Entry</div><div class="bsv" style="color:var(--go)" id="tt-entry">--</div></div>
-                  <div class="bst"><div class="bsl">Current</div><div class="bsv" id="tt-cur">--</div></div>
-                  <div class="bst"><div class="bsl">Hi barrier</div><div class="bsv" style="color:var(--ac)" id="tt-hibar">--</div></div>
-                  <div class="bst"><div class="bsl">Lo barrier</div><div class="bsv" style="color:var(--re)" id="tt-lobar">--</div></div>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;font-size:11px;font-family:var(--mo);color:var(--t2);line-height:2" id="hb2-cycle-info">Waiting for cycle...</div>
+                <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:7px">
+                  <div class="bst"><div class="bsl">Higher placed</div><div class="bsv" style="color:var(--ac)" id="hb2-h-count">0</div></div>
+                  <div class="bst"><div class="bsl">Lower placed</div><div class="bsv" style="color:var(--re)" id="hb2-l-count">0</div></div>
+                  <div class="bst"><div class="bsl">Cycle stake</div><div class="bsv" id="hb2-cycle-stake">$0.00</div></div>
+                  <div class="bst"><div class="bsl">Cycle P&L</div><div class="bsv" id="hb2-cycle-pnl">$0.00</div></div>
                 </div>
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:9px 11px;font-size:12px;font-family:var(--mo);color:var(--go)" id="tt-status">Ready</div>
               </div>
             </div>
           </div>
+          <!-- RIGHT -->
           <div>
+            <!-- Stats -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-              <div class="sc g"><div class="sl">Net P&amp;L</div><div class="sv g" id="tt-net">$0.00</div></div>
-              <div class="sc b"><div class="sl">Cycles</div><div class="sv b" id="tt-cyc">0</div></div>
-              <div class="sc go"><div class="sl">Win Rate</div><div class="sv go" id="tt-wr">0%</div></div>
-              <div class="sc r"><div class="sl">Avg Payout</div><div class="sv" id="tt-pay" style="font-size:15px">--</div></div>
+              <div class="sc g"><div class="sl">Net P&L</div><div class="sv g" id="hb2-net">$0.00</div></div>
+              <div class="sc b"><div class="sl">Cycles</div><div class="sv b" id="hb2-cycles">0</div></div>
+              <div class="sc go"><div class="sl">Win Rate</div><div class="sv go" id="hb2-wr">0%</div></div>
+              <div class="sc r"><div class="sl">Avg payout</div><div class="sv" id="hb2-avgpay" style="font-size:15px">--</div></div>
             </div>
-            <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.3);border-radius:var(--r);padding:12px;margin-bottom:12px">
-              <div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:6px">Payout Verdict</div>
-              <div style="font-size:11px;color:var(--t2);line-height:1.8" id="tt-verdict">Run 5+ cycles to see analysis</div>
+            <!-- Prediction accuracy -->
+            <div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:var(--r);padding:12px;margin-bottom:12px">
+              <div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:8px">Prediction Accuracy</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                <div class="bst"><div class="bsl">Predicted</div><div class="bsv" id="hb2-pred-tot">0</div></div>
+                <div class="bst"><div class="bsl">Correct</div><div class="bsv" style="color:var(--ac)" id="hb2-pred-right">0</div></div>
+                <div class="bst"><div class="bsl">Accuracy</div><div class="bsv" style="color:var(--go)" id="hb2-pred-acc">0%</div></div>
+              </div>
             </div>
+            <!-- History -->
             <div class="card">
-              <div class="ch"><div class="ct" style="color:var(--go)">Trade Log</div><span style="font-size:10px;color:var(--t3)" id="tt-logcount">0 trades</span></div>
-              <div class="cb" id="tt-log" style="max-height:380px;overflow-y:auto">
-                <div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No trades yet.</div>
+              <div class="ch">
+                <div class="ct" style="color:var(--bl)">Cycle History</div>
+                <button class="btn btng" style="font-size:10px;padding:3px 8px" onclick="hb2Reset()">Reset</button>
+              </div>
+              <div class="cb" id="hb2-history" style="max-height:420px;overflow-y:auto">
+                <div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No cycles yet.</div>
               </div>
             </div>
           </div>
@@ -1311,7 +1350,6 @@ function onTick(tick) {
       t._exitConfirmed=false; // locally captured — not API-confirmed
     }
   });
-  if(sym===HB.asset){var ttc=document.getElementById('tt-cur');if(ttc)ttc.textContent=q.toFixed(2);}
 }
 function dp(q){return q.toFixed(q>100?2:4);}
 
@@ -1380,7 +1418,7 @@ function onBuy(buy, reqId) {
   S.activeTrades.push(t);
   updateStats(); renderTrades(); renderActive();
 
-  if(p._tt){t._tt=true;t._ttCb=p._ttCb;t._ttSide=p._ttSide;}
+  if(p._hb2){t._hb2=true;t._hb2Id=p._hb2Id;t._hb2Side=p._hb2Side;}
   wsSend({proposal_open_contract:1,contract_id:buy.contract_id,subscribe:1});
   var _cid=buy.contract_id, _durMs=t.durMs;
   // pollContract: retry fetching result until settled or max attempts reached
@@ -1404,7 +1442,7 @@ function onBuy(buy, reqId) {
     var stillActive=S.trades.some(function(t){return t.contractId===cid&&!t._settled;});
     if(!stillActive) return; // WS already handled it
     console.log('[POLL] attempt',attempts+1,'for',cid);
-    // One-shot poll — omit subscribe field entirely
+    // One-shot poll — omit subscribe field
     wsSend({proposal_open_contract:1,contract_id:cid});
     setTimeout(function(){
       var stillNeedsResult=S.trades.some(function(t){return t.contractId===cid&&!t._settled;});
@@ -1501,11 +1539,9 @@ function onContract(c) {
   var ms=now-(t.startTime||now); t.duration=ms; t.durationStr=fmtDur(ms);
   S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
 
-  // 5-Tick Lab route
-  var _ttp=S.pending['tt_'+c.contract_id];
-  if(!_ttp&&t&&t._tt){_ttp=t;}
-  if(_ttp&&_ttp._tt&&_ttp._ttCb){
-    _ttp._ttCb(profit,t?t.exitPrice:null);
+  // Hybrid Bot 2 route
+  if(t&&t._hb2&&t._hb2Id){
+    hb2OnResult(t._hb2Id, t._hb2Side, profit);
     S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
     return;
   }
@@ -2409,7 +2445,7 @@ function showPage(id,navEl){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
   document.getElementById('page-'+id).classList.add('active');
   if(navEl)navEl.classList.add('active');
-  var T={dashboard:'Dashboard',trade:'Trade',bot:'Auto Bot',barrier:'WinWin Hybrid',differs:'Differs Bot',ticktest:'5-Tick Lab',history:'Trade History',journal:'Journal',analytics:'Analytics',settings:'Settings'};
+  var T={dashboard:'Dashboard',trade:'Trade',bot:'Auto Bot',barrier:'WinWin Hybrid',differs:'Differs Bot',hybrid:'Hybrid Bot',history:'Trade History',journal:'Journal',analytics:'Analytics',settings:'Settings'};
   var Sub={dashboard:'Overview',trade:'Manual Trading',bot:'Automated Trading',barrier:'WinWin 2-Contract Strategy',differs:'Digit Prediction',history:'All Trades',journal:'Detailed Log',analytics:'Performance',settings:'Configuration'};
   document.getElementById('ptitle').innerHTML=T[id]+' <span>'+(Sub[id]||'')+'</span>';
   if(id==='analytics')updAnalytics();
@@ -2749,117 +2785,228 @@ function renderJournal(filter){
 
 function filtJ(f,el){['jfAll','jfWin','jfLoss'].forEach(function(id){var b=document.getElementById(id);b.style.background='';b.style.color='';});el.style.background='var(--ad)';el.style.color='var(--ac)';renderJournal(f);}
 
-var TT={running:false,mode:'both',durVal:5,durUnit:'t',wins:0,losses:0,pnl:0,totalPay:0,payCount:0,cyclesDone:0,cyclesTarget:10,pending:{}};
+// ══════════════════════════════════════════════════════════════
+// HYBRID BOT — 4H + 4L with direction weighting
+// ══════════════════════════════════════════════════════════════
+var HB2 = {
+  running: false,
+  contracts: 4,      // contracts per side base
+  bias: 1,           // extra contracts on predicted side
+  durVal: 5, durUnit: 't',
+  asset: 'R_100',
+  wins: 0, losses: 0, pnl: 0,
+  cycles: 0,
+  totalPay: 0, payCount: 0,
+  predRight: 0, predTot: 0,
+  pending: {},       // cycleId -> {hCount, lCount, settled, hPnl, lPnl, prediction}
+  lossStreak: 0,
+  cycleActive: false
+};
 
-function ttSetDur(v,u,el){TT.durVal=v;TT.durUnit=u;document.querySelectorAll('#tt-d5,#tt-d3,#tt-d7').forEach(function(b){b.classList.remove('active');});el.classList.add('active');}
-function ttSetMode(m,el){TT.mode=m;document.querySelectorAll('#tt-mboth,#tt-mone').forEach(function(b){b.classList.remove('active');});el.classList.add('active');}
-
-function ttReset(){
-  TT.running=false;TT.wins=0;TT.losses=0;TT.pnl=0;TT.totalPay=0;TT.payCount=0;TT.cyclesDone=0;TT.pending={};
-  ['tt-net','tt-cyc','tt-wr','tt-pay','tt-entry','tt-cur','tt-hibar','tt-lobar'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='--';});
-  document.getElementById('tt-net').textContent='$0.00';
-  document.getElementById('tt-cyc').textContent='0';
-  document.getElementById('tt-wr').textContent='0%';
-  document.getElementById('tt-status').textContent='Reset — ready';
-  document.getElementById('tt-verdict').textContent='Run 5+ cycles to see analysis';
-  document.getElementById('tt-log').innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No trades yet.</div>';
-  document.getElementById('tt-logcount').textContent='0 trades';
-  document.getElementById('tt-btn').textContent='Run Test';
+function hb2SetActive(el){
+  var p=el.parentNode;
+  p.querySelectorAll('.db').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
 }
 
-function ttRun(){
+// Get direction prediction from last N ticks
+function hb2GetPrediction(){
+  var lb = parseInt(document.getElementById('hb2-lookback').value)||10;
+  var ind = getInd(HB2.asset);
+  var prices = ind.prices;
+  var n = prices.length;
+  if(n < lb+1) return {dir:'NEUTRAL', conf:50, ups:0, downs:0};
+  var ups=0, downs=0;
+  for(var i=n-lb; i<n; i++){
+    if(prices[i]>prices[i-1]) ups++;
+    else if(prices[i]<prices[i-1]) downs++;
+  }
+  var total = ups+downs;
+  var dir = ups>downs ? 'HIGHER' : downs>ups ? 'LOWER' : 'NEUTRAL';
+  var conf = total>0 ? Math.round(Math.max(ups,downs)/total*100) : 50;
+  return {dir:dir, conf:conf, ups:ups, downs:downs};
+}
+
+// Update prediction display
+function hb2UpdatePred(){
+  var pred = hb2GetPrediction();
+  var el = document.getElementById('hb2-pred-display');
+  if(!el) return;
+  var col = pred.dir==='HIGHER'?'var(--ac)':pred.dir==='LOWER'?'var(--re)':'var(--t3)';
+  var base = HB2.contracts;
+  var bias = HB2.bias;
+  var hCount = pred.dir==='HIGHER' ? base+bias : pred.dir==='LOWER' ? Math.max(1,base-bias) : base;
+  var lCount = pred.dir==='LOWER'  ? base+bias : pred.dir==='HIGHER'? Math.max(1,base-bias) : base;
+  el.innerHTML = 'Prediction: <b style="color:'+col+'">'+pred.dir+'</b> ('+pred.conf+'% confidence)<br>'
+    +'Ups: '+pred.ups+' | Downs: '+pred.downs+' | Last '+pred.ups+pred.downs+' ticks<br>'
+    +'Placing: <span style="color:var(--ac)">'+hCount+'H</span> + <span style="color:var(--re)">'+lCount+'L</span>';
+}
+
+function hb2Toggle(){
   if(!S.connected){notify('!','Connect first','loss');return;}
-  if(TT.running){TT.running=false;document.getElementById('tt-btn').textContent='Run Test';document.getElementById('tt-status').textContent='Stopped';return;}
-  TT.running=true;
-  TT.cyclesTarget=parseInt(document.getElementById('tt-cycles').value)||10;
-  document.getElementById('tt-btn').textContent='Stop';
-  ttCycle();
+  if(HB2.running){
+    HB2.running=false;
+    document.getElementById('hb2-btn').textContent='Start Hybrid Bot';
+    document.getElementById('hb2-status-badge').textContent='STOPPED';
+    document.getElementById('hb2-status-badge').style.color='var(--bl)';
+    return;
+  }
+  var sl = parseFloat(document.getElementById('hb2-sl').value)||10;
+  var tp = parseFloat(document.getElementById('hb2-tp').value)||20;
+  if(HB2.pnl <= -sl){notify('STOP','Stop loss already hit','loss');return;}
+  if(HB2.pnl >= tp){notify('STOP','Take profit already hit','win');return;}
+  HB2.running=true;
+  document.getElementById('hb2-btn').textContent='Stop Hybrid Bot';
+  document.getElementById('hb2-status-badge').textContent='ACTIVE';
+  document.getElementById('hb2-status-badge').style.color='#00e5a0';
+  hb2Loop();
 }
 
-function ttCycle(){
-  if(!TT.running)return;
-  if(TT.cyclesDone>=TT.cyclesTarget){TT.running=false;document.getElementById('tt-btn').textContent='Run Test';document.getElementById('tt-status').textContent='Done — '+TT.cyclesDone+' cycles';return;}
-  var price=S.prices[HB.asset]||0;
-  if(price<=0){setTimeout(ttCycle,500);return;}
-  var stake=parseFloat(document.getElementById('tt-stake').value)||0.35;
-  var barrier=parseFloat(document.getElementById('tt-barrier').value)||0.06;
-  var hiB='+'+barrier.toFixed(2);
-  var loB='-'+barrier.toFixed(2);
-  var dur=TT.durVal; var dunit=TT.durUnit;
-  var cid=Date.now();
-  var settled={h:false,l:false};
+function hb2Loop(){
+  if(!HB2.running) return;
+  if(HB2.cycleActive){setTimeout(hb2Loop,500);return;}
+  var sl=parseFloat(document.getElementById('hb2-sl').value)||10;
+  var tp=parseFloat(document.getElementById('hb2-tp').value)||20;
+  var maxC=parseInt(document.getElementById('hb2-maxcycles').value)||50;
+  if(HB2.pnl<=-sl){HB2.running=false;document.getElementById('hb2-btn').textContent='Start Hybrid Bot';document.getElementById('hb2-status-badge').textContent='STOPPED';notify('STOP','Stop loss hit -$'+sl,'loss');return;}
+  if(HB2.pnl>=tp){HB2.running=false;document.getElementById('hb2-btn').textContent='Start Hybrid Bot';document.getElementById('hb2-status-badge').textContent='STOPPED';notify('WIN','Take profit hit +$'+tp,'win');return;}
+  if(HB2.cycles>=maxC){HB2.running=false;document.getElementById('hb2-btn').textContent='Start Hybrid Bot';document.getElementById('hb2-status-badge').textContent='STOPPED';notify('DONE','Max cycles reached','info');return;}
+  if(HB2.lossStreak>=6){HB2.running=false;document.getElementById('hb2-btn').textContent='Start Hybrid Bot';document.getElementById('hb2-status-badge').textContent='STOPPED';notify('STOP','6 loss streak — stopping','loss');return;}
+  hb2PlaceCycle();
+}
 
-  document.getElementById('tt-entry').textContent=price.toFixed(2);
-  document.getElementById('tt-hibar').textContent=(price+barrier).toFixed(2);
-  document.getElementById('tt-lobar').textContent=(price-barrier).toFixed(2);
-  document.getElementById('tt-status').textContent='Cycle '+(TT.cyclesDone+1)+'/'+TT.cyclesTarget;
+function hb2PlaceCycle(){
+  var price = S.prices[HB2.asset]||0;
+  if(price<=0){setTimeout(hb2Loop,500);return;}
+  var stake = parseFloat(document.getElementById('hb2-stake').value)||0.35;
+  var barrier = parseFloat(document.getElementById('hb2-barrier').value)||0.06;
+  var hiB = '+'+barrier.toFixed(2);
+  var loB = '-'+barrier.toFixed(2);
+  var dur = HB2.durVal; var dunit = HB2.durUnit;
+  var pred = hb2GetPrediction();
+  var base = HB2.contracts;
+  var bias = HB2.bias;
+  var hCount = pred.dir==='HIGHER' ? base+bias : pred.dir==='LOWER' ? Math.max(1,base-bias) : base;
+  var lCount = pred.dir==='LOWER'  ? base+bias : pred.dir==='HIGHER'? Math.max(1,base-bias) : base;
+  var totalStake = parseFloat(((hCount+lCount)*stake).toFixed(2));
+  var cycleId = 'hb2_'+Date.now();
+  HB2.cycleActive=true;
+  HB2.cycles++;
+  HB2.pending[cycleId]={hCount:hCount,lCount:lCount,hSettled:0,lSettled:0,hPnl:0,lPnl:0,prediction:pred.dir,predConf:pred.conf,entry:price,stake:stake,totalStake:totalStake,barrier:barrier};
 
-  function checkDone(){
-    var bothDone=(TT.mode==='both')?(settled.h&&settled.l):settled.h;
-    if(!bothDone)return;
-    TT.cyclesDone++;
-    ttUpdStats();
-    setTimeout(ttCycle,1500);
+  // Track prediction
+  if(pred.dir!=='NEUTRAL'){HB2.predTot++;}
+
+  document.getElementById('hb2-h-count').textContent=hCount;
+  document.getElementById('hb2-l-count').textContent=lCount;
+  document.getElementById('hb2-cycle-stake').textContent='$'+totalStake.toFixed(2);
+  document.getElementById('hb2-cycle-info').innerHTML='Cycle '+HB2.cycles+' | Entry: '+price.toFixed(2)+'<br>Prediction: '+pred.dir+' ('+pred.conf+'%)<br>Placing '+hCount+'H + '+lCount+'L';
+
+  notify('HB2','Cycle '+HB2.cycles+': '+hCount+'H + '+lCount+'L = $'+totalStake.toFixed(2),'info');
+
+  // Place Higher contracts
+  for(var h=0; h<hCount; h++){
+    (function(idx){
+      setTimeout(function(){
+        var rH=wsSend({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'CALL',currency:S.currency,duration:dur,duration_unit:dunit,symbol:HB2.asset,barrier:hiB}});
+        if(rH) S.pending[rH]={_hb2:true,_hb2Id:cycleId,_hb2Side:'H',dir:'OUTSIDE',stake:stake,asset:HB2.asset,durVal:dur,durUnit:dunit,isBot:true};
+      }, idx*150);
+    })(h);
   }
 
-  var rH=wsSend({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'CALL',currency:S.currency,duration:dur,duration_unit:dunit,symbol:HB.asset,barrier:hiB}});
-  if(rH){S.pending[rH]={_tt:true,_ttSide:'H',_ttCb:function(profit,exit){ttRecord('H',stake,profit,exit,barrier);settled.h=true;checkDone();},dir:'OUTSIDE',stake:stake,asset:HB.asset,durVal:dur,durUnit:dunit};}
-
-  if(TT.mode==='both'){
-    setTimeout(function(){
-      var rL=wsSend({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'PUT',currency:S.currency,duration:dur,duration_unit:dunit,symbol:HB.asset,barrier:loB}});
-      if(rL){S.pending[rL]={_tt:true,_ttSide:'L',_ttCb:function(profit,exit){ttRecord('L',stake,profit,exit,barrier);settled.l=true;checkDone();},dir:'OUTSIDE',stake:stake,asset:HB.asset,durVal:dur,durUnit:dunit};}
-    },300);
-  } else {
-    settled.l=true;
+  // Place Lower contracts
+  for(var l=0; l<lCount; l++){
+    (function(idx){
+      setTimeout(function(){
+        var rL=wsSend({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'PUT',currency:S.currency,duration:dur,duration_unit:dunit,symbol:HB2.asset,barrier:loB}});
+        if(rL) S.pending[rL]={_hb2:true,_hb2Id:cycleId,_hb2Side:'L',dir:'OUTSIDE',stake:stake,asset:HB2.asset,durVal:dur,durUnit:dunit,isBot:true};
+      }, (hCount+idx)*150);
+    })(l);
   }
 }
 
-function ttRecord(side,stake,profit,exit,barrier){
-  var win=profit>0;
-  var ratio=win?parseFloat(((profit+stake)/stake).toFixed(3)):0;
-  TT.pnl=parseFloat((TT.pnl+profit).toFixed(2));
-  if(win){TT.wins++;TT.totalPay+=ratio;TT.payCount++;}else{TT.losses++;}
-  var log=document.getElementById('tt-log');
-  if(log.querySelector('[style*="text-align:center"]'))log.innerHTML='';
+function hb2OnResult(cycleId, side, profit){
+  var cy = HB2.pending[cycleId];
+  if(!cy) return;
+  var win = profit>0;
+  if(side==='H'){cy.hPnl=parseFloat((cy.hPnl+profit).toFixed(2));cy.hSettled++;}
+  else{cy.lPnl=parseFloat((cy.lPnl+profit).toFixed(2));cy.lSettled++;}
+  var allDone = cy.hSettled>=cy.hCount && cy.lSettled>=cy.lCount;
+  if(!allDone) return;
+
+  // Cycle complete
+  var cyclePnl = parseFloat((cy.hPnl+cy.lPnl).toFixed(2));
+  HB2.pnl = parseFloat((HB2.pnl+cyclePnl).toFixed(2));
+  var cycleWin = cyclePnl>0;
+  if(cycleWin){HB2.wins++;HB2.lossStreak=0;}else{HB2.losses++;HB2.lossStreak++;}
+
+  // Payout tracking — find a winning leg
+  var winningPnl = cy.hPnl>0?cy.hPnl:cy.lPnl>0?cy.lPnl:0;
+  if(winningPnl>0){
+    var ratio = parseFloat(((winningPnl/Math.max(cy.hSettled,cy.lSettled)+cy.stake)/cy.stake).toFixed(3));
+    HB2.totalPay+=ratio; HB2.payCount++;
+  }
+
+  // Check prediction accuracy — did price go in predicted direction?
+  if(cy.prediction!=='NEUTRAL'){
+    var priceWentUp = cy.hPnl>cy.lPnl;
+    var predCorrect = (cy.prediction==='HIGHER'&&priceWentUp)||(cy.prediction==='LOWER'&&!priceWentUp);
+    if(predCorrect) HB2.predRight++;
+  }
+
+  document.getElementById('hb2-cycle-pnl').textContent=(cyclePnl>=0?'+':'')+cyclePnl.toFixed(2);
+  document.getElementById('hb2-cycle-pnl').style.color=cyclePnl>=0?'var(--ac)':'var(--re)';
+
+  delete HB2.pending[cycleId];
+  HB2.cycleActive=false;
+  hb2UpdStats();
+  hb2AddHistory(cyclePnl, cycleWin, cy);
+
+  notify(cycleWin?'HB2 WIN':'HB2 LOSS',(cyclePnl>=0?'+':'')+cyclePnl.toFixed(2)+' ('+cy.hCount+'H+'+cy.lCount+'L)',cycleWin?'win':'loss');
+
+  setTimeout(hb2Loop, 1500);
+}
+
+function hb2UpdStats(){
+  var tot=HB2.wins+HB2.losses;
+  var wr=tot?Math.round(HB2.wins/tot*100):0;
+  var avgPay=HB2.payCount>0?(HB2.totalPay/HB2.payCount).toFixed(3):'--';
+  var netEl=document.getElementById('hb2-net');
+  if(netEl){netEl.textContent=(HB2.pnl>=0?'+':'')+HB2.pnl.toFixed(2);netEl.style.color=HB2.pnl>=0?'var(--ac)':'var(--re)';}
+  var cycEl=document.getElementById('hb2-cycles');if(cycEl)cycEl.textContent=HB2.cycles;
+  var wrEl=document.getElementById('hb2-wr');if(wrEl)wrEl.textContent=wr+'%';
+  var payEl=document.getElementById('hb2-avgpay');if(payEl)payEl.textContent=avgPay+(avgPay!=='--'?'x':'');
+  var paEl=document.getElementById('hb2-pred-acc');
+  var ptEl=document.getElementById('hb2-pred-tot');
+  var prEl=document.getElementById('hb2-pred-right');
+  if(ptEl)ptEl.textContent=HB2.predTot;
+  if(prEl)prEl.textContent=HB2.predRight;
+  if(paEl)paEl.textContent=HB2.predTot>0?Math.round(HB2.predRight/HB2.predTot*100)+'%':'0%';
+}
+
+function hb2AddHistory(pnl, win, cy){
+  var hist=document.getElementById('hb2-history');
+  if(!hist)return;
+  if(hist.querySelector('[style*="text-align:center"]'))hist.innerHTML='';
   var row=document.createElement('div');
-  row.style.cssText='display:flex;gap:8px;padding:6px 0;border-bottom:0.5px solid rgba(255,255,255,0.06);font-size:11px;font-family:var(--mo);align-items:center';
-  var sideEl=document.createElement('span');
-  sideEl.style.cssText='padding:1px 6px;border-radius:3px;font-size:10px;background:'+(side==='H'?'rgba(0,229,160,0.15)':'rgba(255,77,106,0.15)')+';color:'+(side==='H'?'#00e5a0':'#ff4d6a');
-  sideEl.textContent=side;
-  var profEl=document.createElement('span');
-  profEl.style.cssText='flex:1;color:'+(win?'#00e5a0':'#ff4d6a');
-  profEl.textContent=(win?'+':'')+profit.toFixed(2)+(win?' ('+ratio.toFixed(3)+'x)':'');
-  var exitEl=document.createElement('span');
-  exitEl.style.cssText='color:var(--t3);font-size:10px';
-  exitEl.textContent='exit:'+(exit?exit.toFixed(2):'--');
-  row.appendChild(sideEl);row.appendChild(profEl);row.appendChild(exitEl);
-  log.insertBefore(row,log.firstChild);
-  var cnt=document.getElementById('tt-logcount');
-  if(cnt)cnt.textContent=(TT.wins+TT.losses)+' trades';
+  row.style.cssText='padding:8px 0;border-bottom:0.5px solid rgba(255,255,255,0.06);font-size:11px';
+  var predCol=cy.prediction==='HIGHER'?'#00e5a0':cy.prediction==='LOWER'?'#ff4d6a':'#4a5568';
+  row.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center">'
+    +'<span style="font-family:var(--mo);font-weight:700;color:'+(win?'#00e5a0':'#ff4d6a')+'">'+(pnl>=0?'+':'')+pnl.toFixed(2)+'</span>'
+    +'<span style="color:var(--t3);font-size:10px">'+cy.hCount+'H + '+cy.lCount+'L @ $'+cy.stake.toFixed(2)+'</span>'
+    +'<span style="color:'+predCol+';font-size:10px">'+cy.prediction+' '+cy.predConf+'%</span>'
+    +'</div>'
+    +'<div style="font-size:10px;color:var(--t3);margin-top:2px">H P&L: '+(cy.hPnl>=0?'+':'')+cy.hPnl.toFixed(2)+' | L P&L: '+(cy.lPnl>=0?'+':'')+cy.lPnl.toFixed(2)+' | entry: '+cy.entry.toFixed(2)+'</div>';
+  hist.insertBefore(row,hist.firstChild);
 }
 
-function ttUpdStats(){
-  var tot=TT.wins+TT.losses;
-  var wr=tot?Math.round(TT.wins/tot*100):0;
-  var avgPay=TT.payCount>0?(TT.totalPay/TT.payCount).toFixed(3):'--';
-  var pnlEl=document.getElementById('tt-net');
-  if(pnlEl){pnlEl.textContent=(TT.pnl>=0?'+':'')+TT.pnl.toFixed(2);pnlEl.style.color=TT.pnl>=0?'var(--ac)':'var(--re)';}
-  var cycEl=document.getElementById('tt-cyc');if(cycEl)cycEl.textContent=TT.cyclesDone;
-  var wrEl=document.getElementById('tt-wr');if(wrEl)wrEl.textContent=wr+'%';
-  var payEl=document.getElementById('tt-pay');if(payEl)payEl.textContent=avgPay+(avgPay!=='--'?'x':'');
-  if(TT.payCount>=3){
-    var ap=parseFloat(avgPay);
-    var profitable=ap>=2.05;
-    var stakeVal=parseFloat(document.getElementById('tt-stake').value)||0.35;
-    var netPerCycle=TT.mode==='both'?(4*(stakeVal*ap-stakeVal)-4*stakeVal):((stakeVal*ap-stakeVal)-(stakeVal*(1-TT.wins/Math.max(tot,1))));
-    var vEl=document.getElementById('tt-verdict');
-    if(vEl){
-      vEl.innerHTML=(profitable?'<b style="color:#00e5a0">PROFITABLE</b>':'<b style="color:#ff4d6a">EDGE NEGATIVE</b>')+' at '+ap+'x payout<br>'
-        +'Need >2.05x to profit. Gap: '+(ap-2.05>=0?'+':'')+(ap-2.05).toFixed(3)+'x<br>'
-        +'Win rate: '+wr+'% | Breakeven WR at this payout: '+Math.round(stakeVal/(stakeVal*ap)*100)+'%';
-    }
-  }
+function hb2Reset(){
+  HB2.running=false;HB2.wins=0;HB2.losses=0;HB2.pnl=0;HB2.cycles=0;
+  HB2.totalPay=0;HB2.payCount=0;HB2.predRight=0;HB2.predTot=0;HB2.lossStreak=0;HB2.cycleActive=false;HB2.pending={};
+  document.getElementById('hb2-history').innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No cycles yet.</div>';
+  document.getElementById('hb2-btn').textContent='Start Hybrid Bot';
+  document.getElementById('hb2-status-badge').textContent='STOPPED';
+  hb2UpdStats();
 }
 
 function saveNote(tid){var el=document.getElementById('note_'+tid);if(!el)return;S.notes[tid]=el.value;localStorage.setItem('kevoai_notes',JSON.stringify(S.notes));notify('OK','Note saved!','info');}
