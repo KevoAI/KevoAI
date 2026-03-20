@@ -1438,7 +1438,7 @@ const HB = {
   barrierMult:1.0,
   // ── HYBRID ASYMMETRIC DUAL TRADE ─────────────────────────────
   trendMult:3.0,    // ATR×3 — tuned: R_100 moves 0.4-0.7, barrier sized to match
-  counterMult:1.5   // ATR×1.5 — close barrier, always covers trend loss
+  counterMult:0.8   // ATR×0.8 — near-guaranteed hit, always covers trend loss
 };
 
 // ── HYBRID DUAL TRADE STAKE SOLVER ──────────────────────────────
@@ -1821,6 +1821,15 @@ function placeHybridRound(){
   var entry=S.prices[HB.asset]||0;
   if(entry<=0){notify('!','No price data for '+HB.asset,'loss');return;}
 
+  // ── Live ATR check — skip dead markets ───────────────────────
+  var _lPrices=getInd(HB.asset).prices,_lN=_lPrices.length;
+  var _lATR=0;
+  if(_lN>=5){for(var _li=_lN-5;_li<_lN;_li++)_lATR+=Math.abs(_lPrices[_li]-_lPrices[_li-1]);_lATR/=5;}
+  if(_lATR<0.05){
+    notify('SKIP','ATR too low ('+_lATR.toFixed(4)+') — dead market, skipping','info');
+    return;
+  }
+
   // ── Decimal zone filter ──────────────────────────────────────
   var decPart=parseFloat((entry%1).toFixed(2));
   var decFilter=HB.useDecFilter!==false;
@@ -1831,14 +1840,23 @@ function placeHybridRound(){
     if(!inZone){notify('SKIP','Dec .'+Math.round(decPart*100).toString().padStart(2,'0')+' — skipping','info');return;}
   }
 
-  // ── Prediction confidence gate ─────────────────────────────────
-  // Data: every FLAT loss had LOW confidence prediction — skip those
-  var predConfEl=document.getElementById('pred-conf');
-  var predConf=predConfEl?predConfEl.textContent:'--';
-  if(predConf==='LOW'){
-    notify('SKIP','Prediction confidence LOW — market not biased, skipping','info');
+  // ── Confidence gate — calculated live from ticks, not DOM ──────
+  // Bias = how skewed up/down split is over last 20 ticks
+  // LOW (<10 bias) = market too even = flat = skip
+  var _cPrices=getInd(HB.asset).prices,_cN=_cPrices.length;
+  var _cUps=0,_cDns=0,_cLook=Math.min(20,_cN-1);
+  for(var _ci=_cN-_cLook;_ci<_cN;_ci++){
+    if(_cPrices[_ci]>_cPrices[_ci-1])_cUps++;
+    else if(_cPrices[_ci]<_cPrices[_ci-1])_cDns++;
+  }
+  var _cTotal=_cUps+_cDns||1;
+  var _cUpPct=Math.round(_cUps/_cTotal*100);
+  var _cBias=Math.abs(_cUpPct-50);
+  if(_cBias<10){
+    notify('SKIP','Market too flat (bias '+_cBias+'%) — need >10% bias to trade','info');
     HB.rounds--;HB.roundId--;delete HB.pending[rid];return;
   }
+  console.log('[CONFIDENCE] upPct:'+_cUpPct+'% bias:'+_cBias+'% -> '+((_cBias>=20)?'HIGH':(_cBias>=10)?'MED':'LOW'));
 
   // ── Trend detection — 3-layer 2/3 vote ──────────────────────
   // Layer 1: EMA9/21 | Layer 2: 80-tick slope | Layer 3: Pred bar
