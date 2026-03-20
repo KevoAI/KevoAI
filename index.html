@@ -1249,6 +1249,19 @@ function handleMsg(d) {
       if(d.req_id===9999) S._hlQueryPending=false;
       onContractsFor(d.contracts_for);
       break;
+    case 'proposal':
+      if(S._hlProbeResults&&S._hlProbeResults[d.req_id]){
+        var k=S._hlProbeResults[d.req_id];
+        var ok=d.proposal&&d.proposal.id;
+        S._hlProbeLog=S._hlProbeLog||[];
+        var line='<span style="color:'+(ok?'#00e5a0':'#ff4d6a')+'">'+k+': '+(ok?'✓ VALID (payout:'+( d.proposal&&d.proposal.payout?d.proposal.payout.toFixed(3):'?')+')':'✗ '+((d.error&&d.error.message)||'invalid'))+'</span>';
+        S._hlProbeLog.push(line);
+        delete S._hlProbeResults[d.req_id];
+        var el=document.getElementById('hl-query-result');
+        if(el) el.innerHTML=S._hlProbeLog.join('<br>');
+        break;
+      }
+      break;
   }
 }
 
@@ -3398,18 +3411,56 @@ function hlUpdStats(){
 
 function hlQueryContracts(){
   if(!S.connected){notify('!','Connect first','loss');return;}
-  // Stop any running test first
   HL.running=false;
-  var el = document.getElementById('hl-query-result');
-  if(el){el.style.display='block';el.textContent='Querying R_100...';}
-  // Send directly via WebSocket (bypass wsSend pending system)
-  var msg = JSON.stringify({contracts_for:'R_100', currency:'USD', landing_company:'svg', product_type:'basic', req_id:9999});
-  if(S.ws && S.ws.readyState===1){
-    S._hlQueryPending=true;
-    S.ws.send(msg);
-  } else {
-    if(el) el.textContent='Not connected';
-  }
+  var el=document.getElementById('hl-query-result');
+  if(el){el.style.display='block';el.innerHTML='Testing durations...';}
+
+  // Try proposals for UPORDOWN and RANGE with different durations
+  // A successful proposal = valid duration
+  var price=S.prices[HB.asset]||600;
+  var barrier=(price*0.0001).toFixed(2); // tiny barrier
+  var tests=[
+    {ct:'UPORDOWN', dur:5,  u:'t'},
+    {ct:'UPORDOWN', dur:10, u:'t'},
+    {ct:'UPORDOWN', dur:15, u:'s'},
+    {ct:'UPORDOWN', dur:30, u:'s'},
+    {ct:'UPORDOWN', dur:60, u:'s'},
+    {ct:'UPORDOWN', dur:2,  u:'m'},
+    {ct:'UPORDOWN', dur:5,  u:'m'},
+    {ct:'RANGE',    dur:5,  u:'t'},
+    {ct:'RANGE',    dur:10, u:'t'},
+    {ct:'RANGE',    dur:15, u:'s'},
+    {ct:'RANGE',    dur:30, u:'s'},
+    {ct:'RANGE',    dur:60, u:'s'},
+    {ct:'RANGE',    dur:2,  u:'m'},
+  ];
+  var results=[];
+  var done=0;
+
+  tests.forEach(function(t,i){
+    setTimeout(function(){
+      var key=t.ct+' '+t.dur+t.u;
+      var params={proposal:1,amount:0.35,basis:'stake',contract_type:t.ct,
+        currency:S.currency||'USD',duration:t.dur,duration_unit:t.u,
+        symbol:HB.asset,barrier:'+0.10',barrier2:'-0.10'};
+      var msg=JSON.stringify(params);
+      if(S.ws&&S.ws.readyState===1){
+        var rid='prop_'+Date.now()+'_'+i;
+        params.req_id=i+100;
+        S._hlProbeResults=S._hlProbeResults||{};
+        S._hlProbeResults[i+100]=key;
+        S.ws.send(JSON.stringify(params));
+      }
+      done++;
+      if(done===tests.length){
+        setTimeout(function(){
+          if(el) el.innerHTML='<b>Check results above ^ (green = valid)</b><br>'+
+            (S._hlProbeLog||[]).join('<br>');
+        },3000);
+      }
+    },i*300);
+  });
+  S._hlProbeLog=[];
 }
 
 // Extend onContractsFor to also log HL-relevant contracts
