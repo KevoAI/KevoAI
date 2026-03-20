@@ -1245,7 +1245,10 @@ function handleMsg(d) {
     case 'proposal_open_contract': console.log('[RAW POC]', JSON.stringify(d.proposal_open_contract).substring(0,400)); onContract(d.proposal_open_contract); break;
     case 'balance': onBalance(d.balance); break;
     case 'transaction': setTimeout(function(){ wsSend({balance:1,subscribe:1}); },500); break;
-    case 'contracts_for': onContractsFor(d.contracts_for); break;
+    case 'contracts_for':
+      if(d.req_id===9999) S._hlQueryPending=false;
+      onContractsFor(d.contracts_for);
+      break;
   }
 }
 
@@ -3395,12 +3398,18 @@ function hlUpdStats(){
 
 function hlQueryContracts(){
   if(!S.connected){notify('!','Connect first','loss');return;}
-  var asset = HB.asset || 'R_100';
+  // Stop any running test first
+  HL.running=false;
   var el = document.getElementById('hl-query-result');
-  if(el){el.style.display='block';el.textContent='Querying '+asset+'...';}
-  notify('INFO','Querying...','info');
-  var rid = wsSend({contracts_for: asset, currency: S.currency||'USD', landing_company:'svg', product_type:'basic'});
-  if(rid) S.pending[rid] = {_hlQuery: true, _hlEl: el};
+  if(el){el.style.display='block';el.textContent='Querying R_100...';}
+  // Send directly via WebSocket (bypass wsSend pending system)
+  var msg = JSON.stringify({contracts_for:'R_100', currency:'USD', landing_company:'svg', product_type:'basic', req_id:9999});
+  if(S.ws && S.ws.readyState===1){
+    S._hlQueryPending=true;
+    S.ws.send(msg);
+  } else {
+    if(el) el.textContent='Not connected';
+  }
 }
 
 // Extend onContractsFor to also log HL-relevant contracts
