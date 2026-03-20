@@ -836,10 +836,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db active" onclick="HL.goDur=15;hlSetA(this)">15s</div>
                     <div class="db" onclick="HL.goDur=30;hlSetA(this)">30s</div>
                     <div class="db" onclick="HL.goDur=60;hlSetA(this)">60s</div>
-                    <div class="db" onclick="HL.goDur=120;hlSetA(this)">2m</div>
+                    <div class="db active" onclick="HL.goDur=120;hlSetA(this)">2m</div>
+                    <div class="db" onclick="HL.goDur=300;hlSetA(this)">5m</div>
                   </div>
                 </div>
               </div>
@@ -855,10 +855,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db active" onclick="HL.ntDur=15;hlSetB(this)">15s</div>
                     <div class="db" onclick="HL.ntDur=30;hlSetB(this)">30s</div>
                     <div class="db" onclick="HL.ntDur=60;hlSetB(this)">60s</div>
-                    <div class="db" onclick="HL.ntDur=120;hlSetB(this)">2m</div>
+                    <div class="db active" onclick="HL.ntDur=120;hlSetB(this)">2m</div>
+                    <div class="db" onclick="HL.ntDur=300;hlSetB(this)">5m</div>
                   </div>
                 </div>
               </div>
@@ -1259,6 +1259,27 @@ function handleMsg(d) {
         delete S._hlProbeResults[d.req_id];
         var el=document.getElementById('hl-query-result');
         if(el) el.innerHTML=S._hlProbeLog.join('<br>');
+        break;
+      }
+      // Duration test responses
+      if(S._hlDurTest&&S._hlDurTest[d.req_id]){
+        var dt=S._hlDurTest[d.req_id];
+        var ok2=!d.error&&d.proposal&&d.proposal.id;
+        var el2=document.getElementById('hl-query-result');
+        var line2='<div style="color:'+(ok2?'#00e5a0':'#ff4d6a')+'">EXPIRYRANGEE '+dt.dur+'s: '+(ok2?'✓ VALID — payout '+d.proposal.payout.toFixed(3):'✗ '+(d.error?d.error.message:'no proposal'))+'</div>';
+        if(el2) el2.innerHTML=(el2.innerHTML==='Testing EXPIRYRANGEE durations...'?'':el2.innerHTML)+line2;
+        delete S._hlDurTest[d.req_id];
+        // If valid, auto-place the GO contract
+        if(ok2&&dt.cycleId){
+          var pid=d.proposal.id;
+          var buyRid=wsSend({buy:pid,price:d.proposal.ask_price});
+          if(buyRid) S.pending[buyRid]={_hl:true,_hlId:dt.cycleId,_hlType:'go',dir:'OUTSIDE',stake:dt.goStake,asset:HB.asset,isBot:true};
+          // Clear remaining tests
+          S._hlDurTest={};
+          HL.cycleActive=true;
+          HL.running=true;
+          document.getElementById('hl-btn').textContent='Stop';
+        }
         break;
       }
       break;
@@ -3192,8 +3213,8 @@ function hb2Reset(){
 // ══════════════════════════════════════════════════════════════
 var HL = {
   running: false, mode: 'both',
-  goDur: 15, goDurU: 's',
-  ntDur: 15, ntDurU: 's',
+  goDur: 120, goDurU: 's',
+  ntDur: 120, ntDurU: 's',
   cyclesDone: 0, cyclesTarget: 10,
   cycleActive: false,
   // Goes Outside stats
@@ -3267,16 +3288,26 @@ function hlNextCycle(){
   document.getElementById('hl-status').textContent='Cycle '+(HL.cyclesDone+1)+'/'+HL.cyclesTarget+' — placing...';
 
   if(HL.mode==='both'||HL.mode==='go'){
-    var rGO=wsSend({buy:1,price:goStake,parameters:{
-      amount:goStake,basis:'stake',
-      contract_type:'EXPIRYRANGEE',
-      currency:S.currency,
-      duration:HL.goDur,duration_unit:HL.goDurU,
-      symbol:HB.asset,
-      barrier:'+'+(goBarrier.toFixed(2)),
-      barrier2:'-'+(goBarrier.toFixed(2))
-    }});
-    if(rGO) S.pending[rGO]={_hl:true,_hlId:cycleId,_hlType:'go',dir:'OUTSIDE',stake:goStake,asset:HB.asset,isBot:true};
+    // Probe all durations — use proposal first to find valid one
+    var _durs=[15,30,60,120,300,600,1800,3600];
+    var _el=document.getElementById('hl-query-result');
+    if(_el){_el.style.display='block';_el.innerHTML='Finding valid EXPIRYRANGEE duration...';}
+    S._hlDurTest=S._hlDurTest||{};
+    _durs.forEach(function(dur,i){
+      setTimeout(function(){
+        var reqId=7000+i;
+        S._hlDurTest[reqId]={dur:dur,goStake:goStake,goBarrier:goBarrier,cycleId:cycleId};
+        var msg=JSON.stringify({proposal:1,amount:goStake,basis:'stake',
+          contract_type:'EXPIRYRANGEE',currency:S.currency||'USD',
+          duration:dur,duration_unit:'s',symbol:HB.asset,
+          barrier:'+'+(goBarrier.toFixed(2)),barrier2:'-'+(goBarrier.toFixed(2)),
+          req_id:reqId});
+        if(S.ws&&S.ws.readyState===1) S.ws.send(msg);
+      },i*500);
+    });
+    // Pause cycle — will resume when valid proposal found
+    HL.cycleActive=true;
+    return;
   } else {
     HL.pending[cycleId].goSettled=true;
   }
@@ -4656,10 +4687,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db active" onclick="HL.goDur=15;hlSetA(this)">15s</div>
                     <div class="db" onclick="HL.goDur=30;hlSetA(this)">30s</div>
                     <div class="db" onclick="HL.goDur=60;hlSetA(this)">60s</div>
-                    <div class="db" onclick="HL.goDur=120;hlSetA(this)">2m</div>
+                    <div class="db active" onclick="HL.goDur=120;hlSetA(this)">2m</div>
+                    <div class="db" onclick="HL.goDur=300;hlSetA(this)">5m</div>
                   </div>
                 </div>
               </div>
@@ -4675,10 +4706,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db active" onclick="HL.ntDur=15;hlSetB(this)">15s</div>
                     <div class="db" onclick="HL.ntDur=30;hlSetB(this)">30s</div>
                     <div class="db" onclick="HL.ntDur=60;hlSetB(this)">60s</div>
-                    <div class="db" onclick="HL.ntDur=120;hlSetB(this)">2m</div>
+                    <div class="db active" onclick="HL.ntDur=120;hlSetB(this)">2m</div>
+                    <div class="db" onclick="HL.ntDur=300;hlSetB(this)">5m</div>
                   </div>
                 </div>
               </div>
