@@ -883,7 +883,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <button class="btn" style="flex:1;padding:11px;font-size:13px;font-weight:700;background:var(--go);color:var(--bg0)" id="hl-btn" onclick="hlRun()">Run Test</button>
                   <button class="btn btng" style="padding:11px 14px" onclick="hlReset()">Reset</button>
                 </div>
-                <button class="btn btng" style="width:100%;padding:8px;font-size:11px" onclick="hlQueryContracts()">Query Valid Contracts (check console)</button>
+                <button class="btn btng" style="width:100%;padding:8px;font-size:11px" onclick="hlQueryContracts()">Query Valid Contracts</button>
+                <div id="hl-query-result" style="margin-top:8px;background:var(--bg3);border-radius:var(--rs);padding:8px;font-size:10px;font-family:var(--mo);color:var(--ac);max-height:200px;overflow-y:auto;display:none;word-break:break-all;line-height:1.6"></div>
               </div>
             </div>
 
@@ -1267,20 +1268,22 @@ function queryContractsFor(sym){
 function onContractsFor(data){
   if(!data||!data.available) return;
   // ── PRINT ALL CONTRACT TYPES FOR DEBUGGING ──────────────────
-  console.log('%c=== R_100 AVAILABLE CONTRACTS ===', 'color:lime;font-size:14px;font-weight:bold');
   var seen={};
+  var lines=['=== R_100 CONTRACTS ==='];
   data.available.forEach(function(c){
     var key=c.contract_type;
     if(!seen[key]){
       seen[key]=true;
-      console.log('%c'+c.contract_type,'color:cyan;font-weight:bold',
-        '| expiry:'+c.expiry_type,
-        '| min:'+( c.min_contract_duration||'?'),
-        '| max:'+(c.max_contract_duration||'?'),
-        '| barriers:'+(c.barriers||0));
+      var line=c.contract_type+' | expiry:'+c.expiry_type+' | min:'+(c.min_contract_duration||'?')+' | max:'+(c.max_contract_duration||'?')+' | barriers:'+(c.barriers||0);
+      lines.push(line);
+      console.log(line);
     }
   });
-  console.log('%c=== END CONTRACT LIST ===','color:lime;font-size:14px;font-weight:bold');
+  lines.push('=== END ===');
+  console.log(lines.join('\n'));
+  // Show in page div
+  var el=document.getElementById('hl-query-result');
+  if(el){el.style.display='block';el.innerHTML=lines.map(function(l){return '<div>'+l+'</div>';}).join('');}
   // Find all EXPIRYRANGE intraday contracts and store their trading periods
   HB._tradingPeriods = HB._tradingPeriods || [];
   data.available.forEach(function(c){
@@ -3393,12 +3396,11 @@ function hlUpdStats(){
 function hlQueryContracts(){
   if(!S.connected){notify('!','Connect first','loss');return;}
   var asset = HB.asset || 'R_100';
-  notify('INFO','Querying contracts for '+asset+'...','info');
+  var el = document.getElementById('hl-query-result');
+  if(el){el.style.display='block';el.textContent='Querying '+asset+'...';}
+  notify('INFO','Querying...','info');
   var rid = wsSend({contracts_for: asset, currency: S.currency||'USD', landing_company:'svg', product_type:'basic'});
-  S.pending[rid] = {_hlQuery: true};
-  // Override handleMsg temporarily to capture full response
-  var origCase = null;
-  wsSend({contracts_for: asset, currency: S.currency||'USD', landing_company:'svg', product_type:'basic'});
+  if(rid) S.pending[rid] = {_hlQuery: true, _hlEl: el};
 }
 
 // Extend onContractsFor to also log HL-relevant contracts
@@ -4632,7 +4634,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <button class="btn" style="flex:1;padding:11px;font-size:13px;font-weight:700;background:var(--go);color:var(--bg0)" id="hl-btn" onclick="hlRun()">Run Test</button>
                   <button class="btn btng" style="padding:11px 14px" onclick="hlReset()">Reset</button>
                 </div>
-                <button class="btn btng" style="width:100%;padding:8px;font-size:11px" onclick="hlQueryContracts()">Query Valid Contracts (check console)</button>
+                <button class="btn btng" style="width:100%;padding:8px;font-size:11px" onclick="hlQueryContracts()">Query Valid Contracts</button>
+                <div id="hl-query-result" style="margin-top:8px;background:var(--bg3);border-radius:var(--rs);padding:8px;font-size:10px;font-family:var(--mo);color:var(--ac);max-height:200px;overflow-y:auto;display:none;word-break:break-all;line-height:1.6"></div>
               </div>
             </div>
 
