@@ -3254,6 +3254,8 @@ function hlNextCycle(){
   HL.cycleActive=true;
   HL.pending[cycleId]={
     goSettled:false, ntSettled:false,
+    goHSettled:false, goLSettled:false,
+    goHPnl:0, goLPnl:0, goHWin:false, goLWin:false,
     goWin:false, ntWin:false,
     goPnl:0, ntPnl:0,
     goStake:goStake, ntStake:ntStake,
@@ -3303,7 +3305,20 @@ function hlOnResult(cycleId, type, profit, stake){
   var win=profit>0;
   var ratio=win?parseFloat(((profit+stake)/stake).toFixed(3)):0;
 
-  if(type==='go'){
+  if(type==='goH'||type==='goL'){
+    // CALL+PUT pair — track both, combine pnl
+    if(type==='goH'){cy.goHSettled=true;cy.goHPnl=profit;cy.goHWin=win;}
+    else{cy.goLSettled=true;cy.goLPnl=profit;cy.goLWin=win;}
+    var goPairDone=cy.goHSettled&&cy.goLSettled;
+    if(!goPairDone) return; // wait for both legs
+    // Combine the pair
+    var goCombPnl=parseFloat(((cy.goHPnl||0)+(cy.goLPnl||0)).toFixed(2));
+    var goCombWin=goCombPnl>0;
+    cy.goSettled=true; cy.goWin=goCombWin; cy.goPnl=goCombPnl;
+    HL.goPnl=parseFloat((HL.goPnl+goCombPnl).toFixed(2));
+    var goRatio=goCombWin&&stake>0?parseFloat(((goCombPnl+(stake*2))/(stake*2)).toFixed(3)):0;
+    if(goCombWin){HL.goWins++;HL.goTotalPay+=goRatio;HL.goPayCount++;}else HL.goLosses++;
+  } else if(type==='go'){
     cy.goSettled=true; cy.goWin=win; cy.goPnl=profit;
     HL.goPnl=parseFloat((HL.goPnl+profit).toFixed(2));
     if(win){HL.goWins++;HL.goTotalPay+=ratio;HL.goPayCount++;}else HL.goLosses++;
