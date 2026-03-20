@@ -462,7 +462,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
             <div>
               <div style="font-size:16px;font-weight:800;color:var(--ac)">WinWin Hybrid — Asymmetric Dual Trade</div>
-              <div style="font-size:12px;color:var(--t2);margin-top:3px">Trend (×5ATR) + Counter (×3ATR) — Pt×Pc&gt;1 gate — both scenarios green</div>
+              <div style="font-size:12px;color:var(--t2);margin-top:3px">Trend ×5ATR + Counter ×3ATR — Pt×Pc>1 gate — both scenarios always green</div>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
               <span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(0,229,160,0.15);color:var(--ac)">2 Trades/Round</span>
@@ -531,12 +531,12 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
               </div>
               <div style="background:rgba(0,229,160,0.05);border:1px solid rgba(0,229,160,0.15);border-radius:var(--rs);padding:8px 10px;font-size:11px;color:var(--t2)">
-                ✅ <strong style="color:var(--t1)">Pt×Pc&gt;1 check every trade.</strong> Scenario A &amp; B both green before firing — no bad rounds.
+                ✅ <strong style="color:var(--t1)">Pt×Pc>1 check every trade.</strong> Scenario A &amp; B both green before firing — no bad rounds.
               </div>
               <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--bo)">
                 <span style="font-size:11px;color:var(--t2)">Total Risk:</span>
                 <span style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--t1)" id="ww-total-stake">$0.00</span>
-                <span style="font-size:11px;color:var(--t2)">Best/Min profit:</span>
+                <span style="font-size:11px;color:var(--t2)">Best / Min profit:</span>
                 <span style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="ww-best-win">+$0.00</span>
               </div>
             </div>
@@ -1150,10 +1150,7 @@ function onProposal(proposal, reqId){
   }
 
   // Route HB proposals to dual-trade handler
-  if(p.type === 'hb_proposal'){
-    onHBProposal(proposal, reqId, p);
-    return;
-  }
+  if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
 }
 
 function onAuth(a) {
@@ -1558,24 +1555,22 @@ const HB = {
   lossStreak:0, coolingDown:false, cooldownEnd:0,
   lastSqueezeTime:0, prevBBWidth:0,
   barrierMult:1.0,
-  // ── HYBRID DUAL TRADE ────────────────────────────────────────────
-  trendMult: 5.0,    // ATR × 5 — trend side (further out, higher payout)
-  counterMult: 3.0,  // ATR × 3 — counter side (closer in, lower payout)
-  proposalCache: {}, pendingProposals: {}
+  // ── HYBRID ASYMMETRIC DUAL TRADE ─────────────────────────────
+  trendMult:5.0,    // ATR×5 — trend side (further out, higher payout)
+  counterMult:3.0   // ATR×3 — counter side (closer in, protects round)
 };
 
 // ── HYBRID DUAL TRADE STAKE SOLVER (Pt×Pc > 1) ──────────────────
-// Solves S_t and S_c so BOTH scenarios are green:
-//   Scenario A (trend wins):   S_t × P_t - S_c > 0
-//   Scenario B (counter wins): S_c × P_c - S_t > 0
-// Requires P_t × P_c > 1. Returns null if impossible.
+// Solve S_t & S_c so BOTH scenarios are green:
+//   Scenario A (trend wins):   S_t × P_t − S_c > 0
+//   Scenario B (counter wins): S_c × P_c − S_t > 0
+// Requires P_t × P_c > 1 — skip trade if not.
 function solveHybridStakes(budget, P_t, P_c) {
   if(P_t * P_c <= 1.0) return null;
-  // S_t(1 + 1/P_c) = budget  →  S_t = budget / (1 + 1/P_c)
+  // S_t = budget / (1 + 1/P_c)
   var S_t = parseFloat((budget / (1 + 1/P_c)).toFixed(2));
   var S_c = parseFloat((budget - S_t).toFixed(2));
-  // 5% buffer so Scenario B is truly positive, not just zero
-  S_c = parseFloat((S_c * 1.05).toFixed(2));
+  S_c = parseFloat((S_c * 1.05).toFixed(2)); // 5% buffer so Scenario B is truly green
   S_t = parseFloat((budget - S_c).toFixed(2));
   if(S_t < 0.35) S_t = 0.35;
   if(S_c < 0.35) S_c = 0.35;
@@ -1584,7 +1579,7 @@ function solveHybridStakes(budget, P_t, P_c) {
   return { S_t:S_t, S_c:S_c, P_t:P_t, P_c:P_c,
     profitA:profitA, profitB:profitB,
     totalRisk:parseFloat((S_t+S_c).toFixed(2)),
-    valid:profitA>0&&profitB>0 };
+    valid:profitA>0 && profitB>0 };
 }
 
 function getSideStake(){
@@ -1598,26 +1593,42 @@ function calcWWDaily(){
   var budget=parseFloat(document.getElementById('ww-risk').value)||3;
   var sl    =parseFloat(document.getElementById('ww-daily-sl').value)||30;
   var tp    =parseFloat(document.getElementById('ww-daily-tp').value)||60;
-  // Use estimated payouts for preview (real ones fetched live per trade)
-  var P_t_est=1.85, P_c_est=1.40;
+  var P_t_est=1.85, P_c_est=1.40; // estimated — real fetched live per trade
   var result=solveHybridStakes(budget,P_t_est,P_c_est);
   if(!result){result={S_t:budget*0.57,S_c:budget*0.43,profitA:0,profitB:0,totalRisk:budget,valid:false};}
   var maxRounds=Math.floor(sl/result.totalRisk);
   var winsNeeded=result.profitA>0?Math.ceil(tp/result.profitA):999;
   var el=document.getElementById('ww-progress-target');if(el)el.textContent='$'+tp;
   var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=result.totalRisk.toFixed(2);
-  var math='HYBRID DUAL TRADE — Asymmetric Barriers\n'
-    +'Trend side:   ATR×'+HB.trendMult+' (further out, bigger payout)\n'
-    +'Counter side: ATR×'+HB.counterMult+' (closer in, protects round)\n\n'
-    +'Budget per round: $'+budget.toFixed(2)+'\n'
-    +'Pt×Pc = '+P_t_est+'×'+P_c_est+' = '+(P_t_est*P_c_est).toFixed(2)+(P_t_est*P_c_est>1?' ✅ MATH WORKS':' ❌ SKIP')+'\n\n'
-    +'Trend stake  (S_t): $'+result.S_t.toFixed(2)+'\n'
-    +'Counter stake(S_c): $'+result.S_c.toFixed(2)+'\n\n'
-    +'Scenario A — Trend wins:\n'
-    +'  $'+result.S_t.toFixed(2)+'×'+P_t_est+' = $'+(result.S_t*P_t_est).toFixed(2)+' − $'+result.S_c.toFixed(2)+' = +$'+result.profitA.toFixed(2)+' ✅\n\n'
-    +'Scenario B — Counter wins:\n'
-    +'  $'+result.S_c.toFixed(2)+'×'+P_c_est+' = $'+(result.S_c*P_c_est).toFixed(2)+' − $'+result.S_t.toFixed(2)+' = +$'+result.profitB.toFixed(2)+' ✅\n\n'
-    +'Max rounds before $'+sl+' SL: '+maxRounds+'\n'
+  var math='HYBRID DUAL TRADE — Asymmetric Barriers
+'
+    +'Trend side:   ATR×'+HB.trendMult+' (further out, bigger payout)
+'
+    +'Counter side: ATR×'+HB.counterMult+' (closer in, protects round)
+
+'
+    +'Budget per round: $'+budget.toFixed(2)+'
+'
+    +'Pt×Pc = '+P_t_est+'×'+P_c_est+' = '+(P_t_est*P_c_est).toFixed(2)+(P_t_est*P_c_est>1?' ✅ MATH WORKS':' ❌ SKIP')+'
+
+'
+    +'Trend stake  (S_t): $'+result.S_t.toFixed(2)+'
+'
+    +'Counter stake(S_c): $'+result.S_c.toFixed(2)+'
+
+'
+    +'Scenario A — Trend wins:
+'
+    +'  $'+result.S_t.toFixed(2)+'×'+P_t_est+' = $'+(result.S_t*P_t_est).toFixed(2)+' − $'+result.S_c.toFixed(2)+' = +$'+result.profitA.toFixed(2)+' ✅
+
+'
+    +'Scenario B — Counter wins:
+'
+    +'  $'+result.S_c.toFixed(2)+'×'+P_c_est+' = $'+(result.S_c*P_c_est).toFixed(2)+' − $'+result.S_t.toFixed(2)+' = +$'+result.profitB.toFixed(2)+' ✅
+
+'
+    +'Max rounds before $'+sl+' SL: '+maxRounds+'
+'
     +'Rounds to hit $'+tp+' target: ~'+winsNeeded;
   var mel=document.getElementById('ww-calc-math');if(mel)mel.textContent=math;
   updateBarrierPreview();
@@ -1651,15 +1662,14 @@ function getATR(){
   return atr/len;
 }
 
-// Asymmetric barriers: trend = ATR×5, counter = ATR×3
 function getTrendBarrier(){var atr=getATR();if(atr<=0)atr=0.06;return parseFloat((atr*HB.trendMult).toFixed(2));}
 function getCounterBarrier(){var atr=getATR();if(atr<=0)atr=0.06;return parseFloat((atr*HB.counterMult).toFixed(2));}
-function getBarrier(){return getTrendBarrier();} // alias for chart drawing
+function getBarrier(){return getTrendBarrier();}
 
 function updateBarrierPreview(){
   var bT=getTrendBarrier(),bC=getCounterBarrier();
   var budget=parseFloat(document.getElementById('ww-risk').value)||3;
-  var res=solveHybridStakes(budget,1.85,1.40)||{S_t:budget*0.57,S_c:budget*0.43,totalRisk:budget};
+  var res=solveHybridStakes(budget,1.85,1.40)||{S_t:budget*0.57,S_c:budget*0.43,totalRisk:budget,profitA:0,profitB:0,valid:false};
   var pt=document.getElementById('barrier-preview-txt');
   if(pt)pt.textContent='Trend: ±'+bT+' (×'+HB.trendMult+'ATR) $'+res.S_t.toFixed(2)+' | Counter: ±'+bC+' (×'+HB.counterMult+'ATR) $'+res.S_c.toFixed(2);
   var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=res.totalRisk.toFixed(2);
@@ -1668,7 +1678,7 @@ function updateBarrierPreview(){
 
 function renderTradeBreakdown(bTrend,bCounter,stTrend,stCounter,P_t,P_c,result){
   if(typeof bCounter==='undefined'){bCounter=getCounterBarrier();}
-  if(!result){var b=(stTrend||0)+(stCounter||0)||3;result=solveHybridStakes(b,P_t||1.85,P_c||1.40)||{S_t:stTrend,S_c:stCounter,profitA:0,profitB:0,totalRisk:b,valid:false};}
+  if(!result){var b=(stTrend||0)+(stCounter||0)||3;result=solveHybridStakes(b,P_t||1.85,P_c||1.40)||{S_t:stTrend||0,S_c:stCounter||0,profitA:0,profitB:0,totalRisk:b,valid:false};}
   var eoB=document.getElementById('eo-barrier'),eoS=document.getElementById('eo-stake'),eoPay=document.getElementById('eo-payout');
   if(eoB)eoB.textContent='±'+(bTrend||0).toFixed(2)+' (×'+HB.trendMult+'ATR)';
   if(eoS)eoS.textContent='$'+(stTrend||result.S_t||0).toFixed(2);
@@ -1894,10 +1904,10 @@ function runHybridAuto(){
       notify('TIMEOUT','Stale trades force-settled','loss');
       HB.interval=setTimeout(runHybridAuto,1000);return;
     }
-    var pendRids=Object.keys(HB.pending);
-    var label=active.length+' ACTIVE';
-    if(pendRids.length>0){var rr=HB.pending[pendRids[0]];if(rr&&rr.proposalsReady!==undefined&&rr.proposalsReady<2)label='FETCHING PAYOUTS...';}
-    document.getElementById('hb-active-count').textContent=label;
+    var pRids=Object.keys(HB.pending);
+    var lbl=active.length+' ACTIVE';
+    if(pRids.length>0){var rr=HB.pending[pRids[0]];if(rr&&rr.proposalsReady!==undefined&&rr.proposalsReady<2)lbl='FETCHING PAYOUTS...';}
+    document.getElementById('hb-active-count').textContent=lbl;
     document.getElementById('hb-countdown-txt').textContent='Waiting for result...';
     HB.interval=setTimeout(runHybridAuto,500);return;
   }
@@ -1917,39 +1927,39 @@ function placeHybridRound(){
   var active=S.activeTrades.filter(function(t){return t.isHB;});
   if(active.length>0){notify('!','Round already active','loss');return;}
   var sig=getWWSignal();
-  if(!sig.ready){notify('!','Signal not ready (Score:'+sig.score+'/5) — trade blocked','loss');return;}
+  if(!sig.ready){notify('!','Signal not ready (Score:'+sig.score+'/5) — skipping','loss');return;}
 
   var entry=S.prices[HB.asset]||0;
   if(entry<=0){notify('!','No price data for '+HB.asset,'loss');return;}
 
-  // ── Decimal zone filter ──────────────────────────────────────────
+  // ── Decimal zone filter ──────────────────────────────────────
   var decPart=parseFloat((entry%1).toFixed(2));
   var decFilter=HB.useDecFilter!==false;
   if(decFilter){
     var inZone=(decPart<=0.20)||(decPart>=0.35&&decPart<=0.50);
     var decEl=document.getElementById('ww-dec-filter');
-    if(decEl)decEl.textContent='Dec: .'+Math.round(decPart*100).toString().padStart(2,'0')+' '+(inZone?'✓ ZONE':'✗ SKIP');
-    if(!inZone){notify('SKIP','Dec .'+Math.round(decPart*100).toString().padStart(2,'0')+' outside zone — skipping','info');return;}
+    if(decEl)decEl.textContent='Dec:.'+Math.round(decPart*100).toString().padStart(2,'0')+' '+(inZone?'✓ ZONE':'✗ SKIP');
+    if(!inZone){notify('SKIP','Dec .'+Math.round(decPart*100).toString().padStart(2,'0')+' — skipping','info');return;}
   }
 
-  // ── Trend direction ──────────────────────────────────────────────
+  // ── Trend direction ──────────────────────────────────────────
   var ind=getInd(HB.asset);
   var trendDir=ind.trend==='up'?'up':ind.trend==='down'?'down':null;
   if(!trendDir){
     var prices=ind.prices,n=prices.length;
     if(n>=5){var mom=prices[n-1]-prices[n-5];trendDir=mom>0?'up':'down';}
-    else{notify('!','No trend signal — skipping round','info');return;}
+    else{notify('!','No trend — skipping','info');return;}
   }
 
-  // ── Asymmetric barriers ──────────────────────────────────────────
-  var bTrend=getTrendBarrier();   // ATR×5 — trend side
-  var bCounter=getCounterBarrier(); // ATR×3 — counter side
+  // ── Asymmetric barriers ──────────────────────────────────────
+  var bTrend=getTrendBarrier();     // ATR×5 — with trend, further out
+  var bCounter=getCounterBarrier(); // ATR×3 — against trend, closer in
   var budget=Math.max(0.70,parseFloat((parseFloat(document.getElementById('ww-risk').value)||3).toFixed(2)));
 
   HB.roundId++;var rid=HB.roundId;
   HB.rounds++;HB.lastRoundTime=Date.now();
 
-  var _ind=getInd(HB.asset),_p=_ind.prices,_n=_p.length;
+  var _p=getInd(HB.asset).prices,_n=_p.length;
   var _atr5=0;for(var _j=_n-5;_j<_n;_j++)_atr5+=Math.abs(_p[_j]-_p[_j-1]);_atr5/=5;
   var _atr20=0;for(var _k=Math.max(0,_n-25);_k<_n-5;_k++)_atr20+=Math.abs(_p[_k]-_p[_k-1]);_atr20/=20;
 
@@ -1958,45 +1968,34 @@ function placeHybridRound(){
     bTrend:bTrend,bCounter:bCounter,trendDir:trendDir,
     budget:budget,entry:entry,
     time:new Date().toLocaleTimeString(),asset:HB.asset,score:sig.score,
-    S_t:null,S_c:null,P_t:null,P_c:null,
-    proposalsReady:0,
-    snap:{score:sig.score,atr5:_atr5,atr20:_atr20,trendDir:trendDir,bTrend:bTrend,bCounter:bCounter}
+    S_t:null,S_c:null,P_t:null,P_c:null,proposalsReady:0,
+    snap:{score:sig.score,atr5:_atr5,atr20:_atr20,trendDir:trendDir}
   };
 
-  // ── Contract types based on trend ──────────────────────────────
-  var trendContractType=trendDir==='up'?'CALL':'PUT';
-  var counterContractType=trendDir==='up'?'PUT':'CALL';
-  var trendBarrierStr=(trendContractType==='CALL'?'+':'-')+bTrend.toFixed(2);
-  var counterBarrierStr=(counterContractType==='CALL'?'+':'-')+bCounter.toFixed(2);
-  var durSecs=HB._durSecs||20;
+  // Contract types — trend side goes WITH trend, counter AGAINST
+  var trendType=trendDir==='up'?'CALL':'PUT';
+  var counterType=trendDir==='up'?'PUT':'CALL';
+  var trendBar=(trendType==='CALL'?'+':'-')+bTrend.toFixed(2);
+  var counterBar=(counterType==='CALL'?'+':'-')+bCounter.toFixed(2);
+  var dur=HB._durSecs||20;
 
-  notify('WW R'+HB.rounds,'Fetching payouts... trend:'+trendContractType+' ±'+bTrend+' | counter:'+counterContractType+' ±'+bCounter,'info');
+  notify('WW R'+HB.rounds,'Fetching payouts — trend:'+trendType+' ±'+bTrend+' | counter:'+counterType+' ±'+bCounter,'info');
 
-  // ── Fire BOTH proposals simultaneously ─────────────────────────
-  var propTrendId=wsSend({proposal:1,amount:1,basis:'stake',
-    contract_type:trendContractType,currency:S.currency,
-    duration:durSecs,duration_unit:'s',symbol:HB.asset,barrier:trendBarrierStr});
-  if(propTrendId)S.pending[propTrendId]={
-    type:'hb_proposal',hbRound:rid,hbSide:'trend',
-    contractType:trendContractType,barrier:bTrend,
-    barrierStr:trendBarrierStr,durVal:durSecs,durUnit:'s',asset:HB.asset};
+  // Fire BOTH proposals simultaneously
+  var p1=wsSend({proposal:1,amount:1,basis:'stake',contract_type:trendType,currency:S.currency,duration:dur,duration_unit:'s',symbol:HB.asset,barrier:trendBar});
+  if(p1)S.pending[p1]={type:'hb_proposal',hbRound:rid,hbSide:'trend',contractType:trendType,barrier:bTrend,barrierStr:trendBar,durVal:dur,durUnit:'s',asset:HB.asset};
 
-  var propCounterId=wsSend({proposal:1,amount:1,basis:'stake',
-    contract_type:counterContractType,currency:S.currency,
-    duration:durSecs,duration_unit:'s',symbol:HB.asset,barrier:counterBarrierStr});
-  if(propCounterId)S.pending[propCounterId]={
-    type:'hb_proposal',hbRound:rid,hbSide:'counter',
-    contractType:counterContractType,barrier:bCounter,
-    barrierStr:counterBarrierStr,durVal:durSecs,durUnit:'s',asset:HB.asset};
+  var p2=wsSend({proposal:1,amount:1,basis:'stake',contract_type:counterType,currency:S.currency,duration:dur,duration_unit:'s',symbol:HB.asset,barrier:counterBar});
+  if(p2)S.pending[p2]={type:'hb_proposal',hbRound:rid,hbSide:'counter',contractType:counterType,barrier:bCounter,barrierStr:counterBar,durVal:dur,durUnit:'s',asset:HB.asset};
 
   setWWBarrierLines(entry,bTrend);
-  var previewRes=solveHybridStakes(budget,1.85,1.40)||{S_t:budget*0.57,S_c:budget*0.43,profitA:0,profitB:0,totalRisk:budget,valid:false};
-  renderTradeBreakdown(bTrend,bCounter,previewRes.S_t,previewRes.S_c,1.85,1.40,previewRes);
+  var prev=solveHybridStakes(budget,1.85,1.40)||{S_t:budget*0.57,S_c:budget*0.43,profitA:0,profitB:0,totalRisk:budget,valid:false};
+  renderTradeBreakdown(bTrend,bCounter,prev.S_t,prev.S_c,1.85,1.40,prev);
   document.getElementById('hb-active-count').textContent='FETCHING...';
   updHBStats();
 }
 
-// ── onHBProposal: receives live payouts, solves stakes, fires buys ─
+// ── Receives live payouts, solves stakes, fires both buys ─────────
 function onHBProposal(proposal,reqId,pendInfo){
   if(!proposal||!proposal.id){
     notify('!','Proposal failed ('+pendInfo.hbSide+') — cancelling round','loss');
@@ -2007,68 +2006,57 @@ function onHBProposal(proposal,reqId,pendInfo){
   if(!round)return;
 
   var payoutMult=proposal.payout?parseFloat((proposal.payout/1).toFixed(4)):1.0;
-  var askPrice=parseFloat(proposal.ask_price||1);
-  console.log('[HB PROPOSAL]',pendInfo.hbSide,'payout:',payoutMult,'ask:',askPrice,'id:',proposal.id);
+  console.log('[HB PROPOSAL]',pendInfo.hbSide,'payout:',payoutMult,'id:',proposal.id);
 
   if(pendInfo.hbSide==='trend'){
-    round.P_t=payoutMult;round.trendProposalId=proposal.id;round.trendAskPrice=askPrice;
-    round.trendContractType=pendInfo.contractType;round.trendBarrierStr=pendInfo.barrierStr;
-    round.trendDurVal=pendInfo.durVal;round.trendDurUnit=pendInfo.durUnit;
+    round.P_t=payoutMult;round.trendProposalId=proposal.id;
+    round.trendType=pendInfo.contractType;round.trendBar=pendInfo.barrierStr;
+    round.trendDur=pendInfo.durVal;round.trendUnit=pendInfo.durUnit;
   } else {
-    round.P_c=payoutMult;round.counterProposalId=proposal.id;round.counterAskPrice=askPrice;
-    round.counterContractType=pendInfo.contractType;round.counterBarrierStr=pendInfo.barrierStr;
-    round.counterDurVal=pendInfo.durVal;round.counterDurUnit=pendInfo.durUnit;
+    round.P_c=payoutMult;round.counterProposalId=proposal.id;
+    round.counterType=pendInfo.contractType;round.counterBar=pendInfo.barrierStr;
+    round.counterDur=pendInfo.durVal;round.counterUnit=pendInfo.durUnit;
   }
   round.proposalsReady=(round.proposalsReady||0)+1;
   if(round.proposalsReady<2)return; // wait for both
 
-  // ── Pt×Pc > 1 gate ───────────────────────────────────────────────
+  // ── Pt×Pc > 1 gate ───────────────────────────────────────────
   var P_t=round.P_t,P_c=round.P_c;
   var product=parseFloat((P_t*P_c).toFixed(4));
   if(product<=1.0){
-    notify('SKIP','Pt×Pc='+product.toFixed(2)+' ≤1 — math fails, skipping','loss');
-    console.log('[HB SKIP] P_t:'+P_t+' P_c:'+P_c+' product:'+product);
+    notify('SKIP','Pt×Pc='+product.toFixed(2)+' ≤1 — math impossible, skipping','loss');
     _hbCleanupOnError(rid);return;
   }
 
-  // ── Solve stakes ────────────────────────────────────────────────
-  var stakeResult=solveHybridStakes(round.budget,P_t,P_c);
-  if(!stakeResult||!stakeResult.valid){
-    notify('SKIP','Stake solver: scenarios not both green — skipping','loss');
+  // ── Solve stakes — both scenarios green ──────────────────────
+  var res=solveHybridStakes(round.budget,P_t,P_c);
+  if(!res||!res.valid){
+    notify('SKIP','Stakes not both green — skipping round','loss');
     _hbCleanupOnError(rid);return;
   }
-  round.S_t=stakeResult.S_t;round.S_c=stakeResult.S_c;
+  round.S_t=res.S_t;round.S_c=res.S_c;
 
-  console.log('[HB STAKES] S_t:$'+round.S_t+' S_c:$'+round.S_c+' P_t:'+P_t+' P_c:'+P_c+' Pt×Pc:'+product+' A:+$'+stakeResult.profitA.toFixed(2)+' B:+$'+stakeResult.profitB.toFixed(2));
-  notify('WW R'+HB.rounds,'Pt×Pc='+product.toFixed(2)+' ✅ | Trend $'+round.S_t+' | Counter $'+round.S_c+' | A:+$'+stakeResult.profitA.toFixed(2)+' B:+$'+stakeResult.profitB.toFixed(2),'win');
+  console.log('[HB STAKES] S_t:$'+res.S_t+' S_c:$'+res.S_c+' Pt×Pc:'+product+' A:+$'+res.profitA.toFixed(2)+' B:+$'+res.profitB.toFixed(2));
+  notify('WW R'+HB.rounds,'Pt×Pc='+product.toFixed(2)+' ✅ | $'+res.S_t+' trend / $'+res.S_c+' counter | A:+$'+res.profitA.toFixed(2)+' B:+$'+res.profitB.toFixed(2),'win');
 
-  // ── Fire BOTH buys simultaneously ───────────────────────────────
-  var buyTrendId=wsSend({buy:round.trendProposalId,price:round.S_t});
-  if(buyTrendId)S.pending[buyTrendId]={
-    dir:'TREND',contractDir:round.trendContractType,
-    stake:round.S_t,asset:round.asset,isBot:true,isHB:true,
-    hbRound:rid,hbIdx:0,barrier:round.bTrend,
-    durVal:round.trendDurVal,durUnit:round.trendDurUnit,entryPrice:round.entry};
+  // ── Fire both buys simultaneously ────────────────────────────
+  var b1=wsSend({buy:round.trendProposalId,price:round.S_t});
+  if(b1)S.pending[b1]={dir:'TREND',contractDir:round.trendType,stake:round.S_t,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:0,barrier:round.bTrend,durVal:round.trendDur,durUnit:round.trendUnit,entryPrice:round.entry};
 
-  var buyCounterId=wsSend({buy:round.counterProposalId,price:round.S_c});
-  if(buyCounterId)S.pending[buyCounterId]={
-    dir:'COUNTER',contractDir:round.counterContractType,
-    stake:round.S_c,asset:round.asset,isBot:true,isHB:true,
-    hbRound:rid,hbIdx:1,barrier:round.bCounter,
-    durVal:round.counterDurVal,durUnit:round.counterDurUnit,entryPrice:round.entry};
+  var b2=wsSend({buy:round.counterProposalId,price:round.S_c});
+  if(b2)S.pending[b2]={dir:'COUNTER',contractDir:round.counterType,stake:round.S_c,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:1,barrier:round.bCounter,durVal:round.counterDur,durUnit:round.counterUnit,entryPrice:round.entry};
 
-  renderTradeBreakdown(round.bTrend,round.bCounter,round.S_t,round.S_c,P_t,P_c,stakeResult);
+  renderTradeBreakdown(round.bTrend,round.bCounter,round.S_t,round.S_c,P_t,P_c,res);
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
   updHBStats();
 }
 
 function onHBResult(roundId,idx,profit,direction,exitSpot){
-  if(!HB.pending[roundId]){console.warn('[HB ERROR] Missing pending round:',roundId);return;}
+  if(!HB.pending[roundId]){console.warn('[HB] Missing round:',roundId);return;}
   var pnl=parseFloat(profit||0);
   HB.pending[roundId].results[idx]={profit:pnl,direction:direction,win:pnl>0,exitSpot:exitSpot||0};
   HB.pending[roundId].settled++;
   console.log('[HB SETTLE] round:',roundId,'idx:',idx,'profit:',pnl,'settled:',HB.pending[roundId].settled);
-  // Wait for BOTH contracts before closing round
   if(HB.pending[roundId].settled>=2) _settleHBRound(roundId);
 }
 
@@ -2077,80 +2065,67 @@ function _settleHBRound(roundId){
   clearTimeout(HB.pending[roundId]._timeout);
   var r=HB.pending[roundId];
 
-  var trendResult=r.results[0]||{profit:0,direction:'TREND',win:false};
-  var counterResult=r.results[1]||{profit:0,direction:'COUNTER',win:false};
+  var tR=r.results[0]||{profit:0,direction:'TREND',win:false};
+  var cR=r.results[1]||{profit:0,direction:'COUNTER',win:false};
+  var tPnl=parseFloat(tR.profit||0);
+  var cPnl=parseFloat(cR.profit||0);
+  if(tPnl===0&&!tR.win&&r.S_t) tPnl=-r.S_t;
+  if(cPnl===0&&!cR.win&&r.S_c) cPnl=-r.S_c;
 
-  var trendPnl=parseFloat(trendResult.profit||0);
-  var counterPnl=parseFloat(counterResult.profit||0);
-  if(trendPnl===0&&!trendResult.win&&r.S_t)   trendPnl=-r.S_t;
-  if(counterPnl===0&&!counterResult.win&&r.S_c) counterPnl=-r.S_c;
-
-  var totalPnl=parseFloat((trendPnl+counterPnl).toFixed(2));
+  var totalPnl=parseFloat((tPnl+cPnl).toFixed(2));
   var isWin=totalPnl>0;
+  var scenario=tR.win&&!cR.win?'Scenario A — Trend won':!tR.win&&cR.win?'Scenario B — Counter won':tR.win&&cR.win?'Both won!':'Both missed';
 
-  var scenarioLabel='';
-  if(trendResult.win&&!counterResult.win)       scenarioLabel='Scenario A — Trend won';
-  else if(!trendResult.win&&counterResult.win)  scenarioLabel='Scenario B — Counter won';
-  else if(trendResult.win&&counterResult.win)   scenarioLabel='Both won!';
-  else                                           scenarioLabel='Both missed';
-
-  console.log('[_SETTLE] rid:',roundId,'trendPnl:',trendPnl,'counterPnl:',counterPnl,'total:',totalPnl,'scenario:',scenarioLabel);
+  console.log('[SETTLE] rid:',roundId,'tPnl:',tPnl,'cPnl:',cPnl,'total:',totalPnl,'→',scenario);
 
   HB.pnl+=totalPnl;
   if(isWin){HB.won++;HB.lossStreak=0;}
   else{HB.lost++;HB.lossStreak++;
     if(HB.lossStreak>=3&&HB.useCooldown&&!HB.coolingDown){
       HB.coolingDown=true;HB.cooldownEnd=Date.now()+120000;
-      notify('PAUSE','3 net-negative rounds — pausing 2 mins','loss');
+      notify('PAUSE','3 losses — cooling 2 min','loss');
     }
   }
   if(totalPnl>HB.bestRound)HB.bestRound=totalPnl;
   if(totalPnl<HB.worstRound)HB.worstRound=totalPnl;
 
   S.trades=S.trades.filter(function(t){return!(t.isHB&&t.hbRound===roundId&&!t.isHBSummary);});
-  var summaryTrade={
+  S.trades.unshift({
     id:roundId+'HB',contractId:roundId+'HB',asset:r.asset,
     direction:r.trendDir==='up'?'HIGHER':'LOWER',
     stake:parseFloat(((r.S_t||0)+(r.S_c||0)).toFixed(2)),
     pnl:totalPnl,win:isWin,status:isWin?'win':'loss',
-    time:r.time,durationStr:(HB._durSecs||20)+'s',
-    price:r.entry,exitPrice:trendResult.exitSpot>0?trendResult.exitSpot:null,
-    _exitConfirmed:trendResult.exitSpot>0,
+    time:r.time,durationStr:(HB._durSecs||20)+'s',price:r.entry,
+    exitPrice:tR.exitSpot>0?tR.exitSpot:null,_exitConfirmed:tR.exitSpot>0,
     isHB:true,hbRound:roundId,isHBSummary:true,
-    note:'S_t:$'+(r.S_t||0).toFixed(2)+' S_c:$'+(r.S_c||0).toFixed(2)+' Pt:'+(r.P_t||0).toFixed(2)+' Pc:'+(r.P_c||0).toFixed(2)+' '+scenarioLabel
-  };
-  S.trades.unshift(summaryTrade);
+    note:'S_t:$'+(r.S_t||0).toFixed(2)+' S_c:$'+(r.S_c||0).toFixed(2)+' Pt:'+(r.P_t||0).toFixed(2)+' Pc:'+(r.P_c||0).toFixed(2)+' '+scenario
+  });
 
   HB.history.unshift({
     round:HB.rounds,time:r.time,asset:r.asset,
     profit:totalPnl,won:isWin,cumPnl:HB.pnl,
-    trendPnl:trendPnl,counterPnl:counterPnl,
-    trendWin:trendResult.win,counterWin:counterResult.win,
+    trendPnl:tPnl,counterPnl:cPnl,trendWin:tR.win,counterWin:cR.win,
     S_t:r.S_t,S_c:r.S_c,P_t:r.P_t,P_c:r.P_c,
     bTrend:r.bTrend,bCounter:r.bCounter,
-    entry:r.entry,exitSpot:trendResult.exitSpot>0?trendResult.exitSpot:null,
-    score:r.score,scenario:scenarioLabel,snap:r.snap||null
+    entry:r.entry,exitSpot:tR.exitSpot>0?tR.exitSpot:null,
+    score:r.score,scenario:scenario,snap:r.snap||null
   });
   if(HB.history.length>100)HB.history.pop();
   delete HB.pending[roundId];
 
   clearWWBarrierLines();
   clearInterval(HB.countdownTimer);
-  var _ctxt=document.getElementById('hb-countdown-txt'),_cbar=document.getElementById('hb-countdown-bar');
-  if(_ctxt)_ctxt.textContent='Scanning...';if(_cbar)_cbar.style.width='0%';
+  var _ct=document.getElementById('hb-countdown-txt'),_cb=document.getElementById('hb-countdown-bar');
+  if(_ct)_ct.textContent='Scanning...';if(_cb)_cb.style.width='0%';
 
   DG.trades++;if(isWin)DG.wins++;else DG.losses++;saveDG();
-
   localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
-  updHBStats();renderHBHistory('all');
-  updateStats();renderTrades();renderActive();
-  wsSend({balance:1});
-  setTimeout(function(){wsSend({balance:1});},1500);
+  updHBStats();renderHBHistory('all');updateStats();renderTrades();renderActive();
+  wsSend({balance:1});setTimeout(function(){wsSend({balance:1});},1500);
 
   notify(isWin?'WON':'LOST',
-    (isWin?'+':'')+totalPnl.toFixed(2)+' — '+scenarioLabel+
-    ' (T:'+(trendPnl>=0?'+':'')+trendPnl.toFixed(2)+
-    ' C:'+(counterPnl>=0?'+':'')+counterPnl.toFixed(2)+') R'+HB.rounds,
+    (isWin?'+':'')+totalPnl.toFixed(2)+' — '+scenario+
+    ' (T:'+(tPnl>=0?'+':'')+tPnl.toFixed(2)+' C:'+(cPnl>=0?'+':'')+cPnl.toFixed(2)+') R'+HB.rounds,
     isWin?'win':'loss');
   document.getElementById('hb-active-count').textContent='0 ACTIVE';
 }
@@ -2190,26 +2165,27 @@ function renderHBHistory(filter){
   if(!list.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No rounds yet.</div>';return;}
   el.innerHTML=list.map(function(r){
     var won=r.won;
-    var scenarioA=r.trendWin&&!r.counterWin;
-    var scenarioB=!r.trendWin&&r.counterWin;
+    var sA=r.trendWin&&!r.counterWin,sB=!r.trendWin&&r.counterWin;
     var html='<div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:10px 12px;margin-bottom:7px;border-left:3px solid '+(won?'var(--ac)':'var(--re)')+';">';
     html+='<div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;flex-wrap:wrap">';
     html+='<span style="background:'+(won?'var(--ad)':'var(--rd)')+';color:'+(won?'var(--ac)':'var(--re)')+';padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700">'+(won?'WIN':'LOSS')+'</span>';
     html+='<span style="font-size:12px;font-weight:700">'+r.asset+'</span>';
     html+='<span style="font-size:10px;color:var(--t3)">R'+r.round+' • '+r.time+' • Score:'+r.score+'/5</span>';
-    html+='<span style="font-size:10px;padding:2px 6px;background:var(--bg4);border-radius:4px;color:var(--t2)">'+(scenarioA?'Scenario A':scenarioB?'Scenario B':(r.trendWin&&r.counterWin)?'Both Won':'Both Missed')+'</span>';
+    html+='<span style="font-size:10px;padding:2px 6px;background:var(--bg4);border-radius:4px;color:var(--t2)">'+(sA?'Scenario A':sB?'Scenario B':(r.trendWin&&r.counterWin)?'Both Won':'Both Missed')+'</span>';
     html+='<span style="margin-left:auto;font-size:14px;font-weight:700;font-family:var(--mo);color:'+(won?'var(--ac)':'var(--re)')+'">'+( r.profit>=0?'+':'')+'$'+r.profit.toFixed(2)+'</span>';
     html+='</div>';
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    // Trend side
     html+='<div style="background:'+(r.trendWin?'rgba(0,229,160,0.08)':'rgba(255,77,106,0.05)')+';border:1px solid '+(r.trendWin?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.2)')+';border-radius:var(--rs);padding:10px">';
     html+='<div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:3px">TREND ×'+HB.trendMult+'ATR '+(r.trendWin?'✓ WON':'LOST')+'</div>';
-    html+='<div style="font-size:10px;color:var(--t3);margin-bottom:3px">±'+(r.bTrend||0).toFixed(2)+' | Stake $'+(r.S_t||0).toFixed(2)+' | Pt:'+(r.P_t||0).toFixed(2)+'</div>';
-    html+='<div style="font-size:18px;font-weight:800;font-family:var(--mo);color:'+(r.trendWin?'var(--ac)':'var(--re)')+'">'+( (r.trendPnl||0)>=0?'+':'')+'$'+Math.abs(r.trendPnl||0).toFixed(2)+'</div>';
+    html+='<div style="font-size:10px;color:var(--t3);margin-bottom:3px">±'+(r.bTrend||0).toFixed(2)+' | $'+(r.S_t||0).toFixed(2)+' | Pt:'+(r.P_t||0).toFixed(2)+'</div>';
+    html+='<div style="font-size:18px;font-weight:800;font-family:var(--mo);color:'+(r.trendWin?'var(--ac)':'var(--re)')+'">'+((r.trendPnl||0)>=0?'+':'')+'$'+Math.abs(r.trendPnl||0).toFixed(2)+'</div>';
     html+='</div>';
+    // Counter side
     html+='<div style="background:'+(r.counterWin?'rgba(0,229,160,0.08)':'rgba(59,130,246,0.05)')+';border:1px solid '+(r.counterWin?'rgba(0,229,160,0.3)':'rgba(59,130,246,0.2)')+';border-radius:var(--rs);padding:10px">';
     html+='<div style="font-size:10px;color:var(--bl);font-weight:700;margin-bottom:3px">COUNTER ×'+HB.counterMult+'ATR '+(r.counterWin?'✓ WON':'LOST')+'</div>';
-    html+='<div style="font-size:10px;color:var(--t3);margin-bottom:3px">±'+(r.bCounter||0).toFixed(2)+' | Stake $'+(r.S_c||0).toFixed(2)+' | Pc:'+(r.P_c||0).toFixed(2)+'</div>';
-    html+='<div style="font-size:18px;font-weight:800;font-family:var(--mo);color:'+(r.counterWin?'var(--ac)':'var(--re)')+'">'+( (r.counterPnl||0)>=0?'+':'')+'$'+Math.abs(r.counterPnl||0).toFixed(2)+'</div>';
+    html+='<div style="font-size:10px;color:var(--t3);margin-bottom:3px">±'+(r.bCounter||0).toFixed(2)+' | $'+(r.S_c||0).toFixed(2)+' | Pc:'+(r.P_c||0).toFixed(2)+'</div>';
+    html+='<div style="font-size:18px;font-weight:800;font-family:var(--mo);color:'+(r.counterWin?'var(--ac)':'var(--re)')+'">'+((r.counterPnl||0)>=0?'+':'')+'$'+Math.abs(r.counterPnl||0).toFixed(2)+'</div>';
     html+='</div>';
     html+='</div></div>';
     return html;
