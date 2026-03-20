@@ -486,6 +486,20 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:7px 4px;border:1px solid var(--bo);transition:all .3s" id="sig-mom-card"><div style="font-size:16px">⚡</div><div style="font-size:9px;color:var(--t3);margin-top:2px">MOMENTUM</div><div style="font-size:10px;font-weight:700;color:var(--t3);margin-top:2px" id="sig-mom-val">--</div></div>
                 <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:7px 4px;border:1px solid var(--bo);transition:all .3s" id="sig-cd-card"><div style="font-size:16px">⏱</div><div style="font-size:9px;color:var(--t3);margin-top:2px">COOLDOWN</div><div style="font-size:10px;font-weight:700;color:var(--t3);margin-top:2px" id="sig-cd-val">--</div></div>
               </div>
+              <!-- Zone Context Gate — full width below signal cards -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:8px 12px;margin-bottom:10px;transition:all .3s" id="sig-zone-card">
+                <div style="display:flex;align-items:center;gap:9px">
+                  <span style="font-size:16px">🎯</span>
+                  <div>
+                    <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Zone Context</div>
+                    <div style="font-size:11px;font-weight:700;margin-top:1px" id="sig-zone-val">WARMING UP</div>
+                  </div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:12px;font-weight:800;padding:3px 10px;border-radius:99px;font-family:var(--mo)" id="zone-badge" style="background:var(--bg4);color:var(--t3)">--</div>
+                  <div style="font-size:10px;margin-top:3px;color:var(--t3)" id="zone-detail">Need 20 ticks</div>
+                </div>
+              </div>
               <div style="background:var(--bg3);border-radius:var(--rs);padding:9px 12px;border:1px solid var(--bo);font-size:12px;font-weight:600;min-height:38px" id="sig-status">Start bot to see signals...</div>
             </div>
 
@@ -496,6 +510,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <span style="font-size:13px;font-weight:700;color:var(--ac);font-family:var(--mo)" id="ww-chart-price">--</span>
                 <span style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="ww-chart-atr">ATR:--</span>
                 <span style="font-size:10px;padding:2px 7px;border-radius:99px;font-weight:700;background:var(--bg4);color:var(--t3)" id="ww-chart-vol-badge">VOL:--</span>
+                <span style="font-size:10px;padding:2px 7px;border-radius:99px;font-weight:700;background:var(--bg4);color:var(--t3);transition:all .3s" id="ww-chart-zone-badge">ZONE:--</span>
                 <span style="flex:1"></span>
               </div>
               <div style="position:relative;height:180px">
@@ -1196,8 +1211,8 @@ function onTick(tick) {
       t._exitConfirmed=false; // locally captured — not API-confirmed
     }
   });
-  // Update prediction on every HB asset tick
-  if(sym===HB.asset) updatePrediction();
+  // Update prediction and zone on every HB asset tick
+  if(sym===HB.asset){updatePrediction();updateZoneDisplay();}
 }
 function dp(q){return q.toFixed(q>100?2:4);}
 
@@ -1650,9 +1665,184 @@ function getWWSignal(){
   return{score:score,ready:score>=(HB.minScore||3)&&cdOk&&atrOk};
 }
 
-// ── Bot ───────────────────────────────────────────────────────────
-// ── WW Barrier Lines — drawn on both priceChart and wwChart ──────
-var wwActiveBarrier=null;
+// ══════════════════════════════════════════════════════════════════
+// INTEGER WALL ZONE ENGINE
+// Data-driven from CSV analysis:
+//   63% of WINS crossed an integer boundary (604→605, 607→608 etc)
+//   Only 13% of LOSSES crossed an integer boundary
+//   Win rate 58% when within 0.15 of integer vs 40% when mid-range
+//
+// Rule:
+//   within 0.15 of integer  → NEAR WALL → tradeable, confluences set direction
+//   beyond 0.15 either side → DEAD ZONE → skip, no edge
+//
+// The nearest integer becomes the TARGET the price is pulled toward.
+// Confluences confirm which direction price is heading.
+// ══════════════════════════════════════════════════════════════════
+var IW_THRESHOLD = 0.15; // distance from integer to be considered "near wall"
+
+function getIntegerWallZone(){
+  var ind=getInd(HB.asset);
+  var prices=ind.prices, n=prices.length;
+  if(n<5) return{ready:false,zone:'warming',price:0,nearestInt:0,distToNearest:1,wallAbove:0,wallBelow:0,bias:null};
+
+  var price=prices[n-1];
+  var floorInt=Math.floor(price);     // integer below e.g. 605
+  var ceilInt=floorInt+1;             // integer above e.g. 606
+  var distToFloor=parseFloat((price-floorInt).toFixed(4));   // e.g. 0.34
+  var distToCeil=parseFloat((ceilInt-price).toFixed(4));     // e.g. 0.66
+
+  var nearestInt, distToNearest, zone, bias;
+
+  if(distToFloor<=IW_THRESHOLD){
+    // Price is close to the integer BELOW (e.g. 605.08 near 605)
+    nearestInt=floorInt;
+    distToNearest=distToFloor;
+    zone='near_floor';
+    // Confluences will decide direction — but being near floor means
+    // price can go either way across it. We leave bias for confluences.
+    bias=null; // set by confluence
+  } else if(distToCeil<=IW_THRESHOLD){
+    // Price is close to the integer ABOVE (e.g. 605.92 near 606)
+    nearestInt=ceilInt;
+    distToNearest=distToCeil;
+    zone='near_ceil';
+    bias=null; // set by confluence
+  } else {
+    // Mid-range — dead zone, no integer wall nearby
+    nearestInt=(distToFloor<distToCeil)?floorInt:ceilInt;
+    distToNearest=Math.min(distToFloor,distToCeil);
+    zone='dead_zone';
+    bias=null;
+  }
+
+  return{
+    ready: zone!=='dead_zone'&&zone!=='warming',
+    zone: zone,
+    price: price,
+    nearestInt: nearestInt,
+    distToNearest: distToNearest,
+    distToFloor: distToFloor,
+    distToCeil: distToCeil,
+    wallAbove: ceilInt,
+    wallBelow: floorInt,
+    bias: bias,
+    threshold: IW_THRESHOLD
+  };
+}
+
+// Update zone indicator in UI (called every tick for HB asset)
+var zoneThrottle=0;
+function updateZoneDisplay(){
+  var now=Date.now();
+  if(now-zoneThrottle<800)return;
+  zoneThrottle=now;
+  var z=getIntegerWallZone();
+  var el=document.getElementById('zone-badge');
+  var elDetail=document.getElementById('zone-detail');
+  var sigEl=document.getElementById('sig-zone-card');
+  var sigVal=document.getElementById('sig-zone-val');
+
+  var zoneColor,zoneText,detailText;
+  if(z.zone==='near_floor'){
+    zoneColor='var(--ac)';
+    zoneText='NEAR '+z.nearestInt+'.00 ↓';
+    detailText='Dist: '+z.distToNearest.toFixed(3)+' ✅ TRADEABLE';
+  } else if(z.zone==='near_ceil'){
+    zoneColor='var(--re)';
+    zoneText='NEAR '+z.nearestInt+'.00 ↑';
+    detailText='Dist: '+z.distToNearest.toFixed(3)+' ✅ TRADEABLE';
+  } else if(z.zone==='dead_zone'){
+    zoneColor='var(--t3)';
+    zoneText='DEAD ZONE ✗';
+    detailText='Nearest wall: '+z.nearestInt+'.00 ('+z.distToNearest.toFixed(3)+' away)';
+  } else {
+    zoneColor='var(--t3)';zoneText='WARMING UP';detailText='Need 5 ticks';
+  }
+
+  if(el){el.textContent=zoneText;el.style.color=zoneColor;
+    el.style.background=z.ready?
+      (z.zone==='near_floor'?'rgba(0,229,160,0.15)':'rgba(255,77,106,0.15)'):'var(--bg4)';}
+  if(elDetail){elDetail.textContent=detailText;elDetail.style.color=z.ready?zoneColor:'var(--t3)';}
+  if(sigEl){
+    sigEl.style.borderColor=z.ready?zoneColor:'var(--bo)';
+    sigEl.style.background=z.ready?
+      (z.zone==='near_floor'?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.1)'):'var(--bg3)';
+  }
+  if(sigVal){sigVal.textContent=z.ready?zoneText:'DEAD ZONE';sigVal.style.color=z.ready?zoneColor:'var(--t3)';}
+
+  // Chart header badge
+  var cb=document.getElementById('ww-chart-zone-badge');
+  if(cb){
+    cb.textContent=z.ready?'WALL:'+z.nearestInt+' ('+z.distToNearest.toFixed(2)+')':'WALL:MID ✗';
+    cb.style.background=z.ready?(z.zone==='near_floor'?'rgba(0,229,160,0.2)':'rgba(255,77,106,0.2)'):'var(--bg4)';
+    cb.style.color=z.ready?(z.zone==='near_floor'?'var(--ac)':'var(--re)'):'var(--t3)';
+  }
+
+  // Draw integer wall lines on both charts every tick
+  _drawIntegerWallLines(z);
+}
+
+// ── Draw integer wall lines on WW chart and price chart ──────────
+var _lastWallPrice=0;
+function _drawIntegerWallLines(z){
+  if(!z||!z.price)return;
+  // Only redraw if price moved enough to change the walls
+  if(Math.abs(z.price-_lastWallPrice)<0.01)return;
+  _lastWallPrice=z.price;
+
+  var floorInt=z.wallBelow;
+  var ceilInt=z.wallAbove;
+
+  [priceChart,wwChart].forEach(function(chart){
+    if(!chart)return;
+    var len=Math.max(2,chart.data.labels?chart.data.labels.length:2);
+
+    // Remove old integer wall lines
+    chart.data.datasets=chart.data.datasets.filter(function(d){return !d._isIntWall;});
+
+    // Floor wall line (integer below) — green
+    chart.data.datasets.push({
+      _isIntWall:true,_isWWBarrier:false,
+      label:''+floorInt+'.00',
+      data:Array(len).fill(floorInt),
+      borderColor:z.zone==='near_floor'?'rgba(0,229,160,0.9)':'rgba(0,229,160,0.35)',
+      borderWidth:z.zone==='near_floor'?2:1,
+      borderDash:z.zone==='near_floor'?[]:[6,4],
+      pointRadius:0,fill:false,tension:0
+    });
+
+    // Ceil wall line (integer above) — red
+    chart.data.datasets.push({
+      _isIntWall:true,_isWWBarrier:false,
+      label:''+ceilInt+'.00',
+      data:Array(len).fill(ceilInt),
+      borderColor:z.zone==='near_ceil'?'rgba(255,77,106,0.9)':'rgba(255,77,106,0.35)',
+      borderWidth:z.zone==='near_ceil'?2:1,
+      borderDash:z.zone==='near_ceil'?[]:[6,4],
+      pointRadius:0,fill:false,tension:0
+    });
+
+    // If visible range spans more integers, draw them too (dimmed)
+    var prices=chart.data.datasets[0]?chart.data.datasets[0].data:[];
+    if(prices.length){
+      var visMax=Math.max.apply(null,prices);
+      var visMin=Math.min.apply(null,prices);
+      for(var iv=Math.ceil(visMin)+1;iv<Math.floor(visMax);iv++){
+        if(iv===floorInt||iv===ceilInt)continue;
+        chart.data.datasets.push({
+          _isIntWall:true,_isWWBarrier:false,
+          label:''+iv+'.00',
+          data:Array(len).fill(iv),
+          borderColor:'rgba(255,255,255,0.08)',
+          borderWidth:1,borderDash:[3,6],
+          pointRadius:0,fill:false,tension:0
+        });
+      }
+    }
+    chart.update('none');
+  });
+}
 
 function setWWBarrierLines(entry,barrier){
   wwActiveBarrier={entry:entry,barrier:barrier};
@@ -1672,6 +1862,7 @@ function clearWWBarrierLines(){
   if(leg)leg.innerHTML='<span style="color:var(--t3)">No active round — waiting for signal</span>';
   [priceChart,wwChart].forEach(function(c){
     if(!c)return;
+    // Remove WW barriers but KEEP integer wall lines
     c.data.datasets=c.data.datasets.filter(function(d){return !d._isWWBarrier;});
     c.update('none');
   });
@@ -1830,6 +2021,19 @@ function placeHybridRound(){
     return;
   }
 
+  // ── INTEGER WALL ZONE GATE ───────────────────────────────────
+  // Price must be within 0.15 of an integer boundary to trade.
+  // Dead zone (mid-range) = no edge = skip.
+  // Nearest integer acts as the magnet — confluences confirm direction.
+  var zone=getIntegerWallZone();
+  if(!zone.ready){
+    notify('SKIP','DEAD ZONE — '+zone.price.toFixed(2)+
+      ' mid-range (nearest wall: '+zone.nearestInt+'.00 is '+zone.distToNearest.toFixed(3)+' away, need ≤'+IW_THRESHOLD+')','info');
+    return;
+  }
+  console.log('[WALL] '+zone.zone+' price:'+zone.price.toFixed(4)+
+    ' nearest:'+zone.nearestInt+'.00 dist:'+zone.distToNearest.toFixed(4));
+
   // ── Decimal zone filter ──────────────────────────────────────
   var decPart=parseFloat((entry%1).toFixed(2));
   var decFilter=HB.useDecFilter!==false;
@@ -1854,13 +2058,14 @@ function placeHybridRound(){
   var _cBias=Math.abs(_cUpPct-50);
   if(_cBias<10){
     notify('SKIP','Market too flat (bias '+_cBias+'%) — need >10% bias to trade','info');
-    HB.rounds--;HB.roundId--;delete HB.pending[rid];return;
+    // NOTE: rounds/roundId not yet incremented here — do NOT decrement
+    return;
   }
   console.log('[CONFIDENCE] upPct:'+_cUpPct+'% bias:'+_cBias+'% -> '+((_cBias>=20)?'HIGH':(_cBias>=10)?'MED':'LOW'));
 
-  // ── Trend detection — 3-layer 2/3 vote ──────────────────────
-  // Layer 1: EMA9/21 | Layer 2: 80-tick slope | Layer 3: Pred bar
-  // 2 of 3 must agree — stops fighting the real trend
+  // ── Trend direction — confluences drive direction ─────────────
+  // Zone confirms we're near a wall. Now confluences pick the side.
+  // 2-of-3 vote: EMA trend, long slope, prediction bar.
   var ind=getInd(HB.asset);
   var prices=ind.prices,n=prices.length;
   if(n<10){notify('!','Not enough ticks','info');return;}
@@ -1872,18 +2077,29 @@ function placeHybridRound(){
   var _pue=document.getElementById('pred-up-pct');
   var _pup=_pue?parseInt(_pue.textContent)||50:50;
   if(_pup>55)votes.up++;else if(_pup<45)votes.down++;
+
   var trendDir=votes.up>=2?'up':votes.down>=2?'down':null;
   if(!trendDir){
     notify('SKIP','Trend unclear ('+votes.up+'up/'+votes.down+'dn) — need 2/3','info');
-    HB.rounds--;HB.roundId--;delete HB.pending[rid];return;
+    return;
   }
-  console.log('[TREND] ema:'+emaDir+' slope:'+(slope>0?'up':'dn')+' pred:'+_pup+'% => '+trendDir);
+
+  // Zone-direction agreement check for logging
+  // near_floor + up = heading toward floor integer = makes sense
+  // near_ceil  + up = heading toward ceil integer = makes sense
+  var zoneVoteAgree=(zone.zone==='near_floor'&&trendDir==='down')||
+                    (zone.zone==='near_ceil'&&trendDir==='up')||
+                    true; // both directions valid near a wall
+  var _zoneAgree=zoneVoteAgree;
+  console.log('[TREND] wall:'+zone.nearestInt+'.00 confluence:'+trendDir+
+    ' ('+votes.up+'up/'+votes.down+'dn) zone:'+zone.zone);
 
   // ── Asymmetric barriers ──────────────────────────────────────
   var bTrend=getTrendBarrier();     // ATR×5 — with trend, further out
   var bCounter=getCounterBarrier(); // ATR×3 — against trend, closer in
   var budget=Math.max(0.70,parseFloat((parseFloat(document.getElementById('ww-risk').value)||3).toFixed(2)));
 
+  // Increment rounds/roundId HERE — after all pre-flight checks pass
   HB.roundId++;var rid=HB.roundId;
   HB.rounds++;HB.lastRoundTime=Date.now();
 
@@ -1907,7 +2123,9 @@ function placeHybridRound(){
     time:new Date().toLocaleTimeString(),asset:HB.asset,score:sig.score,
     S_t:null,S_c:null,P_t:null,P_c:null,proposalsReady:0,
     snap:{score:sig.score,atr5:_atr5,atr20:_atr20,trendDir:trendDir,
-      predUp:_predUp,predDn:_predDn,predConf:_predConf}
+      predUp:_predUp,predDn:_predDn,predConf:_predConf,
+      zone:zone.zone,zoneBias:trendDir,zoneVoteAgree:_zoneAgree,
+      nearestInt:zone.nearestInt,distToWall:zone.distToNearest,entryPrice:entry}
   };
 
   // Contract types — trend side goes WITH trend, counter AGAINST
@@ -1917,7 +2135,8 @@ function placeHybridRound(){
   var counterBar=(counterType==='CALL'?'+':'-')+bCounter.toFixed(2);
   var dur=HB._durSecs||20;
 
-  notify('WW R'+HB.rounds,'Fetching payouts — trend:'+trendType+' ±'+bTrend+' | counter:'+counterType+' ±'+bCounter,'info');
+  notify('WW R'+HB.rounds,'WALL '+zone.nearestInt+'.00 ('+zone.distToNearest.toFixed(3)+' away) '+
+    trendDir.toUpperCase()+' — trend:'+trendType+' ±'+bTrend+' | counter:'+counterType+' ±'+bCounter,'info');
 
   // Pre-estimate stakes using estimated payouts so proposals are at correct amounts
   // This avoids ContractCreationFailure (stake > max purchase price)
@@ -2079,7 +2298,10 @@ function _settleHBRound(roundId){
     S_t:r.S_t,S_c:r.S_c,P_t:r.P_t,P_c:r.P_c,
     bTrend:r.bTrend,bCounter:r.bCounter,
     entry:r.entry,exitSpot:tR.exitSpot>0?tR.exitSpot:null,
-    score:r.score,scenario:scenario,snap:r.snap||null
+    score:r.score,scenario:scenario,snap:r.snap||null,
+    zone:r.snap&&r.snap.zone||null,
+    zoneBias:r.snap&&r.snap.zoneBias||null,
+    zoneVoteAgree:r.snap&&r.snap.zoneVoteAgree||false
   });
   if(HB.history.length>100)HB.history.pop();
   delete HB.pending[roundId];
@@ -2594,6 +2816,11 @@ function hbRoundRow(roundId, trades){
   html+='<span style="font-size:10px;padding:1px 6px;background:rgba(0,229,160,0.15);color:var(--ac);border-radius:4px;font-weight:700">WW</span>';
   html+='<span style="font-size:10px;color:var(--t3)">R'+roundId+' • '+time+'</span>';
   if(scenario)html+='<span style="font-size:10px;padding:1px 6px;background:var(--bg4);color:var(--t2);border-radius:4px">'+scenario+'</span>';
+  // Integer wall badge
+  if(t.snap&&t.snap.nearestInt){
+    var wc2=t.snap.zone==='near_floor'?'var(--ac)':'var(--re)';
+    html+='<span style="font-size:10px;padding:1px 6px;background:var(--bg4);color:'+wc2+';border-radius:4px;font-family:var(--mo)">WALL:'+t.snap.nearestInt+'.00 ('+parseFloat(t.snap.distToWall||0).toFixed(3)+')</span>';
+  }
   // Prediction at entry
   if(t.predUp){html+='<span style="font-size:10px;padding:1px 6px;background:var(--bg4);color:var(--go);border-radius:4px;font-family:var(--mo)">Pred: '+t.predUp+'%↑ '+t.predDn+'%↓ '+t.predConf+'</span>';}
   html+='<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+bCol+'">'+( net>=0?'+':'')+'$'+net.toFixed(2)+'</span>';
