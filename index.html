@@ -271,7 +271,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
       <div class="ni" onclick="showPage('bot',this)">Auto Bot</div>
       <div class="ni" onclick="showPage('barrier',this)">WinWin Hybrid</div>
       <div class="ni" onclick="showPage('differs',this)">Differs Bot</div>
-      <div class="ni" onclick="showPage('ticktest',this)" style="color:var(--go)">5-Tick Lab</div>
       <div class="ns">Analysis</div>
       <div class="ni" onclick="showPage('history',this)">Trade History</div>
       <div class="ni" onclick="showPage('journal',this)">Journal</div>
@@ -700,80 +699,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         </div>
       </div>
 
-
-      <!-- 5-TICK LAB -->
-      <div class="page" id="page-ticktest">
-        <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:var(--r);padding:14px 16px;margin-bottom:14px">
-          <div style="font-size:15px;font-weight:700;color:var(--go)">5-Tick Payout Lab</div>
-          <div style="font-size:12px;color:var(--t2);margin-top:4px">Test real Deriv payouts on 5-tick Higher/Lower. Tells you if the Hybrid strategy is profitable before you commit.</div>
-        </div>
-        <div class="g2">
-          <div>
-            <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct" style="color:var(--go)">Test Config</div></div>
-              <div class="cb">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px">
-                  <div class="ig"><div class="il">Stake ($)</div><input type="number" class="iif" id="tt-stake" value="0.35" step="0.05" min="0.35"></div>
-                  <div class="ig"><div class="il">Barrier offset</div><input type="number" class="iif" id="tt-barrier" value="0.06" step="0.01" min="0.01" max="0.50"></div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px">
-                  <div class="ig"><div class="il">Duration</div>
-                    <div class="dr" style="grid-template-columns:repeat(3,1fr)">
-                      <div class="db active" id="tt-d5" onclick="ttSetDur(5,'t',this)">5T</div>
-                      <div class="db" id="tt-d3" onclick="ttSetDur(3,'t',this)">3T</div>
-                      <div class="db" id="tt-d7" onclick="ttSetDur(7,'t',this)">7T</div>
-                    </div>
-                  </div>
-                  <div class="ig"><div class="il">Mode</div>
-                    <div class="dr" style="grid-template-columns:1fr 1fr">
-                      <div class="db active" id="tt-mboth" onclick="ttSetMode('both',this)">H+L</div>
-                      <div class="db" id="tt-mone" onclick="ttSetMode('one',this)">H only</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Cycles to run</div>
-                  <input type="number" class="iif" id="tt-cycles" value="10" min="1" max="50">
-                </div>
-                <div style="display:flex;gap:8px">
-                  <button class="btn" style="flex:1;padding:10px;background:var(--go);color:var(--bg0);font-size:13px;font-weight:700" id="tt-btn" onclick="ttRun()">Run Test</button>
-                  <button class="btn btng" style="padding:10px 14px" onclick="ttReset()">Reset</button>
-                </div>
-              </div>
-            </div>
-            <div class="card">
-              <div class="ch"><div class="ct">Live Status</div></div>
-              <div class="cb">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-                  <div class="bst"><div class="bsl">Entry</div><div class="bsv" style="color:var(--go)" id="tt-entry">--</div></div>
-                  <div class="bst"><div class="bsl">Current</div><div class="bsv" id="tt-cur">--</div></div>
-                  <div class="bst"><div class="bsl">Hi barrier</div><div class="bsv" style="color:var(--ac)" id="tt-hibar">--</div></div>
-                  <div class="bst"><div class="bsl">Lo barrier</div><div class="bsv" style="color:var(--re)" id="tt-lobar">--</div></div>
-                </div>
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:9px 11px;font-size:12px;font-family:var(--mo);color:var(--go)" id="tt-status">Ready</div>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-              <div class="sc g"><div class="sl">Net P&amp;L</div><div class="sv g" id="tt-net">$0.00</div></div>
-              <div class="sc b"><div class="sl">Cycles</div><div class="sv b" id="tt-cyc">0</div></div>
-              <div class="sc go"><div class="sl">Win Rate</div><div class="sv go" id="tt-wr">0%</div></div>
-              <div class="sc r"><div class="sl">Avg Payout</div><div class="sv" id="tt-pay" style="font-size:15px">--</div></div>
-            </div>
-            <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.3);border-radius:var(--r);padding:12px;margin-bottom:12px">
-              <div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:6px">Payout Verdict</div>
-              <div style="font-size:11px;color:var(--t2);line-height:1.8" id="tt-verdict">Run 5+ cycles to see analysis</div>
-            </div>
-            <div class="card">
-              <div class="ch"><div class="ct" style="color:var(--go)">Trade Log</div><span style="font-size:10px;color:var(--t3)" id="tt-logcount">0 trades</span></div>
-              <div class="cb" id="tt-log" style="max-height:380px;overflow-y:auto">
-                <div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No trades yet.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- DIFFERS BOT -->
       <div class="page" id="page-differs">
@@ -1311,7 +1236,6 @@ function onTick(tick) {
       t._exitConfirmed=false; // locally captured — not API-confirmed
     }
   });
-  if(sym===HB.asset){var ttc=document.getElementById('tt-cur');if(ttc)ttc.textContent=q.toFixed(2);}
 }
 function dp(q){return q.toFixed(q>100?2:4);}
 
@@ -1380,7 +1304,6 @@ function onBuy(buy, reqId) {
   S.activeTrades.push(t);
   updateStats(); renderTrades(); renderActive();
 
-  if(p._tt){t._tt=true;t._ttCb=p._ttCb;t._ttSide=p._ttSide;}
   wsSend({proposal_open_contract:1,contract_id:buy.contract_id,subscribe:1});
   var _cid=buy.contract_id, _durMs=t.durMs;
   // pollContract: retry fetching result until settled or max attempts reached
@@ -1501,14 +1424,6 @@ function onContract(c) {
   var ms=now-(t.startTime||now); t.duration=ms; t.durationStr=fmtDur(ms);
   S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
 
-  // 5-Tick Lab route
-  var _ttp=S.pending['tt_'+c.contract_id];
-  if(!_ttp&&t&&t._tt){_ttp=t;}
-  if(_ttp&&_ttp._tt&&_ttp._ttCb){
-    _ttp._ttCb(profit,t?t.exitPrice:null);
-    S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
-    return;
-  }
   if(t.isHB&&t.hbRound!==null){
     onHBResult(t.hbRound,t.hbIdx,profit,t.direction,t.exitPrice);
     localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
@@ -2409,7 +2324,7 @@ function showPage(id,navEl){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
   document.getElementById('page-'+id).classList.add('active');
   if(navEl)navEl.classList.add('active');
-  var T={dashboard:'Dashboard',trade:'Trade',bot:'Auto Bot',barrier:'WinWin Hybrid',differs:'Differs Bot',ticktest:'5-Tick Lab',history:'Trade History',journal:'Journal',analytics:'Analytics',settings:'Settings'};
+  var T={dashboard:'Dashboard',trade:'Trade',bot:'Auto Bot',barrier:'WinWin Hybrid',differs:'Differs Bot',history:'Trade History',journal:'Journal',analytics:'Analytics',settings:'Settings'};
   var Sub={dashboard:'Overview',trade:'Manual Trading',bot:'Automated Trading',barrier:'WinWin 2-Contract Strategy',differs:'Digit Prediction',history:'All Trades',journal:'Detailed Log',analytics:'Performance',settings:'Configuration'};
   document.getElementById('ptitle').innerHTML=T[id]+' <span>'+(Sub[id]||'')+'</span>';
   if(id==='analytics')updAnalytics();
@@ -2748,120 +2663,6 @@ function renderJournal(filter){
 }
 
 function filtJ(f,el){['jfAll','jfWin','jfLoss'].forEach(function(id){var b=document.getElementById(id);b.style.background='';b.style.color='';});el.style.background='var(--ad)';el.style.color='var(--ac)';renderJournal(f);}
-
-var TT={running:false,mode:'both',durVal:5,durUnit:'t',wins:0,losses:0,pnl:0,totalPay:0,payCount:0,cyclesDone:0,cyclesTarget:10,pending:{}};
-
-function ttSetDur(v,u,el){TT.durVal=v;TT.durUnit=u;document.querySelectorAll('#tt-d5,#tt-d3,#tt-d7').forEach(function(b){b.classList.remove('active');});el.classList.add('active');}
-function ttSetMode(m,el){TT.mode=m;document.querySelectorAll('#tt-mboth,#tt-mone').forEach(function(b){b.classList.remove('active');});el.classList.add('active');}
-
-function ttReset(){
-  TT.running=false;TT.wins=0;TT.losses=0;TT.pnl=0;TT.totalPay=0;TT.payCount=0;TT.cyclesDone=0;TT.pending={};
-  ['tt-net','tt-cyc','tt-wr','tt-pay','tt-entry','tt-cur','tt-hibar','tt-lobar'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='--';});
-  document.getElementById('tt-net').textContent='$0.00';
-  document.getElementById('tt-cyc').textContent='0';
-  document.getElementById('tt-wr').textContent='0%';
-  document.getElementById('tt-status').textContent='Reset — ready';
-  document.getElementById('tt-verdict').textContent='Run 5+ cycles to see analysis';
-  document.getElementById('tt-log').innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No trades yet.</div>';
-  document.getElementById('tt-logcount').textContent='0 trades';
-  document.getElementById('tt-btn').textContent='Run Test';
-}
-
-function ttRun(){
-  if(!S.connected){notify('!','Connect first','loss');return;}
-  if(TT.running){TT.running=false;document.getElementById('tt-btn').textContent='Run Test';document.getElementById('tt-status').textContent='Stopped';return;}
-  TT.running=true;
-  TT.cyclesTarget=parseInt(document.getElementById('tt-cycles').value)||10;
-  document.getElementById('tt-btn').textContent='Stop';
-  ttCycle();
-}
-
-function ttCycle(){
-  if(!TT.running)return;
-  if(TT.cyclesDone>=TT.cyclesTarget){TT.running=false;document.getElementById('tt-btn').textContent='Run Test';document.getElementById('tt-status').textContent='Done — '+TT.cyclesDone+' cycles';return;}
-  var price=S.prices[HB.asset]||0;
-  if(price<=0){setTimeout(ttCycle,500);return;}
-  var stake=parseFloat(document.getElementById('tt-stake').value)||0.35;
-  var barrier=parseFloat(document.getElementById('tt-barrier').value)||0.06;
-  var hiB='+'+barrier.toFixed(2);
-  var loB='-'+barrier.toFixed(2);
-  var dur=TT.durVal; var dunit=TT.durUnit;
-  var cid=Date.now();
-  var settled={h:false,l:false};
-
-  document.getElementById('tt-entry').textContent=price.toFixed(2);
-  document.getElementById('tt-hibar').textContent=(price+barrier).toFixed(2);
-  document.getElementById('tt-lobar').textContent=(price-barrier).toFixed(2);
-  document.getElementById('tt-status').textContent='Cycle '+(TT.cyclesDone+1)+'/'+TT.cyclesTarget;
-
-  function checkDone(){
-    var bothDone=(TT.mode==='both')?(settled.h&&settled.l):settled.h;
-    if(!bothDone)return;
-    TT.cyclesDone++;
-    ttUpdStats();
-    setTimeout(ttCycle,1500);
-  }
-
-  var rH=wsSend({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'CALL',currency:S.currency,duration:dur,duration_unit:dunit,symbol:HB.asset,barrier:hiB}});
-  if(rH){S.pending[rH]={_tt:true,_ttSide:'H',_ttCb:function(profit,exit){ttRecord('H',stake,profit,exit,barrier);settled.h=true;checkDone();},dir:'OUTSIDE',stake:stake,asset:HB.asset,durVal:dur,durUnit:dunit};}
-
-  if(TT.mode==='both'){
-    setTimeout(function(){
-      var rL=wsSend({buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:'PUT',currency:S.currency,duration:dur,duration_unit:dunit,symbol:HB.asset,barrier:loB}});
-      if(rL){S.pending[rL]={_tt:true,_ttSide:'L',_ttCb:function(profit,exit){ttRecord('L',stake,profit,exit,barrier);settled.l=true;checkDone();},dir:'OUTSIDE',stake:stake,asset:HB.asset,durVal:dur,durUnit:dunit};}
-    },300);
-  } else {
-    settled.l=true;
-  }
-}
-
-function ttRecord(side,stake,profit,exit,barrier){
-  var win=profit>0;
-  var ratio=win?parseFloat(((profit+stake)/stake).toFixed(3)):0;
-  TT.pnl=parseFloat((TT.pnl+profit).toFixed(2));
-  if(win){TT.wins++;TT.totalPay+=ratio;TT.payCount++;}else{TT.losses++;}
-  var log=document.getElementById('tt-log');
-  if(log.querySelector('[style*="text-align:center"]'))log.innerHTML='';
-  var row=document.createElement('div');
-  row.style.cssText='display:flex;gap:8px;padding:6px 0;border-bottom:0.5px solid rgba(255,255,255,0.06);font-size:11px;font-family:var(--mo);align-items:center';
-  var sideEl=document.createElement('span');
-  sideEl.style.cssText='padding:1px 6px;border-radius:3px;font-size:10px;background:'+(side==='H'?'rgba(0,229,160,0.15)':'rgba(255,77,106,0.15)')+';color:'+(side==='H'?'#00e5a0':'#ff4d6a');
-  sideEl.textContent=side;
-  var profEl=document.createElement('span');
-  profEl.style.cssText='flex:1;color:'+(win?'#00e5a0':'#ff4d6a');
-  profEl.textContent=(win?'+':'')+profit.toFixed(2)+(win?' ('+ratio.toFixed(3)+'x)':'');
-  var exitEl=document.createElement('span');
-  exitEl.style.cssText='color:var(--t3);font-size:10px';
-  exitEl.textContent='exit:'+(exit?exit.toFixed(2):'--');
-  row.appendChild(sideEl);row.appendChild(profEl);row.appendChild(exitEl);
-  log.insertBefore(row,log.firstChild);
-  var cnt=document.getElementById('tt-logcount');
-  if(cnt)cnt.textContent=(TT.wins+TT.losses)+' trades';
-}
-
-function ttUpdStats(){
-  var tot=TT.wins+TT.losses;
-  var wr=tot?Math.round(TT.wins/tot*100):0;
-  var avgPay=TT.payCount>0?(TT.totalPay/TT.payCount).toFixed(3):'--';
-  var pnlEl=document.getElementById('tt-net');
-  if(pnlEl){pnlEl.textContent=(TT.pnl>=0?'+':'')+TT.pnl.toFixed(2);pnlEl.style.color=TT.pnl>=0?'var(--ac)':'var(--re)';}
-  var cycEl=document.getElementById('tt-cyc');if(cycEl)cycEl.textContent=TT.cyclesDone;
-  var wrEl=document.getElementById('tt-wr');if(wrEl)wrEl.textContent=wr+'%';
-  var payEl=document.getElementById('tt-pay');if(payEl)payEl.textContent=avgPay+(avgPay!=='--'?'x':'');
-  if(TT.payCount>=3){
-    var ap=parseFloat(avgPay);
-    var profitable=ap>=2.05;
-    var stakeVal=parseFloat(document.getElementById('tt-stake').value)||0.35;
-    var netPerCycle=TT.mode==='both'?(4*(stakeVal*ap-stakeVal)-4*stakeVal):((stakeVal*ap-stakeVal)-(stakeVal*(1-TT.wins/Math.max(tot,1))));
-    var vEl=document.getElementById('tt-verdict');
-    if(vEl){
-      vEl.innerHTML=(profitable?'<b style="color:#00e5a0">PROFITABLE</b>':'<b style="color:#ff4d6a">EDGE NEGATIVE</b>')+' at '+ap+'x payout<br>'
-        +'Need >2.05x to profit. Gap: '+(ap-2.05>=0?'+':'')+(ap-2.05).toFixed(3)+'x<br>'
-        +'Win rate: '+wr+'% | Breakeven WR at this payout: '+Math.round(stakeVal/(stakeVal*ap)*100)+'%';
-    }
-  }
-}
-
 function saveNote(tid){var el=document.getElementById('note_'+tid);if(!el)return;S.notes[tid]=el.value;localStorage.setItem('kevoai_notes',JSON.stringify(S.notes));notify('OK','Note saved!','info');}
 
 function clearLog(){
