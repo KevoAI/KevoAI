@@ -1827,6 +1827,15 @@ function placeHybridRound(){
     if(!inZone){notify('SKIP','Dec .'+Math.round(decPart*100).toString().padStart(2,'0')+' — skipping','info');return;}
   }
 
+  // ── Prediction confidence gate ─────────────────────────────────
+  // Data: every FLAT loss had LOW confidence prediction — skip those
+  var predConfEl=document.getElementById('pred-conf');
+  var predConf=predConfEl?predConfEl.textContent:'--';
+  if(predConf==='LOW'){
+    notify('SKIP','Prediction confidence LOW — market not biased, skipping','info');
+    HB.rounds--;HB.roundId--;delete HB.pending[rid];return;
+  }
+
   // ── Trend direction ──────────────────────────────────────────
   var ind=getInd(HB.asset);
   var trendDir=ind.trend==='up'?'up':ind.trend==='down'?'down':null;
