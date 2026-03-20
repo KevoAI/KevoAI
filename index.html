@@ -270,8 +270,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
       <div class="ni" onclick="showPage('trade',this)">Trade</div>
       <div class="ni" onclick="showPage('bot',this)">Auto Bot</div>
       <div class="ni" onclick="showPage('barrier',this)">WinWin Hybrid</div>
-      <div class="ni" onclick="showPage('differs',this)">Differs Bot</div>
-      <div class="ni" onclick="showPage('vbot',this)" style="color:#a855f7">Volatility Bot</div>
       <div class="ns">Analysis</div>
       <div class="ni" onclick="showPage('history',this)">Trade History</div>
       <div class="ni" onclick="showPage('journal',this)">Journal</div>
@@ -701,144 +699,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
       </div>
 
 
-      <!-- VOLATILITY BOT -->
-      <div class="page" id="page-vbot">
-        <div style="background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.3);border-radius:var(--r);padding:14px 16px;margin-bottom:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <div>
-              <div style="font-size:15px;font-weight:700;color:#a855f7">Volatility Bot</div>
-              <div style="font-size:12px;color:var(--t2);margin-top:4px">High side: 5 TOUCH contracts in trend direction (staggered barriers). Low side: 3 TOUCH contracts against trend. Only trades on volatility spikes.</div>
-            </div>
-            <div id="vb-badge" style="background:rgba(168,85,247,0.15);border-radius:var(--rs);padding:5px 12px;font-size:11px;font-weight:700;color:#a855f7">STOPPED</div>
-          </div>
-        </div>
-        <div class="g2">
-          <!-- LEFT -->
-          <div>
-            <!-- Signal Monitor -->
-            <div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.2);border-radius:var(--r);padding:12px;margin-bottom:12px">
-              <div style="font-size:11px;font-weight:700;color:#a855f7;margin-bottom:10px">Market Signal</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-                <div class="bst"><div class="bsl">Tick Speed</div><div class="bsv" id="vb-tickspeed" style="color:#a855f7">0/s</div></div>
-                <div class="bst"><div class="bsl">Micro Range</div><div class="bsv" id="vb-range">0.000</div></div>
-                <div class="bst"><div class="bsl">Expansion</div><div class="bsv" id="vb-expand" style="color:var(--t3)">--</div></div>
-                <div class="bst"><div class="bsl">Trend</div><div class="bsv" id="vb-trend" style="color:var(--t3)">--</div></div>
-              </div>
-              <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 10px;font-size:11px;font-family:var(--mo)" id="vb-signal-txt">Waiting for data...</div>
-            </div>
-            <!-- Config -->
-            <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct" style="color:#a855f7">Config</div></div>
-              <div class="cb">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
-                  <div class="ig"><div class="il">Base stake ($)</div><input type="number" class="iif" id="vb-stake" value="0.35" step="0.05" min="0.35"></div>
-                  <div class="ig"><div class="il">Duration (s)</div><input type="number" class="iif" id="vb-dur" value="20" step="5" min="15" max="120"></div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
-                  <div class="ig"><div class="il">High barriers (step)</div><input type="number" class="iif" id="vb-hstep" value="0.10" step="0.01" min="0.05"></div>
-                  <div class="ig"><div class="il">Low barriers (step)</div><input type="number" class="iif" id="vb-lstep" value="0.08" step="0.01" min="0.05"></div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
-                  <div class="ig"><div class="il">Min tick speed</div><input type="number" class="iif" id="vb-mintick" value="3" step="1" min="1"></div>
-                  <div class="ig"><div class="il">Min range</div><input type="number" class="iif" id="vb-minrange" value="0.10" step="0.01" min="0.01"></div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px">
-                  <div class="ig"><div class="il">Stop Loss ($)</div><input type="number" class="iif" id="vb-sl" value="10" min="1"></div>
-                  <div class="ig"><div class="il">Take Profit ($)</div><input type="number" class="iif" id="vb-tp" value="20" min="1"></div>
-                </div>
-                <button class="btn" style="width:100%;padding:11px;font-size:13px;font-weight:700;background:#a855f7;color:#fff" id="vb-btn" onclick="vbToggle()">Start Volatility Bot</button>
-              </div>
-            </div>
-            <!-- Current cycle -->
-            <div class="card">
-              <div class="ch"><div class="ct">Current Cycle</div></div>
-              <div class="cb">
-                <div style="font-size:11px;font-family:var(--mo);color:var(--t2);line-height:2;background:var(--bg3);border-radius:var(--rs);padding:10px" id="vb-cycle-info">Waiting...</div>
-                <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:7px">
-                  <div class="bst"><div class="bsl" style="color:#a855f7">High side</div><div class="bsv" id="vb-h-info">0 contracts</div></div>
-                  <div class="bst"><div class="bsl" style="color:var(--go)">Low side</div><div class="bsv" id="vb-l-info">0 contracts</div></div>
-                  <div class="bst"><div class="bsl">Total staked</div><div class="bsv" id="vb-staked">$0.00</div></div>
-                  <div class="bst"><div class="bsl">Cycle P&L</div><div class="bsv" id="vb-cpnl">$0.00</div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- RIGHT -->
-          <div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-              <div class="sc g"><div class="sl">Net P&L</div><div class="sv g" id="vb-net">$0.00</div></div>
-              <div class="sc b"><div class="sl">Cycles</div><div class="sv b" id="vb-cycles">0</div></div>
-              <div class="sc go"><div class="sl">Win Rate</div><div class="sv go" id="vb-wr">0%</div></div>
-              <div class="sc r"><div class="sl">Skipped</div><div class="sv" id="vb-skipped" style="font-size:15px">0</div></div>
-            </div>
-            <!-- Payout preview -->
-            <div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.2);border-radius:var(--r);padding:12px;margin-bottom:12px">
-              <div style="font-size:11px;font-weight:700;color:#a855f7;margin-bottom:8px">Barrier Preview</div>
-              <div style="font-size:10px;font-family:var(--mo);color:var(--t2);line-height:2" id="vb-barriers">Waiting for price...</div>
-            </div>
-            <!-- History -->
-            <div class="card">
-              <div class="ch"><div class="ct" style="color:#a855f7">Cycle History</div><button class="btn btng" style="font-size:10px;padding:3px 8px" onclick="vbReset()">Reset</button></div>
-              <div class="cb" id="vb-history" style="max-height:420px;overflow-y:auto">
-                <div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No cycles yet.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- DIFFERS BOT -->
-      <div class="page" id="page-differs">
-        <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:var(--r);padding:14px 16px;margin-bottom:14px">
-          <div style="font-size:15px;font-weight:700;color:var(--go)">Differs Bot</div>
-          <div style="font-size:12px;color:var(--t2);margin-top:4px">Predicts which digit the last decimal of price WON'T end on. 80% win rate.</div>
-        </div>
-        <div class="g2">
-          <div class="card"><div class="ch"><div class="ct" style="color:var(--go)">Differs Config</div></div><div class="cb">
-            <div class="btr" style="margin-bottom:11px">
-              <div><div style="font-size:13px;font-weight:600">Differs Bot</div><div style="font-size:11px;color:var(--t2);margin-top:2px" id="ddTxt">Bot is off</div></div>
-              <div class="tsw" id="ddSw" onclick="toggleDD2()"></div>
-            </div>
-            <div class="ig" style="margin-bottom:9px">
-              <div class="il">Asset</div>
-              <div class="aswrap"><div class="assel" onclick="toggleDD('dd6')">
-                <div><div style="font-size:13px;font-weight:700" id="dd-asset-n">R_75</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="dd-asset-i">Volatility 75 Index</div></div>
-                <span style="color:var(--t3);font-size:11px">v</span>
-              </div><div class="asdd" id="dd6"></div></div>
-            </div>
-            <div style="margin-bottom:9px">
-              <div class="il" style="margin-bottom:6px">Select Digit to Differ</div>
-              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px" id="digitGrid"></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px">
-              <div class="ig"><div class="il">Ticks</div>
-                <div class="dr"><div class="db active" onclick="setDDTicks(this,5)">5</div><div class="db" onclick="setDDTicks(this,6)">6</div><div class="db" onclick="setDDTicks(this,7)">7</div><div class="db" onclick="setDDTicks(this,8)">8</div><div class="db" onclick="setDDTicks(this,9)">9</div></div>
-              </div>
-              <div class="ig"><div class="il">Stake ($)</div><input type="number" class="iif" id="ddStake" value="1.00" step="0.5" min="0.35"></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px">
-              <div class="ig"><div class="il">Stop Loss $</div><input type="number" class="iif" id="ddSL" value="5"></div>
-              <div class="ig"><div class="il">Take Profit $</div><input type="number" class="iif" id="ddTP" value="20"></div>
-            </div>
-            <button class="btn" style="width:100%;padding:11px;font-size:13px;background:var(--go);color:var(--bg0)" onclick="toggleDD2()" id="ddStartBtn">Start Differs Bot</button>
-          </div></div>
-          <div class="card"><div class="ch"><div class="ct" style="color:var(--go)">Differs Stats</div><button class="btn btng" style="font-size:10px;padding:3px 8px" onclick="resetDD()">Reset</button></div><div class="cb">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:11px">
-              <div class="bst"><div class="bsl">Trades</div><div class="bsv" id="dd-rounds">0</div></div>
-              <div class="bst"><div class="bsl">Net P&L</div><div class="bsv" id="dd-pnl" style="color:var(--ac)">$0.00</div></div>
-              <div class="bst"><div class="bsl">Win Rate</div><div class="bsv" id="dd-wr" style="color:var(--go)">0%</div></div>
-              <div class="bst"><div class="bsl">Streak</div><div class="bsv" id="dd-streak" style="font-size:11px;color:var(--t3)">--</div></div>
-            </div>
-            <div style="display:flex;gap:7px">
-              <div style="flex:1;background:var(--ad);border-radius:var(--rs);padding:8px;text-align:center"><div style="font-size:10px;color:var(--ac)">Won</div><div style="font-size:18px;font-weight:700;color:var(--ac)" id="dd-wins">0</div></div>
-              <div style="flex:1;background:var(--rd);border-radius:var(--rs);padding:8px;text-align:center"><div style="font-size:10px;color:var(--re)">Lost</div><div style="font-size:18px;font-weight:700;color:var(--re)" id="dd-losses">0</div></div>
-            </div>
-            <div id="dd-log" style="max-height:240px;overflow-y:auto;margin-top:10px"><div style="text-align:center;padding:16px;color:var(--t3);font-size:12px">No trades yet.</div></div>
-          </div></div>
-        </div>
-      </div>
-
-      <!-- HISTORY -->
       <div class="page" id="page-history">
         <div class="sr" style="margin-bottom:12px"><div class="sc g"><div class="sl">Net P&L</div><div class="sv g" id="h-pnl">$0.00</div></div><div class="sc b"><div class="sl">Total</div><div class="sv b" id="h-tot">0</div></div><div class="sc go"><div class="sl">Win Rate</div><div class="sv go" id="h-wr">0%</div></div><div class="sc r"><div class="sl">Avg P&L</div><div class="sv" id="h-avg">$0.00</div></div></div>
         <div class="card"><div class="ch"><div class="ct">All Trades</div><div style="display:flex;gap:5px"><button class="btn btng" style="font-size:11px;padding:3px 9px;background:var(--ad);color:var(--ac)" onclick="filtH('all',this)">All</button><button class="btn btng" style="font-size:11px;padding:3px 9px" onclick="filtH('win',this)">Wins</button><button class="btn btng" style="font-size:11px;padding:3px 9px" onclick="filtH('loss',this)">Losses</button><button class="btn btng" style="font-size:11px;padding:3px 9px;background:var(--rd);color:var(--re);border-color:rgba(255,77,106,.4)" onclick="clearLog()">Clear All</button></div></div><div class="cb" id="histList"><div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No history yet.</div></div></div>
@@ -991,13 +851,6 @@ const DG = {
   losses: parseInt(localStorage.getItem('kevoai_dg_losses')||'0'),
   date: localStorage.getItem('kevoai_dg_date')||'',
   stopped:false, targetHit:false
-};
-
-const DD = {
-  running:false, interval:null,
-  rounds:0, wins:0, losses:0, pnl:0,
-  asset:'R_75', ticks:8, digit:7,
-  winStreak:0, lossStreak:0
 };
 
 // ══════════════════════════════════════
@@ -1560,26 +1413,40 @@ const HB = {
   counterMult:3.0   // ATR×3 — counter side (closer in, protects round)
 };
 
-// ── HYBRID DUAL TRADE STAKE SOLVER (Pt×Pc > 1) ──────────────────
-// Solve S_t & S_c so BOTH scenarios are green:
-//   Scenario A (trend wins):   S_t × P_t − S_c > 0
-//   Scenario B (counter wins): S_c × P_c − S_t > 0
-// Requires P_t × P_c > 1 — skip trade if not.
+// ── HYBRID DUAL TRADE STAKE SOLVER ──────────────────────────────
+// From our agreed math (P_t=1.85, P_c=1.40, budget=$3):
+//   S_c x (P_c+1) > budget  →  S_c > budget/(P_c+1)
+//   S_t = budget - S_c
+// Both scenarios green:
+//   A: S_t x P_t - S_c > 0
+//   B: S_c x P_c - S_t > 0  ← this is the hard one
+// Skip if P_t x P_c <= 1 (math impossible)
 function solveHybridStakes(budget, P_t, P_c) {
+  if(!P_t || !P_c || P_t <= 1 || P_c <= 1) return null;
   if(P_t * P_c <= 1.0) return null;
-  // S_t = budget / (1 + 1/P_c)
-  var S_t = parseFloat((budget / (1 + 1/P_c)).toFixed(2));
-  var S_c = parseFloat((budget - S_t).toFixed(2));
-  S_c = parseFloat((S_c * 1.05).toFixed(2)); // 5% buffer so Scenario B is truly green
-  S_t = parseFloat((budget - S_c).toFixed(2));
-  if(S_t < 0.35) S_t = 0.35;
-  if(S_c < 0.35) S_c = 0.35;
+
+  // Solve for S_c such that Scenario B is green:
+  // S_c x P_c - (budget - S_c) > 0
+  // S_c x (P_c + 1) > budget
+  // S_c > budget / (P_c + 1)
+  var S_c_min = budget / (P_c + 1);
+  // Add small buffer above minimum so B is definitely positive
+  var S_c = parseFloat((S_c_min * 1.08).toFixed(2));
+  var S_t = parseFloat((budget - S_c).toFixed(2));
+
+  // Enforce minimums
+  if(S_c < 0.35){ S_c = 0.35; S_t = parseFloat((budget - S_c).toFixed(2)); }
+  if(S_t < 0.35){ S_t = 0.35; S_c = parseFloat((budget - S_t).toFixed(2)); }
+
   var profitA = parseFloat((S_t * P_t - S_c).toFixed(2));
   var profitB = parseFloat((S_c * P_c - S_t).toFixed(2));
-  return { S_t:S_t, S_c:S_c, P_t:P_t, P_c:P_c,
-    profitA:profitA, profitB:profitB,
-    totalRisk:parseFloat((S_t+S_c).toFixed(2)),
-    valid:profitA>0 && profitB>0 };
+
+  return {
+    S_t: S_t, S_c: S_c, P_t: P_t, P_c: P_c,
+    profitA: profitA, profitB: profitB,
+    totalRisk: parseFloat((S_t + S_c).toFixed(2)),
+    valid: profitA > 0 && profitB > 0
+  };
 }
 
 function getSideStake(){
@@ -1600,36 +1467,26 @@ function calcWWDaily(){
   var winsNeeded=result.profitA>0?Math.ceil(tp/result.profitA):999;
   var el=document.getElementById('ww-progress-target');if(el)el.textContent='$'+tp;
   var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=result.totalRisk.toFixed(2);
-  var math='HYBRID DUAL TRADE — Asymmetric Barriers
-'
-    +'Trend side:   ATR×'+HB.trendMult+' (further out, bigger payout)
-'
-    +'Counter side: ATR×'+HB.counterMult+' (closer in, protects round)
-
-'
-    +'Budget per round: $'+budget.toFixed(2)+'
-'
-    +'Pt×Pc = '+P_t_est+'×'+P_c_est+' = '+(P_t_est*P_c_est).toFixed(2)+(P_t_est*P_c_est>1?' ✅ MATH WORKS':' ❌ SKIP')+'
-
-'
-    +'Trend stake  (S_t): $'+result.S_t.toFixed(2)+'
-'
-    +'Counter stake(S_c): $'+result.S_c.toFixed(2)+'
-
-'
-    +'Scenario A — Trend wins:
-'
-    +'  $'+result.S_t.toFixed(2)+'×'+P_t_est+' = $'+(result.S_t*P_t_est).toFixed(2)+' − $'+result.S_c.toFixed(2)+' = +$'+result.profitA.toFixed(2)+' ✅
-
-'
-    +'Scenario B — Counter wins:
-'
-    +'  $'+result.S_c.toFixed(2)+'×'+P_c_est+' = $'+(result.S_c*P_c_est).toFixed(2)+' − $'+result.S_t.toFixed(2)+' = +$'+result.profitB.toFixed(2)+' ✅
-
-'
-    +'Max rounds before $'+sl+' SL: '+maxRounds+'
-'
-    +'Rounds to hit $'+tp+' target: ~'+winsNeeded;
+  var math=[
+    'HYBRID DUAL TRADE - Asymmetric Barriers',
+    'Trend side:   ATR x'+HB.trendMult+' (further out, bigger payout)',
+    'Counter side: ATR x'+HB.counterMult+' (closer in, protects round)',
+    '',
+    'Budget per round: $'+budget.toFixed(2),
+    'Pt x Pc = '+P_t_est+' x '+P_c_est+' = '+(P_t_est*P_c_est).toFixed(2)+(P_t_est*P_c_est>1?' MATH OK':'SKIP - bad payouts'),
+    '',
+    'Trend stake  (S_t): $'+result.S_t.toFixed(2),
+    'Counter stake(S_c): $'+result.S_c.toFixed(2),
+    '',
+    'Scenario A - Trend wins:',
+    '  $'+result.S_t.toFixed(2)+' x '+P_t_est+' = $'+(result.S_t*P_t_est).toFixed(2)+' - $'+result.S_c.toFixed(2)+' = +$'+result.profitA.toFixed(2),
+    '',
+    'Scenario B - Counter wins:',
+    '  $'+result.S_c.toFixed(2)+' x '+P_c_est+' = $'+(result.S_c*P_c_est).toFixed(2)+' - $'+result.S_t.toFixed(2)+' = +$'+result.profitB.toFixed(2),
+    '',
+    'Max rounds before $'+sl+' SL: '+maxRounds,
+    'Rounds to hit $'+tp+' target: ~'+winsNeeded
+  ].join('\n');
   var mel=document.getElementById('ww-calc-math');if(mel)mel.textContent=math;
   updateBarrierPreview();
 }
@@ -2005,15 +1862,21 @@ function onHBProposal(proposal,reqId,pendInfo){
   var round=HB.pending[rid];
   if(!round)return;
 
-  var payoutMult=proposal.payout?parseFloat((proposal.payout/1).toFixed(4)):1.0;
-  console.log('[HB PROPOSAL]',pendInfo.hbSide,'payout:',payoutMult,'id:',proposal.id);
+  // payout multiplier = total_return / cost = payout / ask_price
+  // e.g. ask_price=1.00, payout=1.85 → P=1.85 (you get $1.85 back per $1 staked)
+  var askPrice = parseFloat(proposal.ask_price || 1);
+  var payout   = parseFloat(proposal.payout   || 0);
+  var payoutMult = askPrice > 0 && payout > 0 ? parseFloat((payout / askPrice).toFixed(4)) : 0;
+  console.log('[HB PROPOSAL]',pendInfo.hbSide,'ask:',askPrice,'payout:',payout,'mult:',payoutMult,'id:',proposal.id);
 
   if(pendInfo.hbSide==='trend'){
     round.P_t=payoutMult;round.trendProposalId=proposal.id;
+    round.trendAsk=askPrice;
     round.trendType=pendInfo.contractType;round.trendBar=pendInfo.barrierStr;
     round.trendDur=pendInfo.durVal;round.trendUnit=pendInfo.durUnit;
   } else {
     round.P_c=payoutMult;round.counterProposalId=proposal.id;
+    round.counterAsk=askPrice;
     round.counterType=pendInfo.contractType;round.counterBar=pendInfo.barrierStr;
     round.counterDur=pendInfo.durVal;round.counterUnit=pendInfo.durUnit;
   }
@@ -2040,6 +1903,10 @@ function onHBProposal(proposal,reqId,pendInfo){
   notify('WW R'+HB.rounds,'Pt×Pc='+product.toFixed(2)+' ✅ | $'+res.S_t+' trend / $'+res.S_c+' counter | A:+$'+res.profitA.toFixed(2)+' B:+$'+res.profitB.toFixed(2),'win');
 
   // ── Fire both buys simultaneously ────────────────────────────
+  // Deriv buy: {buy: proposal_id, price: stake_amount}
+  // When basis='stake', price = the stake you want to risk.
+  // Deriv scales the contract to your stake automatically.
+  // DO NOT multiply by ask_price — just send S_t and S_c directly.
   var b1=wsSend({buy:round.trendProposalId,price:round.S_t});
   if(b1)S.pending[b1]={dir:'TREND',contractDir:round.trendType,stake:round.S_t,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:0,barrier:round.bTrend,durVal:round.trendDur,durUnit:round.trendUnit,entryPrice:round.entry};
 
