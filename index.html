@@ -827,12 +827,12 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           <!-- LEFT: Config -->
           <div>
             <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct" style="color:var(--go)">Contract A — Goes Outside (UPORDOWN)</div></div>
+              <div class="ch"><div class="ct" style="color:var(--go)">Contract A — UPORDOWN (tight ±0.06)</div></div>
               <div class="cb">
-                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">Wins if price TOUCHES either barrier at ANY point. Settles instantly on touch. Same barrier as RANGE.</div>
+                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">TIGHT barrier ±0.06 — wins when price moves. Settles instantly on touch.</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
                   <div class="ig"><div class="il">Stake ($)</div><input type="number" class="iif" id="hl-go-stake" value="0.35" step="0.05" min="0.35"></div>
-                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-go-barrier" value="0.15" step="0.01" min="0.01" max="1.00"></div>
+                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-go-barrier" value="0.06" step="0.01" min="0.01" max="1.00"></div>
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
@@ -846,12 +846,12 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             </div>
 
             <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct" style="color:var(--bl)">Contract B — Stays Between</div></div>
+              <div class="ch"><div class="ct" style="color:var(--bl)">Contract B — RANGE (wide ±0.30)</div></div>
               <div class="cb">
-                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">Wins if price NEVER touches either barrier. Settles instantly on touch. Same barrier as UPORDOWN — one ALWAYS wins.</div>
+                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">WIDE barrier ±0.30 — wins when price stays flat. 4 barriers total: UPORDOWN ±0.06 + RANGE ±0.30.</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
                   <div class="ig"><div class="il">Stake ($)</div><input type="number" class="iif" id="hl-nt-stake" value="0.35" step="0.05" min="0.35"></div>
-                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-nt-barrier" value="0.15" step="0.05" min="0.05" max="5.00"></div>
+                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-nt-barrier" value="0.30" step="0.05" min="0.05" max="5.00"></div>
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
@@ -3288,6 +3288,7 @@ function hlNextCycle(){
   document.getElementById('hl-status').textContent='Cycle '+(HL.cyclesDone+1)+'/'+HL.cyclesTarget+' — placing...';
 
   if(HL.mode==='both'||HL.mode==='go'){
+    // UPORDOWN tight barriers (easy touch = lower payout but wins often)
     var rGO=wsSend({buy:1,price:goStake,parameters:{
       amount:goStake,basis:'stake',
       contract_type:'UPORDOWN',
@@ -3304,6 +3305,7 @@ function hlNextCycle(){
 
   if(HL.mode==='both'||HL.mode==='nt'){
     setTimeout(function(){
+      // RANGE wide barriers (hard to touch = higher payout, covers flat market)
       var rNT=wsSend({buy:1,price:ntStake,parameters:{
         amount:ntStake,basis:'stake',
         contract_type:'RANGE',
@@ -4668,12 +4670,12 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           <!-- LEFT: Config -->
           <div>
             <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct" style="color:var(--go)">Contract A — Goes Outside (UPORDOWN)</div></div>
+              <div class="ch"><div class="ct" style="color:var(--go)">Contract A — UPORDOWN (tight ±0.06)</div></div>
               <div class="cb">
-                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">Wins if price TOUCHES either barrier at ANY point. Settles instantly on touch. Same barrier as RANGE.</div>
+                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">TIGHT barrier ±0.06 — wins when price moves. Settles instantly on touch.</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
                   <div class="ig"><div class="il">Stake ($)</div><input type="number" class="iif" id="hl-go-stake" value="0.35" step="0.05" min="0.35"></div>
-                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-go-barrier" value="0.15" step="0.01" min="0.01" max="1.00"></div>
+                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-go-barrier" value="0.06" step="0.01" min="0.01" max="1.00"></div>
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
@@ -4687,12 +4689,12 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             </div>
 
             <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct" style="color:var(--bl)">Contract B — Stays Between</div></div>
+              <div class="ch"><div class="ct" style="color:var(--bl)">Contract B — RANGE (wide ±0.30)</div></div>
               <div class="cb">
-                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">Wins if price NEVER touches either barrier. Settles instantly on touch. Same barrier as UPORDOWN — one ALWAYS wins.</div>
+                <div style="font-size:11px;color:var(--t2);margin-bottom:10px">WIDE barrier ±0.30 — wins when price stays flat. 4 barriers total: UPORDOWN ±0.06 + RANGE ±0.30.</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
                   <div class="ig"><div class="il">Stake ($)</div><input type="number" class="iif" id="hl-nt-stake" value="0.35" step="0.05" min="0.35"></div>
-                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-nt-barrier" value="0.15" step="0.05" min="0.05" max="5.00"></div>
+                  <div class="ig"><div class="il">Barrier ±</div><input type="number" class="iif" id="hl-nt-barrier" value="0.30" step="0.05" min="0.05" max="5.00"></div>
                 </div>
                 <div class="ig" style="margin-bottom:4px"><div class="il">Duration</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
