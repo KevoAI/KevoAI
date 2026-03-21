@@ -491,7 +491,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div style="display:flex;align-items:center;gap:9px">
                   <span style="font-size:16px">🎯</span>
                   <div>
-                    <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Zone Context</div>
+                    <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Direction Filter</div>
                     <div style="font-size:11px;font-weight:700;margin-top:1px" id="sig-zone-val">WARMING UP</div>
                   </div>
                 </div>
@@ -718,19 +718,52 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               </div>
             </div>
 
-            <!-- Barrier Multipliers -->
+            <!-- Overlapping Barrier Config -->
             <div class="card" style="margin-bottom:12px">
               <div class="ch">
-                <div class="ct">Barrier Multipliers (× ATR)</div>
-                <button class="btn btng" style="font-size:10px;padding:3px 8px;background:var(--ac);color:var(--bg0)" onclick="resetBarrierMults()">Reset</button>
+                <div class="ct">&#127919; Overlapping Barrier System</div>
+                <span style="font-size:10px;color:var(--ac);font-family:var(--mo)">1 ALWAYS WINS</span>
               </div>
               <div class="cb">
-                <div style="font-size:10px;color:var(--t3);margin-bottom:9px">Barrier = ATR × multiplier. H1/L1=hedge close, H2/L2=main, H3/L3=main far, H4/L4=lottery.</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                  <div><div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:6px">HIGHER SIDE</div><div id="h-mult-inputs"></div></div>
-                  <div><div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:6px">LOWER SIDE</div><div id="l-mult-inputs"></div></div>
+                <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:9px 11px;margin-bottom:11px;font-size:10px;color:var(--t2);line-height:1.7">
+                  Higher barrier sits <b style="color:var(--ac)">BELOW</b> entry price &#8594; already winning<br>
+                  Lower barrier sits <b style="color:var(--re)">ABOVE</b> entry price &#8594; already winning<br>
+                  Distance = <b style="color:var(--go)">ATR &times; multiplier</b> &#8212; adapts to market volatility
                 </div>
-                <div style="margin-top:9px;background:var(--bg3);border-radius:var(--rs);padding:8px 10px;border:1px solid var(--bo);font-size:10px;font-family:var(--mo);color:var(--t2);word-break:break-all" id="barrier-preview-txt">Live barriers shown once connected</div>
+                <div class="ig" style="margin-bottom:11px">
+                  <div class="il">Barrier Distance (&#215; ATR) &#8212; both sides</div>
+                  <div class="ir">
+                    <div class="ia" onclick="var e=document.getElementById('ob-atr-mult');e.value=Math.max(0.1,(parseFloat(e.value)-0.1)).toFixed(1);updateBarrierPreview()">-</div>
+                    <input type="number" class="iif" id="ob-atr-mult" value="0.5" min="0.1" max="3.0" step="0.1" oninput="updateBarrierPreview()">
+                    <div class="ia" onclick="var e=document.getElementById('ob-atr-mult');e.value=(parseFloat(e.value||0.5)+0.1).toFixed(1);updateBarrierPreview()">+</div>
+                  </div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">0.5 = safe default. Lower = tighter overlap = higher payout. Higher = wider = more protection.</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:10px 11px;border:1px solid var(--bo);margin-bottom:11px">
+                  <div style="font-size:11px;font-weight:700;margin-bottom:8px">&#128246; Direction Thresholds</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div class="ig">
+                      <div class="il" style="color:var(--ac)">&#9650; Higher Min %</div>
+                      <div class="ir">
+                        <div class="ia" onclick="var e=document.getElementById('ob-high-thresh');e.value=Math.max(51,(parseInt(e.value)-1));">-</div>
+                        <input type="number" class="iif" id="ob-high-thresh" value="65" min="51" max="99" step="1">
+                        <div class="ia" onclick="var e=document.getElementById('ob-high-thresh');e.value=Math.min(99,(parseInt(e.value)+1));">+</div>
+                      </div>
+                    </div>
+                    <div class="ig">
+                      <div class="il" style="color:var(--re)">&#9660; Lower Min %</div>
+                      <div class="ir">
+                        <div class="ia" onclick="var e=document.getElementById('ob-low-thresh');e.value=Math.max(51,(parseInt(e.value)-1));">-</div>
+                        <input type="number" class="iif" id="ob-low-thresh" value="75" min="51" max="99" step="1">
+                        <div class="ia" onclick="var e=document.getElementById('ob-low-thresh');e.value=Math.min(99,(parseInt(e.value)+1));">+</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:6px">Bot fires when UP% &#8805; Higher threshold OR DOWN% &#8805; Lower threshold.</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;border:1px solid var(--bo);font-size:11px;font-family:var(--mo);line-height:2" id="barrier-preview-txt">
+                  <span style="color:var(--t3)">Live barrier preview shown once connected</span>
+                </div>
               </div>
             </div>
 
@@ -1503,32 +1536,38 @@ function calcWWDaily(){
   var budget=parseFloat(document.getElementById('ww-risk').value)||3;
   var sl    =parseFloat(document.getElementById('ww-daily-sl').value)||30;
   var tp    =parseFloat(document.getElementById('ww-daily-tp').value)||60;
-  var P_t_est=1.85, P_c_est=1.40; // estimated — real fetched live per trade
-  var result=solveHybridStakes(budget,P_t_est,P_c_est);
-  if(!result){result={S_t:budget*0.57,S_c:budget*0.43,profitA:0,profitB:0,totalRisk:budget,valid:false};}
-  var maxRounds=Math.floor(sl/result.totalRisk);
-  var winsNeeded=result.profitA>0?Math.ceil(tp/result.profitA):999;
+  var stakeEach=budget/2;
+  // Estimated payout for overlapping barriers (~1.26x typical)
+  var P_est=1.26;
+  var profitBothWin=(stakeEach*P_est + stakeEach*P_est) - budget;
+  var profitOneWin =(stakeEach*P_est) - budget;
+  var maxRoundsSL =Math.floor(sl/Math.abs(profitOneWin>0?budget:Math.abs(profitOneWin)));
+  var winsNeeded  =profitBothWin>0?Math.ceil(tp/profitBothWin):999;
   var el=document.getElementById('ww-progress-target');if(el)el.textContent='$'+tp;
-  var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=result.totalRisk.toFixed(2);
+  var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=budget.toFixed(2);
   var math=[
-    'HYBRID DUAL TRADE - Asymmetric Barriers',
-    'Trend side:   ATR x'+HB.trendMult+' (further out, bigger payout)',
-    'Counter side: ATR x'+HB.counterMult+' (closer in, protects round)',
+    'OVERLAPPING BARRIER SYSTEM',
+    'Higher barrier: BELOW entry  (already winning)',
+    'Lower  barrier: ABOVE entry  (already winning)',
+    'At least 1 side ALWAYS wins',
     '',
     'Budget per round: $'+budget.toFixed(2),
-    'Pt x Pc = '+P_t_est+' x '+P_c_est+' = '+(P_t_est*P_c_est).toFixed(2)+(P_t_est*P_c_est>1?' MATH OK':'SKIP - bad payouts'),
+    'Each side stake:  $'+stakeEach.toFixed(2),
+    'Est payout each:  x'+P_est+' (~live depends on dist)',
     '',
-    'Trend stake  (S_t): $'+result.S_t.toFixed(2),
-    'Counter stake(S_c): $'+result.S_c.toFixed(2),
+    'SCENARIO A — Both win (calm market):',
+    '  $'+stakeEach.toFixed(2)+' x '+P_est+' + $'+stakeEach.toFixed(2)+' x '+P_est+' - $'+budget.toFixed(2),
+    '  = +$'+profitBothWin.toFixed(2)+' profit',
     '',
-    'Scenario A - Trend wins:',
-    '  $'+result.S_t.toFixed(2)+' x '+P_t_est+' = $'+(result.S_t*P_t_est).toFixed(2)+' - $'+result.S_c.toFixed(2)+' = +$'+result.profitA.toFixed(2),
+    'SCENARIO B — One wins (price moves):',
+    '  $'+stakeEach.toFixed(2)+' x '+P_est+' - $'+budget.toFixed(2),
+    '  = '+profitOneWin.toFixed(2)+' (loss when payout < 2x)',
     '',
-    'Scenario B - Counter wins:',
-    '  $'+result.S_c.toFixed(2)+' x '+P_c_est+' = $'+(result.S_c*P_c_est).toFixed(2)+' - $'+result.S_t.toFixed(2)+' = +$'+result.profitB.toFixed(2),
+    'NOTE: Real payout fetched live per trade.',
+    'Closer barrier = higher payout = better both-win profit.',
     '',
-    'Max rounds before $'+sl+' SL: '+maxRounds,
-    'Rounds to hit $'+tp+' target: ~'+winsNeeded
+    'Rounds to hit $'+tp+': ~'+winsNeeded,
+    'Max rounds before $'+sl+' SL: '+maxRoundsSL
   ].join('\n');
   var mel=document.getElementById('ww-calc-math');if(mel)mel.textContent=math;
   updateBarrierPreview();
@@ -1567,13 +1606,24 @@ function getCounterBarrier(){var atr=getATR();if(atr<=0)atr=0.06;return parseFlo
 function getBarrier(){return getTrendBarrier();}
 
 function updateBarrierPreview(){
-  var bT=getTrendBarrier(),bC=getCounterBarrier();
+  // Overlapping barrier preview
+  var mult=parseFloat(document.getElementById('ob-atr-mult').value)||0.5;
   var budget=parseFloat(document.getElementById('ww-risk').value)||3;
-  var res=solveHybridStakes(budget,1.85,1.40)||{S_t:budget*0.57,S_c:budget*0.43,totalRisk:budget,profitA:0,profitB:0,valid:false};
+  var stakeEach=(budget/2).toFixed(2);
+  // Get live ATR if available
+  var _pvPrices=getInd(HB.asset).prices,_pvN=_pvPrices.length;
+  var _pvATR=0;
+  if(_pvN>=5){for(var _pvi=_pvN-5;_pvi<_pvN;_pvi++)_pvATR+=Math.abs(_pvPrices[_pvi]-_pvPrices[_pvi-1]);_pvATR/=5;}
+  var _pvDist=_pvATR>0?parseFloat((_pvATR*mult).toFixed(4)):parseFloat((mult*0.05).toFixed(4));
+  var entry=S.prices[HB.asset]||0;
+  var hBarrier=entry>0?(entry-_pvDist).toFixed(4):'entry-'+_pvDist;
+  var lBarrier=entry>0?(entry+_pvDist).toFixed(4):'entry+'+_pvDist;
   var pt=document.getElementById('barrier-preview-txt');
-  if(pt)pt.textContent='Trend: ±'+bT+' (×'+HB.trendMult+'ATR) $'+res.S_t.toFixed(2)+' | Counter: ±'+bC+' (×'+HB.counterMult+'ATR) $'+res.S_c.toFixed(2);
-  var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=res.totalRisk.toFixed(2);
-  renderTradeBreakdown(bT,bC,res.S_t,res.S_c,1.85,1.40,res);
+  if(pt)pt.innerHTML=
+    '<span style="color:var(--ac)">H HIGHER</span> barrier: <b>-'+_pvDist+'</b> ('+hBarrier+') $'+stakeEach+'<br>'+
+    '<span style="color:var(--re)">V LOWER</span>  barrier: <b>+'+_pvDist+'</b> ('+lBarrier+') $'+stakeEach+'<br>'+
+    '<span style="color:var(--go)">ATR:</span> '+(_pvATR>0?_pvATR.toFixed(5):'warming up')+'  ×'+mult+' = dist '+_pvDist;
+  var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=budget.toFixed(2);
 }
 
 function renderTradeBreakdown(bTrend,bCounter,stTrend,stCounter,P_t,P_c,result){
@@ -1707,8 +1757,17 @@ function getWWSignal(){
         var _z=getIntegerWallZone();
         var _zReady=_z.ready;
         var _zDir=_z.zone==='near_floor'?'▼ LOWER':'▲ HIGHER';
-        ss.textContent=_zReady?'✅ Score '+score+'/2 — WALL:'+_z.nearestInt+'.00 → '+_zDir+' — Placing now...':'✅ Score '+score+'/2 ready — ⛔ DEAD ZONE, waiting for wall';
-        ss.style.color=_zReady?'var(--ac)':'var(--go)';
+        // Show overlapping barrier direction status
+        var _ssPrices=getInd(HB.asset).prices,_ssN=_ssPrices.length;
+        var _ssUps=0,_ssDns=0,_ssLook=Math.min(20,_ssN-1);
+        for(var _ssi=_ssN-_ssLook;_ssi<_ssN;_ssi++){var _ssd=_ssPrices[_ssi]-_ssPrices[_ssi-1];if(_ssd>0)_ssUps++;else if(_ssd<0)_ssDns++;}
+        var _ssT=_ssUps+_ssDns||1;
+        var _ssUp=Math.round(_ssUps/_ssT*100),_ssDn=100-_ssUp;
+        var _ssHT=parseInt(document.getElementById('ob-high-thresh').value)||65;
+        var _ssLT=parseInt(document.getElementById('ob-low-thresh').value)||75;
+        var _ssPass=(_ssUp>=_ssHT)||(_ssDn>=_ssLT);
+        ss.textContent=_ssPass?'✅ Direction OK — UP:'+_ssUp+'% DN:'+_ssDn+'% — Firing OB round...':'⏳ Waiting — UP:'+_ssUp+'% DN:'+_ssDn+'% (need '+_ssHT+'%↑/'+_ssLT+'%↓)';
+        ss.style.color=_ssPass?'var(--ac)':'var(--go)';
       }
       else{var miss=[];if(!atrHigh)miss.push('ATR high');if(!momBurst)miss.push('momentum burst');ss.textContent='⏳ Waiting ('+score+'/2): need '+miss.join(', ');ss.style.color='var(--t2)';}
     }
@@ -1787,52 +1846,48 @@ function getIntegerWallZone(){
   };
 }
 
-// Update zone indicator in UI (called every tick for HB asset)
+// Update direction display (replaces old wall zone display)
 var zoneThrottle=0;
 function updateZoneDisplay(){
   var now=Date.now();
   if(now-zoneThrottle<800)return;
   zoneThrottle=now;
-  var z=getIntegerWallZone();
   var el=document.getElementById('zone-badge');
   var elDetail=document.getElementById('zone-detail');
   var sigEl=document.getElementById('sig-zone-card');
   var sigVal=document.getElementById('sig-zone-val');
 
-  var zoneColor,zoneText,detailText;
-  if(z.zone==='near_floor'){
-    zoneColor='var(--ac)';
-    zoneText='NEAR '+z.nearestInt+'.00 ↓';
-    detailText='Dist: '+z.distToNearest.toFixed(3)+' ✅ TRADEABLE';
-  } else if(z.zone==='near_ceil'){
-    zoneColor='var(--re)';
-    zoneText='NEAR '+z.nearestInt+'.00 ↑';
-    detailText='Dist: '+z.distToNearest.toFixed(3)+' ✅ TRADEABLE';
-  } else if(z.zone==='dead_zone'){
-    zoneColor='var(--t3)';
-    zoneText='DEAD ZONE ✗';
-    detailText='Nearest wall: '+z.nearestInt+'.00 ('+z.distToNearest.toFixed(3)+' away)';
-  } else {
-    zoneColor='var(--t3)';zoneText='WARMING UP';detailText='Need 5 ticks';
+  // Calculate live direction %
+  var _zdPrices=getInd(HB.asset).prices,_zdN=_zdPrices.length;
+  var _zdUps=0,_zdDns=0,_zdLook=Math.min(20,_zdN-1);
+  if(_zdN>=5){
+    for(var _zdi=_zdN-_zdLook;_zdi<_zdN;_zdi++){
+      var _zdD=_zdPrices[_zdi]-_zdPrices[_zdi-1];
+      if(_zdD>0)_zdUps++;else if(_zdD<0)_zdDns++;
+    }
   }
+  var _zdT=_zdUps+_zdDns||1;
+  var _zdUp=Math.round(_zdUps/_zdT*100),_zdDn=100-_zdUp;
+  var _zdHT=parseInt(document.getElementById('ob-high-thresh').value)||65;
+  var _zdLT=parseInt(document.getElementById('ob-low-thresh').value)||75;
+  var _zdPass=(_zdUp>=_zdHT)||(_zdDn>=_zdLT);
+  var _zdColor=_zdPass?'var(--ac)':'var(--go)';
+  var _zdText=_zdN<5?'WARMING UP':(_zdPass?'DIR READY ✅':'WAITING ⏳');
+  var _zdDetail=_zdN<5?'Need 5 ticks':'UP:'+_zdUp+'% DN:'+_zdDn+'%  need '+_zdHT+'%↑/'+_zdLT+'%↓';
 
-  if(el){el.textContent=zoneText;el.style.color=zoneColor;
-    el.style.background=z.ready?
-      (z.zone==='near_floor'?'rgba(0,229,160,0.15)':'rgba(255,77,106,0.15)'):'var(--bg4)';}
-  if(elDetail){elDetail.textContent=detailText;elDetail.style.color=z.ready?zoneColor:'var(--t3)';}
-  if(sigEl){
-    sigEl.style.borderColor=z.ready?zoneColor:'var(--bo)';
-    sigEl.style.background=z.ready?
-      (z.zone==='near_floor'?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.1)'):'var(--bg3)';
-  }
-  if(sigVal){sigVal.textContent=z.ready?zoneText:'DEAD ZONE';sigVal.style.color=z.ready?zoneColor:'var(--t3)';}
+  if(el){el.textContent=_zdText;el.style.color=_zdColor;
+    el.style.background=_zdPass?'rgba(0,229,160,0.15)':'var(--bg4)';}
+  if(elDetail){elDetail.textContent=_zdDetail;elDetail.style.color=_zdColor;}
+  if(sigEl){sigEl.style.borderColor=_zdPass?_zdColor:'var(--bo)';
+    sigEl.style.background=_zdPass?'rgba(0,229,160,0.08)':'var(--bg3)';}
+  if(sigVal){sigVal.textContent=_zdText;sigVal.style.color=_zdColor;}
 
   // Chart header badge
   var cb=document.getElementById('ww-chart-zone-badge');
   if(cb){
-    cb.textContent=z.ready?'WALL:'+z.nearestInt+' ('+z.distToNearest.toFixed(2)+')':'WALL:MID ✗';
-    cb.style.background=z.ready?(z.zone==='near_floor'?'rgba(0,229,160,0.2)':'rgba(255,77,106,0.2)'):'var(--bg4)';
-    cb.style.color=z.ready?(z.zone==='near_floor'?'var(--ac)':'var(--re)'):'var(--t3)';
+    cb.textContent=_zdN<5?'DIR:--':'UP:'+_zdUp+'%|DN:'+_zdDn+'%';
+    cb.style.background=_zdPass?'rgba(0,229,160,0.2)':'var(--bg4)';
+    cb.style.color=_zdPass?'var(--ac)':'var(--t3)';
   }
 
   // Draw integer wall lines on both charts every tick
@@ -2056,6 +2111,27 @@ function runHybridAuto(){
     document.getElementById('hb-active-count').textContent='0 ACTIVE — DEAD ZONE';
     HB.interval=setTimeout(runHybridAuto,2000);return;
   }
+  // ── Dual Direction Threshold Gate (65% Higher / 75% Lower) ────
+  var _dtPrices=getInd(HB.asset).prices,_dtN=_dtPrices.length;
+  if(_dtN>=5){
+    var _dtLookback=Math.min(20,_dtN-1);
+    var _dtUps=0,_dtDns=0;
+    for(var _dti=_dtN-_dtLookback;_dti<_dtN;_dti++){
+      var _dtDiff=_dtPrices[_dti]-_dtPrices[_dti-1];
+      if(_dtDiff>0)_dtUps++;else if(_dtDiff<0)_dtDns++;
+    }
+    var _dtTotal=_dtUps+_dtDns||1;
+    var _dtUpPct=Math.round(_dtUps/_dtTotal*100);
+    var _dtDnPct=100-_dtUpPct;
+    var _dtHighThresh=parseInt(document.getElementById('ob-high-thresh').value)||65;
+    var _dtLowThresh=parseInt(document.getElementById('ob-low-thresh').value)||75;
+    var _dtPass=(_dtUpPct>=_dtHighThresh)||(_dtDnPct>=_dtLowThresh);
+    if(!_dtPass){
+      document.getElementById('hb-active-count').textContent=
+        'WAITING — UP:'+_dtUpPct+'% DN:'+_dtDnPct+'% (need '+_dtHighThresh+'%/'+_dtLowThresh+'%)';
+      HB.interval=setTimeout(runHybridAuto,2000);return;
+    }
+  }
   placeHybridRound();
   HB.interval=setTimeout(runHybridAuto,500);
 }
@@ -2084,6 +2160,23 @@ function placeHybridRound(){
     return;
   }
 
+  // ── Dual Direction Threshold hard gate ───────────────────────
+  var _hgLookback=Math.min(20,_lN-1);
+  var _hgUps=0,_hgDns=0;
+  for(var _hgi=_lN-_hgLookback;_hgi<_lN;_hgi++){
+    var _hgDiff=_lPrices[_hgi]-_lPrices[_hgi-1];
+    if(_hgDiff>0)_hgUps++;else if(_hgDiff<0)_hgDns++;
+  }
+  var _hgTotal=_hgUps+_hgDns||1;
+  var _hgUpPct=Math.round(_hgUps/_hgTotal*100);
+  var _hgDnPct=100-_hgUpPct;
+  var _hgHighT=parseInt(document.getElementById('ob-high-thresh').value)||65;
+  var _hgLowT=parseInt(document.getElementById('ob-low-thresh').value)||75;
+  if(!(_hgUpPct>=_hgHighT||_hgDnPct>=_hgLowT)){
+    notify('SKIP','Direction gate — UP:'+_hgUpPct+'% DN:'+_hgDnPct+'% need '+_hgHighT+'%/'+_hgLowT+'%','info');
+    return;
+  }
+
   // ── INTEGER WALL ZONE GATE ───────────────────────────────────
   // Price must be within 0.15 of an integer boundary to trade.
   // Dead zone (mid-range) = no edge = skip.
@@ -2107,22 +2200,30 @@ function placeHybridRound(){
     if(!inZone){notify('SKIP','Dec .'+Math.round(decPart*100).toString().padStart(2,'0')+' — skipping','info');return;}
   }
 
-  // ── DIRECTION FROM ZONE POSITION — data proven ───────────────
-  // Analysis of 114 trades shows:
-  //   near_floor (price just above integer e.g. 605.05) → LOWER  77% WR
-  //   near_ceil  (price just below integer e.g. 605.94) → HIGHER 80% WR
-  // The integer acts as a magnet — price reverts toward it from below,
-  // and breaks through it from above.
-  // EMA/slope/vote removed — zone position IS the direction signal.
-  var trendDir=zone.zone==='near_floor'?'down':'up';
+  // ── OVERLAPPING BARRIER SYSTEM ───────────────────────────────
+  // Higher barrier = BELOW entry (already winning)
+  // Lower  barrier = ABOVE entry (already winning)
+  // Both barriers cross the current price → at least 1 ALWAYS wins
+  // Distance = ATR × user multiplier (adaptive to volatility)
+  var _obMult=parseFloat(document.getElementById('ob-atr-mult').value)||0.5;
+  var _obPrices=getInd(HB.asset).prices,_obN=_obPrices.length;
+  var _obATR=0;
+  if(_obN>=5){for(var _oi=_obN-5;_oi<_obN;_oi++)_obATR+=Math.abs(_obPrices[_oi]-_obPrices[_oi-1]);_obATR/=5;}
+  if(_obATR<0.01)_obATR=0.05; // floor
+  var _obDist=parseFloat((_obATR*_obMult).toFixed(4));
+  // Higher wins if exit > (entry - dist)  → barrier BELOW entry
+  // Lower  wins if exit < (entry + dist)  → barrier ABOVE entry
+  var bHigher = _obDist; // used as negative offset: -(dist)
+  var bLower  = _obDist; // used as positive offset:  +(dist)
+  var trendDir='up'; // kept for journal compatibility
   var _zoneAgree=true;
-  console.log('[DIRECTION] '+zone.zone+' → '+trendDir+
-    ' (wall:'+zone.nearestInt+'.00 dist:'+zone.distToNearest.toFixed(3)+')');
+  console.log('[OB] entry:'+entry.toFixed(4)+' ATR:'+_obATR.toFixed(4)+' dist:'+_obDist+
+    ' H-barrier:'+(entry-_obDist).toFixed(4)+' L-barrier:'+(entry+_obDist).toFixed(4));
 
-  // ── Asymmetric barriers ──────────────────────────────────────
-  var bTrend=getTrendBarrier();     // ATR×5 — with trend, further out
-  var bCounter=getCounterBarrier(); // ATR×3 — against trend, closer in
   var budget=Math.max(0.70,parseFloat((parseFloat(document.getElementById('ww-risk').value)||3).toFixed(2)));
+  // Equal split — both sides same stake
+  var bTrend=bHigher;
+  var bCounter=bLower;
 
   // Increment rounds/roundId HERE — after all pre-flight checks pass
   HB.roundId++;var rid=HB.roundId;
@@ -2161,24 +2262,23 @@ function placeHybridRound(){
       nearestInt:zone.nearestInt,distToWall:zone.distToNearest,entryPrice:entry}
   };
 
-  // Contract types — trend side goes WITH trend, counter AGAINST
-  var trendType=trendDir==='up'?'CALL':'PUT';
-  var counterType=trendDir==='up'?'PUT':'CALL';
-  var trendBar=(trendType==='CALL'?'+':'-')+bTrend.toFixed(2);
-  var counterBar=(counterType==='CALL'?'+':'-')+bCounter.toFixed(2);
+  // ── OVERLAPPING CONTRACT SETUP ───────────────────────────────
+  // HIGHER contract: barrier = -(dist) → BELOW entry → already winning
+  // LOWER  contract: barrier = +(dist) → ABOVE entry → already winning
+  var trendType='CALL';    // HIGHER
+  var counterType='PUT';   // LOWER
+  var trendBar='-'+bTrend.toFixed(4);       // negative = below entry
+  var counterBar='+'+bCounter.toFixed(4);   // positive = above entry
   var dur=HB._durSecs||20;
 
-  notify('WW R'+HB.rounds,
-    zone.zone.toUpperCase()+' → '+(trendDir==='down'?'LOWER':'HIGHER')+
-    ' | WALL:'+zone.nearestInt+'.00 ('+zone.distToNearest.toFixed(3)+' away)'+
-    ' | trend:'+trendType+' ±'+bTrend+' counter:'+counterType+' ±'+bCounter,'info');
+  notify('OB R'+HB.rounds,
+    'HIGHER -'+bTrend.toFixed(4)+' ('+((entry-bTrend).toFixed(4))+')'+
+    ' | LOWER +'+bCounter.toFixed(4)+' ('+((entry+bCounter).toFixed(4))+')'+
+    ' | stake $'+(budget/2).toFixed(2)+' each','info');
 
-  // Pre-estimate stakes using estimated payouts so proposals are at correct amounts
-  // This avoids ContractCreationFailure (stake > max purchase price)
-  var estPt=1.85,estPc=1.40;
-  var estRes=solveHybridStakes(budget,estPt,estPc)||{S_t:budget*0.55,S_c:budget*0.45};
-  var estSt=Math.max(0.35,estRes.S_t);
-  var estSc=Math.max(0.35,estRes.S_c);
+  // Equal split — overlapping system both sides same stake
+  var estSt=Math.max(0.35,budget/2);
+  var estSc=Math.max(0.35,budget/2);
 
   // Fire BOTH proposals at the estimated stake amounts
   // Deriv then returns ask_price for exactly that stake
