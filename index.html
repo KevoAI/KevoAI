@@ -1180,11 +1180,48 @@ function updDG() {
 }
 
 function resetDG(){
+  // Reset daily goal tracker
   DG.profit=0;DG.trades=0;DG.wins=0;DG.losses=0;DG.stopped=false;DG.targetHit=false;
   S.startingBalance=S.balance;
   localStorage.setItem('kevoai_start_bal',String(S.balance));
   localStorage.setItem('kevoai_start_date',new Date().toDateString());
-  saveDG(); updDG(); notify('Reset','Daily stats reset','info');
+  saveDG();
+
+  // Clear ALL session trades and stats
+  S.trades=[];
+  S.activeTrades=[];
+  S.notes={};
+  localStorage.removeItem('kevoai_trades');
+  localStorage.removeItem('kevoai_notes');
+
+  // Clear HB bot history and stats
+  HB.rounds=0;HB.won=0;HB.lost=0;HB.pnl=0;HB.lossStreak=0;
+  HB.history=[];HB.pending={};HB.roundId=0;
+  HB.coolingDown=false;HB.cooldownEnd=0;
+  HB.lastRoundTime=0;
+
+  // Clear DG journal trades
+  localStorage.removeItem('kevoai_dg_trades');
+  localStorage.removeItem('kevoai_dg_wins');
+  localStorage.removeItem('kevoai_dg_losses');
+  localStorage.removeItem('kevoai_dg_profit');
+
+  // Refresh all UI
+  updDG();
+  updateStats();
+  renderTrades();
+  updHBStats();
+  if(typeof renderHBHistory==='function')renderHBHistory();
+  if(typeof updAnalytics==='function')updAnalytics();
+
+  // Reset dashboard stat cards
+  var els={
+    's-pnl':'+$0.00','s-trades':'0','s-wr':'0%','s-wl':'0W / 0L','s-active':'0',
+    'a-rounds':'0','a-wins':'0','a-losses':'0','a-pnl':'$0.00','a-avgw':'$0.00','a-avgl':'$0.00'
+  };
+  for(var id in els){var e=document.getElementById(id);if(e)e.textContent=els[id];}
+
+  notify('Reset','Full day reset — all stats, trades & journal cleared','info');
 }
 
 function onTick(tick) {
@@ -1674,7 +1711,7 @@ function getWWSignal(){
 
   // ── HARD BLOCKS — if either fires, score=0 and return not ready ──
   var isSqueeze=!!ind.bbSqueeze;
-  var isLowVol=atrRatio<0.8; // ATR well below recent average = dead
+  var isLowVol=atrRatio<0.2; // OB system: only block truly dead markets
 
   if(updateDOM){
     // ATR card — now shows HIGH/MED/LOW and whether it blocks
@@ -1686,9 +1723,9 @@ function getWWSignal(){
     if(av){av.textContent=atrRatio.toFixed(2)+'x '+(atrBlock?'DEAD':atrHigh?'HIGH':'MED');
            av.style.color=atrBlock?'var(--re)':atrHigh?'var(--ac)':'var(--t2)';}
     var vb=document.getElementById('ww-chart-vol-badge');
-    if(vb){vb.textContent='VOL:'+(isLowVol?'DEAD':atrRatio<1.2?'MED':'HIGH');
-           vb.style.background=isLowVol?'var(--rd)':atrRatio<1.2?'var(--gd)':'var(--ad)';
-           vb.style.color=isLowVol?'var(--re)':atrRatio<1.2?'var(--go)':'var(--ac)';}
+    if(vb){vb.textContent='VOL:'+(isLowVol?'DEAD':atrRatio<0.5?'MED':'OK');
+           vb.style.background=isLowVol?'var(--rd)':atrRatio<0.5?'var(--gd)':'var(--ad)';
+           vb.style.color=isLowVol?'var(--re)':atrRatio<0.5?'var(--go)':'var(--ac)';}
     var ca=document.getElementById('ww-chart-atr');if(ca)ca.textContent='ATR:'+atr5.toFixed(4);
 
     // BB card — squeeze is now a RED block
@@ -1700,10 +1737,10 @@ function getWWSignal(){
   }
 
   // If market is dead or squeezing — hard block, do not score
-  if(isSqueeze||isLowVol){
+  if(false){ // OB system: BB squeeze/low vol no longer block trades
     if(updateDOM){
       var sb3=document.getElementById('sig-score-badge');
-      if(sb3){sb3.textContent='BLOCKED';sb3.style.background='var(--rd)';sb3.style.color='var(--re)';sb3.style.border='1px solid rgba(255,77,106,0.3)';}
+      if(sb3){sb3.textContent='WAITING';sb3.style.background='var(--gd)';sb3.style.color='var(--go)';sb3.style.border='1px solid rgba(245,166,35,0.3)';}
       var ss3=document.getElementById('sig-status');
       if(ss3){ss3.textContent='⛔ '+(isSqueeze?'BB SQUEEZE — dead market, skipping':'LOW VOL — market flat, skipping');ss3.style.color='var(--re)';}
     }
@@ -1777,7 +1814,7 @@ function getWWSignal(){
   if(_np>=5){for(var _fi=_np-5;_fi<_np;_fi++)_af+=Math.abs(_pp[_fi]-_pp[_fi-1]);_af/=5;}
   var atrOk=_af>=0.05;
   if(updateDOM&&!atrOk){var _av2=document.getElementById('sig-atr-val');if(_av2)_av2.textContent='FLAT!';}
-  return{score:score,ready:score>=(HB.minScore||1)&&cdOk&&atrOk&&!isSqueeze&&!isLowVol};
+  return{score:score,ready:cdOk&&atrOk};  // OB system: removed BB/lowVol blocks — direction threshold handles filtering
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2104,13 +2141,7 @@ function runHybridAuto(){
   }
   var sig=getWWSignal();
   if(!sig.ready){document.getElementById('hb-active-count').textContent='0 ACTIVE';HB.interval=setTimeout(runHybridAuto,2000);return;}
-  // ── Zone gate — check BEFORE calling placeHybridRound ──────────
-  // Signal score can be ready but price still in dead zone — skip silently
-  var _zone=getIntegerWallZone();
-  if(!_zone.ready){
-    document.getElementById('hb-active-count').textContent='0 ACTIVE — DEAD ZONE';
-    HB.interval=setTimeout(runHybridAuto,2000);return;
-  }
+  // Zone gate removed — overlapping barrier system doesn't need integer walls
   // ── Dual Direction Threshold Gate (65% Higher / 75% Lower) ────
   var _dtPrices=getInd(HB.asset).prices,_dtN=_dtPrices.length;
   if(_dtN>=5){
@@ -2177,28 +2208,10 @@ function placeHybridRound(){
     return;
   }
 
-  // ── INTEGER WALL ZONE GATE ───────────────────────────────────
-  // Price must be within 0.15 of an integer boundary to trade.
-  // Dead zone (mid-range) = no edge = skip.
-  // Nearest integer acts as the magnet — confluences confirm direction.
-  var zone=getIntegerWallZone();
-  if(!zone.ready){
-    notify('SKIP','DEAD ZONE — '+zone.price.toFixed(2)+
-      ' mid-range (nearest wall: '+zone.nearestInt+'.00 is '+zone.distToNearest.toFixed(3)+' away, need ≤'+IW_THRESHOLD+')','info');
-    return;
-  }
-  console.log('[WALL] '+zone.zone+' price:'+zone.price.toFixed(4)+
-    ' nearest:'+zone.nearestInt+'.00 dist:'+zone.distToNearest.toFixed(4));
+  // Integer wall zone gate removed — overlapping barrier system fires anywhere
+  var zone={zone:'ob_mode',ready:true,nearestInt:0,distToNearest:0,price:entry};
 
-  // ── Decimal zone filter ──────────────────────────────────────
-  var decPart=parseFloat((entry%1).toFixed(2));
-  var decFilter=HB.useDecFilter!==false;
-  if(decFilter){
-    var inZone=(decPart<=0.20)||(decPart>=0.35&&decPart<=0.50);
-    var decEl=document.getElementById('ww-dec-filter');
-    if(decEl)decEl.textContent='Dec:.'+Math.round(decPart*100).toString().padStart(2,'0')+' '+(inZone?'✓ ZONE':'✗ SKIP');
-    if(!inZone){notify('SKIP','Dec .'+Math.round(decPart*100).toString().padStart(2,'0')+' — skipping','info');return;}
-  }
+  // Decimal zone filter removed — not relevant to overlapping barrier system
 
   // ── OVERLAPPING BARRIER SYSTEM ───────────────────────────────
   // Higher barrier = BELOW entry (already winning)
