@@ -2128,10 +2128,6 @@ function placeHybridRound(){
   HB.roundId++;var rid=HB.roundId;
   HB.rounds++;HB.lastRoundTime=Date.now();
 
-  var _p=getInd(HB.asset).prices,_n=_p.length;
-  var _atr5=0;for(var _j=_n-5;_j<_n;_j++)_atr5+=Math.abs(_p[_j]-_p[_j-1]);_atr5/=5;
-  var _atr20=0;for(var _k=Math.max(0,_n-25);_k<_n-5;_k++)_atr20+=Math.abs(_p[_k]-_p[_k-1]);_atr20/=20;
-
   // Capture prediction state at entry time
   var _predUp=0,_predDn=0,_predConf='--';
   var _predUpEl=document.getElementById('pred-up-pct');
@@ -2141,14 +2137,26 @@ function placeHybridRound(){
   if(_predDnEl)_predDn=parseInt(_predDnEl.textContent)||0;
   if(_predConfEl)_predConf=_predConfEl.textContent||'--';
 
+  // Capture full signal state for journal
+  var _ind=getInd(HB.asset);
+  var _atr5=0,_atr20=0;
+  var _np2=_ind.prices.length;
+  if(_np2>=5){for(var _j=_np2-5;_j<_np2;_j++)_atr5+=Math.abs(_ind.prices[_j]-_ind.prices[_j-1]);_atr5/=5;}
+  if(_np2>=25){for(var _k=_np2-25;_k<_np2-5;_k++)_atr20+=Math.abs(_ind.prices[_k]-_ind.prices[_k-1]);_atr20/=20;}
+  var _atrRatio=_atr20>0?parseFloat((_atr5/_atr20).toFixed(4)):1;
+  var _isSqueeze=!!_ind.bbSqueeze;
+  var _isLowVol=_atrRatio<0.8;
+
   HB.pending[rid]={
     results:[null,null],settled:0,
     bTrend:bTrend,bCounter:bCounter,trendDir:trendDir,
     budget:budget,entry:entry,
     time:new Date().toLocaleTimeString(),asset:HB.asset,score:sig.score,
     S_t:null,S_c:null,P_t:null,P_c:null,proposalsReady:0,
-    snap:{score:sig.score,atr5:_atr5,atr20:_atr20,trendDir:trendDir,
-      predUp:_predUp,predDn:_predDn,predConf:_predConf,
+    snap:{score:sig.score,atr5:_atr5,atr20:_atr20,atrRatio:_atrRatio,
+      trendDir:trendDir,predUp:_predUp,predDn:_predDn,predConf:_predConf,
+      bbWidth:_ind.bbWidth||0,bbSqueeze:_isSqueeze,isLowVol:_isLowVol,
+      sig_lowVol:!_isLowVol,sig_squeeze:!_isSqueeze,
       zone:zone.zone,zoneBias:trendDir,zoneVoteAgree:_zoneAgree,
       nearestInt:zone.nearestInt,distToWall:zone.distToNearest,entryPrice:entry}
   };
@@ -3030,28 +3038,30 @@ function renderJournal(filter){
     html+='</div>';
     // Confluences block
     if(snap){
+      var _atrHigh=(snap.atrRatio||0)>=1.2;
+      var _blocked=!!(snap.isLowVol||snap.bbSqueeze);
       html+='<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:var(--rs);padding:10px;margin-bottom:8px">';
-      html+='<div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:8px">📊 Confluences at Entry — Score '+snap.score+'/5</div>';
+      html+='<div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:8px">📊 Confluences at Entry — Score '+snap.score+'/2'
+        +(_blocked?' <span style="color:var(--re);font-size:10px">⛔ WAS BLOCKED</span>':'')+'</div>';
       html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:10px;margin-bottom:7px">';
       var sigs2=[
-        {k:'sig_lowVol',   l:'Low Volatility',    d:'ATR ratio: '+snap.atrRatio+'× (need <1.2×)'},
-        {k:'sig_squeeze',  l:'BB Squeeze',         d:'BB Width: '+(snap.bbWidth?(snap.bbWidth*100).toFixed(3)+'%':'--')+(snap.bbSqueeze?' ← TIGHT':'')},
-        {k:'sig_expanding',l:'Post-Squeeze',       d:snap.sig_expanding?'Bands expanding after squeeze':'No recent squeeze'},
-        {k:'sig_momentum', l:'Momentum Burst',     d:snap.sig_momentum?'4 accelerating ticks':'No acceleration'}
+        {l:'ATR High (≥1.2×)',  d:'Ratio: '+(snap.atrRatio||'--')+'×',          on:_atrHigh,          block:false},
+        {l:'BB Not Squeezing',  d:snap.bbSqueeze?'⛔ SQUEEZE — blocked':'Normal', on:!snap.bbSqueeze,   block:!!snap.bbSqueeze},
+        {l:'Vol Not Dead',      d:snap.isLowVol?'⛔ LOW VOL — blocked':'Active',  on:!snap.isLowVol,    block:!!snap.isLowVol},
+        {l:'Momentum Burst',    d:snap.sig_momentum?'4 accel ticks':'No accel',   on:!!snap.sig_momentum,block:false}
       ];
       sigs2.forEach(function(sig){
-        var on=snap[sig.k];
-        html+='<div style="background:'+(on?'rgba(0,229,160,0.1)':'var(--bg4)')+';border-radius:5px;padding:6px 8px;font-family:var(--mo)">';
-        html+='<div style="color:'+(on?'var(--ac)':'var(--t3)')+';font-weight:700;font-size:10px">'+(on?'✓ ':'✗ ')+sig.l+'</div>';
+        html+='<div style="background:'+(sig.block?'rgba(255,77,106,0.1)':sig.on?'rgba(0,229,160,0.1)':'var(--bg4)')+';border-radius:5px;padding:6px 8px;font-family:var(--mo)">';
+        html+='<div style="color:'+(sig.block?'var(--re)':sig.on?'var(--ac)':'var(--t3)')+';font-weight:700;font-size:10px">'+(sig.block?'⛔ ':sig.on?'✓ ':'✗ ')+sig.l+'</div>';
         html+='<div style="color:var(--t3);font-size:9px;margin-top:2px">'+sig.d+'</div></div>';
       });
       html+='</div>';
       html+='<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;display:flex;gap:12px;flex-wrap:wrap;font-size:10px;font-family:var(--mo);color:var(--t3)">';
-      html+='<span>ATR(5):<b style="color:var(--t1)"> '+snap.atr5.toFixed(4)+'</b></span>';
-      html+='<span>ATR(20):<b style="color:var(--t1)"> '+snap.atr20.toFixed(4)+'</b></span>';
-      html+='<span>Ratio:<b style="color:'+(snap.atrRatio<1.2?'var(--ac)':'var(--re)')+'">&nbsp;'+snap.atrRatio+'×</b></span>';
-      html+='<span>RSI:<b style="color:var(--t1)"> '+snap.rsi+'</b></span>';
-      html+='<span>Trend:<b style="color:var(--t1)"> '+snap.trend+'</b></span>';
+      html+='<span>ATR(5):<b style="color:var(--t1)"> '+(snap.atr5||0).toFixed(4)+'</b></span>';
+      html+='<span>ATR(20):<b style="color:var(--t1)"> '+(snap.atr20||0).toFixed(4)+'</b></span>';
+      html+='<span>Ratio:<b style="color:'+(_atrHigh?'var(--ac)':'var(--re)')+'">&nbsp;'+(snap.atrRatio||'--')+'×</b></span>';
+      html+='<span>Zone:<b style="color:var(--t1)"> '+(snap.zone||'--')+'</b></span>';
+      html+='<span>Wall:<b style="color:var(--go)"> '+(snap.nearestInt||'--')+'.00</b></span>';
       html+='</div></div>';
     } else {
       html+='<div style="background:var(--bg3);border-radius:var(--rs);padding:8px;margin-bottom:8px;font-size:10px;color:var(--t3)">No confluence data — trade placed manually or pre-v5.0</div>';
