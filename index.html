@@ -1058,6 +1058,9 @@ function onProposal(proposal, reqId){
 
   // Route HB proposals to dual-trade handler
   if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
+
+  // Route final buy proposals — fire buy immediately at confirmed ask_price
+  if(p.type==='hb_buy_proposal'){onHBBuyProposal(proposal,reqId,p);return;}
 }
 
 function onAuth(a) {
@@ -2221,16 +2224,57 @@ function onHBProposal(proposal,reqId,pendInfo){
   console.log('[HB STAKES] S_t:$'+res.S_t+' S_c:$'+res.S_c+' Pt×Pc:'+product+' A:+$'+res.profitA.toFixed(2)+' B:+$'+res.profitB.toFixed(2));
   notify('WW R'+HB.rounds,'Pt×Pc='+product.toFixed(2)+' ✅ | $'+res.S_t+' trend / $'+res.S_c+' counter | A:+$'+res.profitA.toFixed(2)+' B:+$'+res.profitB.toFixed(2),'win');
 
-  // ── Fire both buys simultaneously ────────────────────────────
-  // Buy using the SOLVED stakes (res.S_t / res.S_c) not the estimated ask prices.
-  // The proposal price field accepts the stake amount we want to spend.
-  var b1=wsSend({buy:round.trendProposalId,price:res.S_t});
-  if(b1)S.pending[b1]={dir:'TREND',contractDir:round.trendType,stake:res.S_t,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:0,barrier:round.bTrend,durVal:round.trendDur,durUnit:round.trendUnit,entryPrice:round.entry};
+  // ── Re-fetch proposals at EXACT solved stakes then buy ───────
+  // We can't reuse the old proposals — they were at estimated amounts.
+  // Fire new proposals at res.S_t / res.S_c, then buy immediately on response.
+  // This guarantees Deriv charges exactly what the math requires.
+  round.buyPhase=true; // flag so onHBProposal routes to buy, not solve again
+  round.finalS_t=res.S_t; round.finalS_c=res.S_c;
+  round.finalProfitA=res.profitA; round.finalProfitB=res.profitB;
 
-  var b2=wsSend({buy:round.counterProposalId,price:res.S_c});
-  if(b2)S.pending[b2]={dir:'COUNTER',contractDir:round.counterType,stake:res.S_c,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:1,barrier:round.bCounter,durVal:round.counterDur,durUnit:round.counterUnit,entryPrice:round.entry};
+  var fp1=wsSend({proposal:1,amount:res.S_t,basis:'stake',contract_type:round.trendType,currency:S.currency,duration:round.trendDur,duration_unit:round.trendUnit,symbol:round.asset,barrier:round.trendBar});
+  if(fp1)S.pending[fp1]={type:'hb_buy_proposal',hbRound:rid,hbSide:'trend',contractType:round.trendType,barrier:round.bTrend,barrierStr:round.trendBar,durVal:round.trendDur,durUnit:round.trendUnit,asset:round.asset,stake:res.S_t};
+
+  var fp2=wsSend({proposal:1,amount:res.S_c,basis:'stake',contract_type:round.counterType,currency:S.currency,duration:round.counterDur,duration_unit:round.counterUnit,symbol:round.asset,barrier:round.counterBar});
+  if(fp2)S.pending[fp2]={type:'hb_buy_proposal',hbRound:rid,hbSide:'counter',contractType:round.counterType,barrier:round.bCounter,barrierStr:round.counterBar,durVal:round.counterDur,durUnit:round.counterUnit,asset:round.asset,stake:res.S_c};
+
+  round.buyProposalsReady=0;
+  document.getElementById('hb-active-count').textContent='CONFIRMING STAKES...';
 
   renderTradeBreakdown(round.bTrend,round.bCounter,round.S_t,round.S_c,P_t,P_c,res);
+  updHBStats();
+}
+
+// ── Receives confirmed proposals at exact solved stakes, fires buys ──
+function onHBBuyProposal(proposal,reqId,pendInfo){
+  if(!proposal||!proposal.id){
+    notify('!','Buy proposal failed ('+pendInfo.hbSide+') — cancelling','loss');
+    _hbCleanupOnError(pendInfo.hbRound);return;
+  }
+  var rid=pendInfo.hbRound;
+  var round=HB.pending[rid];
+  if(!round){return;}
+
+  var askPrice=parseFloat(proposal.ask_price||pendInfo.stake);
+
+  if(pendInfo.hbSide==='trend'){
+    round.finalTrendProposalId=proposal.id;
+    round.finalTrendAsk=askPrice;
+  } else {
+    round.finalCounterProposalId=proposal.id;
+    round.finalCounterAsk=askPrice;
+  }
+  round.buyProposalsReady=(round.buyProposalsReady||0)+1;
+  if(round.buyProposalsReady<2)return; // wait for both
+
+  // Both confirmed — fire the buys at ask_price (which matches our solved stake)
+  var b1=wsSend({buy:round.finalTrendProposalId,price:round.finalTrendAsk});
+  if(b1)S.pending[b1]={dir:'TREND',contractDir:round.trendType,stake:round.S_t,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:0,barrier:round.bTrend,durVal:round.trendDur,durUnit:round.trendUnit,entryPrice:round.entry};
+
+  var b2=wsSend({buy:round.finalCounterProposalId,price:round.finalCounterAsk});
+  if(b2)S.pending[b2]={dir:'COUNTER',contractDir:round.counterType,stake:round.S_c,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:1,barrier:round.bCounter,durVal:round.counterDur,durUnit:round.counterUnit,entryPrice:round.entry};
+
+  console.log('[HB BUY] trend ask:$'+round.finalTrendAsk+' counter ask:$'+round.finalCounterAsk);
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
   updHBStats();
 }
