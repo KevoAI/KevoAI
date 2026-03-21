@@ -746,7 +746,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                       <div class="il" style="color:var(--ac)">&#9650; Higher Min %</div>
                       <div class="ir">
                         <div class="ia" onclick="var e=document.getElementById('ob-high-thresh');e.value=Math.max(51,(parseInt(e.value)-1));">-</div>
-                        <input type="number" class="iif" id="ob-high-thresh" value="65" min="51" max="99" step="1">
+                        <input type="number" class="iif" id="ob-high-thresh" value="55" min="51" max="99" step="1">
                         <div class="ia" onclick="var e=document.getElementById('ob-high-thresh');e.value=Math.min(99,(parseInt(e.value)+1));">+</div>
                       </div>
                     </div>
@@ -754,7 +754,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                       <div class="il" style="color:var(--re)">&#9660; Lower Min %</div>
                       <div class="ir">
                         <div class="ia" onclick="var e=document.getElementById('ob-low-thresh');e.value=Math.max(51,(parseInt(e.value)-1));">-</div>
-                        <input type="number" class="iif" id="ob-low-thresh" value="75" min="51" max="99" step="1">
+                        <input type="number" class="iif" id="ob-low-thresh" value="60" min="51" max="99" step="1">
                         <div class="ia" onclick="var e=document.getElementById('ob-low-thresh');e.value=Math.min(99,(parseInt(e.value)+1));">+</div>
                       </div>
                     </div>
@@ -1798,8 +1798,8 @@ function getWWSignal(){
         for(var _ssi=_ssN-_ssLook;_ssi<_ssN;_ssi++){var _ssd=_ssPrices[_ssi]-_ssPrices[_ssi-1];if(_ssd>0)_ssUps++;else if(_ssd<0)_ssDns++;}
         var _ssT=_ssUps+_ssDns||1;
         var _ssUp=Math.round(_ssUps/_ssT*100),_ssDn=100-_ssUp;
-        var _ssHT=parseInt(document.getElementById('ob-high-thresh').value)||65;
-        var _ssLT=parseInt(document.getElementById('ob-low-thresh').value)||75;
+        var _ssHT=parseInt(document.getElementById('ob-high-thresh').value)||55;
+        var _ssLT=parseInt(document.getElementById('ob-low-thresh').value)||60;
         var _ssPass=(_ssUp>=_ssHT)||(_ssDn>=_ssLT);
         ss.textContent=_ssPass?'✅ Direction OK — UP:'+_ssUp+'% DN:'+_ssDn+'% — Firing OB round...':'⏳ Waiting — UP:'+_ssUp+'% DN:'+_ssDn+'% (need '+_ssHT+'%↑/'+_ssLT+'%↓)';
         ss.style.color=_ssPass?'var(--ac)':'var(--go)';
@@ -1903,8 +1903,8 @@ function updateZoneDisplay(){
   }
   var _zdT=_zdUps+_zdDns||1;
   var _zdUp=Math.round(_zdUps/_zdT*100),_zdDn=100-_zdUp;
-  var _zdHT=parseInt(document.getElementById('ob-high-thresh').value)||65;
-  var _zdLT=parseInt(document.getElementById('ob-low-thresh').value)||75;
+  var _zdHT=parseInt(document.getElementById('ob-high-thresh').value)||55;
+  var _zdLT=parseInt(document.getElementById('ob-low-thresh').value)||60;
   var _zdPass=(_zdUp>=_zdHT)||(_zdDn>=_zdLT);
   var _zdColor=_zdPass?'var(--ac)':'var(--go)';
   var _zdText=_zdN<5?'WARMING UP':(_zdPass?'DIR READY ✅':'WAITING ⏳');
@@ -2143,7 +2143,7 @@ function runHybridAuto(){
   // ── Dual Direction Threshold Gate (65% Higher / 75% Lower) ────
   var _dtPrices=getInd(HB.asset).prices,_dtN=_dtPrices.length;
   if(_dtN>=5){
-    var _dtLookback=Math.min(20,_dtN-1);
+    var _dtLookback=Math.min(10,_dtN-1);
     var _dtUps=0,_dtDns=0;
     for(var _dti=_dtN-_dtLookback;_dti<_dtN;_dti++){
       var _dtDiff=_dtPrices[_dti]-_dtPrices[_dti-1];
@@ -2152,8 +2152,8 @@ function runHybridAuto(){
     var _dtTotal=_dtUps+_dtDns||1;
     var _dtUpPct=Math.round(_dtUps/_dtTotal*100);
     var _dtDnPct=100-_dtUpPct;
-    var _dtHighThresh=parseInt(document.getElementById('ob-high-thresh').value)||65;
-    var _dtLowThresh=parseInt(document.getElementById('ob-low-thresh').value)||75;
+    var _dtHighThresh=parseInt(document.getElementById('ob-high-thresh').value)||55;
+    var _dtLowThresh=parseInt(document.getElementById('ob-low-thresh').value)||60;
     var _dtPass=(_dtUpPct>=_dtHighThresh)||(_dtDnPct>=_dtLowThresh);
     if(!_dtPass){
       document.getElementById('hb-active-count').textContent=
@@ -2190,7 +2190,7 @@ function placeHybridRound(){
   }
 
   // ── Dual Direction Threshold hard gate ───────────────────────
-  var _hgLookback=Math.min(20,_lN-1);
+  var _hgLookback=Math.min(10,_lN-1);
   var _hgUps=0,_hgDns=0;
   for(var _hgi=_lN-_hgLookback;_hgi<_lN;_hgi++){
     var _hgDiff=_lPrices[_hgi]-_lPrices[_hgi-1];
@@ -2199,8 +2199,8 @@ function placeHybridRound(){
   var _hgTotal=_hgUps+_hgDns||1;
   var _hgUpPct=Math.round(_hgUps/_hgTotal*100);
   var _hgDnPct=100-_hgUpPct;
-  var _hgHighT=parseInt(document.getElementById('ob-high-thresh').value)||65;
-  var _hgLowT=parseInt(document.getElementById('ob-low-thresh').value)||75;
+  var _hgHighT=parseInt(document.getElementById('ob-high-thresh').value)||55;
+  var _hgLowT=parseInt(document.getElementById('ob-low-thresh').value)||60;
   if(!(_hgUpPct>=_hgHighT||_hgDnPct>=_hgLowT)){
     notify('SKIP','Direction gate — UP:'+_hgUpPct+'% DN:'+_hgDnPct+'% need '+_hgHighT+'%/'+_hgLowT+'%','info');
     return;
@@ -2295,38 +2295,34 @@ function placeHybridRound(){
       nearestInt:zone.nearestInt,distToWall:zone.distToNearest,entryPrice:entry}
   };
 
-  // ── EXPIRYRANGE DUAL ZONE CONTRACT FIRING ────────────────────
-  // Contract A: UP zone  — EXPIRYRANGE with barrier=+dist2, barrier2=+dist
-  // Contract B: DOWN zone — EXPIRYRANGE with barrier=-dist,  barrier2=-dist2
-  var trendType='EXPIRYRANGE';
-  var counterType='EXPIRYRANGE';
+  // ── CALL/PUT CONTRACT FIRING ─────────────────────────────────
+  var trendType='CALL';
+  var counterType='PUT';
   var dur=HB._durSecs||20;
   var estSt=Math.max(0.35,budget/2);
   var estSc=Math.max(0.35,budget/2);
+  var _barrStr=(Math.round(bTrend*100)/100).toFixed(2);
+  var trendBar='-'+_barrStr;
+  var counterBar='+'+_barrStr;
 
-  notify('ER R'+HB.rounds,
-    'UP:'+bUpLow+'→'+bUpHigh+
-    ' DN:'+bDnLow+'→'+bDnHigh+
+  notify('R'+HB.rounds,
+    'CALL -'+_barrStr+' | PUT +'+_barrStr+
     ' | $'+estSt.toFixed(2)+' each','info');
 
-  // Contract A — UP zone
   var p1=wsSend({proposal:1,amount:estSt,basis:'stake',
-    contract_type:'EXPIRYRANGE',currency:S.currency,
-    duration:dur,duration_unit:'s',symbol:HB.asset,
-    barrier:bUpHigh,barrier2:bUpLow});
+    contract_type:'CALL',currency:S.currency,
+    duration:dur,duration_unit:'s',symbol:HB.asset,barrier:trendBar});
   if(p1)S.pending[p1]={type:'hb_proposal',hbRound:rid,hbSide:'trend',
-    estStake:estSt,contractType:'EXPIRYRANGE',
-    barrier:bTrend,barrierStr:bUpHigh+'|'+bUpLow,
+    estStake:estSt,contractType:'CALL',
+    barrier:bTrend,barrierStr:trendBar,
     durVal:dur,durUnit:'s',asset:HB.asset};
 
-  // Contract B — DOWN zone
   var p2=wsSend({proposal:1,amount:estSc,basis:'stake',
-    contract_type:'EXPIRYRANGE',currency:S.currency,
-    duration:dur,duration_unit:'s',symbol:HB.asset,
-    barrier:bDnHigh,barrier2:bDnLow});
+    contract_type:'PUT',currency:S.currency,
+    duration:dur,duration_unit:'s',symbol:HB.asset,barrier:counterBar});
   if(p2)S.pending[p2]={type:'hb_proposal',hbRound:rid,hbSide:'counter',
-    estStake:estSc,contractType:'EXPIRYRANGE',
-    barrier:bCounter,barrierStr:bDnHigh+'|'+bDnLow,
+    estStake:estSc,contractType:'PUT',
+    barrier:bCounter,barrierStr:counterBar,
     durVal:dur,durUnit:'s',asset:HB.asset};
 
   setWWBarrierLines(entry,bTrend);
