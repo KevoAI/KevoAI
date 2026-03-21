@@ -270,7 +270,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
       <div class="ni" onclick="showPage('trade',this)">Trade</div>
       <div class="ni" onclick="showPage('bot',this)">Auto Bot</div>
       <div class="ni" onclick="showPage('barrier',this)">WinWin Hybrid</div>
-      <div class="ni" onclick="showPage('gmilli',this)">⚡ Gmilli</div>
+      <div class="ni" onclick="showPage('gmilli',this)">&#9889; Gmilli</div>
       <div class="ns">Analysis</div>
       <div class="ni" onclick="showPage('history',this)">Trade History</div>
       <div class="ni" onclick="showPage('journal',this)">Journal</div>
@@ -722,13 +722,13 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <!-- Overlapping Barrier Config -->
             <div class="card" style="margin-bottom:12px">
               <div class="ch">
-                <div class="ct">&#127919; WinWin Hybrid — 2 Contract</div>
-                <span style="font-size:10px;color:var(--ac);font-family:var(--mo)">TREND + COUNTER</span>
+                <div class="ct">&#127919; EXPIRYRANGE Dual Zone</div>
+                <span style="font-size:10px;color:var(--ac);font-family:var(--mo)">DIRECTION WINS</span>
               </div>
               <div class="cb">
                 <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:9px 11px;margin-bottom:11px;font-size:10px;color:var(--t2);line-height:1.7">
-                  CALL (trend): ATR&#215;trendMult barrier — goes with direction<br>
-                  PUT (counter): ATR&#215;counterMult barrier — covers loss if trend fails<br>
+                  <b style="color:var(--ac)">UP Zone</b>: EXPIRYRANGE between entry+dist and entry+(dist&#215;2)<br>
+                  <b style="color:var(--re)">DN Zone</b>: EXPIRYRANGE between entry-(dist&#215;2) and entry-dist<br>
                   Price moves UP &#8594; Zone A wins. Price moves DOWN &#8594; Zone B wins.
                 </div>
                 <div class="ig" style="margin-bottom:11px">
@@ -787,36 +787,32 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
       </div>
 
 
+
       <!-- GMILLI BOT PAGE -->
       <div class="page" id="page-gmilli">
         <div style="background:linear-gradient(135deg,rgba(0,229,160,0.1),rgba(59,130,246,0.08));border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:16px;margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-            <div style="font-size:18px;font-weight:800;color:var(--ac)">⚡ Gmilli Bot</div>
+            <div style="font-size:18px;font-weight:800;color:var(--ac)">Gmilli Bot</div>
             <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">Zero-Gap Overlapping System</div>
           </div>
-          <div style="font-size:11px;color:var(--t2)">CALL barrier below entry + PUT barrier above entry → one side ALWAYS wins → direction controls stake size</div>
+          <div style="font-size:11px;color:var(--t2)">CALL barrier below entry + PUT barrier above entry. One side ALWAYS wins. Direction controls which side gets bigger stake.</div>
         </div>
-
-        <!-- Stats row -->
         <div class="sr" style="margin-bottom:12px">
           <div class="sc g"><div class="sl">Net P&L</div><div class="sv g" id="gm-pnl">+$0.00</div><div class="ss">Session</div></div>
           <div class="sc b"><div class="sl">Rounds</div><div class="sv b" id="gm-rounds">0</div><div class="ss">This session</div></div>
           <div class="sc go"><div class="sl">Win Rate</div><div class="sv go" id="gm-wr">0%</div><div class="ss" id="gm-wl">0W / 0L</div></div>
           <div class="sc r"><div class="sl">Active</div><div class="sv r" id="gm-active">0</div><div class="ss">Running</div></div>
         </div>
-
         <div style="display:grid;grid-template-columns:1fr 320px;gap:12px">
-          <!-- LEFT COLUMN -->
           <div>
-            <!-- Direction Monitor -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div style="font-size:13px;font-weight:700">📊 Direction Monitor</div>
+                <div style="font-size:13px;font-weight:700">Direction Monitor</div>
                 <div style="font-size:11px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--t3)" id="gm-dir-label">Analysing...</div>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:5px">
-                <span style="color:var(--ac)">▲ UP <span id="gm-up-pct">50%</span></span>
-                <span style="color:var(--re)">▼ DOWN <span id="gm-dn-pct">50%</span></span>
+                <span style="color:var(--ac)">UP <span id="gm-up-pct">50%</span></span>
+                <span style="color:var(--re)">DOWN <span id="gm-dn-pct">50%</span></span>
               </div>
               <div style="height:10px;border-radius:5px;background:var(--bg4);overflow:hidden;position:relative;margin-bottom:10px">
                 <div id="gm-bar-up" style="position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--ac),#00ff88);border-radius:5px;transition:width .8s;width:50%"></div>
@@ -837,16 +833,12 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
               </div>
             </div>
-
-            <!-- Barrier Preview -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
-              <div style="font-size:13px;font-weight:700;margin-bottom:10px">🎯 Live Barrier Preview</div>
+              <div style="font-size:13px;font-weight:700;margin-bottom:10px">Live Barrier Preview</div>
               <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;border:1px solid var(--bo);font-size:11px;font-family:var(--mo);line-height:2" id="gm-barrier-preview">
                 <span style="color:var(--t3)">Connect to see live barriers</span>
               </div>
             </div>
-
-            <!-- Round status -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
                 <div style="font-size:13px;font-weight:700">This Round</div>
@@ -871,21 +863,15 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <span style="font-size:14px;font-weight:700;font-family:var(--mo)" id="gm-round-net">$0.00</span>
               </div>
             </div>
-
-            <!-- Round history -->
             <div class="card">
               <div class="ch"><div class="ct">Round History</div></div>
               <div class="cb" id="gm-history-list"><div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No rounds yet.</div></div>
             </div>
           </div>
-
-          <!-- RIGHT COLUMN -->
           <div>
-            <!-- Config -->
             <div class="card" style="margin-bottom:12px">
               <div class="ch"><div class="ct">Config</div></div>
               <div class="cb">
-                <!-- Asset -->
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Asset</div>
                   <div class="aswrap">
@@ -896,7 +882,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <div class="asdd" id="gm-dd"></div>
                   </div>
                 </div>
-                <!-- Budget -->
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Budget Per Round ($)</div>
                   <div class="ir">
@@ -905,27 +890,24 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.50).toFixed(2);gmCalc()">+</div>
                   </div>
                 </div>
-                <!-- Barrier dist -->
                 <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Barrier Distance (× ATR)</div>
+                  <div class="il">Barrier Distance (x ATR)</div>
                   <div class="ir">
                     <div class="ia" onclick="var e=document.getElementById('gm-atr-mult');e.value=Math.max(0.1,(parseFloat(e.value)-0.1)).toFixed(1);gmCalc()">-</div>
                     <input type="number" class="iif" id="gm-atr-mult" value="0.5" min="0.1" max="3.0" step="0.1" oninput="gmCalc()">
                     <div class="ia" onclick="var e=document.getElementById('gm-atr-mult');e.value=(parseFloat(e.value)+0.1).toFixed(1);gmCalc()">+</div>
                   </div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Lower = tighter = higher payout. Min 0.1</div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Lower = tighter = higher payout</div>
                 </div>
-                <!-- Duration -->
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Duration</div>
-                  <div class="dr"><div class="db" onclick="GM.dur=5;setGMActive(this)">5S</div><div class="db active" onclick="GM.dur=15;setGMActive(this)">15S</div><div class="db" onclick="GM.dur=30;setGMActive(this)">30S</div><div class="db" onclick="GM.dur=60;setGMActive(this)">60S</div><div class="db" onclick="GM.dur=120;setGMActive(this)">2M</div></div>
+                  <div class="dr"><div class="db" onclick="GM.dur=5;gmSetActive(this)">5S</div><div class="db active" onclick="GM.dur=15;gmSetActive(this)">15S</div><div class="db" onclick="GM.dur=30;gmSetActive(this)">30S</div><div class="db" onclick="GM.dur=60;gmSetActive(this)">60S</div><div class="db" onclick="GM.dur=120;gmSetActive(this)">2M</div></div>
                 </div>
-                <!-- Direction thresholds -->
                 <div style="background:var(--bg3);border-radius:var(--rs);padding:10px 11px;border:1px solid var(--bo);margin-bottom:11px">
                   <div style="font-size:11px;font-weight:700;margin-bottom:8px">Direction Thresholds</div>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                     <div class="ig">
-                      <div class="il" style="color:var(--ac)">▲ UP Min %</div>
+                      <div class="il" style="color:var(--ac)">UP Min %</div>
                       <div class="ir">
                         <div class="ia" onclick="var e=document.getElementById('gm-up-thresh');e.value=Math.max(51,parseInt(e.value)-1)">-</div>
                         <input type="number" class="iif" id="gm-up-thresh" value="55" min="51" max="99">
@@ -933,7 +915,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                       </div>
                     </div>
                     <div class="ig">
-                      <div class="il" style="color:var(--re)">▼ DN Min %</div>
+                      <div class="il" style="color:var(--re)">DN Min %</div>
                       <div class="ir">
                         <div class="ia" onclick="var e=document.getElementById('gm-dn-thresh');e.value=Math.max(51,parseInt(e.value)-1)">-</div>
                         <input type="number" class="iif" id="gm-dn-thresh" value="60" min="51" max="99">
@@ -942,40 +924,33 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     </div>
                   </div>
                 </div>
-                <!-- Daily limits -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px">
                   <div class="ig"><div class="il">Daily SL ($)</div><input type="number" class="iif" id="gm-daily-sl" value="30" min="1"></div>
                   <div class="ig"><div class="il">Daily TP ($)</div><input type="number" class="iif" id="gm-daily-tp" value="60" min="1"></div>
                 </div>
-                <!-- Min gap -->
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Min Gap Between Rounds</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db" onclick="GM.minGap=15;setGMActive(this)">15s</div>
-                    <div class="db active" onclick="GM.minGap=30;setGMActive(this)">30s</div>
-                    <div class="db" onclick="GM.minGap=45;setGMActive(this)">45s</div>
-                    <div class="db" onclick="GM.minGap=60;setGMActive(this)">60s</div>
+                    <div class="db" onclick="GM.minGap=15;gmSetActive(this)">15s</div>
+                    <div class="db active" onclick="GM.minGap=30;gmSetActive(this)">30s</div>
+                    <div class="db" onclick="GM.minGap=45;gmSetActive(this)">45s</div>
+                    <div class="db" onclick="GM.minGap=60;gmSetActive(this)">60s</div>
                   </div>
                 </div>
               </div>
             </div>
-
-            <!-- Math preview -->
             <div class="card" style="margin-bottom:12px">
               <div class="ch"><div class="ct">Round Math</div></div>
               <div class="cb">
                 <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;border:1px solid var(--bo);font-size:11px;font-family:var(--mo);line-height:1.9;white-space:pre-line" id="gm-calc-display">Calculating...</div>
               </div>
             </div>
-
-            <!-- Start/Stop -->
-            <button id="gm-toggle-btn" onclick="gmToggle()" style="width:100%;padding:14px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--fn);font-size:14px;font-weight:800;background:var(--ac);color:var(--bg0);letter-spacing:.05em">▶ START GMILLI</button>
+            <button id="gm-toggle-btn" onclick="gmToggle()" style="width:100%;padding:14px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--fn);font-size:14px;font-weight:800;background:var(--ac);color:var(--bg0)">START GMILLI</button>
             <button onclick="gmReset()" style="width:100%;padding:8px;border-radius:var(--rs);border:1px solid var(--bo);background:var(--bg3);color:var(--t2);font-family:var(--fn);font-size:11px;cursor:pointer;margin-top:6px">Reset Session</button>
           </div>
         </div>
       </div>
       <!-- END GMILLI PAGE -->
-
       <div class="page" id="page-history">
         <div class="sr" style="margin-bottom:12px"><div class="sc g"><div class="sl">Net P&L</div><div class="sv g" id="h-pnl">$0.00</div></div><div class="sc b"><div class="sl">Total</div><div class="sv b" id="h-tot">0</div></div><div class="sc go"><div class="sl">Win Rate</div><div class="sv go" id="h-wr">0%</div></div><div class="sc r"><div class="sl">Avg P&L</div><div class="sv" id="h-avg">$0.00</div></div></div>
         <div class="card"><div class="ch"><div class="ct">All Trades</div><div style="display:flex;gap:5px"><button class="btn btng" style="font-size:11px;padding:3px 9px;background:var(--ad);color:var(--ac)" onclick="filtH('all',this)">All</button><button class="btn btng" style="font-size:11px;padding:3px 9px" onclick="filtH('win',this)">Wins</button><button class="btn btng" style="font-size:11px;padding:3px 9px" onclick="filtH('loss',this)">Losses</button><button class="btn btng" style="font-size:11px;padding:3px 9px;background:var(--rd);color:var(--re);border-color:rgba(255,77,106,.4)" onclick="clearLog()">Clear All</button></div></div><div class="cb" id="histList"><div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No history yet.</div></div></div>
@@ -1079,9 +1054,9 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 
-// --------------------------------------
+// ══════════════════════════════════════
 // INSTRUMENTS
-// --------------------------------------
+// ══════════════════════════════════════
 const INSTR = {
   'Volatility Indices': [
     {sym:'R_10',name:'Volatility 10 Index'},{sym:'R_25',name:'Volatility 25 Index'},
@@ -1098,9 +1073,9 @@ const INSTR = {
   ]
 };
 
-// --------------------------------------
+// ══════════════════════════════════════
 // STATE
-// --------------------------------------
+// ══════════════════════════════════════
 const S = {
   ws:null, connected:false,
   apiToken: localStorage.getItem('kevoai_token')||'',
@@ -1130,14 +1105,14 @@ const DG = {
   stopped:false, targetHit:false
 };
 
-// --------------------------------------
+// ══════════════════════════════════════
 // HYBRID BOT STATE
-// --------------------------------------
+// ══════════════════════════════════════
 // HB state defined in WinWin Smart Bot section
 
-// --------------------------------------
+// ══════════════════════════════════════
 // WEBSOCKET
-// --------------------------------------
+// ══════════════════════════════════════
 function connectWS() {
   try { if(S.ws) S.ws.close(); } catch(e){}
   var stxtEl = document.getElementById('stxt');
@@ -1230,7 +1205,7 @@ function _hbCleanupOnError(roundId){
   document.getElementById('hb-active-count').textContent='0 ACTIVE';
 }
 
-// -- Query Deriv for valid EXPIRYRANGE durations on the HB asset --
+// ── Query Deriv for valid EXPIRYRANGE durations on the HB asset ──
 function queryContractsFor(sym){
   wsSend({contracts_for:sym, currency:S.currency||'USD', landing_company:'svg', product_type:'basic'});
 }
@@ -1272,7 +1247,7 @@ function onProposal(proposal, reqId){
   if(!p) return;
   delete S.pending[reqId];
 
-  // Debug proposal -- just log what came back
+  // Debug proposal — just log what came back
   if(p.type==='debug_proposal'){
     console.log('[DEBUG PROPOSAL RESPONSE]', JSON.stringify(proposal));
     notify('OK','Test proposal: id='+proposal.id+' ask='+proposal.ask_price+' payout='+proposal.payout,'info');
@@ -1412,7 +1387,7 @@ function resetDG(){
   };
   for(var id in els){var e=document.getElementById(id);if(e)e.textContent=els[id];}
 
-  notify('Reset','Full day reset -- all stats, trades & journal cleared','info');
+  notify('Reset','Full day reset — all stats, trades & journal cleared','info');
 }
 
 function onTick(tick) {
@@ -1433,7 +1408,7 @@ function onTick(tick) {
       if(typeof updateMovesGrid==='function')updateMovesGrid();
     }
   }
-  // -- DASHBOARD chart (priceChart) -- always live ------------------
+  // ── DASHBOARD chart (priceChart) — always live ──────────────────
   if(sym===S.asset){
     document.getElementById('livePrice').textContent=q.toFixed(q>100?2:5);
     document.getElementById('mktP').textContent=dp(q);
@@ -1448,7 +1423,7 @@ function onTick(tick) {
       priceChart.update('none');
     }
   }
-  // -- WINWIN chart (wwChart) -- always live for HB asset -----------
+  // ── WINWIN chart (wwChart) — always live for HB asset ───────────
   if(sym===HB.asset&&wwChart){
     var d2=getInd(sym).prices.slice(-100);
     if(d2.length>0){
@@ -1464,17 +1439,20 @@ function onTick(tick) {
     var ep=document.getElementById('ww-chart-price');
     if(ep)ep.textContent=dp(q);
   }
-  // -- EXPIRY TICK CAPTURE: sample price the moment contract expires --
+  // ── EXPIRY TICK CAPTURE: sample price the moment contract expires ──
   S.activeTrades.forEach(function(t){
     if(!t._exitCaptured && t.expiryTime && Date.now()>=t.expiryTime && sym===t.asset){
       t.exitPrice=q;
       t._exitCaptured=true;
-      t._exitConfirmed=false; // locally captured -- not API-confirmed
+      t._exitConfirmed=false; // locally captured — not API-confirmed
     }
   });
   // Update prediction and zone on every HB asset tick
   if(sym===HB.asset){updatePrediction();updateZoneDisplay();}
-  if(sym===GM.asset&&document.getElementById('page-gmilli')&&document.getElementById('page-gmilli').classList.contains('active')){gmUpdateDirection();}
+  if(sym===GM.asset){
+    var _gmPage=document.getElementById('page-gmilli');
+    if(_gmPage&&_gmPage.classList.contains('active'))gmUpdateDirection();
+  }
 }
 function dp(q){return q.toFixed(q>100?2:4);}
 
@@ -1491,12 +1469,12 @@ function onTickWrapper(tick){
   }
 }
 
-// Direct chart draw -- no complex throttle, just update on every tick
+// Direct chart draw — no complex throttle, just update on every tick
 var wwLastDraw=0;
 function drawWWChart(price){
   if(!wwChart)return;
   var now=Date.now();
-  if(now-wwLastDraw<250)return; // max 4 updates/sec -- enough to look live
+  if(now-wwLastDraw<250)return; // max 4 updates/sec — enough to look live
   wwLastDraw=now;
   var ind=getInd(HB.asset);
   var data=ind.prices.slice(-80); // last 80 prices
@@ -1544,13 +1522,12 @@ function onBuy(buy, reqId) {
   updateStats(); renderTrades(); renderActive();
 
   if(p._vb){t._vb=true;t._vbId=p._vbId;t._vbSide=p._vbSide;t._vbIdx=p._vbIdx;}
-  // GM contract tracking
   if(p.isGM){
     t.isGM=true;t.gmRound=p.gmRound;t.gmSide=p.gmSide;
-    var _gmRR=GM.pending[p.gmRound];
-    if(_gmRR){
-      if(p.gmSide==='call')_gmRR.callContractId=buy.contract_id+'';
-      else _gmRR.putContractId=buy.contract_id+'';
+    var _gmR=GM.pending[p.gmRound];
+    if(_gmR){
+      if(p.gmSide==='call')_gmR.callContractId=buy.contract_id+'';
+      else _gmR.putContractId=buy.contract_id+'';
     }
   }
   wsSend({proposal_open_contract:1,contract_id:buy.contract_id,subscribe:1});
@@ -1559,13 +1536,12 @@ function onBuy(buy, reqId) {
   function pollContract(cid, attempts){
     attempts=attempts||0;
     if(attempts>8) {
-      // Final timeout -- force close as loss
+      // Final timeout — force close as loss
       for(var i=0;i<S.trades.length;i++){
         if(S.trades[i].contractId===cid&&S.trades[i].status==='active'){
           S.trades[i]._settled=true;
           S.trades[i].status='timeout';S.trades[i].pnl=-S.trades[i].stake;
           if(S.trades[i].isHB&&S.trades[i].hbRound) onHBResult(S.trades[i].hbRound,S.trades[i].hbIdx,-S.trades[i].stake,S.trades[i].direction,null);
-          if(S.trades[i].isGM&&S.trades[i].gmRound) onGMResult(S.trades[i].gmRound,S.trades[i].gmSide,-S.trades[i].stake);
           break;
         }
       }
@@ -1597,7 +1573,7 @@ function onContract(c) {
   var t=S.trades[idx];
   if(t._settled) return;
 
-  // -- ENTRY: lock on first push only ------------------------------
+  // ── ENTRY: lock on first push only ──────────────────────────────
   var entryTick = c.entry_tick ? parseFloat(c.entry_tick.quote||c.entry_tick.value||0) : 0;
   var entrySpot = parseFloat(c.entry_spot||0);
   var entryPrice = entryTick||entrySpot||0;
@@ -1606,14 +1582,14 @@ function onContract(c) {
     if(t.isHB&&t.hbRound!==null&&HB.pending[t.hbRound]) HB.pending[t.hbRound].entry=entryPrice;
   }
 
-  // -- LIVE EXIT: track current_spot on every push -----------------
-  // For expired/missed contracts Deriv never sends exit_tick -- current_spot
+  // ── LIVE EXIT: track current_spot on every push ─────────────────
+  // For expired/missed contracts Deriv never sends exit_tick — current_spot
   // is the only price we get at expiry time, so we keep the latest value.
   if(c.current_spot && parseFloat(c.current_spot)>0){
     t._liveExit=parseFloat(c.current_spot);
   }
 
-  // -- SETTLEMENT DETECTION ----------------------------------------
+  // ── SETTLEMENT DETECTION ────────────────────────────────────────
   var nowSec=Math.floor(Date.now()/1000);
   var expiryTs=parseInt(c.expiry_time||c.date_expiry||0);
   var isDone=c.is_sold==1 ||
@@ -1623,7 +1599,7 @@ function onContract(c) {
   if(!isDone) return;
   t._settled=true;
 
-  // -- PROFIT ------------------------------------------------------
+  // ── PROFIT ──────────────────────────────────────────────────────
   var profit=parseFloat(c.profit);
   if(isNaN(profit)) profit=0;
   if(profit===0){
@@ -1634,10 +1610,10 @@ function onContract(c) {
     if(profit===0&&t.stake) profit=-t.stake;
   }
 
-  // -- EXIT PRICE --------------------------------------------------
-  // Deriv exit_tick object has {epoch, quote, value} -- NOT .tick
+  // ── EXIT PRICE ──────────────────────────────────────────────────
+  // Deriv exit_tick object has {epoch, quote, value} — NOT .tick
   // audit_details.contract_end last entry has .tick but that's a different path
-  // Safe priority: exit_tick.quote -> exit_tick.value -> exit_spot -> _liveExit
+  // Safe priority: exit_tick.quote → exit_tick.value → exit_spot → _liveExit
   var exitPrice=null;
   var _etq = c.exit_tick ? parseFloat(c.exit_tick.quote||c.exit_tick.value||0) : 0;
   if(_etq > 0) { exitPrice=_etq; t._exitConfirmed=true; }
@@ -1653,7 +1629,7 @@ function onContract(c) {
   if(exitPrice && isNaN(exitPrice)) exitPrice=null;
 
   console.log('[SETTLED] cid:',c.contract_id,'is_sold:',c.is_sold,'profit:',profit,
-    'entry:',t.price,'exit_tick:',c.exit_tick,'exit_spot:',c.exit_spot,'->exitPrice:',exitPrice);
+    'entry:',t.price,'exit_tick:',c.exit_tick,'exit_spot:',c.exit_spot,'→exitPrice:',exitPrice);
 
   var now=Date.now();
   t.pnl=profit; t.win=profit>0; t.status=profit>0?'win':'loss';
@@ -1667,10 +1643,7 @@ function onContract(c) {
     S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
     return;
   }
-  if(t.isGM&&t.gmRound){
-    onGMResult(t.gmRound,t.gmSide,profit);
-    return;
-  }
+  if(t.isGM&&t.gmRound){onGMResult(t.gmRound,t.gmSide,profit);return;}
   if(t.isHB&&t.hbRound!==null){
     onHBResult(t.hbRound,t.hbIdx,profit,t.direction,t.exitPrice);
     localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
@@ -1706,15 +1679,15 @@ function onContract(c) {
 
 function fmtDur(ms){if(!ms||ms<0)return '--';var s=Math.floor(ms/1000);if(s<60)return s+'s';return Math.floor(s/60)+'m '+(s%60)+'s';}
 
-// --------------------------------------
+// ══════════════════════════════════════
 // HYBRID BOT CORE
-// --------------------------------------
+// ══════════════════════════════════════
 
-// ------------------------------------------------------------------
-// WINWIN BOT -- 2 contracts, equal split, ATRx1.0 barrier
+// ══════════════════════════════════════════════════════════════════
+// WINWIN BOT — 2 contracts, equal split, ATR×1.0 barrier
 // Only lose if price is FLAT. Any move = profit.
 // Display: WIN side + LOSS side + BOTH MISS (if flat)
-// ------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════
 
 const HB = {
   running:false, interval:null,
@@ -1727,18 +1700,18 @@ const HB = {
   lossStreak:0, coolingDown:false, cooldownEnd:0,
   lastSqueezeTime:0, prevBBWidth:0,
   barrierMult:1.0,
-  // -- HYBRID ASYMMETRIC DUAL TRADE -----------------------------
-  trendMult:3.0,    // ATRx3 -- tuned: R_100 moves 0.4-0.7, barrier sized to match
-  counterMult:0.8   // ATRx0.8 -- near-guaranteed hit, always covers trend loss
+  // ── HYBRID ASYMMETRIC DUAL TRADE ─────────────────────────────
+  trendMult:3.0,    // ATR×3 — tuned: R_100 moves 0.4-0.7, barrier sized to match
+  counterMult:0.8   // ATR×0.8 — near-guaranteed hit, always covers trend loss
 };
 
-// -- HYBRID DUAL TRADE STAKE SOLVER ------------------------------
+// ── HYBRID DUAL TRADE STAKE SOLVER ──────────────────────────────
 // From our agreed math (P_t=1.85, P_c=1.40, budget=$3):
-//   S_c x (P_c+1) > budget  ->  S_c > budget/(P_c+1)
+//   S_c x (P_c+1) > budget  →  S_c > budget/(P_c+1)
 //   S_t = budget - S_c
 // Both scenarios green:
 //   A: S_t x P_t - S_c > 0
-//   B: S_c x P_c - S_t > 0  <- this is the hard one
+//   B: S_c x P_c - S_t > 0  ← this is the hard one
 // Skip if P_t x P_c <= 1 (math impossible)
 function solveHybridStakes(budget, P_t, P_c) {
   if(!P_t || !P_c || P_t <= 1 || P_c <= 1) return null;
@@ -1773,7 +1746,7 @@ function getSideStake(){
   return Math.max(0.35,parseFloat((risk/2).toFixed(2)));
 }
 
-// -- Risk Calculator -----------------------------------------------
+// ── Risk Calculator ───────────────────────────────────────────────
 function updateHBCalc(){calcWWDaily();}
 function calcWWDaily(){
   var budget=parseFloat(document.getElementById('ww-risk').value)||3;
@@ -1789,20 +1762,20 @@ function calcWWDaily(){
   var el=document.getElementById('ww-progress-target');if(el)el.textContent='$'+tp;
   var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=budget.toFixed(2);
   var math=[
-    '2-CONTRACT SYSTEM: CALL + PUT',
-    'CALL: barrier BELOW entry -> already winning',
-    'PUT:  barrier ABOVE entry -> already winning',
-    'One side ALWAYS wins -- winner covers loser + profit',
+    'EXPIRYRANGE DUAL ZONE SYSTEM',
+    'Zone A (UP):  EXPIRYRANGE entry+dist → entry+(dist×2)',
+    'Zone B (DN):  EXPIRYRANGE entry-(dist×2) → entry-dist',
+    'Direction filter ensures price lands in one zone',
     '',
     'Budget per round: $'+budget.toFixed(2),
     'Each side stake:  $'+stakeEach.toFixed(2),
     'Est payout each:  x'+P_est+' (~live depends on dist)',
     '',
-    'SCENARIO A -- Both win (calm market):',
+    'SCENARIO A — Both win (calm market):',
     '  $'+stakeEach.toFixed(2)+' x '+P_est+' + $'+stakeEach.toFixed(2)+' x '+P_est+' - $'+budget.toFixed(2),
     '  = +$'+profitBothWin.toFixed(2)+' profit',
     '',
-    'SCENARIO B -- One wins (price moves):',
+    'SCENARIO B — One wins (price moves):',
     '  $'+stakeEach.toFixed(2)+' x '+P_est+' - $'+budget.toFixed(2),
     '  = '+profitOneWin.toFixed(2)+' (loss when payout < 2x)',
     '',
@@ -1816,7 +1789,7 @@ function calcWWDaily(){
   updateBarrierPreview();
 }
 
-// -- Barrier input -------------------------------------------------
+// ── Barrier input ─────────────────────────────────────────────────
 function buildMultInputs(){
   var hDiv=document.getElementById('h-mult-inputs');
   var lDiv=document.getElementById('l-mult-inputs');
@@ -1826,7 +1799,7 @@ function buildMultInputs(){
     +'<input type="number" style="width:60px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:var(--mo);font-size:12px;outline:none" id="hm0" value="'+HB.barrierMult+'" step="0.1" min="0.1" oninput="HB.barrierMult=parseFloat(this.value)||1.0;syncBarrierMult(this.value);updateBarrierPreview()">'
     +'<span style="font-size:10px;color:var(--t3)">both sides mirror</span></div>';
   if(hDiv)hDiv.innerHTML=inputHtml.replace('color:var(--ac)','color:var(--ac)').replace('hm0','hm0');
-  if(lDiv)lDiv.innerHTML='<div style="font-size:10px;color:var(--t3);padding:4px 0">L1 mirrors H1 automatically -- same barrier both sides</div>'
+  if(lDiv)lDiv.innerHTML='<div style="font-size:10px;color:var(--t3);padding:4px 0">L1 mirrors H1 automatically — same barrier both sides</div>'
     +'<input type="hidden" id="lm0" value="'+HB.barrierMult+'">';
 }
 
@@ -1864,10 +1837,10 @@ function updateBarrierPreview(){
   var pt=document.getElementById('barrier-preview-txt');
   var _pvDist2=Math.max(0.02,Math.round(_pvATR*mult*2*100)/100);
   if(pt)pt.innerHTML=
-    '<span style="color:var(--ac)">CALL (trend)</span>  barrier: +-'+bT.toFixed(2)+' (x'+HB.trendMult+'ATR)<br>'+
-    '<span style="color:var(--re)">PUT (counter)</span> barrier: +-'+bC.toFixed(2)+' (x'+HB.counterMult+'ATR)<br>'+
-    '<span style="color:var(--go)">Each stake: $'+stakeEach+'  ATR:</span> '+(_pvATR>0?_pvATR.toFixed(4):'warming')+'  x'+mult+'<br>'+
-    '<span style="color:var(--t3)">Price moves UP -> Zone A wins | Price moves DOWN -> Zone B wins</span>';
+    '<span style="color:var(--ac)">▲ UP ZONE</span>  EXPIRYRANGE: <b>+'+_pvDist+'</b> to <b>+'+_pvDist2+'</b><br>'+
+    '<span style="color:var(--re)">▼ DN ZONE</span>  EXPIRYRANGE: <b>-'+_pvDist2+'</b> to <b>-'+_pvDist+'</b><br>'+
+    '<span style="color:var(--go)">Each stake: $'+stakeEach+'  ATR:</span> '+(_pvATR>0?_pvATR.toFixed(4):'warming')+'  ×'+mult+'<br>'+
+    '<span style="color:var(--t3)">Price moves UP → Zone A wins | Price moves DOWN → Zone B wins</span>';
   var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=budget.toFixed(2);
 }
 
@@ -1875,29 +1848,29 @@ function renderTradeBreakdown(bTrend,bCounter,stTrend,stCounter,P_t,P_c,result){
   if(typeof bCounter==='undefined'){bCounter=getCounterBarrier();}
   if(!result){var b=(stTrend||0)+(stCounter||0)||3;result=solveHybridStakes(b,P_t||1.85,P_c||1.40)||{S_t:stTrend||0,S_c:stCounter||0,profitA:0,profitB:0,totalRisk:b,valid:false};}
   var eoB=document.getElementById('eo-barrier'),eoS=document.getElementById('eo-stake'),eoPay=document.getElementById('eo-payout');
-  if(eoB)eoB.textContent='+-'+(bTrend||0).toFixed(2)+' (x'+HB.trendMult+'ATR)';
+  if(eoB)eoB.textContent='±'+(bTrend||0).toFixed(2)+' (×'+HB.trendMult+'ATR)';
   if(eoS)eoS.textContent='$'+(stTrend||result.S_t||0).toFixed(2);
   if(eoPay)eoPay.textContent='~'+((P_t||1.85)*100).toFixed(0)+'% (+$'+result.profitA.toFixed(2)+' net)';
   var ebB=document.getElementById('eb-barrier'),ebS=document.getElementById('eb-stake');
-  if(ebB)ebB.textContent='+-'+(bCounter||0).toFixed(2)+' (x'+HB.counterMult+'ATR)';
+  if(ebB)ebB.textContent='±'+(bCounter||0).toFixed(2)+' (×'+HB.counterMult+'ATR)';
   if(ebS)ebS.textContent='$'+(stCounter||result.S_c||0).toFixed(2);
   var ts=document.getElementById('ww-total-stake');if(ts)ts.textContent='$'+result.totalRisk.toFixed(2);
   var bw=document.getElementById('ww-best-win');
   if(bw){bw.textContent='+$'+result.profitA.toFixed(2)+' / +$'+result.profitB.toFixed(2);bw.style.color=result.valid?'var(--ac)':'var(--re)';}
 }
 
-// -- Signal Engine -- rebuilt from trade data -----------------------
+// ── Signal Engine — rebuilt from trade data ───────────────────────
 // Data showed 3 market states:
-//   ATR low  + BB squeezing   = DEAD   -> full stake loss every time
-//   ATR rising + BB expanding = WEAK   -> counter wins only (~$0.12)
-//   ATR high + BB expanding   = STRONG -> main wins (~$2.36)
+//   ATR low  + BB squeezing   = DEAD   → full stake loss every time
+//   ATR rising + BB expanding = WEAK   → counter wins only (~$0.12)
+//   ATR high + BB expanding   = STRONG → main wins (~$2.36)
 // New rules:
-//   BB squeeze = HARD BLOCK (was +2 score -- now kills the trade)
-//   Low vol    = HARD BLOCK (was +1 score -- same problem)
+//   BB squeeze = HARD BLOCK (was +2 score — now kills the trade)
+//   Low vol    = HARD BLOCK (was +1 score — same problem)
 //   ATR HIGH   = required for score (strong breakout = main wins)
 //   Momentum   = +1 (confirms breakout in progress)
 //   Cooldown   = +1 (timing guard)
-//   Score max  = 2 -- trade when both ATR strong + momentum confirm
+//   Score max  = 2 — trade when both ATR strong + momentum confirm
 var wwSigThrottle=0;
 function getWWSignal(){
   var ind=getInd(HB.asset),prices=ind.prices,n=prices.length,score=0;
@@ -1917,12 +1890,12 @@ function getWWSignal(){
   for(var j=n-25;j<n-5;j++)atr20+=Math.abs(prices[j]-prices[j-1]);atr20/=20;
   var atrRatio=atr20>0?atr5/atr20:1;
 
-  // -- HARD BLOCKS -- if either fires, score=0 and return not ready --
+  // ── HARD BLOCKS — if either fires, score=0 and return not ready ──
   var isSqueeze=!!ind.bbSqueeze;
   var isLowVol=atrRatio<0.2; // OB system: only block truly dead markets
 
   if(updateDOM){
-    // ATR card -- now shows HIGH/MED/LOW and whether it blocks
+    // ATR card — now shows HIGH/MED/LOW and whether it blocks
     var ac=document.getElementById('sig-atr-card'),av=document.getElementById('sig-atr-val');
     var atrHigh=atrRatio>=1.2;
     var atrBlock=isLowVol;
@@ -1936,25 +1909,25 @@ function getWWSignal(){
            vb.style.color=isLowVol?'var(--re)':atrRatio<0.5?'var(--go)':'var(--ac)';}
     var ca=document.getElementById('ww-chart-atr');if(ca)ca.textContent='ATR:'+atr5.toFixed(4);
 
-    // BB card -- squeeze is now a RED block
+    // BB card — squeeze is now a RED block
     var bc=document.getElementById('sig-bb-card'),bv=document.getElementById('sig-bb-val');
     if(bc){bc.style.borderColor='var(--bo)';bc.style.background='var(--bg3)';}
     if(bv){bv.textContent=isSqueeze?'INFO':'OK';
            bv.style.color=isSqueeze?'var(--go)':'var(--t2)';}  // info only, never blocks
   }
 
-  // If market is dead or squeezing -- hard block, do not score
+  // If market is dead or squeezing — hard block, do not score
   if(false){ // OB system: BB squeeze/low vol no longer block trades
     if(updateDOM){
       var sb3=document.getElementById('sig-score-badge');
       if(sb3){sb3.textContent='WAITING';sb3.style.background='var(--gd)';sb3.style.color='var(--go)';sb3.style.border='1px solid rgba(245,166,35,0.3)';}
       var ss3=document.getElementById('sig-status');
-      if(ss3){ss3.textContent='i BB:'+(isSqueeze?'Squeeze (ignored)':'OK')+' -- Direction filter active';ss3.style.color='var(--go)';}
+      if(ss3){ss3.textContent='ℹ BB:'+(isSqueeze?'Squeeze (ignored)':'OK')+' — Direction filter active';ss3.style.color='var(--go)';}
     }
     return{score:0,ready:false};
   }
 
-  // -- POSITIVE SIGNALS -- ATR high + momentum -------------------
+  // ── POSITIVE SIGNALS — ATR high + momentum ───────────────────
   // Signal 1: ATR elevated (market actively moving)
   var atrHigh=atrRatio>=1.2;
   if(atrHigh)score++;
@@ -1964,7 +1937,7 @@ function getWWSignal(){
     if(av2){av2.textContent=atrRatio.toFixed(2)+'x '+(atrHigh?'HIGH':'MED');av2.style.color=atrHigh?'var(--ac)':'var(--t2)';}
   }
 
-  // BB expansion card -- informational only now (no score)
+  // BB expansion card — informational only now (no score)
   var expanding=ind.bbWidth>0&&ind.bbWidth>(HB.prevBBWidth||0)*1.05;
   if(ind.bbWidth)HB.prevBBWidth=ind.bbWidth;
   if(updateDOM){
@@ -1985,7 +1958,7 @@ function getWWSignal(){
 
   // Signal 3: Cooldown/gap ok
   var gapOk=(now-HB.lastRoundTime)>=(HB.minGap||45)*1000,coolOk=!HB.coolingDown||now>HB.cooldownEnd,cdOk=gapOk&&coolOk;
-  // Note: cooldown is a hard requirement, not scored -- if not ready, block
+  // Note: cooldown is a hard requirement, not scored — if not ready, block
   var dsecs=Math.max(gapOk?0:Math.ceil(((HB.lastRoundTime+(HB.minGap||45)*1000)-now)/1000),coolOk?0:Math.ceil((HB.cooldownEnd-now)/1000));
   if(updateDOM){
     var cdc=document.getElementById('sig-cd-card'),cdv=document.getElementById('sig-cd-val');
@@ -1996,7 +1969,7 @@ function getWWSignal(){
     if(sb){sb.textContent='Score: '+score+'/2';sb.style.background=score>=2?'var(--ad)':score>=1?'var(--gd)':'var(--bg4)';sb.style.color=score>=2?'var(--ac)':score>=1?'var(--go)':'var(--t3)';sb.style.border='1px solid '+(score>=1?'rgba(0,229,160,0.3)':'var(--bo)');}
     var ss=document.getElementById('sig-status');
     if(ss){
-      if(!cdOk){ss.textContent='[T] '+(HB.coolingDown&&!coolOk?'Cooldown: '+dsecs+'s':'Gap: '+dsecs+'s until ready');ss.style.color='var(--go)';}
+      if(!cdOk){ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+dsecs+'s':'Gap: '+dsecs+'s until ready');ss.style.color='var(--go)';}
       else if(true){ // OB system: always show direction status when cooldown ok
         // Show overlapping barrier direction status
         var _ssPrices=getInd(HB.asset).prices,_ssN=_ssPrices.length;
@@ -2007,10 +1980,10 @@ function getWWSignal(){
         var _ssHT=parseInt(document.getElementById('ob-high-thresh').value)||65;
         var _ssLT=parseInt(document.getElementById('ob-low-thresh').value)||75;
         var _ssPass=(_ssUp>=_ssHT)||(_ssDn>=_ssLT);
-        ss.textContent=_ssPass?'[OK] Direction OK -- UP:'+_ssUp+'% DN:'+_ssDn+'% -- Firing OB round...':'[wait] Waiting -- UP:'+_ssUp+'% DN:'+_ssDn+'% (need '+_ssHT+'%UP/'+_ssLT+'%DN)';
+        ss.textContent=_ssPass?'✅ Direction OK — UP:'+_ssUp+'% DN:'+_ssDn+'% — Firing OB round...':'⏳ Waiting — UP:'+_ssUp+'% DN:'+_ssDn+'% (need '+_ssHT+'%↑/'+_ssLT+'%↓)';
         ss.style.color=_ssPass?'var(--ac)':'var(--go)';
       }
-      else{var miss=[];if(!atrHigh)miss.push('ATR high');if(!momBurst)miss.push('momentum burst');ss.textContent='[wait] Waiting ('+score+'/2): need '+miss.join(', ');ss.style.color='var(--t2)';}
+      else{var miss=[];if(!atrHigh)miss.push('ATR high');if(!momBurst)miss.push('momentum burst');ss.textContent='⏳ Waiting ('+score+'/2): need '+miss.join(', ');ss.style.color='var(--t2)';}
     }
   }
 
@@ -2018,23 +1991,23 @@ function getWWSignal(){
   if(_np>=5){for(var _fi=_np-5;_fi<_np;_fi++)_af+=Math.abs(_pp[_fi]-_pp[_fi-1]);_af/=5;}
   var atrOk=_af>=0.05;
   if(updateDOM&&!atrOk){var _av2=document.getElementById('sig-atr-val');if(_av2)_av2.textContent='FLAT!';}
-  return{score:score,ready:cdOk};  // OB system: only cooldown/gap needed -- direction threshold handles filtering
+  return{score:score,ready:cdOk};  // OB system: only cooldown/gap needed — direction threshold handles filtering
 }
 
-// ------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════
 // INTEGER WALL ZONE ENGINE
 // Data-driven from CSV analysis:
-//   63% of WINS crossed an integer boundary (604->605, 607->608 etc)
+//   63% of WINS crossed an integer boundary (604→605, 607→608 etc)
 //   Only 13% of LOSSES crossed an integer boundary
 //   Win rate 58% when within 0.15 of integer vs 40% when mid-range
 //
 // Rule:
-//   within 0.15 of integer  -> NEAR WALL -> tradeable, confluences set direction
-//   beyond 0.15 either side -> DEAD ZONE -> skip, no edge
+//   within 0.15 of integer  → NEAR WALL → tradeable, confluences set direction
+//   beyond 0.15 either side → DEAD ZONE → skip, no edge
 //
 // The nearest integer becomes the TARGET the price is pulled toward.
 // Confluences confirm which direction price is heading.
-// ------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════
 var IW_THRESHOLD = 0.15; // distance from integer to be considered "near wall"
 
 function getIntegerWallZone(){
@@ -2055,7 +2028,7 @@ function getIntegerWallZone(){
     nearestInt=floorInt;
     distToNearest=distToFloor;
     zone='near_floor';
-    // Confluences will decide direction -- but being near floor means
+    // Confluences will decide direction — but being near floor means
     // price can go either way across it. We leave bias for confluences.
     bias=null; // set by confluence
   } else if(distToCeil<=IW_THRESHOLD){
@@ -2065,7 +2038,7 @@ function getIntegerWallZone(){
     zone='near_ceil';
     bias=null; // set by confluence
   } else {
-    // Mid-range -- dead zone, no integer wall nearby
+    // Mid-range — dead zone, no integer wall nearby
     nearestInt=(distToFloor<distToCeil)?floorInt:ceilInt;
     distToNearest=Math.min(distToFloor,distToCeil);
     zone='dead_zone';
@@ -2113,8 +2086,8 @@ function updateZoneDisplay(){
   var _zdLT=parseInt(document.getElementById('ob-low-thresh').value)||75;
   var _zdPass=(_zdUp>=_zdHT)||(_zdDn>=_zdLT);
   var _zdColor=_zdPass?'var(--ac)':'var(--go)';
-  var _zdText=_zdN<5?'WARMING UP':(_zdPass?'DIR READY [OK]':'WAITING [wait]');
-  var _zdDetail=_zdN<5?'Need 5 ticks':'UP:'+_zdUp+'% DN:'+_zdDn+'%  need '+_zdHT+'%UP/'+_zdLT+'%DN';
+  var _zdText=_zdN<5?'WARMING UP':(_zdPass?'DIR READY ✅':'WAITING ⏳');
+  var _zdDetail=_zdN<5?'Need 5 ticks':'UP:'+_zdUp+'% DN:'+_zdDn+'%  need '+_zdHT+'%↑/'+_zdLT+'%↓';
 
   if(el){el.textContent=_zdText;el.style.color=_zdColor;
     el.style.background=_zdPass?'rgba(0,229,160,0.15)':'var(--bg4)';}
@@ -2135,7 +2108,7 @@ function updateZoneDisplay(){
   _drawIntegerWallLines(z);
 }
 
-// -- Draw integer wall lines on WW chart and price chart ----------
+// ── Draw integer wall lines on WW chart and price chart ──────────
 var _lastWallPrice=0;
 function _drawIntegerWallLines(z){
   if(!z||!z.price)return;
@@ -2153,7 +2126,7 @@ function _drawIntegerWallLines(z){
     // Remove old integer wall lines
     chart.data.datasets=chart.data.datasets.filter(function(d){return !d._isIntWall;});
 
-    // Floor wall line (integer below) -- green
+    // Floor wall line (integer below) — green
     chart.data.datasets.push({
       _isIntWall:true,_isWWBarrier:false,
       label:''+floorInt+'.00',
@@ -2164,7 +2137,7 @@ function _drawIntegerWallLines(z){
       pointRadius:0,fill:false,tension:0
     });
 
-    // Ceil wall line (integer above) -- red
+    // Ceil wall line (integer above) — red
     chart.data.datasets.push({
       _isIntWall:true,_isWWBarrier:false,
       label:''+ceilInt+'.00',
@@ -2200,9 +2173,9 @@ function setWWBarrierLines(entry,barrier){
   wwActiveBarrier={entry:entry,barrier:barrier};
   var leg=document.getElementById('ww-barrier-legend');
   if(leg)leg.innerHTML=
-    '<span style="color:var(--go);font-weight:700">*Entry:'+entry.toFixed(2)+'</span>'
-    +' <span style="color:var(--ac);font-weight:700">^OUTSIDE:+'+(entry+barrier).toFixed(2)+'</span>'
-    +' <span style="color:var(--re);font-weight:700">vOUTSIDE:-'+(entry-barrier).toFixed(2)+'</span>'
+    '<span style="color:var(--go);font-weight:700">●Entry:'+entry.toFixed(2)+'</span>'
+    +' <span style="color:var(--ac);font-weight:700">▲OUTSIDE:+'+(entry+barrier).toFixed(2)+'</span>'
+    +' <span style="color:var(--re);font-weight:700">▼OUTSIDE:-'+(entry-barrier).toFixed(2)+'</span>'
     +' <span style="color:var(--bl)">BETWEEN wins if inside</span>';
   _drawWWBarriersOnChart(priceChart);
   _drawWWBarriersOnChart(wwChart);
@@ -2211,7 +2184,7 @@ function setWWBarrierLines(entry,barrier){
 function clearWWBarrierLines(){
   wwActiveBarrier=null;S.priceHistHB=null;
   var leg=document.getElementById('ww-barrier-legend');
-  if(leg)leg.innerHTML='<span style="color:var(--t3)">No active round -- waiting for signal</span>';
+  if(leg)leg.innerHTML='<span style="color:var(--t3)">No active round — waiting for signal</span>';
   [priceChart,wwChart].forEach(function(c){
     if(!c)return;
     // Remove WW barriers but KEEP integer wall lines
@@ -2235,7 +2208,7 @@ function _drawWWBarriersOnChart(chart){
   var len=Math.max(2,chart.data.labels.length);
   chart.data.datasets=chart.data.datasets.filter(function(d){return !d._isWWBarrier;});
 
-  // -- TOP GREEN ZONE: above upper barrier --------------------------
+  // ── TOP GREEN ZONE: above upper barrier ──────────────────────────
   // Invisible ceiling line filled down to the upper barrier
   chart.data.datasets.push({_isWWBarrier:true,
     label:'',data:Array(len).fill(zoneTop),
@@ -2245,28 +2218,28 @@ function _drawWWBarriersOnChart(chart){
     backgroundColor:'rgba(0,229,160,0.18)'
   });
 
-  // Upper barrier line -- solid green
+  // Upper barrier line — solid green
   chart.data.datasets.push({_isWWBarrier:true,
     label:'',data:Array(len).fill(hi),
     borderColor:'rgba(0,229,160,1)',borderWidth:2,borderDash:[8,4],
     pointRadius:0,tension:0,fill:false
   });
 
-  // Entry line -- amber dashed
+  // Entry line — amber dashed
   chart.data.datasets.push({_isWWBarrier:true,
     label:'',data:Array(len).fill(entry),
     borderColor:'rgba(245,166,35,0.9)',borderWidth:1.5,borderDash:[4,4],
     pointRadius:0,tension:0,fill:false
   });
 
-  // Lower barrier line -- solid red
+  // Lower barrier line — solid red
   chart.data.datasets.push({_isWWBarrier:true,
     label:'',data:Array(len).fill(lo),
     borderColor:'rgba(255,77,106,1)',borderWidth:2,borderDash:[8,4],
     pointRadius:0,tension:0,fill:false
   });
 
-  // -- BOTTOM RED ZONE: below lower barrier -------------------------
+  // ── BOTTOM RED ZONE: below lower barrier ─────────────────────────
   // Invisible floor line filled up to the lower barrier
   chart.data.datasets.push({_isWWBarrier:true,
     label:'',data:Array(len).fill(zoneBot),
@@ -2308,7 +2281,7 @@ function toggleHybrid(){
     runHybridAuto();
   } else {
     clearTimeout(HB.interval);clearInterval(HB.countdownTimer);
-    document.getElementById('placeAllBtn').textContent='UD PLACE ROUND -- OUTSIDE + BETWEEN';
+    document.getElementById('placeAllBtn').textContent='↕ PLACE ROUND — OUTSIDE + BETWEEN';
     document.getElementById('placeAllBtn').style.background='linear-gradient(135deg,var(--ac),#00b0ff)';
     document.getElementById('hb-countdown-txt').textContent='Bot stopped';
     document.getElementById('hb-countdown-bar').style.width='0%';
@@ -2345,8 +2318,8 @@ function runHybridAuto(){
   }
   var sig=getWWSignal();
   if(!sig.ready){document.getElementById('hb-active-count').textContent='0 ACTIVE';HB.interval=setTimeout(runHybridAuto,2000);return;}
-  // Zone gate removed -- overlapping barrier system doesn't need integer walls
-  // -- Dual Direction Threshold Gate (65% Higher / 75% Lower) ----
+  // Zone gate removed — overlapping barrier system doesn't need integer walls
+  // ── Dual Direction Threshold Gate (65% Higher / 75% Lower) ────
   var _dtPrices=getInd(HB.asset).prices,_dtN=_dtPrices.length;
   if(_dtN>=5){
     var _dtLookback=Math.min(20,_dtN-1);
@@ -2363,7 +2336,7 @@ function runHybridAuto(){
     var _dtPass=(_dtUpPct>=_dtHighThresh)||(_dtDnPct>=_dtLowThresh);
     if(!_dtPass){
       document.getElementById('hb-active-count').textContent=
-        'WAITING -- UP:'+_dtUpPct+'% DN:'+_dtDnPct+'% (need '+_dtHighThresh+'%/'+_dtLowThresh+'%)';
+        'WAITING — UP:'+_dtUpPct+'% DN:'+_dtDnPct+'% (need '+_dtHighThresh+'%/'+_dtLowThresh+'%)';
       HB.interval=setTimeout(runHybridAuto,2000);return;
     }
   }
@@ -2372,7 +2345,7 @@ function runHybridAuto(){
 }
 
 function startCountdown(secs){
-  // No-op -- countdown removed. Status driven by runHybridAuto loop.
+  // No-op — countdown removed. Status driven by runHybridAuto loop.
 }
 
 function placeHybridRound(){
@@ -2381,21 +2354,21 @@ function placeHybridRound(){
   var active=S.activeTrades.filter(function(t){return t.isHB;});
   if(active.length>0){notify('!','Round already active','loss');return;}
   var sig=getWWSignal();
-  if(!sig.ready){notify('!','Not ready -- waiting for gap/cooldown','info');return;}
+  if(!sig.ready){notify('!','Not ready — waiting for gap/cooldown','info');return;}
 
   var entry=S.prices[HB.asset]||0;
   if(entry<=0){notify('!','No price data for '+HB.asset,'loss');return;}
 
-  // -- Live ATR check -- skip dead markets -----------------------
+  // ── Live ATR check — skip dead markets ───────────────────────
   var _lPrices=getInd(HB.asset).prices,_lN=_lPrices.length;
   var _lATR=0;
   if(_lN>=5){for(var _li=_lN-5;_li<_lN;_li++)_lATR+=Math.abs(_lPrices[_li]-_lPrices[_li-1]);_lATR/=5;}
   if(_lATR<0.05){
-    notify('SKIP','ATR too low ('+_lATR.toFixed(4)+') -- dead market, skipping','info');
+    notify('SKIP','ATR too low ('+_lATR.toFixed(4)+') — dead market, skipping','info');
     return;
   }
 
-  // -- Dual Direction Threshold hard gate -----------------------
+  // ── Dual Direction Threshold hard gate ───────────────────────
   var _hgLookback=Math.min(20,_lN-1);
   var _hgUps=0,_hgDns=0;
   for(var _hgi=_lN-_hgLookback;_hgi<_lN;_hgi++){
@@ -2408,24 +2381,63 @@ function placeHybridRound(){
   var _hgHighT=parseInt(document.getElementById('ob-high-thresh').value)||65;
   var _hgLowT=parseInt(document.getElementById('ob-low-thresh').value)||75;
   if(!(_hgUpPct>=_hgHighT||_hgDnPct>=_hgLowT)){
-    notify('SKIP','Direction gate -- UP:'+_hgUpPct+'% DN:'+_hgDnPct+'% need '+_hgHighT+'%/'+_hgLowT+'%','info');
+    notify('SKIP','Direction gate — UP:'+_hgUpPct+'% DN:'+_hgDnPct+'% need '+_hgHighT+'%/'+_hgLowT+'%','info');
     return;
   }
 
-  // Integer wall zone gate removed -- overlapping barrier system fires anywhere
+  // Integer wall zone gate removed — overlapping barrier system fires anywhere
   var zone={zone:'ob_mode',ready:true,nearestInt:0,distToNearest:0,price:entry};
 
-  // Decimal zone filter removed -- not relevant to overlapping barrier system
+  // Decimal zone filter removed — not relevant to overlapping barrier system
 
-  // -- ORIGINAL WINWIN -- CALL (trend) + PUT (counter) ----------
-  var bTrend=getTrendBarrier();
-  var bCounter=getCounterBarrier();
+  // ══════════════════════════════════════════════════════════════
+  // EXPIRYRANGE DUAL ZONE SYSTEM
+  // ══════════════════════════════════════════════════════════════
+  // TWO EXPIRYRANGE (Ends Between) contracts placed simultaneously
+  // Each covers a zone on one side of entry price
+  //
+  // CONTRACT A — UP ZONE (EXPIRYRANGE):
+  //   barrier  = +(dist*2) → High barrier ABOVE entry
+  //   barrier2 = +(dist)   → Low barrier  just above entry
+  //   Wins if exit ends between entry+dist and entry+(dist*2)
+  //
+  // CONTRACT B — DOWN ZONE (EXPIRYRANGE):
+  //   barrier  = -(dist)   → High barrier just below entry
+  //   barrier2 = -(dist*2) → Low barrier  BELOW entry
+  //   Wins if exit ends between entry-(dist*2) and entry-dist
+  //
+  // If market moves UP   → Contract A wins ✅
+  // If market moves DOWN → Contract B wins ✅
+  // If market stays flat → NEITHER wins (very small range missed)
+  // Direction filter ensures market is moving → one always wins
+  // ══════════════════════════════════════════════════════════════
+  var _obMult=parseFloat(document.getElementById('ob-atr-mult').value)||0.5;
+  var _obPrices=getInd(HB.asset).prices,_obN=_obPrices.length;
+  var _obATR=0;
+  if(_obN>=5){for(var _oi=_obN-5;_oi<_obN;_oi++)_obATR+=Math.abs(_obPrices[_oi]-_obPrices[_oi-1]);_obATR/=5;}
+  if(_obATR<0.01)_obATR=0.05;
+  // dist = one zone width, strict 2dp for Deriv
+  var _obDist=Math.max(0.01, Math.round(_obATR*_obMult*100)/100);
+  var _obDist2=Math.max(0.02, Math.round(_obATR*_obMult*2*100)/100);
+
+  // UP zone barriers
+  var bUpHigh  = '+'+_obDist2.toFixed(2);  // e.g. +0.10
+  var bUpLow   = '+'+_obDist.toFixed(2);   // e.g. +0.05
+  // DOWN zone barriers
+  var bDnHigh  = '-'+_obDist.toFixed(2);   // e.g. -0.05
+  var bDnLow   = '-'+_obDist2.toFixed(2);  // e.g. -0.10
+
   var trendDir='up';
   var _zoneAgree=true;
-  var budget=Math.max(0.70,parseFloat((parseFloat(document.getElementById('ww-risk').value)||3).toFixed(2)));
-  console.log('[WW] entry:'+entry.toFixed(2)+' trend:'+bTrend+' counter:'+bCounter);
+  console.log('[ER] entry:'+entry.toFixed(2)+
+    ' UP zone: '+(entry+parseFloat(_obDist.toFixed(2))).toFixed(2)+' to '+(entry+parseFloat(_obDist2.toFixed(2))).toFixed(2)+
+    ' DN zone: '+(entry-parseFloat(_obDist2.toFixed(2))).toFixed(2)+' to '+(entry-parseFloat(_obDist.toFixed(2))).toFixed(2));
 
-  // Increment rounds/roundId HERE -- after all pre-flight checks pass
+  var budget=Math.max(0.70,parseFloat((parseFloat(document.getElementById('ww-risk').value)||3).toFixed(2)));
+  var bTrend=_obDist;
+  var bCounter=_obDist;
+
+  // Increment rounds/roundId HERE — after all pre-flight checks pass
   HB.roundId++;var rid=HB.roundId;
   HB.rounds++;HB.lastRoundTime=Date.now();
 
@@ -2462,28 +2474,39 @@ function placeHybridRound(){
       nearestInt:zone.nearestInt,distToWall:zone.distToNearest,entryPrice:entry}
   };
 
-  // -- CALL (trend) + PUT (counter) -----------------------------
-  var trendType=trendDir==='up'?'CALL':'PUT';
-  var counterType=trendDir==='up'?'PUT':'CALL';
-  var trendBar=(trendType==='CALL'?'+':'-')+bTrend.toFixed(2);
-  var counterBar=(counterType==='CALL'?'+':'-')+bCounter.toFixed(2);
+  // ── EXPIRYRANGE DUAL ZONE CONTRACT FIRING ────────────────────
+  // Contract A: UP zone  — EXPIRYRANGE with barrier=+dist2, barrier2=+dist
+  // Contract B: DOWN zone — EXPIRYRANGE with barrier=-dist,  barrier2=-dist2
+  var trendType='EXPIRYRANGE';
+  var counterType='EXPIRYRANGE';
   var dur=HB._durSecs||20;
+  var estSt=Math.max(0.35,budget/2);
+  var estSc=Math.max(0.35,budget/2);
 
-  notify('WW R'+HB.rounds,
-    trendType+' +-'+bTrend.toFixed(2)+
-    ' | '+counterType+' +-'+bCounter.toFixed(2)+
-    ' | budget $'+budget.toFixed(2),'info');
+  notify('ER R'+HB.rounds,
+    'UP:'+bUpLow+'→'+bUpHigh+
+    ' DN:'+bDnLow+'→'+bDnHigh+
+    ' | $'+estSt.toFixed(2)+' each','info');
 
-  var estPt=1.85,estPc=1.40;
-  var estRes=solveHybridStakes(budget,estPt,estPc)||{S_t:budget*0.55,S_c:budget*0.45};
-  var estSt=Math.max(0.35,estRes.S_t);
-  var estSc=Math.max(0.35,estRes.S_c);
+  // Contract A — UP zone
+  var p1=wsSend({proposal:1,amount:estSt,basis:'stake',
+    contract_type:'EXPIRYRANGE',currency:S.currency,
+    duration:dur,duration_unit:'s',symbol:HB.asset,
+    barrier:bUpHigh,barrier2:bUpLow});
+  if(p1)S.pending[p1]={type:'hb_proposal',hbRound:rid,hbSide:'trend',
+    estStake:estSt,contractType:'EXPIRYRANGE',
+    barrier:bTrend,barrierStr:bUpHigh+'|'+bUpLow,
+    durVal:dur,durUnit:'s',asset:HB.asset};
 
-  var p1=wsSend({proposal:1,amount:estSt,basis:'stake',contract_type:trendType,currency:S.currency,duration:dur,duration_unit:'s',symbol:HB.asset,barrier:trendBar});
-  if(p1)S.pending[p1]={type:'hb_proposal',hbRound:rid,hbSide:'trend',estStake:estSt,contractType:trendType,barrier:bTrend,barrierStr:trendBar,durVal:dur,durUnit:'s',asset:HB.asset};
-
-  var p2=wsSend({proposal:1,amount:estSc,basis:'stake',contract_type:counterType,currency:S.currency,duration:dur,duration_unit:'s',symbol:HB.asset,barrier:counterBar});
-  if(p2)S.pending[p2]={type:'hb_proposal',hbRound:rid,hbSide:'counter',estStake:estSt,contractType:counterType,barrier:bCounter,barrierStr:counterBar,durVal:dur,durUnit:'s',asset:HB.asset};
+  // Contract B — DOWN zone
+  var p2=wsSend({proposal:1,amount:estSc,basis:'stake',
+    contract_type:'EXPIRYRANGE',currency:S.currency,
+    duration:dur,duration_unit:'s',symbol:HB.asset,
+    barrier:bDnHigh,barrier2:bDnLow});
+  if(p2)S.pending[p2]={type:'hb_proposal',hbRound:rid,hbSide:'counter',
+    estStake:estSc,contractType:'EXPIRYRANGE',
+    barrier:bCounter,barrierStr:bDnHigh+'|'+bDnLow,
+    durVal:dur,durUnit:'s',asset:HB.asset};
 
   setWWBarrierLines(entry,bTrend);
   var prev=solveHybridStakes(budget,1.85,1.40)||{S_t:budget*0.57,S_c:budget*0.43,profitA:0,profitB:0,totalRisk:budget,valid:false};
@@ -2492,10 +2515,10 @@ function placeHybridRound(){
   updHBStats();
 }
 
-// -- Receives live payouts, solves stakes, fires both buys ---------
+// ── Receives live payouts, solves stakes, fires both buys ─────────
 function onHBProposal(proposal,reqId,pendInfo){
   if(!proposal||!proposal.id){
-    notify('!','Proposal failed ('+pendInfo.hbSide+') -- cancelling round','loss');
+    notify('!','Proposal failed ('+pendInfo.hbSide+') — cancelling round','loss');
     _hbCleanupOnError(pendInfo.hbRound);return;
   }
   var rid=pendInfo.hbRound;
@@ -2503,7 +2526,7 @@ function onHBProposal(proposal,reqId,pendInfo){
   if(!round)return;
 
   // payout multiplier = total_return / cost = payout / ask_price
-  // e.g. ask_price=1.00, payout=1.85 -> P=1.85 (you get $1.85 back per $1 staked)
+  // e.g. ask_price=1.00, payout=1.85 → P=1.85 (you get $1.85 back per $1 staked)
   var askPrice = parseFloat(proposal.ask_price || 1);
   var payout   = parseFloat(proposal.payout   || 0);
   var payoutMult = askPrice > 0 && payout > 0 ? parseFloat((payout / askPrice).toFixed(4)) : 0;
@@ -2523,30 +2546,30 @@ function onHBProposal(proposal,reqId,pendInfo){
   round.proposalsReady=(round.proposalsReady||0)+1;
   if(round.proposalsReady<2)return; // wait for both
 
-  // -- PtxPc > 1 gate -------------------------------------------
+  // ── Pt×Pc > 1 gate ───────────────────────────────────────────
   var P_t=round.P_t,P_c=round.P_c;
   var product=parseFloat((P_t*P_c).toFixed(4));
   if(product<=1.0){
-    notify('SKIP','PtxPc='+product.toFixed(2)+' <=1 -- math impossible, skipping','loss');
+    notify('SKIP','Pt×Pc='+product.toFixed(2)+' ≤1 — math impossible, skipping','loss');
     _hbCleanupOnError(rid);return;
   }
 
-  // -- Solve stakes -- both scenarios green ----------------------
+  // ── Solve stakes — both scenarios green ──────────────────────
   var res=solveHybridStakes(round.budget,P_t,P_c);
   if(!res||!res.valid){
-    notify('SKIP','Stakes not both green -- skipping round','loss');
+    notify('SKIP','Stakes not both green — skipping round','loss');
     _hbCleanupOnError(rid);return;
   }
   round.S_t=res.S_t;round.S_c=res.S_c;
 
-  console.log('[HB STAKES] S_t:$'+res.S_t+' S_c:$'+res.S_c+' PtxPc:'+product+' A:+$'+res.profitA.toFixed(2)+' B:+$'+res.profitB.toFixed(2));
-  notify('WW R'+HB.rounds,'PtxPc='+product.toFixed(2)+' [OK] | $'+res.S_t+' trend / $'+res.S_c+' counter | A:+$'+res.profitA.toFixed(2)+' B:+$'+res.profitB.toFixed(2),'win');
+  console.log('[HB STAKES] S_t:$'+res.S_t+' S_c:$'+res.S_c+' Pt×Pc:'+product+' A:+$'+res.profitA.toFixed(2)+' B:+$'+res.profitB.toFixed(2));
+  notify('WW R'+HB.rounds,'Pt×Pc='+product.toFixed(2)+' ✅ | $'+res.S_t+' trend / $'+res.S_c+' counter | A:+$'+res.profitA.toFixed(2)+' B:+$'+res.profitB.toFixed(2),'win');
 
-  // -- Fire both buys at ask_price from original proposals ------
+  // ── Fire both buys at ask_price from original proposals ──────
   // Deriv buy API: price = ask_price returned by proposal (max you'll pay)
   // The proposals were fetched at estSt/estSc which are close to solved amounts.
-  // We pass ask_price so Deriv accepts it -- stored stakes are for display/accounting.
-  // DO NOT re-fetch proposals -- payout shifts between rounds break Scenario B math.
+  // We pass ask_price so Deriv accepts it — stored stakes are for display/accounting.
+  // DO NOT re-fetch proposals — payout shifts between rounds break Scenario B math.
   var b1=wsSend({buy:round.trendProposalId,price:round.trendAsk});
   if(b1)S.pending[b1]={dir:'TREND',contractDir:round.trendType,stake:res.S_t,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:0,barrier:round.bTrend,durVal:round.trendDur,durUnit:round.trendUnit,entryPrice:round.entry};
 
@@ -2569,7 +2592,7 @@ function onHBResult(roundId,idx,profit,direction,exitSpot){
   var rd=HB.pending[roundId];
   if(rd.settled>=2) _settleHBRound(roundId);
   else if(rd.settled>=1 && rd.S_t===null){
-    // Proposals never completed -- only 1 contract placed, settle as single
+    // Proposals never completed — only 1 contract placed, settle as single
     _settleHBRound(roundId);
   }
 }
@@ -2588,16 +2611,16 @@ function _settleHBRound(roundId){
 
   var totalPnl=parseFloat((tPnl+cPnl).toFixed(2));
   var isWin=totalPnl>0;
-  var scenario=tR.win&&!cR.win?'Scenario A -- Trend won':!tR.win&&cR.win?'Scenario B -- Counter won':tR.win&&cR.win?'Both won!':'Both missed';
+  var scenario=tR.win&&!cR.win?'Scenario A — Trend won':!tR.win&&cR.win?'Scenario B — Counter won':tR.win&&cR.win?'Both won!':'Both missed';
 
-  console.log('[SETTLE] rid:',roundId,'tPnl:',tPnl,'cPnl:',cPnl,'total:',totalPnl,'->',scenario);
+  console.log('[SETTLE] rid:',roundId,'tPnl:',tPnl,'cPnl:',cPnl,'total:',totalPnl,'→',scenario);
 
   HB.pnl+=totalPnl;
   if(isWin){HB.won++;HB.lossStreak=0;}
   else{HB.lost++;HB.lossStreak++;
     if(HB.lossStreak>=3&&HB.useCooldown&&!HB.coolingDown){
       HB.coolingDown=true;HB.cooldownEnd=Date.now()+120000;
-      notify('PAUSE','3 losses -- cooling 2 min','loss');
+      notify('PAUSE','3 losses — cooling 2 min','loss');
     }
   }
   if(totalPnl>HB.bestRound)HB.bestRound=totalPnl;
@@ -2651,7 +2674,7 @@ function _settleHBRound(roundId){
   wsSend({balance:1});setTimeout(function(){wsSend({balance:1});},1500);
 
   notify(isWin?'WON':'LOST',
-    (isWin?'+':'')+totalPnl.toFixed(2)+' -- '+scenario+
+    (isWin?'+':'')+totalPnl.toFixed(2)+' — '+scenario+
     ' (T:'+(tPnl>=0?'+':'')+tPnl.toFixed(2)+' C:'+(cPnl>=0?'+':'')+cPnl.toFixed(2)+') R'+HB.rounds,
     isWin?'win':'loss');
   document.getElementById('hb-active-count').textContent='0 ACTIVE';
@@ -2678,9 +2701,9 @@ function updHBStats(){
   if(stat){if(HB.pnl>=dtp){stat.textContent='TARGET HIT!';stat.style.color='var(--ac)';}else if(HB.pnl<=-dsl){stat.textContent='SL HIT';stat.style.color='var(--re)';}else if(HB.pnl>0){stat.textContent='+$'+HB.pnl.toFixed(2)+' / $'+dtp;stat.style.color='var(--ac)';}else if(HB.pnl<0){stat.textContent='-$'+Math.abs(HB.pnl).toFixed(2)+' / SL $'+dsl;stat.style.color='var(--re)';}else{stat.textContent='Ready';stat.style.color='var(--t2)';}}
 }
 
-// --------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════
 // MARKET DIRECTION PREDICTION
-// --------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════
 var predThrottle=0;
 function updatePrediction(){
   var now=Date.now();
@@ -2694,7 +2717,7 @@ function updatePrediction(){
     return;
   }
 
-  // -- Count UP vs DOWN ticks (last 20) ----------------------
+  // ── Count UP vs DOWN ticks (last 20) ──────────────────────
   var lookback=Math.min(20,n-1);
   var ups=0,downs=0,tickPills='';
   for(var i=n-lookback;i<n;i++){
@@ -2707,29 +2730,29 @@ function updatePrediction(){
   var upPct=Math.round(ups/total*100);
   var dnPct=100-upPct;
 
-  // -- Momentum: last 5 vs previous 5 ------------------------
+  // ── Momentum: last 5 vs previous 5 ────────────────────────
   var momUp=0,momDn=0;
   if(n>=10){
     for(var j=n-5;j<n;j++)if(prices[j]>prices[j-1])momUp++;else if(prices[j]<prices[j-1])momDn++;
   }
-  var momLabel=momUp>momDn?'^ Rising':momDn>momUp?'v Falling':'-> Flat';
+  var momLabel=momUp>momDn?'▲ Rising':momDn>momUp?'▼ Falling':'→ Flat';
   var momColor=momUp>momDn?'var(--ac)':momDn>momUp?'var(--re)':'var(--t3)';
 
-  // -- Trend: slope of last 30 ticks -------------------------
+  // ── Trend: slope of last 30 ticks ─────────────────────────
   var trendLook=Math.min(30,n-1);
   var slope=prices[n-1]-prices[n-1-trendLook];
-  var trendLabel=slope>0?'^ UP':slope<0?'v DOWN':'-> FLAT';
+  var trendLabel=slope>0?'▲ UP':slope<0?'▼ DOWN':'→ FLAT';
   var trendColor=slope>0?'var(--ac)':slope<0?'var(--re)':'var(--t3)';
 
-  // -- Confidence: how skewed is the up/down split ------------
+  // ── Confidence: how skewed is the up/down split ────────────
   var bias=Math.abs(upPct-50); // 0=equal, 50=all one way
   var confLabel=bias>=20?'HIGH':bias>=10?'MED':'LOW';
 
-  // -- Direction label ----------------------------------------
-  var dirLabel=upPct>55?'/\ BULLISH':upPct<45?'\/ BEARISH':'<-> NEUTRAL';
+  // ── Direction label ────────────────────────────────────────
+  var dirLabel=upPct>55?'↗ BULLISH':upPct<45?'↘ BEARISH':'↔ NEUTRAL';
   var dirColor=upPct>55?'var(--ac)':upPct<45?'var(--re)':'var(--go)';
 
-  // -- Update DOM ---------------------------------------------
+  // ── Update DOM ─────────────────────────────────────────────
   var setEl=function(id,val,col){var e=document.getElementById(id);if(e){e.textContent=val;if(col)e.style.color=col;}};
   setEl('pred-up-pct',upPct+'%');
   setEl('pred-dn-pct',dnPct+'%');
@@ -2766,21 +2789,21 @@ function renderHBHistory(filter){
     html+='<div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;flex-wrap:wrap">';
     html+='<span style="background:'+(won?'var(--ad)':'var(--rd)')+';color:'+(won?'var(--ac)':'var(--re)')+';padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700">'+(won?'WIN':'LOSS')+'</span>';
     html+='<span style="font-size:12px;font-weight:700">'+r.asset+'</span>';
-    html+='<span style="font-size:10px;color:var(--t3)">R'+r.round+' - '+r.time+' - Score:'+r.score+'/5</span>';
+    html+='<span style="font-size:10px;color:var(--t3)">R'+r.round+' • '+r.time+' • Score:'+r.score+'/5</span>';
     html+='<span style="font-size:10px;padding:2px 6px;background:var(--bg4);border-radius:4px;color:var(--t2)">'+(sA?'Scenario A':sB?'Scenario B':(r.trendWin&&r.counterWin)?'Both Won':'Both Missed')+'</span>';
     html+='<span style="margin-left:auto;font-size:14px;font-weight:700;font-family:var(--mo);color:'+(won?'var(--ac)':'var(--re)')+'">'+( r.profit>=0?'+':'')+'$'+r.profit.toFixed(2)+'</span>';
     html+='</div>';
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
     // Trend side
     html+='<div style="background:'+(r.trendWin?'rgba(0,229,160,0.08)':'rgba(255,77,106,0.05)')+';border:1px solid '+(r.trendWin?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.2)')+';border-radius:var(--rs);padding:10px">';
-    html+='<div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:3px">TREND x'+HB.trendMult+'ATR '+(r.trendWin?'v WON':'LOST')+'</div>';
-    html+='<div style="font-size:10px;color:var(--t3);margin-bottom:3px">+-'+(r.bTrend||0).toFixed(2)+' | $'+(r.S_t||0).toFixed(2)+' | Pt:'+(r.P_t||0).toFixed(2)+'</div>';
+    html+='<div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:3px">TREND ×'+HB.trendMult+'ATR '+(r.trendWin?'✓ WON':'LOST')+'</div>';
+    html+='<div style="font-size:10px;color:var(--t3);margin-bottom:3px">±'+(r.bTrend||0).toFixed(2)+' | $'+(r.S_t||0).toFixed(2)+' | Pt:'+(r.P_t||0).toFixed(2)+'</div>';
     html+='<div style="font-size:18px;font-weight:800;font-family:var(--mo);color:'+(r.trendWin?'var(--ac)':'var(--re)')+'">'+((r.trendPnl||0)>=0?'+':'')+'$'+Math.abs(r.trendPnl||0).toFixed(2)+'</div>';
     html+='</div>';
     // Counter side
     html+='<div style="background:'+(r.counterWin?'rgba(0,229,160,0.08)':'rgba(59,130,246,0.05)')+';border:1px solid '+(r.counterWin?'rgba(0,229,160,0.3)':'rgba(59,130,246,0.2)')+';border-radius:var(--rs);padding:10px">';
-    html+='<div style="font-size:10px;color:var(--bl);font-weight:700;margin-bottom:3px">COUNTER x'+HB.counterMult+'ATR '+(r.counterWin?'v WON':'LOST')+'</div>';
-    html+='<div style="font-size:10px;color:var(--t3);margin-bottom:3px">+-'+(r.bCounter||0).toFixed(2)+' | $'+(r.S_c||0).toFixed(2)+' | Pc:'+(r.P_c||0).toFixed(2)+'</div>';
+    html+='<div style="font-size:10px;color:var(--bl);font-weight:700;margin-bottom:3px">COUNTER ×'+HB.counterMult+'ATR '+(r.counterWin?'✓ WON':'LOST')+'</div>';
+    html+='<div style="font-size:10px;color:var(--t3);margin-bottom:3px">±'+(r.bCounter||0).toFixed(2)+' | $'+(r.S_c||0).toFixed(2)+' | Pc:'+(r.P_c||0).toFixed(2)+'</div>';
     html+='<div style="font-size:18px;font-weight:800;font-family:var(--mo);color:'+(r.counterWin?'var(--ac)':'var(--re)')+'">'+((r.counterPnl||0)>=0?'+':'')+'$'+Math.abs(r.counterPnl||0).toFixed(2)+'</div>';
     html+='</div>';
     html+='</div></div>';
@@ -2807,9 +2830,9 @@ function setHBActive(el){
 
 
 
-// --------------------------------------
+// ══════════════════════════════════════
 // MANUAL TRADE
-// --------------------------------------
+// ══════════════════════════════════════
 function placeTrade(ctype, isBot, botAsset, botStake, botDur2) {
   if(DG.stopped){notify('STOP','Daily limit hit','loss');return;}
   if(!S.connected){openMo();notify('!','Not connected','loss');return;}
@@ -2851,7 +2874,7 @@ function runBot() {
   var req={buy:1,price:stake,parameters:{amount:stake,basis:'stake',contract_type:ct,currency:S.currency,symbol:S.botAsset,multiplier:mult,limit_order:{stop_loss:slDollar,take_profit:tpDollar}}};
   var rid=wsSend(req);
   if(rid) S.pending[rid]={dir:sig.dir==='CALL'?'HIGHER':'LOWER',stake:stake,asset:S.botAsset,isBot:true,isMultiplier:true};
-  document.getElementById('botTxt').textContent=(sig.dir==='CALL'?'^ LONG':'v SHORT')+' $'+stake+' x'+mult;
+  document.getElementById('botTxt').textContent=(sig.dir==='CALL'?'▲ LONG':'▼ SHORT')+' $'+stake+' x'+mult;
 }
 
 function updBotStats() {
@@ -2862,9 +2885,9 @@ function updBotStats() {
   document.getElementById('b-wr').textContent=tot?Math.round(S.botW/tot*100)+'%':'0%';
 }
 
-// --------------------------------------
+// ══════════════════════════════════════
 // DIFFERS BOT
-// --------------------------------------
+// ══════════════════════════════════════
 function buildDigitGrid() {
   var grid=document.getElementById('digitGrid');if(!grid)return;
   grid.innerHTML='';
@@ -2920,9 +2943,9 @@ function updDDStats(){
 
 function resetDD(){DD.rounds=0;DD.wins=0;DD.losses=0;DD.pnl=0;updDDStats();document.getElementById('dd-log').innerHTML='<div style="text-align:center;padding:16px;color:var(--t3);font-size:12px">No trades yet.</div>';notify('R','Differs stats reset','info');}
 
-// --------------------------------------
+// ══════════════════════════════════════
 // INDICATOR ENGINE
-// --------------------------------------
+// ══════════════════════════════════════
 var INDICATORS={};
 function getInd(sym){if(!INDICATORS[sym])INDICATORS[sym]={prices:[],ema9:null,ema21:null,rsi14:null,gains:[],losses:[],trend:'neutral',rsiVal:50};return INDICATORS[sym];}
 function updateIndicators(sym,price){
@@ -2947,9 +2970,9 @@ function getSignal(sym){
   return{dir:null,strength:0,reason:'Choppy - waiting'};
 }
 
-// --------------------------------------
+// ══════════════════════════════════════
 // UI HELPERS
-// --------------------------------------
+// ══════════════════════════════════════
 function buildAllDDs(){
   buildDD('dd1',false); buildDD('dd2',false); buildDD('dd3',true);
   buildDDasset('dd5','HB'); buildDDasset('dd6','DD'); buildGMDD();
@@ -3063,7 +3086,7 @@ function switchAcc(type){
 
 function updateStats(){
   var done=S.trades.filter(function(t){return t.status!=='active';});
-  // Build HB round map -- 1 summary trade per round now (single leg)
+  // Build HB round map — 1 summary trade per round now (single leg)
   var hbRoundMap={};
   done.forEach(function(t){
     if(t.isHB&&t.hbRound!==null&&t.isHBSummary){
@@ -3102,14 +3125,14 @@ function updateStats(){
 
 // Single trade row for non-HB trades
 function tRow(t){
-  // Skip HB individual contracts -- only show HB summary trades
+  // Skip HB individual contracts — only show HB summary trades
   if(t.isHB&&!t.isHBSummary) return '';
   var bc=t.status==='active'?'bp':t.win?'bw':'bl2';
   var bl=t.status==='active'?'ACTIVE':t.win?'WON':'LOST';
   var lbl=t.isDD?'<span style="font-size:9px;padding:1px 5px;background:rgba(245,166,35,0.2);color:var(--go);border-radius:4px;font-weight:700">DD</span>':
           t.isHBSummary?'<span style="font-size:9px;padding:1px 5px;background:rgba(0,229,160,0.2);color:var(--ac);border-radius:4px;font-weight:700">WW</span>':'';
   var pnlStr=t.status==='active'?'...':(t.pnl>=0?'+':'')+'$'+Math.abs(t.pnl).toFixed(2);
-  return '<div class="trow"><span class="tbadge '+bc+'">'+bl+'</span><div style="flex:1"><div style="font-weight:600;font-size:12px">'+t.asset+' '+lbl+'</div><div class="td '+(t.direction==='HIGHER'?'up':'dn')+'">'+(t.direction==='HIGHER'?'^ HIGHER':'v LOWER')+' $'+t.stake+'</div></div><div><div class="tpnl '+(t.pnl>=0?'pos':'neg')+'">'+pnlStr+'</div><div class="ttm">'+t.time+'</div></div></div>';
+  return '<div class="trow"><span class="tbadge '+bc+'">'+bl+'</span><div style="flex:1"><div style="font-weight:600;font-size:12px">'+t.asset+' '+lbl+'</div><div class="td '+(t.direction==='HIGHER'?'up':'dn')+'">'+(t.direction==='HIGHER'?'▲ HIGHER':'▼ LOWER')+' $'+t.stake+'</div></div><div><div class="tpnl '+(t.pnl>=0?'pos':'neg')+'">'+pnlStr+'</div><div class="ttm">'+t.time+'</div></div></div>';
 }
 
 // HB round summary row for history page
@@ -3124,10 +3147,10 @@ function hbRoundRow(roundId, trades){
 
   // Trend direction labels
   var trendIsUp=(t.trendDir==='up'||t.direction==='HIGHER');
-  var trendLabel=trendIsUp?'UP HIGHER (TREND)':'DN LOWER (TREND)';
-  var counterLabel=trendIsUp?'DN LOWER (COUNTER)':'UP HIGHER (COUNTER)';
-  var trendArrow=trendIsUp?'UP':'DN';
-  var counterArrow=trendIsUp?'DN':'UP';
+  var trendLabel=trendIsUp?'↗ HIGHER (TREND)':'↘ LOWER (TREND)';
+  var counterLabel=trendIsUp?'↘ LOWER (COUNTER)':'↗ HIGHER (COUNTER)';
+  var trendArrow=trendIsUp?'↗':'↘';
+  var counterArrow=trendIsUp?'↘':'↗';
 
   // P&L for each side
   var tPnl=t.trendPnl||0;
@@ -3148,7 +3171,7 @@ function hbRoundRow(roundId, trades){
   else html+='<span style="background:'+(isWin?'var(--ad)':'var(--rd)')+';color:'+(isWin?'var(--ac)':'var(--re)')+';padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700">'+(isWin?'WIN':'LOSS')+'</span>';
   html+='<span style="font-size:12px;font-weight:700">'+asset+'</span>';
   html+='<span style="font-size:10px;padding:1px 6px;background:rgba(0,229,160,0.15);color:var(--ac);border-radius:4px;font-weight:700">WW</span>';
-  html+='<span style="font-size:10px;color:var(--t3)">R'+roundId+' - '+time+'</span>';
+  html+='<span style="font-size:10px;color:var(--t3)">R'+roundId+' • '+time+'</span>';
   if(scenario)html+='<span style="font-size:10px;padding:1px 6px;background:var(--bg4);color:var(--t2);border-radius:4px">'+scenario+'</span>';
   // Integer wall badge
   if(t.snap&&t.snap.nearestInt){
@@ -3156,26 +3179,26 @@ function hbRoundRow(roundId, trades){
     html+='<span style="font-size:10px;padding:1px 6px;background:var(--bg4);color:'+wc2+';border-radius:4px;font-family:var(--mo)">WALL:'+t.snap.nearestInt+'.00 ('+parseFloat(t.snap.distToWall||0).toFixed(3)+')</span>';
   }
   // Prediction at entry
-  if(t.predUp){html+='<span style="font-size:10px;padding:1px 6px;background:var(--bg4);color:var(--go);border-radius:4px;font-family:var(--mo)">Pred: '+t.predUp+'%UP '+t.predDn+'%DN '+t.predConf+'</span>';}
+  if(t.predUp){html+='<span style="font-size:10px;padding:1px 6px;background:var(--bg4);color:var(--go);border-radius:4px;font-family:var(--mo)">Pred: '+t.predUp+'%↑ '+t.predDn+'%↓ '+t.predConf+'</span>';}
   html+='<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+bCol+'">'+( net>=0?'+':'')+'$'+net.toFixed(2)+'</span>';
   html+='</div>';
 
   if(bothMiss){
     html+='<div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:var(--rs);padding:8px;text-align:center">';
-    html+='<div style="font-size:11px;font-weight:700;color:var(--go)">! BOTH MISSED -- Price flat during round</div>';
+    html+='<div style="font-size:11px;font-weight:700;color:var(--go)">⚠ BOTH MISSED — Price flat during round</div>';
     html+='<div style="font-size:12px;font-weight:700;color:var(--re);margin-top:3px">-$'+Math.abs(net).toFixed(2)+'</div>';
     html+='</div>';
   } else {
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
     // TREND side (bigger stake)
     html+='<div style="background:'+(tWin?'rgba(0,229,160,0.08)':'rgba(255,77,106,0.05)')+';border:1px solid '+(tWin?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.15)')+';border-radius:var(--rs);padding:8px">';
-    html+='<div style="font-size:10px;font-weight:700;margin-bottom:2px;color:'+(tWin?'var(--ac)':'var(--re)')+'">'+trendArrow+' '+trendLabel+' '+(tWin?'v WON':'LOST')+'</div>';
+    html+='<div style="font-size:10px;font-weight:700;margin-bottom:2px;color:'+(tWin?'var(--ac)':'var(--re)')+'">'+trendArrow+' '+trendLabel+' '+(tWin?'✓ WON':'LOST')+'</div>';
     html+='<div style="font-size:10px;color:var(--t3);margin-bottom:3px">Stake: $'+S_t.toFixed(2)+' | Payout: '+P_t.toFixed(2)+'x</div>';
     html+='<div style="font-size:15px;font-weight:700;font-family:var(--mo);color:'+(tWin?'var(--ac)':'var(--re)')+'">'+( tPnl>=0?'+':'')+'$'+tPnl.toFixed(2)+'</div>';
     html+='</div>';
     // COUNTER side (smaller stake)
     html+='<div style="background:'+(cWin?'rgba(0,229,160,0.08)':'rgba(255,77,106,0.05)')+';border:1px solid '+(cWin?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.15)')+';border-radius:var(--rs);padding:8px">';
-    html+='<div style="font-size:10px;font-weight:700;margin-bottom:2px;color:'+(cWin?'var(--ac)':'var(--re)')+'">'+counterArrow+' '+counterLabel+' '+(cWin?'v WON':'LOST')+'</div>';
+    html+='<div style="font-size:10px;font-weight:700;margin-bottom:2px;color:'+(cWin?'var(--ac)':'var(--re)')+'">'+counterArrow+' '+counterLabel+' '+(cWin?'✓ WON':'LOST')+'</div>';
     html+='<div style="font-size:10px;color:var(--t3);margin-bottom:3px">Stake: $'+S_c.toFixed(2)+' | Payout: '+P_c.toFixed(2)+'x</div>';
     html+='<div style="font-size:15px;font-weight:700;font-family:var(--mo);color:'+(cWin?'var(--ac)':'var(--re)')+'">'+( cPnl>=0?'+':'')+'$'+cPnl.toFixed(2)+'</div>';
     html+='</div>';
@@ -3293,7 +3316,7 @@ function renderJournal(filter){
 
   var html='';
 
-  // WinWin rounds -- full confluence detail
+  // WinWin rounds — full confluence detail
   var roundKeys=Object.keys(roundMap).sort(function(a,b){return b-a;});
   roundKeys.forEach(function(rid){
     var trades=roundMap[rid];
@@ -3307,7 +3330,7 @@ function renderJournal(filter){
     var eoT=trades.find(function(t){return t.direction==='OUTSIDE';})||trades[0];
     var ebT=trades.find(function(t){return t.direction==='BETWEEN';})||(trades[1]||trades[0]);
     var _jCdir=(hist&&hist.snap&&hist.snap.contractDir)||eoT.contractDir||'';
-    var _jWinLabel=eoT&&eoT.win?(_jCdir==='CALL'?'CALL UP':_jCdir==='PUT'?'PUT DN':'OUTSIDE'):(ebT&&ebT.win?'BETWEEN':'MISSED');
+    var _jWinLabel=eoT&&eoT.win?(_jCdir==='CALL'?'CALL ↑':_jCdir==='PUT'?'PUT ↓':'OUTSIDE'):(ebT&&ebT.win?'BETWEEN':'MISSED');
     var winSide=_jWinLabel;
     var entry=parseFloat((hist?hist.entry:eoT.price)||0);
     var barrier=parseFloat((hist?hist.barrier:eoT.barrier)||0);
@@ -3318,19 +3341,19 @@ function renderJournal(filter){
     html+=(isWin?'<span class="tbadge bw">WIN</span>':'<span class="tbadge bl2">LOSS</span>');
     html+='<span style="font-size:10px;padding:2px 7px;border-radius:99px;background:rgba(0,229,160,0.15);color:var(--ac);font-weight:700">WW R'+rid+'</span>';
     html+='<span style="font-size:13px;font-weight:700">'+(hist?hist.asset:eoT.asset)+'</span>';
-    html+='<span style="font-size:10px;color:var(--t3)">'+(hist?hist.time:eoT.time)+' - '+winSide+' won</span>';
+    html+='<span style="font-size:10px;color:var(--t3)">'+(hist?hist.time:eoT.time)+' • '+winSide+' won</span>';
     html+='<span style="margin-left:auto;font-size:14px;font-weight:700;color:'+(isWin?'var(--ac)':'var(--re)')+'">'+( totalPnl>=0?'+':'')+'$'+totalPnl.toFixed(2)+'</span>';
     html+='</div>';
     // Price info row
     html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">';
     html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Entry Price</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--go)">'+(entry?entry.toFixed(entry>100?2:4):'--')+'</div></div>';
-    html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Barrier +-</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--go)">'+(barrier?'+-'+barrier.toFixed(2):'--')+'</div><div style="font-size:9px;color:var(--t3);margin-top:1px">Mult: '+(snap?'x'+snap.barrierMult:'--')+'</div></div>';
+    html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Barrier ±</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--go)">'+(barrier?'±'+barrier.toFixed(2):'--')+'</div><div style="font-size:9px;color:var(--t3);margin-top:1px">Mult: '+(snap?'×'+snap.barrierMult:'--')+'</div></div>';
     var exitSp=hist&&hist.exitSpot>0?hist.exitSpot:(eoT.exitPrice&&eoT.exitPrice>0?eoT.exitPrice:0);
     if(exitSp&&entry&&exitSp===entry) exitSp=0; // same as entry = no real exit captured
     var exitDiff=exitSp&&entry?parseFloat((exitSp-entry).toFixed(4)):0;
     var exitConfirmed=hist?(eoT._exitConfirmed||eoT.exitConfirmed):eoT._exitConfirmed;
-    var exitLabel=exitSp>0?(exitConfirmed?exitSp.toFixed(exitSp>100?2:4)+'<span style="color:var(--ac);font-size:9px;margin-left:3px">v</span>':'~'+exitSp.toFixed(exitSp>100?2:4)):'--';
-    var moveLabel=exitDiff?(exitDiff>0?'^':'v')+Math.abs(exitDiff).toFixed(exitSp>100?2:4)+' move':'--';
+    var exitLabel=exitSp>0?(exitConfirmed?exitSp.toFixed(exitSp>100?2:4)+'<span style="color:var(--ac);font-size:9px;margin-left:3px">✓</span>':'~'+exitSp.toFixed(exitSp>100?2:4)):'--';
+    var moveLabel=exitDiff?(exitDiff>0?'▲':'▼')+Math.abs(exitDiff).toFixed(exitSp>100?2:4)+' move':'--';
     html+='<div style="background:var(--bg4);border-radius:var(--rs);padding:8px 10px"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Exit Price</div><div style="font-size:14px;font-weight:700;font-family:var(--mo);color:'+(exitSp>0?'var(--t1)':'var(--t3)')+'">'+exitLabel+'</div><div style="font-size:9px;color:'+(exitDiff>0?'var(--ac)':exitDiff<0?'var(--re)':'var(--t3)')+';margin-top:1px">'+moveLabel+'</div></div>';
     html+='</div>';
     // Confluences block
@@ -3338,35 +3361,35 @@ function renderJournal(filter){
       var _atrHigh=(snap.atrRatio||0)>=1.2;
       var _blocked=!!(snap.isLowVol||snap.bbSqueeze);
       html+='<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:var(--rs);padding:10px;margin-bottom:8px">';
-      html+='<div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:8px"> Confluences at Entry -- Score '+snap.score+'/2'
-        +(_blocked?' <span style="color:var(--re);font-size:10px">[!] WAS BLOCKED</span>':'')+'</div>';
+      html+='<div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:8px">📊 Confluences at Entry — Score '+snap.score+'/2'
+        +(_blocked?' <span style="color:var(--re);font-size:10px">⛔ WAS BLOCKED</span>':'')+'</div>';
       html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:10px;margin-bottom:7px">';
       var sigs2=[
-        {l:'ATR High (>=1.2x)',  d:'Ratio: '+(snap.atrRatio||'--')+'x',          on:_atrHigh,          block:false},
-        {l:'BB Not Squeezing',  d:snap.bbSqueeze?'[!] SQUEEZE -- blocked':'Normal', on:!snap.bbSqueeze,   block:!!snap.bbSqueeze},
-        {l:'Vol Not Dead',      d:snap.isLowVol?'[!] LOW VOL -- blocked':'Active',  on:!snap.isLowVol,    block:!!snap.isLowVol},
+        {l:'ATR High (≥1.2×)',  d:'Ratio: '+(snap.atrRatio||'--')+'×',          on:_atrHigh,          block:false},
+        {l:'BB Not Squeezing',  d:snap.bbSqueeze?'⛔ SQUEEZE — blocked':'Normal', on:!snap.bbSqueeze,   block:!!snap.bbSqueeze},
+        {l:'Vol Not Dead',      d:snap.isLowVol?'⛔ LOW VOL — blocked':'Active',  on:!snap.isLowVol,    block:!!snap.isLowVol},
         {l:'Momentum Burst',    d:snap.sig_momentum?'4 accel ticks':'No accel',   on:!!snap.sig_momentum,block:false}
       ];
       sigs2.forEach(function(sig){
         html+='<div style="background:'+(sig.block?'rgba(255,77,106,0.1)':sig.on?'rgba(0,229,160,0.1)':'var(--bg4)')+';border-radius:5px;padding:6px 8px;font-family:var(--mo)">';
-        html+='<div style="color:'+(sig.block?'var(--re)':sig.on?'var(--ac)':'var(--t3)')+';font-weight:700;font-size:10px">'+(sig.block?'[!] ':sig.on?'v ':'x ')+sig.l+'</div>';
+        html+='<div style="color:'+(sig.block?'var(--re)':sig.on?'var(--ac)':'var(--t3)')+';font-weight:700;font-size:10px">'+(sig.block?'⛔ ':sig.on?'✓ ':'✗ ')+sig.l+'</div>';
         html+='<div style="color:var(--t3);font-size:9px;margin-top:2px">'+sig.d+'</div></div>';
       });
       html+='</div>';
       html+='<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;display:flex;gap:12px;flex-wrap:wrap;font-size:10px;font-family:var(--mo);color:var(--t3)">';
       html+='<span>ATR(5):<b style="color:var(--t1)"> '+(snap.atr5||0).toFixed(4)+'</b></span>';
       html+='<span>ATR(20):<b style="color:var(--t1)"> '+(snap.atr20||0).toFixed(4)+'</b></span>';
-      html+='<span>Ratio:<b style="color:'+(_atrHigh?'var(--ac)':'var(--re)')+'">&nbsp;'+(snap.atrRatio||'--')+'x</b></span>';
+      html+='<span>Ratio:<b style="color:'+(_atrHigh?'var(--ac)':'var(--re)')+'">&nbsp;'+(snap.atrRatio||'--')+'×</b></span>';
       html+='<span>Zone:<b style="color:var(--t1)"> '+(snap.zone||'--')+'</b></span>';
       html+='<span>Wall:<b style="color:var(--go)"> '+(snap.nearestInt||'--')+'.00</b></span>';
       html+='</div></div>';
     } else {
-      html+='<div style="background:var(--bg3);border-radius:var(--rs);padding:8px;margin-bottom:8px;font-size:10px;color:var(--t3)">No confluence data -- trade placed manually or pre-v5.0</div>';
+      html+='<div style="background:var(--bg3);border-radius:var(--rs);padding:8px;margin-bottom:8px;font-size:10px;color:var(--t3)">No confluence data — trade placed manually or pre-v5.0</div>';
     }
     // Single leg result card
     html+='<div style="background:'+(eoT.win?'rgba(0,229,160,0.07)':'rgba(255,77,106,0.05)')+';border:1px solid '+(eoT.win?'rgba(0,229,160,0.25)':'rgba(255,77,106,0.2)')+';border-radius:var(--rs);padding:12px;margin-bottom:8px">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
-    html+='<span style="font-size:11px;color:'+(eoT.direction==='OUTSIDE'?'var(--ac)':'var(--bl)')+';font-weight:700">'+(eoT.direction==='OUTSIDE'?'/\ CALL -- price above barrier':'\/ PUT -- price below barrier')+'</span>';
+    html+='<span style="font-size:11px;color:'+(eoT.direction==='OUTSIDE'?'var(--ac)':'var(--bl)')+';font-weight:700">'+(eoT.direction==='OUTSIDE'?'↗ CALL — price above barrier':'↘ PUT — price below barrier')+'</span>';
     html+='<span style="font-size:14px;font-weight:800;font-family:var(--mo);color:'+(eoT.win?'var(--ac)':'var(--re)')+'">'+( eoT.pnl>=0?'+':'')+'$'+eoT.pnl.toFixed(2)+'</span>';
     html+='</div>';
     html+='<div style="display:flex;gap:14px;font-size:10px;font-family:var(--mo);color:var(--t2)">';
@@ -3374,10 +3397,10 @@ function renderJournal(filter){
     html+='<span>Entry: <b style="color:var(--go)">'+(entry?entry.toFixed(entry>100?2:4):'--')+'</b></span>';
     var _legExit=exitSp>0?exitSp:null;
     html+='<span>Exit: <b style="color:'+(_legExit?'var(--t1)':'var(--t3)')+'">'+(_legExit?_legExit.toFixed(_legExit>100?2:4):'--')+'</b></span>';
-    html+='<span>Barrier: <b style="color:var(--go)">'+(barrier?'+-'+barrier.toFixed(2):'--')+'</b></span>';
+    html+='<span>Barrier: <b style="color:var(--go)">'+(barrier?'±'+barrier.toFixed(2):'--')+'</b></span>';
     html+='<span>Dur: <b style="color:var(--t1)">'+(eoT.durationStr||'15s')+'</b></span>';
     html+='</div>';
-    html+='<div style="font-size:11px;font-weight:700;color:'+(eoT.win?'var(--ac)':'var(--re)')+';margin-top:6px">'+(eoT.win?'v BARRIER HIT -- WON':'x BARRIER MISSED -- LOST')+'</div>';
+    html+='<div style="font-size:11px;font-weight:700;color:'+(eoT.win?'var(--ac)':'var(--re)')+';margin-top:6px">'+(eoT.win?'✓ BARRIER HIT — WON':'✗ BARRIER MISSED — LOST')+'</div>';
     html+='</div>';
     html+='<div class="jnote"><textarea class="jni" placeholder="Add round note..." rows="1" id="note_hb_'+rid+'">'+rNote+'</textarea><button class="jnb" onclick="saveNote(\'hb_'+rid+'\')">Save</button></div>';
     html+='</div>';
@@ -3406,12 +3429,12 @@ function renderJournal(filter){
 
 function filtJ(f,el){['jfAll','jfWin','jfLoss'].forEach(function(id){var b=document.getElementById(id);b.style.background='';b.style.color='';});el.style.background='var(--ad)';el.style.color='var(--ac)';renderJournal(f);}
 
-// --------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════
 // VOLATILITY BOT
 // High side: 5 TOUCH contracts staggered in trend direction
 // Low side:  3 TOUCH contracts staggered against trend
 // Entry: only on volatility spike (tick speed + range expansion)
-// --------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════
 var VB = {
   running: false,
   cycleActive: false,
@@ -3425,7 +3448,7 @@ var VB = {
   prevRange: 0
 };
 
-// -- Tick speed & range metrics --------------------------------
+// ── Tick speed & range metrics ────────────────────────────────
 function vbOnTick(price, ts){
   var now = ts || Date.now();
   VB.tickTimes.push(now);
@@ -3484,7 +3507,7 @@ function vbUpdateSignal(price){
   if(trEl){trEl.textContent=trend.toUpperCase();trEl.style.color=trend==='up'?'var(--ac)':trend==='down'?'var(--re)':'var(--t3)';}
   var sigEl=el('vb-signal-txt');
   if(sigEl){
-    sigEl.textContent=ready?'[OK] SIGNAL READY -- placing cycle':'[wait] Waiting: speed='+speed+'/'+minSpeed+' range='+range.toFixed(3)+'/'+minRange+(expanding?' expanding':' flat');
+    sigEl.textContent=ready?'✅ SIGNAL READY — placing cycle':'⏳ Waiting: speed='+speed+'/'+minSpeed+' range='+range.toFixed(3)+'/'+minRange+(expanding?' expanding':' flat');
     sigEl.style.color=ready?'var(--ac)':'var(--t2)';
   }
 
@@ -3545,7 +3568,7 @@ function vbPlaceCycle(price){
   var tp=parseFloat(document.getElementById('vb-tp').value)||20;
   if(VB.pnl<=-sl){VB.running=false;document.getElementById('vb-btn').textContent='Start Volatility Bot';document.getElementById('vb-badge').textContent='STOPPED';notify('STOP','Stop loss hit','loss');return;}
   if(VB.pnl>=tp){VB.running=false;document.getElementById('vb-btn').textContent='Start Volatility Bot';document.getElementById('vb-badge').textContent='STOPPED';notify('WIN','Take profit hit','win');return;}
-  if(VB.lossStreak>=5){VB.running=false;document.getElementById('vb-btn').textContent='Start Volatility Bot';document.getElementById('vb-badge').textContent='STOPPED';notify('STOP','5 loss streak -- stopped','loss');return;}
+  if(VB.lossStreak>=5){VB.running=false;document.getElementById('vb-btn').textContent='Start Volatility Bot';document.getElementById('vb-badge').textContent='STOPPED';notify('STOP','5 loss streak — stopped','loss');return;}
 
   var stake=parseFloat(document.getElementById('vb-stake').value)||0.35;
   var dur=parseInt(document.getElementById('vb-dur').value)||20;
@@ -3572,12 +3595,12 @@ function vbPlaceCycle(price){
     startTime:Date.now()
   };
 
-  document.getElementById('vb-h-info').textContent='5 x $'+stake.toFixed(2)+' '+hDir;
-  document.getElementById('vb-l-info').textContent='3 x $'+stake.toFixed(2)+' '+lDir;
+  document.getElementById('vb-h-info').textContent='5 × $'+stake.toFixed(2)+' '+hDir;
+  document.getElementById('vb-l-info').textContent='3 × $'+stake.toFixed(2)+' '+lDir;
   document.getElementById('vb-staked').textContent='$'+totalStake.toFixed(2);
-  document.getElementById('vb-cycle-info').textContent='Cycle '+VB.cycles+' | '+trend.toUpperCase()+' | Entry: '+price.toFixed(2)+' | '+hDir+' x 5 + '+lDir+' x 3';
+  document.getElementById('vb-cycle-info').textContent='Cycle '+VB.cycles+' | '+trend.toUpperCase()+' | Entry: '+price.toFixed(2)+' | '+hDir+' × 5 + '+lDir+' × 3';
 
-  notify('VB R'+VB.cycles,'Placing 5x'+hDir+' + 3x'+lDir+' @ $'+stake.toFixed(2),'info');
+  notify('VB R'+VB.cycles,'Placing 5×'+hDir+' + 3×'+lDir+' @ $'+stake.toFixed(2),'info');
 
   // Place 5 HIGH SIDE contracts (staggered barriers in trend direction)
   for(var h=1;h<=5;h++){
@@ -3709,7 +3732,7 @@ function clearLog(){
   ['h-pnl','j-pnl'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='$0.00';});
   ['h-tot','j-tot'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='0';});
   ['h-wr','j-wr'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='0%';});
-  notify('OK','All logs cleared -- fresh start!','win');
+  notify('OK','All logs cleared — fresh start!','win');
 }
 function exportJournal(){
   var done=S.trades.filter(function(t){return t.status!=='active';});
@@ -3747,7 +3770,7 @@ function updAnalytics(){
   document.getElementById('a-avgw').textContent='+$'+(wins.length?wins.reduce(function(s,v){return s+v;},0)/wins.length:0).toFixed(2);
   document.getElementById('a-avgl').textContent='$'+(losses.length?Math.abs(losses.reduce(function(s,v){return s+v;},0)/losses.length):0).toFixed(2);
 
-  // P&L chart -- last 20 WW rounds
+  // P&L chart — last 20 WW rounds
   if(pnlChart){
     var rr=HB.history.slice(0,20).reverse();
     pnlChart.data.labels=rr.map(function(h){return 'R'+h.round;});
@@ -3756,14 +3779,14 @@ function updAnalytics(){
     pnlChart.update();
   }
 
-  // -- Signal Effectiveness Analysis --------------------------------
+  // ── Signal Effectiveness Analysis ────────────────────────────────
   var rounds=HB.history.filter(function(h){return h.snap;});
   var saEl=document.getElementById('signal-analysis');
   if(saEl){
     if(!rounds.length){saEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No WinWin rounds with confluence data yet.</div>';}
     else{
       var sigs=[
-        {key:'sig_lowVol',   label:'Low Volatility (ATR ratio <1.2x)'},
+        {key:'sig_lowVol',   label:'Low Volatility (ATR ratio <1.2×)'},
         {key:'sig_squeeze',  label:'BB Squeeze active'},
         {key:'sig_expanding',label:'Post-Squeeze expansion'},
         {key:'sig_momentum', label:'Momentum burst (4 accel ticks)'}
@@ -3778,7 +3801,7 @@ function updAnalytics(){
         var avgPnlWithout=withoutSig.length?(withoutSig.reduce(function(s,h){return s+h.profit;},0)/withoutSig.length):null;
         var better=wrWith!==null&&wrWithout!==null&&wrWith>wrWithout;
         html+='<div style="background:var(--bg3);border:1px solid '+(better?'rgba(0,229,160,0.3)':'var(--bo)')+';border-radius:var(--rs);padding:10px">';
-        html+='<div style="font-size:11px;font-weight:700;color:'+(better?'var(--ac)':'var(--t2)')+';margin-bottom:6px">'+(better?'v ':'o ')+sig.label+'</div>';
+        html+='<div style="font-size:11px;font-weight:700;color:'+(better?'var(--ac)':'var(--t2)')+';margin-bottom:6px">'+(better?'✓ ':'○ ')+sig.label+'</div>';
         html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:10px;font-family:var(--mo)">';
         html+='<div style="background:rgba(0,229,160,0.07);border-radius:4px;padding:5px 7px">';
         html+='<div style="color:var(--t3);margin-bottom:2px">WITH ('+withSig.length+' rounds)</div>';
@@ -3790,7 +3813,7 @@ function updAnalytics(){
         html+='<div style="color:var(--t2);font-weight:700;font-size:13px">'+(wrWithout!==null?wrWithout+'%':'--')+'</div>';
         html+='<div style="color:var(--t3)">Avg: '+(avgPnlWithout!==null?(avgPnlWithout>=0?'+':'')+'$'+avgPnlWithout.toFixed(2):'--')+'</div>';
         html+='</div></div>';
-        if(better)html+='<div style="font-size:10px;color:var(--ac);margin-top:5px">UP This signal improves win rate by '+(wrWith-wrWithout)+'%</div>';
+        if(better)html+='<div style="font-size:10px;color:var(--ac);margin-top:5px">↑ This signal improves win rate by '+(wrWith-wrWithout)+'%</div>';
         else if(wrWith!==null&&wrWithout!==null)html+='<div style="font-size:10px;color:var(--t3);margin-top:5px">No clear edge from this signal yet</div>';
         html+='</div>';
       });
@@ -3809,14 +3832,14 @@ function updAnalytics(){
       });
       if(bestSig&&bestEdge>5){
         html+='<div style="margin-top:10px;background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:10px;font-size:11px">';
-        html+='<b style="color:var(--ac)"> Recommendation:</b> <span style="color:var(--t1)">"'+bestSig+'" is your strongest predictor (+'+bestEdge+'% win rate when present). Consider making it mandatory.</span>';
+        html+='<b style="color:var(--ac)">📈 Recommendation:</b> <span style="color:var(--t1)">"'+bestSig+'" is your strongest predictor (+'+bestEdge+'% win rate when present). Consider making it mandatory.</span>';
         html+='</div>';
       }
       saEl.innerHTML=html;
     }
   }
 
-  // -- Score vs Win Rate ---------------------------------------------
+  // ── Score vs Win Rate ─────────────────────────────────────────────
   var scEl=document.getElementById('score-analysis');
   if(scEl){
     if(!rounds.length){scEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No data yet.</div>';}
@@ -3856,17 +3879,17 @@ function updAnalytics(){
     }
   }
 
-  // -- ATR Ratio Analysis --------------------------------------------
+  // ── ATR Ratio Analysis ────────────────────────────────────────────
   var atrEl=document.getElementById('atr-analysis');
   if(atrEl){
     if(!rounds.length){atrEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:12px">No data yet.</div>';}
     else{
       // Bucket by ATR ratio: <0.8 (very low), 0.8-1.0 (low), 1.0-1.2 (medium), >1.2 (high)
       var buckets=[
-        {label:'Very Low (<0.8x)',min:0,max:0.8,rounds:[]},
-        {label:'Low (0.8-1.0x)',min:0.8,max:1.0,rounds:[]},
-        {label:'Medium (1.0-1.2x)',min:1.0,max:1.2,rounds:[]},
-        {label:'High (>1.2x)',min:1.2,max:999,rounds:[]}
+        {label:'Very Low (<0.8×)',min:0,max:0.8,rounds:[]},
+        {label:'Low (0.8-1.0×)',min:0.8,max:1.0,rounds:[]},
+        {label:'Medium (1.0-1.2×)',min:1.0,max:1.2,rounds:[]},
+        {label:'High (>1.2×)',min:1.2,max:999,rounds:[]}
       ];
       rounds.forEach(function(h){
         var r=h.snap.atrRatio||1;
@@ -3949,7 +3972,7 @@ function initCharts(){
 
 window.addEventListener('load',function(){
   S.botMultiplier=100; S.maxBotTrades=1;
-  buildAllDDs(); buildTicker(); initCharts(); buildGMDD(); gmCalc();
+  buildAllDDs(); buildTicker(); initCharts(); gmCalc();
   buildDigitGrid(); buildMultInputs(); calcWWDaily(); initWWChart();
   updateStats(); renderTrades();
   updDG();
@@ -3963,7 +3986,7 @@ window.addEventListener('load',function(){
   if(document.getElementById('realTok'))document.getElementById('realTok').value=savedReal;
   if(!S.apiToken&&savedDemo)S.apiToken=savedDemo;
   if(!S.apiToken&&savedReal)S.apiToken=savedReal;
-  // Version check -- clear stale data from old 8-trade version
+  // Version check — clear stale data from old 8-trade version
 var _wwVersion = '5.1';
 if(localStorage.getItem('kevoai_version')!==_wwVersion){
   localStorage.removeItem('kevoai_trades');
@@ -3973,7 +3996,7 @@ if(localStorage.getItem('kevoai_version')!==_wwVersion){
   localStorage.removeItem('kevoai_dg_profit');
   S.trades=[];
   localStorage.setItem('kevoai_version',_wwVersion);
-  console.log('KevoAI v4.2 -- cleared stale trade data');
+  console.log('KevoAI v4.2 — cleared stale trade data');
 }
 connectWS(); switchAcc(S.accType);
   document.querySelector('.ni').classList.add('active');
@@ -3982,13 +4005,12 @@ connectWS(); switchAcc(S.accType);
   updateHBCalc();
 });
 
-// --------------------------------------------------------------
-// GMILLI BOT -- Zero-Gap Overlapping CALL/PUT System
-// CALL barrier = BELOW entry -> already winning
-// PUT  barrier = ABOVE entry -> already winning
-// Gap = ZERO -> one side ALWAYS wins
-// Direction % controls which side gets bigger stake
-// --------------------------------------------------------------
+// ================================================================
+// GMILLI BOT - Zero-Gap Overlapping CALL/PUT System
+// CALL barrier = BELOW entry (already winning)
+// PUT  barrier = ABOVE entry (already winning)
+// Gap = ZERO - one side ALWAYS wins
+// ================================================================
 var GM = {
   running: false,
   interval: null,
@@ -4006,19 +4028,10 @@ var GM = {
   activeTrades: []
 };
 
-function setGMActive(el){
+function gmSetActive(el){
   var p=el.parentElement;
   if(p)p.querySelectorAll('.db').forEach(function(b){b.classList.remove('active');});
   el.classList.add('active');
-}
-
-function gmAsset(sym,name){
-  GM.asset=sym;
-  var n=document.getElementById('gm-asset-n');
-  var i=document.getElementById('gm-asset-i');
-  if(n)n.textContent=sym;
-  if(i)i.textContent=name;
-  gmCalc();
 }
 
 function gmCalc(){
@@ -4026,26 +4039,20 @@ function gmCalc(){
   var mult=parseFloat(document.getElementById('gm-atr-mult').value)||0.5;
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
-  var stakeEach=budget/2;
-  var estPay=1.26; // conservative estimate
-  var bothWin=(stakeEach*estPay+stakeEach*estPay)-budget;
-  var oneWin=(stakeEach*estPay)-budget;
+  var stakeEach=(budget/2).toFixed(2);
+  var estPay=1.26;
+  var bothWin=((budget/2)*estPay*2-budget).toFixed(2);
+  var oneWin=((budget/2)*estPay-budget).toFixed(2);
   var el=document.getElementById('gm-calc-display');
-  if(el)el.textContent=[
-    'Budget: $'+budget.toFixed(2)+' ($'+stakeEach.toFixed(2)+' each side)',
-    'Barrier: ATR x'+mult+' below/above entry',
-    '',
-    'CALL: -dist barrier (below entry) -> already winning',
-    'PUT:  +dist barrier (above entry) -> already winning',
-    'GAP = ZERO -- one side ALWAYS wins',
-    '',
-    'Est payout x'+estPay+' per side:',
-    'Both win (calm): +$'+bothWin.toFixed(2),
-    'One  win (move): '+oneWin.toFixed(2)+' (need payout>2x)',
-    '',
-    'Daily SL: $'+sl+'  |  Daily TP: $'+tp
-  ].join('
-');
+  if(el)el.textContent='Budget: $'+budget.toFixed(2)+' ($'+stakeEach+' each side)\n'
+    +'Barrier: ATR x'+mult+' below/above entry\n\n'
+    +'CALL: -dist barrier (below entry) - already winning\n'
+    +'PUT:  +dist barrier (above entry) - already winning\n'
+    +'GAP = ZERO - one side ALWAYS wins\n\n'
+    +'Est payout x'+estPay+' per side:\n'
+    +'Both win (calm): +$'+bothWin+'\n'
+    +'One  win (move): $'+oneWin+' (need payout>2x)\n\n'
+    +'Daily SL: $'+sl+'  |  Daily TP: $'+tp;
   gmUpdatePreview();
 }
 
@@ -4056,23 +4063,20 @@ function gmUpdatePreview(){
   var n=prices.length;
   var atr=0;
   if(n>=5){for(var i=n-5;i<n;i++)atr+=Math.abs(prices[i]-prices[i-1]);atr/=5;}
-  var dist=atr>0?Math.max(0.01,Math.round(atr*mult*100)/100):mult*0.05;
+  var dist=atr>0?Math.max(0.01,Math.round(atr*mult*100)/100):parseFloat((mult*0.05).toFixed(2));
   var entry=S.prices[GM.asset]||0;
   var el=document.getElementById('gm-barrier-preview');
   if(!el)return;
   if(entry<=0){el.innerHTML='<span style="color:var(--t3)">Connect to see live barriers</span>';return;}
-  el.innerHTML=
-    '<span style="color:var(--ac)">CALL</span> barrier: <b>-'+dist.toFixed(2)+'</b> -> '+
-    (entry-dist).toFixed(2)+' (below entry '+entry.toFixed(2)+')<br>'+
-    '<span style="color:var(--re)">PUT</span>  barrier: <b>+'+dist.toFixed(2)+'</b> -> '+
-    (entry+dist).toFixed(2)+' (above entry '+entry.toFixed(2)+')<br>'+
-    '<span style="color:var(--go)">ATR: '+atr.toFixed(4)+'  stake: $'+(budget/2).toFixed(2)+' each</span>';
+  el.innerHTML='<span style="color:var(--ac)">CALL</span> barrier: -'+dist.toFixed(2)+' = '+(entry-dist).toFixed(2)+' (below entry)<br>'
+    +'<span style="color:var(--re)">PUT</span>  barrier: +'+dist.toFixed(2)+' = '+(entry+dist).toFixed(2)+' (above entry)<br>'
+    +'<span style="color:var(--go)">ATR: '+atr.toFixed(4)+'  stake: $'+(budget/2).toFixed(2)+' each</span>';
 }
 
 function gmUpdateDirection(){
   var prices=getInd(GM.asset).prices;
   var n=prices.length;
-  if(n<5)return;
+  if(n<5)return null;
   var look=Math.min(10,n-1);
   var ups=0,dns=0;
   for(var i=n-look;i<n;i++){var d=prices[i]-prices[i-1];if(d>0)ups++;else if(d<0)dns++;}
@@ -4082,32 +4086,28 @@ function gmUpdateDirection(){
   var upT=parseInt(document.getElementById('gm-up-thresh').value)||55;
   var dnT=parseInt(document.getElementById('gm-dn-thresh').value)||60;
   var pass=(upPct>=upT)||(dnPct>=dnT);
-  var bias=upPct>dnPct?'^ UP':'v DN';
+  var bias=upPct>dnPct?'UP':'DN';
   var biasColor=upPct>dnPct?'var(--ac)':'var(--re)';
-
-  var lbl=document.getElementById('gm-dir-label');
   var upEl=document.getElementById('gm-up-pct');
   var dnEl=document.getElementById('gm-dn-pct');
   var upBar=document.getElementById('gm-bar-up');
   var dnBar=document.getElementById('gm-bar-dn');
+  var lbl=document.getElementById('gm-dir-label');
   var status=document.getElementById('gm-dir-status');
   var biasEl=document.getElementById('gm-dir-bias');
   var atrEl=document.getElementById('gm-atr-val');
-
   if(upEl)upEl.textContent=upPct+'%';
   if(dnEl)dnEl.textContent=dnPct+'%';
   if(upBar)upBar.style.width=upPct+'%';
   if(dnBar)dnBar.style.width=dnPct+'%';
-  if(lbl){lbl.textContent=pass?'[OK] READY':'[wait] WAITING';lbl.style.color=pass?'var(--ac)':'var(--go)';}
+  if(lbl){lbl.textContent=pass?'READY':'WAITING';lbl.style.color=pass?'var(--ac)':'var(--go)';}
   if(status){status.textContent=pass?'READY':'WAITING';status.style.color=pass?'var(--ac)':'var(--go)';}
   if(biasEl){biasEl.textContent=bias;biasEl.style.color=biasColor;}
-
   var prices2=getInd(GM.asset).prices,n2=prices2.length,atr2=0;
   if(n2>=5){for(var j=n2-5;j<n2;j++)atr2+=Math.abs(prices2[j]-prices2[j-1]);atr2/=5;}
   if(atrEl)atrEl.textContent=atr2.toFixed(4);
-
   gmUpdatePreview();
-  return {pass:pass,upPct:upPct,dnPct:dnPct,upT:upT,dnT:dnT};
+  return {pass:pass,upPct:upPct,dnPct:dnPct};
 }
 
 function gmToggle(){
@@ -4115,11 +4115,11 @@ function gmToggle(){
   var btn=document.getElementById('gm-toggle-btn');
   if(GM.running){
     if(!S.connected){notify('!','Connect first!','loss');GM.running=false;return;}
-    if(btn){btn.textContent='[] STOP GMILLI';btn.style.background='var(--re)';btn.style.color='#fff';}
-    notify('Gmilli','Bot started','info');
+    if(btn){btn.textContent='STOP GMILLI';btn.style.background='var(--re)';btn.style.color='#fff';}
+    notify('Gmilli','Bot started - zero gap system','info');
     gmLoop();
   } else {
-    if(btn){btn.textContent='> START GMILLI';btn.style.background='var(--ac)';btn.style.color='var(--bg0)';}
+    if(btn){btn.textContent='START GMILLI';btn.style.background='var(--ac)';btn.style.color='var(--bg0)';}
     if(GM.interval)clearTimeout(GM.interval);
     notify('Gmilli','Bot stopped','info');
   }
@@ -4127,38 +4127,36 @@ function gmToggle(){
 
 function gmLoop(){
   if(!GM.running)return;
-  // Daily limits
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
   if(GM.pnl<=-sl){gmToggle();notify('STOP','Gmilli daily SL hit','loss');return;}
-  if(GM.pnl>=tp){gmToggle();notify('TP','Gmilli daily target hit!','win');return;}
-  // Active check
+  if(GM.pnl>=tp){gmToggle();notify('TP','Gmilli daily target hit','win');return;}
   if(GM.activeTrades.length>0){
-    document.getElementById('gm-round-status').textContent='ACTIVE';
+    var rs=document.getElementById('gm-round-status');
+    if(rs)rs.textContent='ACTIVE';
     GM.interval=setTimeout(gmLoop,500);return;
   }
-  // Gap check
   var now=Date.now();
   var gap=(GM.minGap||30)*1000;
   if(now-GM.lastRoundTime<gap){
     var wait=Math.ceil((GM.lastRoundTime+gap-now)/1000);
-    document.getElementById('gm-round-status').textContent='GAP '+wait+'s';
+    var rs2=document.getElementById('gm-round-status');
+    if(rs2)rs2.textContent='GAP '+wait+'s';
     GM.interval=setTimeout(gmLoop,1000);return;
   }
-  // Direction check
   var dir=gmUpdateDirection();
   if(!dir||!dir.pass){
-    document.getElementById('gm-round-status').textContent='WAITING DIR';
+    var rs3=document.getElementById('gm-round-status');
+    if(rs3)rs3.textContent='WAITING DIR';
     GM.interval=setTimeout(gmLoop,2000);return;
   }
-  // ATR check
-  var prices=getInd(GM.asset).prices,n=prices.length,atr=0;
-  if(n>=5){for(var i=n-5;i<n;i++)atr+=Math.abs(prices[i]-prices[i-1]);atr/=5;}
+  var prices=getInd(GM.asset).prices,pn=prices.length,atr=0;
+  if(pn>=5){for(var pi=pn-5;pi<pn;pi++)atr+=Math.abs(prices[pi]-prices[pi-1]);atr/=5;}
   if(atr<0.02){
-    document.getElementById('gm-round-status').textContent='DEAD MARKET';
+    var rs4=document.getElementById('gm-round-status');
+    if(rs4)rs4.textContent='DEAD MARKET';
     GM.interval=setTimeout(gmLoop,2000);return;
   }
-  // Fire round
   gmPlace();
   GM.interval=setTimeout(gmLoop,500);
 }
@@ -4167,19 +4165,15 @@ function gmPlace(){
   if(!S.connected)return;
   var entry=S.prices[GM.asset]||0;
   if(entry<=0)return;
-
   var mult=parseFloat(document.getElementById('gm-atr-mult').value)||0.5;
-  var prices=getInd(GM.asset).prices,n=prices.length,atr=0;
-  if(n>=5){for(var i=n-5;i<n;i++)atr+=Math.abs(prices[i]-prices[i-1]);atr/=5;}
+  var prices=getInd(GM.asset).prices,pn=prices.length,atr=0;
+  if(pn>=5){for(var pi=pn-5;pi<pn;pi++)atr+=Math.abs(prices[pi]-prices[pi-1]);atr/=5;}
   if(atr<0.01)atr=0.05;
-  // Barrier distance -- strict 2dp
   var dist=Math.max(0.01,Math.round(atr*mult*100)/100);
-  var callBar='-'+dist.toFixed(2);  // BELOW entry
-  var putBar ='+'+dist.toFixed(2);  // ABOVE entry
-
+  var callBar='-'+dist.toFixed(2);
+  var putBar='+'+dist.toFixed(2);
   var budget=Math.max(0.70,parseFloat(document.getElementById('gm-budget').value)||3);
   var stakeEach=Math.max(0.35,budget/2);
-
   GM.roundId++;
   var rid=GM.roundId;
   GM.rounds++;
@@ -4191,74 +4185,59 @@ function gmPlace(){
     P_call:0,P_put:0,proposalsReady:0,
     callProposalId:null,putProposalId:null,
     callAsk:stakeEach,putAsk:stakeEach,
+    callContractId:null,putContractId:null,
     time:new Date().toLocaleTimeString(),asset:GM.asset
   };
   GM.activeTrades.push({rid:rid});
-
-  notify('GM R'+GM.rounds,
-    'CALL '+callBar+' ('+( entry-dist).toFixed(2)+')'+
-    ' | PUT '+putBar+' ('+(entry+dist).toFixed(2)+')'+
-    ' | $'+stakeEach.toFixed(2)+' each','info');
-
-  // Update round display
-  var cs=document.getElementById('gm-call-stake');var ps=document.getElementById('gm-put-stake');
-  var cb=document.getElementById('gm-call-barrier');var pb=document.getElementById('gm-put-barrier');
+  var cs=document.getElementById('gm-call-stake');
+  var ps=document.getElementById('gm-put-stake');
+  var cb2=document.getElementById('gm-call-barrier');
+  var pb=document.getElementById('gm-put-barrier');
+  var rs=document.getElementById('gm-round-status');
   if(cs)cs.textContent='stake: $'+stakeEach.toFixed(2);
   if(ps)ps.textContent='stake: $'+stakeEach.toFixed(2);
-  if(cb)cb.textContent='barrier: '+callBar+' ('+( entry-dist).toFixed(2)+')';
+  if(cb2)cb2.textContent='barrier: '+callBar+' ('+(entry-dist).toFixed(2)+')';
   if(pb)pb.textContent='barrier: '+putBar+' ('+(entry+dist).toFixed(2)+')';
-  document.getElementById('gm-round-status').textContent='FETCHING...';
-
-  // Fire proposals
+  if(rs)rs.textContent='FETCHING...';
+  var gmA=document.getElementById('gm-active');
+  if(gmA)gmA.textContent='0';
+  notify('GM R'+GM.rounds,'CALL '+callBar+' | PUT '+putBar+' | $'+stakeEach.toFixed(2)+' each','info');
   var p1=wsSend({proposal:1,amount:stakeEach,basis:'stake',contract_type:'CALL',
     currency:S.currency,duration:GM.dur,duration_unit:'s',
     symbol:GM.asset,barrier:callBar});
-  if(p1)S.pending[p1]={type:'gm_proposal',gmRound:rid,gmSide:'call',
-    estStake:stakeEach,barrierStr:callBar};
-
+  if(p1)S.pending[p1]={type:'gm_proposal',gmRound:rid,gmSide:'call',estStake:stakeEach};
   var p2=wsSend({proposal:1,amount:stakeEach,basis:'stake',contract_type:'PUT',
     currency:S.currency,duration:GM.dur,duration_unit:'s',
     symbol:GM.asset,barrier:putBar});
-  if(p2)S.pending[p2]={type:'gm_proposal',gmRound:rid,gmSide:'put',
-    estStake:stakeEach,barrierStr:putBar};
+  if(p2)S.pending[p2]={type:'gm_proposal',gmRound:rid,gmSide:'put',estStake:stakeEach};
 }
 
 function onGMProposal(proposal,pendInfo){
-  if(!proposal||!proposal.id){
-    notify('!','GM proposal failed','loss');
-    gmCleanup(pendInfo.gmRound);return;
-  }
+  if(!proposal||!proposal.id){notify('!','GM proposal failed','loss');gmCleanup(pendInfo.gmRound);return;}
   var rid=pendInfo.gmRound;
   var round=GM.pending[rid];
   if(!round)return;
   var ask=parseFloat(proposal.ask_price||1);
   var pay=parseFloat(proposal.payout||0);
-  var mult=ask>0&&pay>0?pay/ask:0;
-
-  if(pendInfo.gmSide==='call'){
-    round.P_call=mult;round.callProposalId=proposal.id;round.callAsk=ask;
-  } else {
-    round.P_put=mult;round.putProposalId=proposal.id;round.putAsk=ask;
-  }
+  var mult2=ask>0&&pay>0?pay/ask:0;
+  if(pendInfo.gmSide==='call'){round.P_call=mult2;round.callProposalId=proposal.id;round.callAsk=ask;}
+  else{round.P_put=mult2;round.putProposalId=proposal.id;round.putAsk=ask;}
   round.proposalsReady=(round.proposalsReady||0)+1;
   if(round.proposalsReady<2)return;
-
-  // Both proposals ready -- check payout and buy
-  console.log('[GM] CALL payout:'+round.P_call.toFixed(3)+' PUT payout:'+round.P_put.toFixed(3));
+  var rs=document.getElementById('gm-round-status');
+  if(rs)rs.textContent='BUYING...';
   notify('GM R'+GM.rounds,'CALL:'+round.P_call.toFixed(2)+'x PUT:'+round.P_put.toFixed(2)+'x','info');
-
-  document.getElementById('gm-round-status').textContent='BUYING...';
-
   var b1=wsSend({buy:round.callProposalId,price:round.callAsk});
   if(b1)S.pending[b1]={dir:'CALL',stake:round.stakeCall,asset:round.asset,
-    isBot:true,isGM:true,gmRound:rid,gmSide:'call',entryPrice:round.entry};
-
+    isBot:true,isGM:true,gmRound:rid,gmSide:'call',
+    entryPrice:round.entry,durVal:GM.dur,durUnit:'s'};
   var b2=wsSend({buy:round.putProposalId,price:round.putAsk});
   if(b2)S.pending[b2]={dir:'PUT',stake:round.stakePut,asset:round.asset,
-    isBot:true,isGM:true,gmRound:rid,gmSide:'put',entryPrice:round.entry};
-
-  document.getElementById('gm-active').textContent='2';
-  document.getElementById('gm-round-status').textContent='2 ACTIVE';
+    isBot:true,isGM:true,gmRound:rid,gmSide:'put',
+    entryPrice:round.entry,durVal:GM.dur,durUnit:'s'};
+  var gmA=document.getElementById('gm-active');
+  if(gmA)gmA.textContent='2';
+  if(rs)rs.textContent='2 ACTIVE';
 }
 
 function onGMResult(rid,side,profit){
@@ -4268,8 +4247,6 @@ function onGMResult(rid,side,profit){
   if(side==='call'){round.results[0]={profit:pnl,win:pnl>0};}
   else{round.results[1]={profit:pnl,win:pnl>0};}
   round.settled=(round.settled||0)+1;
-
-  // Update UI
   if(side==='call'){
     var el=document.getElementById('gm-call-pnl');
     if(el){el.textContent=(pnl>=0?'+':'')+' $'+pnl.toFixed(2);el.style.color=pnl>0?'var(--ac)':'var(--re)';}
@@ -4277,7 +4254,6 @@ function onGMResult(rid,side,profit){
     var el2=document.getElementById('gm-put-pnl');
     if(el2){el2.textContent=(pnl>=0?'+':'')+' $'+pnl.toFixed(2);el2.style.color=pnl>0?'var(--ac)':'var(--re)';}
   }
-
   if(round.settled>=2)gmSettle(rid);
 }
 
@@ -4290,38 +4266,32 @@ function gmSettle(rid){
   var isWin=total>0;
   var callWon=r.results[0]&&r.results[0].win;
   var putWon=r.results[1]&&r.results[1].win;
-
   GM.pnl+=total;
   if(isWin)GM.won++;else GM.lost++;
   GM.activeTrades=[];
-
-  // Add to history
-  GM.history.unshift({rid:rid,total:total,win:isWin,
-    callPnl:cPnl,putPnl:pPnl,callWon:callWon,putWon:putWon,
-    time:r.time,asset:r.asset,entry:r.entry,dist:r.dist});
-
-  // Update stats
+  GM.history.unshift({rid:rid,total:total,win:isWin,callPnl:cPnl,putPnl:pPnl,
+    callWon:callWon,putWon:putWon,time:r.time,asset:r.asset});
   gmUpdateStats();
   gmRenderHistory();
-
-  // Update round display
   var net=document.getElementById('gm-round-net');
   if(net){net.textContent=(total>=0?'+':'')+' $'+total.toFixed(2);net.style.color=total>0?'var(--ac)':'var(--re)';}
-  document.getElementById('gm-round-status').textContent=isWin?'[OK] WIN':'[X] LOSS';
-  document.getElementById('gm-active').textContent='0';
-
+  var rs=document.getElementById('gm-round-status');
+  if(rs)rs.textContent=isWin?'WIN':'LOSS';
+  var gmA=document.getElementById('gm-active');
+  if(gmA)gmA.textContent='0';
   notify('GM '+(isWin?'WIN':'LOSS'),
-    'CALL:'+(callWon?'[OK]':'[X]')+' PUT:'+(putWon?'[OK]':'[X]')+
-    ' Net:'+(total>=0?'+':'')+total.toFixed(2),isWin?'win':'loss');
-
+    'CALL:'+(callWon?'WON':'LOST')+' PUT:'+(putWon?'WON':'LOST')+' Net:'+(total>=0?'+':'')+total.toFixed(2),
+    isWin?'win':'loss');
   delete GM.pending[rid];
 }
 
 function gmCleanup(rid){
   GM.activeTrades=[];
-  document.getElementById('gm-round-status').textContent='ERROR';
-  document.getElementById('gm-active').textContent='0';
-  delete GM.pending[rid];
+  var rs=document.getElementById('gm-round-status');
+  if(rs)rs.textContent='ERROR';
+  var gmA=document.getElementById('gm-active');
+  if(gmA)gmA.textContent='0';
+  if(rid)delete GM.pending[rid];
 }
 
 function gmUpdateStats(){
@@ -4342,14 +4312,14 @@ function gmRenderHistory(){
   if(!el)return;
   if(!GM.history.length){el.innerHTML='<div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No rounds yet.</div>';return;}
   el.innerHTML=GM.history.slice(0,15).map(function(r){
-    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bo);font-size:12px">'+
-      '<span style="padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;background:'+(r.win?'var(--ad)':'var(--rd)')+';color:'+(r.win?'var(--ac)':'var(--re)')+'">'+( r.win?'WIN':'LOSS')+'</span>'+
-      '<span style="color:var(--t2)">'+r.asset+'</span>'+
-      '<span style="color:var(--t3);font-size:10px">'+r.time+'</span>'+
-      '<span style="color:var(--ac);font-size:10px">C:'+(r.callWon?'[OK]':'[X]')+'</span>'+
-      '<span style="color:var(--re);font-size:10px">P:'+(r.putWon?'[OK]':'[X]')+'</span>'+
-      '<span style="margin-left:auto;font-weight:700;color:'+(r.total>=0?'var(--ac)':'var(--re)')+'">'+(r.total>=0?'+':'')+r.total.toFixed(2)+'</span>'+
-      '</div>';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bo);font-size:12px">'
+      +'<span style="padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;background:'+(r.win?'var(--ad)':'var(--rd)')+';color:'+(r.win?'var(--ac)':'var(--re)')+'">'+( r.win?'WIN':'LOSS')+'</span>'
+      +'<span style="color:var(--t2)">'+r.asset+'</span>'
+      +'<span style="color:var(--t3);font-size:10px">'+r.time+'</span>'
+      +'<span style="color:var(--ac);font-size:10px">C:'+(r.callWon?'OK':'X')+'</span>'
+      +'<span style="color:var(--re);font-size:10px">P:'+(r.putWon?'OK':'X')+'</span>'
+      +'<span style="margin-left:auto;font-weight:700;color:'+(r.total>=0?'var(--ac)':'var(--re)')+'">'+( r.total>=0?'+':'')+r.total.toFixed(2)+'</span>'
+      +'</div>';
   }).join('');
 }
 
@@ -4358,11 +4328,10 @@ function gmReset(){
   GM.history=[];GM.activeTrades=[];GM.pending={};GM.lastRoundTime=0;
   gmUpdateStats();gmRenderHistory();
   var net=document.getElementById('gm-round-net');if(net)net.textContent='$0.00';
-  document.getElementById('gm-round-status').textContent='IDLE';
+  var rs=document.getElementById('gm-round-status');if(rs)rs.textContent='IDLE';
   notify('Reset','Gmilli session reset','info');
 }
 
-// Build Gmilli asset dropdown
 function buildGMDD(){
   var dd=document.getElementById('gm-dd');
   if(!dd)return;
@@ -4373,14 +4342,14 @@ function buildGMDD(){
     INSTR[grp].forEach(function(inst){
       var opt=document.createElement('div');
       opt.className='ddo';
-      opt.innerHTML='<span style="font-weight:600">'+inst.sym+'</span>'+
-        '<span style="font-size:10px;color:var(--t3);font-family:var(--mo)">'+inst.name+'</span>';
+      opt.innerHTML='<span style="font-weight:600">'+inst.sym+'</span>'
+        +'<span style="font-size:10px;color:var(--t3);font-family:var(--mo)"> '+inst.name+'</span>';
       opt.addEventListener('click',function(){
         GM.asset=inst.sym;
-        var n=document.getElementById('gm-asset-n');
-        var i=document.getElementById('gm-asset-i');
-        if(n)n.textContent=inst.sym;
-        if(i)i.textContent=inst.name;
+        var gn=document.getElementById('gm-asset-n');
+        var gi=document.getElementById('gm-asset-i');
+        if(gn)gn.textContent=inst.sym;
+        if(gi)gi.textContent=inst.name;
         dd.classList.remove('open');
         gmCalc();
       });
@@ -4388,7 +4357,7 @@ function buildGMDD(){
     });
   });
 }
-// -- END GMILLI BOT ----------------------------------------------
+// END GMILLI BOT
 
 </script>
 </body>
