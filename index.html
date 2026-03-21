@@ -704,8 +704,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Min Signal Score to Trade</div>
-                  <div class="dr" style="grid-template-columns:repeat(5,1fr)"><div class="db" onclick="HB.minScore=1;setHBActive(this)">1</div><div class="db" onclick="HB.minScore=2;setHBActive(this)">2</div><div class="db" onclick="HB.minScore=3;setHBActive(this)">3</div><div class="db active" onclick="HB.minScore=4;setHBActive(this)">4</div><div class="db" onclick="HB.minScore=5;setHBActive(this)">5</div></div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Higher = fewer but better quality setups</div>
+                  <div class="dr" style="grid-template-columns:repeat(2,1fr)"><div class="db active" onclick="HB.minScore=1;setHBActive(this)">1 — ATR high only</div><div class="db" onclick="HB.minScore=2;setHBActive(this)">2 — ATR + Momentum</div></div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">BB squeeze always blocks regardless of score. Score 2 = fewer but stronger setups.</div>
                 </div>
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Min Gap Between Rounds</div>
@@ -1442,7 +1442,7 @@ function fmtDur(ms){if(!ms||ms<0)return '--';var s=Math.floor(ms/1000);if(s<60)r
 
 const HB = {
   running:false, interval:null,
-  asset:'R_100', ticks:5, minScore:4, minGap:45,
+  asset:'R_100', ticks:5, minScore:1, minGap:45,
   useCooldown:true,
   rounds:0, won:0, lost:0, pnl:0,
   bestRound:0, worstRound:0,
@@ -1591,7 +1591,18 @@ function renderTradeBreakdown(bTrend,bCounter,stTrend,stCounter,P_t,P_c,result){
   if(bw){bw.textContent='+$'+result.profitA.toFixed(2)+' / +$'+result.profitB.toFixed(2);bw.style.color=result.valid?'var(--ac)':'var(--re)';}
 }
 
-// ── Signal Engine — same 5-signal system, DOM throttled ──────────
+// ── Signal Engine — rebuilt from trade data ───────────────────────
+// Data showed 3 market states:
+//   ATR low  + BB squeezing   = DEAD   → full stake loss every time
+//   ATR rising + BB expanding = WEAK   → counter wins only (~$0.12)
+//   ATR high + BB expanding   = STRONG → main wins (~$2.36)
+// New rules:
+//   BB squeeze = HARD BLOCK (was +2 score — now kills the trade)
+//   Low vol    = HARD BLOCK (was +1 score — same problem)
+//   ATR HIGH   = required for score (strong breakout = main wins)
+//   Momentum   = +1 (confirms breakout in progress)
+//   Cooldown   = +1 (timing guard)
+//   Score max  = 2 — trade when both ATR strong + momentum confirm
 var wwSigThrottle=0;
 function getWWSignal(){
   var ind=getInd(HB.asset),prices=ind.prices,n=prices.length,score=0;
@@ -1601,38 +1612,74 @@ function getWWSignal(){
       var ss2=document.getElementById('sig-status');
       if(ss2){ss2.textContent='Warming up... ('+n+'/25 ticks)';ss2.style.color='var(--t3)';}
       var sb2=document.getElementById('sig-score-badge');
-      if(sb2){sb2.textContent='Score: 0/5';sb2.style.background='var(--bg4)';sb2.style.color='var(--t3)';}
+      if(sb2){sb2.textContent='Score: 0/2';sb2.style.background='var(--bg4)';sb2.style.color='var(--t3)';}
     }
     return{score:0,ready:false};
   }
-  var atr5=0,atr20=0,atrHit=false;
+
+  var atr5=0,atr20=0;
   for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;
   for(var j=n-25;j<n-5;j++)atr20+=Math.abs(prices[j]-prices[j-1]);atr20/=20;
-  // For OUTSIDE+BETWEEN we prefer LOW volatility (squeeze) not ATR spike
-  // Low ATR = price coiling = ENDS OUTSIDE will pay more when it breaks out
-  var lowVol=atr5<atr20*1.2;if(lowVol)score++;
+  var atrRatio=atr20>0?atr5/atr20:1;
+
+  // ── HARD BLOCKS — if either fires, score=0 and return not ready ──
+  var isSqueeze=!!ind.bbSqueeze;
+  var isLowVol=atrRatio<0.8; // ATR well below recent average = dead
+
   if(updateDOM){
+    // ATR card — now shows HIGH/MED/LOW and whether it blocks
     var ac=document.getElementById('sig-atr-card'),av=document.getElementById('sig-atr-val');
-    if(ac){ac.style.borderColor=lowVol?'var(--ac)':'var(--bo)';ac.style.background=lowVol?'rgba(0,229,160,0.1)':'var(--bg3)';}
-    if(av){av.textContent=atr20>0?(atr5/atr20).toFixed(2)+'x':'--';av.style.color=lowVol?'var(--ac)':'var(--t3)';}
+    var atrHigh=atrRatio>=1.2;
+    var atrBlock=isLowVol;
+    if(ac){ac.style.borderColor=atrBlock?'var(--re)':atrHigh?'var(--ac)':'var(--bo)';
+           ac.style.background=atrBlock?'rgba(255,77,106,0.1)':atrHigh?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(av){av.textContent=atrRatio.toFixed(2)+'x '+(atrBlock?'DEAD':atrHigh?'HIGH':'MED');
+           av.style.color=atrBlock?'var(--re)':atrHigh?'var(--ac)':'var(--t2)';}
     var vb=document.getElementById('ww-chart-vol-badge');
-    if(vb){var vr=atr20>0?atr5/atr20:1;vb.textContent='VOL:'+(vr<0.8?'LOW':vr<1.2?'MED':'HIGH');vb.style.background=vr<0.8?'var(--ad)':vr<1.2?'var(--gd)':'var(--bg4)';vb.style.color=vr<0.8?'var(--ac)':vr<1.2?'var(--go)':'var(--t3)';}
+    if(vb){vb.textContent='VOL:'+(isLowVol?'DEAD':atrRatio<1.2?'MED':'HIGH');
+           vb.style.background=isLowVol?'var(--rd)':atrRatio<1.2?'var(--gd)':'var(--ad)';
+           vb.style.color=isLowVol?'var(--re)':atrRatio<1.2?'var(--go)':'var(--ac)';}
     var ca=document.getElementById('ww-chart-atr');if(ca)ca.textContent='ATR:'+atr5.toFixed(4);
-  }
-  // BB Squeeze = tight range = ENDS OUTSIDE pays more when it breaks
-  if(ind.bbSqueeze){HB.lastSqueezeTime=now;score+=2;}
-  if(updateDOM){
+
+    // BB card — squeeze is now a RED block
     var bc=document.getElementById('sig-bb-card'),bv=document.getElementById('sig-bb-val');
-    if(bc){bc.style.borderColor=ind.bbSqueeze?'var(--ac)':'var(--bo)';bc.style.background=ind.bbSqueeze?'rgba(0,229,160,0.1)':'var(--bg3)';}
-    if(bv){bv.textContent=ind.bbSqueeze?'SQUEEZE!':'Normal';bv.style.color=ind.bbSqueeze?'var(--ac)':'var(--t3)';}
+    if(bc){bc.style.borderColor=isSqueeze?'var(--re)':'var(--bo)';
+           bc.style.background=isSqueeze?'rgba(255,77,106,0.1)':'var(--bg3)';}
+    if(bv){bv.textContent=isSqueeze?'BLOCKED':'OK';
+           bv.style.color=isSqueeze?'var(--re)':'var(--t2)';}
   }
-  var expanding=!ind.bbSqueeze&&HB.lastSqueezeTime>0&&(now-HB.lastSqueezeTime)<20000&&ind.bbWidth>HB.prevBBWidth*1.1;
-  if(expanding)score++;if(ind.bbWidth)HB.prevBBWidth=ind.bbWidth;
+
+  // If market is dead or squeezing — hard block, do not score
+  if(isSqueeze||isLowVol){
+    if(updateDOM){
+      var sb3=document.getElementById('sig-score-badge');
+      if(sb3){sb3.textContent='BLOCKED';sb3.style.background='var(--rd)';sb3.style.color='var(--re)';sb3.style.border='1px solid rgba(255,77,106,0.3)';}
+      var ss3=document.getElementById('sig-status');
+      if(ss3){ss3.textContent='⛔ '+(isSqueeze?'BB SQUEEZE — dead market, skipping':'LOW VOL — market flat, skipping');ss3.style.color='var(--re)';}
+    }
+    return{score:0,ready:false};
+  }
+
+  // ── POSITIVE SIGNALS — ATR high + momentum ───────────────────
+  // Signal 1: ATR elevated (market actively moving)
+  var atrHigh=atrRatio>=1.2;
+  if(atrHigh)score++;
+  if(updateDOM){
+    var ac2=document.getElementById('sig-atr-card'),av2=document.getElementById('sig-atr-val');
+    if(ac2){ac2.style.borderColor=atrHigh?'var(--ac)':'var(--bo)';ac2.style.background=atrHigh?'rgba(0,229,160,0.1)':'var(--bg3)';}
+    if(av2){av2.textContent=atrRatio.toFixed(2)+'x '+(atrHigh?'HIGH':'MED');av2.style.color=atrHigh?'var(--ac)':'var(--t2)';}
+  }
+
+  // BB expansion card — informational only now (no score)
+  var expanding=ind.bbWidth>0&&ind.bbWidth>(HB.prevBBWidth||0)*1.05;
+  if(ind.bbWidth)HB.prevBBWidth=ind.bbWidth;
   if(updateDOM){
     var ec=document.getElementById('sig-expand-card'),ev=document.getElementById('sig-expand-val');
-    if(ec){ec.style.borderColor=expanding?'var(--ac)':'var(--bo)';ec.style.background=expanding?'rgba(0,229,160,0.1)':'var(--bg3)';}
-    if(ev){ev.textContent=expanding?'EXPANDING!':'Waiting';ev.style.color=expanding?'var(--ac)':'var(--t3)';}
+    if(ec){ec.style.borderColor=expanding?'var(--ac)':'var(--bo)';ec.style.background=expanding?'rgba(0,229,160,0.08)':'var(--bg3)';}
+    if(ev){ev.textContent=expanding?'EXPANDING':'Stable';ev.style.color=expanding?'var(--ac)':'var(--t3)';}
   }
+
+  // Signal 2: Momentum burst (4 accelerating ticks)
   var momBurst=false;
   if(n>=5){var sz=[];for(var k=n-4;k<n;k++)sz.push(Math.abs(prices[k]-prices[k-1]));if(sz[1]>sz[0]&&sz[2]>sz[1]&&sz[3]>sz[2])momBurst=true;}
   if(momBurst)score++;
@@ -1641,16 +1688,18 @@ function getWWSignal(){
     if(mc){mc.style.borderColor=momBurst?'var(--ac)':'var(--bo)';mc.style.background=momBurst?'rgba(0,229,160,0.1)':'var(--bg3)';}
     if(mv){mv.textContent=momBurst?'BURST!':'Flat';mv.style.color=momBurst?'var(--ac)':'var(--t3)';}
   }
+
+  // Signal 3: Cooldown/gap ok
   var gapOk=(now-HB.lastRoundTime)>=(HB.minGap||45)*1000,coolOk=!HB.coolingDown||now>HB.cooldownEnd,cdOk=gapOk&&coolOk;
-  if(cdOk)score++;
+  // Note: cooldown is a hard requirement, not scored — if not ready, block
   var dsecs=Math.max(gapOk?0:Math.ceil(((HB.lastRoundTime+(HB.minGap||45)*1000)-now)/1000),coolOk?0:Math.ceil((HB.cooldownEnd-now)/1000));
   if(updateDOM){
     var cdc=document.getElementById('sig-cd-card'),cdv=document.getElementById('sig-cd-val');
     if(cdc){cdc.style.borderColor=cdOk?'var(--ac)':'var(--bo)';cdc.style.background=cdOk?'rgba(0,229,160,0.1)':'var(--bg3)';}
     if(cdv){cdv.textContent=cdOk?'READY':dsecs+'s';cdv.style.color=cdOk?'var(--ac)':'var(--re)';}
-    var minS=HB.minScore||3;
+    var minS=HB.minScore||1; // out of 2 now
     var sb=document.getElementById('sig-score-badge');
-    if(sb){sb.textContent='Score: '+score+'/5';sb.style.background=score>=4?'var(--ad)':score>=minS?'var(--gd)':'var(--bg4)';sb.style.color=score>=4?'var(--ac)':score>=minS?'var(--go)':'var(--t3)';sb.style.border='1px solid '+(score>=minS?'rgba(0,229,160,0.3)':'var(--bo)');}
+    if(sb){sb.textContent='Score: '+score+'/2';sb.style.background=score>=2?'var(--ad)':score>=1?'var(--gd)':'var(--bg4)';sb.style.color=score>=2?'var(--ac)':score>=1?'var(--go)':'var(--t3)';sb.style.border='1px solid '+(score>=1?'rgba(0,229,160,0.3)':'var(--bo)');}
     var ss=document.getElementById('sig-status');
     if(ss){
       if(!cdOk){ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+dsecs+'s':'Gap: '+dsecs+'s until ready');ss.style.color='var(--go)';}
@@ -1658,17 +1707,18 @@ function getWWSignal(){
         var _z=getIntegerWallZone();
         var _zReady=_z.ready;
         var _zDir=_z.zone==='near_floor'?'▼ LOWER':'▲ HIGHER';
-        ss.textContent=_zReady?'✅ Score '+score+'/5 — WALL:'+_z.nearestInt+'.00 → '+_zDir+' — Placing now...':'✅ Score '+score+'/5 ready — ⛔ DEAD ZONE, waiting for wall';
+        ss.textContent=_zReady?'✅ Score '+score+'/2 — WALL:'+_z.nearestInt+'.00 → '+_zDir+' — Placing now...':'✅ Score '+score+'/2 ready — ⛔ DEAD ZONE, waiting for wall';
         ss.style.color=_zReady?'var(--ac)':'var(--go)';
       }
-      else{var miss=[];if(!ind.bbSqueeze&&!expanding)miss.push('BB squeeze');if(!momBurst)miss.push('momentum');if(!lowVol)miss.push('low volatility');ss.textContent='⏳ Waiting ('+score+'/'+minS+'): need '+miss.join(', ');ss.style.color='var(--t2)';}
+      else{var miss=[];if(!atrHigh)miss.push('ATR high');if(!momBurst)miss.push('momentum burst');ss.textContent='⏳ Waiting ('+score+'/2): need '+miss.join(', ');ss.style.color='var(--t2)';}
     }
   }
+
   var _af=0,_pp=getInd(HB.asset).prices,_np=_pp.length;
   if(_np>=5){for(var _fi=_np-5;_fi<_np;_fi++)_af+=Math.abs(_pp[_fi]-_pp[_fi-1]);_af/=5;}
   var atrOk=_af>=0.05;
-  if(updateDOM&&!atrOk){var _av=document.getElementById('sig-atr-val');if(_av)_av.textContent='FLAT!';}
-  return{score:score,ready:score>=(HB.minScore||3)&&cdOk&&atrOk};
+  if(updateDOM&&!atrOk){var _av2=document.getElementById('sig-atr-val');if(_av2)_av2.textContent='FLAT!';}
+  return{score:score,ready:score>=(HB.minScore||1)&&cdOk&&atrOk&&!isSqueeze&&!isLowVol};
 }
 
 // ══════════════════════════════════════════════════════════════════
