@@ -896,7 +896,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             </div>
 
             <!-- Round History -->
-            <div class="card"><div class="ch"><div class="ct">Round History</div><span style="font-size:10px;color:var(--t3)" id="gm-streak-display"></span></div><div class="cb" id="gm-history-list"><div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No rounds yet.</div></div></div>
+            <div class="card"><div class="ch"><div class="ct">Round History</div><span style="font-size:10px;color:var(--t3)" id="gm-streak-display"></span><button class="btn btng" style="font-size:10px;padding:3px 9px;margin-left:auto" onclick="gmExportData()">⬇ Export Data</button></div><div class="cb" id="gm-history-list"><div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No rounds yet.</div></div></div>
           </div>
 
           <!-- RIGHT: Config -->
@@ -4100,7 +4100,7 @@ var GM = {
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
-  confThresh:60  // 60/40 rule — minimum % of ticks in one direction
+  confThresh:65  // Min confidence threshold — matches default 65% button
 };
 
 function gmSetActive(el){
@@ -4115,10 +4115,14 @@ function gmGetConfidence(){
   var n=prices.length;
   var look=Math.min(20,n-1);
   if(look<5)return{upPct:50,dnPct:50,bias:'--',passes:true};
-  var ups=0,dns=0;
+
+  // Count up/down ticks + build tick pills
+  var ups=0,dns=0,tickPills='';
   for(var i=n-look;i<n;i++){
     var d=prices[i]-prices[i-1];
-    if(d>0)ups++;else if(d<0)dns++;
+    if(d>0){ups++;tickPills+='<div style="width:10px;height:10px;border-radius:2px;background:var(--ac);opacity:0.85"></div>';}
+    else if(d<0){dns++;tickPills+='<div style="width:10px;height:10px;border-radius:2px;background:var(--re);opacity:0.85"></div>';}
+    else{tickPills+='<div style="width:10px;height:10px;border-radius:2px;background:var(--bg4)"></div>';}
   }
   var total=ups+dns||1;
   var upPct=Math.round(ups/total*100);
@@ -4126,18 +4130,46 @@ function gmGetConfidence(){
   var bias=upPct>dnPct?'UP':'DN';
   var thresh=GM.confThresh||0;
   var passes=thresh===0||(upPct>=thresh)||(dnPct>=thresh);
-  // Update UI
-  var upEl=document.getElementById('gm-conf-up');
-  var dnEl=document.getElementById('gm-conf-dn');
-  var dispEl=document.getElementById('gm-conf-display');
-  var tickEl=document.getElementById('gm-conf-ticks');
-  if(upEl)upEl.textContent=upPct+'%';
-  if(dnEl)dnEl.textContent=dnPct+'%';
-  if(tickEl)tickEl.textContent=look;
-  if(dispEl){
-    dispEl.textContent=thresh===0?'OFF':(passes?'✅ '+Math.max(upPct,dnPct)+'% '+bias:'⏳ '+Math.max(upPct,dnPct)+'%/'+thresh+'%');
-    dispEl.style.color=thresh===0?'var(--t3)':passes?'var(--ac)':'var(--go)';
-  }
+
+  // Momentum: last 5 ticks
+  var momUp=0,momDn=0;
+  if(n>=6){for(var j=n-5;j<n;j++){var md=prices[j]-prices[j-1];if(md>0)momUp++;else if(md<0)momDn++;}}
+  var momLabel=momUp>momDn?'▲ Rising':momDn>momUp?'▼ Falling':'→ Flat';
+  var momColor=momUp>momDn?'var(--ac)':momDn>momUp?'var(--re)':'var(--t3)';
+
+  // Trend: slope of last 30 ticks
+  var trendLook=Math.min(30,n-1);
+  var slope=prices[n-1]-prices[n-1-trendLook];
+  var trendLabel=slope>0?'▲ UP':slope<0?'▼ DOWN':'→ FLAT';
+  var trendColor=slope>0?'var(--ac)':slope<0?'var(--re)':'var(--t3)';
+
+  // Confidence label
+  var biasAmt=Math.abs(upPct-50);
+  var confLabel=biasAmt>=20?'HIGH':biasAmt>=10?'MED':'LOW';
+  var confColor=biasAmt>=20?'var(--ac)':biasAmt>=10?'var(--go)':'var(--re)';
+
+  // Direction label
+  var dirLabel=upPct>55?'↗ BULLISH':upPct<45?'↘ BEARISH':'↔ NEUTRAL';
+  var dirColor=upPct>55?'var(--ac)':upPct<45?'var(--re)':'var(--go)';
+
+  // Update DOM
+  var s=function(id,val,col){var e=document.getElementById(id);if(e){e.textContent=val;if(col)e.style.color=col;}};
+  s('gm-conf-up',upPct+'%');
+  s('gm-conf-dn',dnPct+'%');
+  s('gm-conf-ticks',look);
+  s('gm-conf-display',dirLabel,dirColor);
+  s('gm-dir-trend',trendLabel,trendColor);
+  s('gm-dir-mom',momLabel,momColor);
+  s('gm-dir-conf',confLabel,confColor);
+
+  var upBar=document.getElementById('gm-bar-up-fill');
+  var dnBar=document.getElementById('gm-bar-dn-fill');
+  if(upBar)upBar.style.width=upPct+'%';
+  if(dnBar)dnBar.style.width=dnPct+'%';
+
+  var pills=document.getElementById('gm-tick-pills');
+  if(pills)pills.innerHTML=tickPills;
+
   return{upPct:upPct,dnPct:dnPct,bias:bias,passes:passes};
 }
 
@@ -4148,6 +4180,166 @@ function gmGatePasses(callPay, putPay, stake){
   var totalRisk = stake * 2;
   return callPay > totalRisk && putPay > totalRisk;
 }
+
+// ════════════════════════════════════════════════════════════════
+// GM DATA ENGINE — silent background snapshot at every trade entry
+// Captures everything needed to find sweet spots over time
+// ════════════════════════════════════════════════════════════════
+function gmSnapshot(entry, offset, stake, callPay, putPay){
+  var ind=getInd(GM.asset);
+  var prices=ind.prices;
+  var n=prices.length;
+  var now=new Date();
+
+  // ── Time ──────────────────────────────────────────────────────
+  var hour=now.getHours();
+  var minute=now.getMinutes();
+  var timeStr=now.toLocaleTimeString();
+  var dateStr=now.toLocaleDateString();
+  var dayOfWeek=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()];
+  // Session buckets (UTC-ish rough estimate)
+  var session=hour>=22||hour<7?'ASIAN':hour>=7&&hour<13?'LONDON':hour>=13&&hour<18?'NEW_YORK':'OVERLAP';
+
+  // ── ATR calculations ──────────────────────────────────────────
+  var atr5=0,atr14=0,atr20=0;
+  if(n>=6){for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5=parseFloat((atr5/5).toFixed(4));}
+  if(n>=15){for(var i=n-14;i<n;i++)atr14+=Math.abs(prices[i]-prices[i-1]);atr14=parseFloat((atr14/14).toFixed(4));}
+  if(n>=21){for(var i=n-20;i<n;i++)atr20+=Math.abs(prices[i]-prices[i-1]);atr20=parseFloat((atr20/20).toFixed(4));}
+  var atrRatio=atr20>0?parseFloat((atr5/atr20).toFixed(3)):1;
+  var atrLabel=atrRatio>=1.5?'VERY_HIGH':atrRatio>=1.2?'HIGH':atrRatio>=0.8?'NORMAL':atrRatio>=0.5?'LOW':'DEAD';
+
+  // ── Price range (last 20 ticks) ───────────────────────────────
+  var slice20=prices.slice(-20);
+  var rangeHigh=slice20.length?Math.max.apply(null,slice20):entry;
+  var rangeLow=slice20.length?Math.min.apply(null,slice20):entry;
+  var range20=parseFloat((rangeHigh-rangeLow).toFixed(4));
+  var offsetVsRange=range20>0?parseFloat((offset/range20).toFixed(3)):0;
+
+  // ── Tick direction (last 20) ──────────────────────────────────
+  var look=Math.min(20,n-1);
+  var ups=0,dns=0,flats=0;
+  for(var i=n-look;i<n;i++){
+    var d=prices[i]-prices[i-1];
+    if(d>0)ups++;else if(d<0)dns++;else flats++;
+  }
+  var total=ups+dns||1;
+  var upPct=Math.round(ups/total*100);
+  var dnPct=100-upPct;
+  var dominantDir=upPct>dnPct?'UP':'DN';
+  var biasStrength=Math.abs(upPct-50); // 0=balanced, 50=all one way
+
+  // ── Momentum (last 5 vs previous 5) ──────────────────────────
+  var momUp=0,momDn=0;
+  if(n>=11){for(var i=n-5;i<n;i++){var d=prices[i]-prices[i-1];if(d>0)momUp++;else if(d<0)momDn++;}}
+  var momentum=momUp>momDn?'UP':momDn>momUp?'DN':'FLAT';
+  var momentumStrength=Math.abs(momUp-momDn); // 0-5
+
+  // ── Trend (slope last 30 ticks) ───────────────────────────────
+  var trendLook=Math.min(30,n-1);
+  var slope=n>trendLook?parseFloat((prices[n-1]-prices[n-1-trendLook]).toFixed(4)):0;
+  var trend=slope>0.05?'UP':slope<-0.05?'DN':'FLAT';
+
+  // ── Bollinger Band width (last 20) ───────────────────────────
+  var bbWidth=0,bbSqueeze=false;
+  if(n>=20){
+    var mean=slice20.reduce(function(s,v){return s+v;},0)/20;
+    var variance=slice20.reduce(function(s,v){return s+(v-mean)*(v-mean);},0)/20;
+    var std=Math.sqrt(variance);
+    bbWidth=mean>0?parseFloat(((std*2*2)/mean*100).toFixed(4)):0; // BB width as % of price
+    bbSqueeze=bbWidth<0.1;
+  }
+
+  // ── Tick speed (ticks per second, last 10 price changes) ─────
+  // Approximated from price array density — actual tick speed would need timestamps
+  var tickSpeed=n>=2?parseFloat(Math.abs(prices[n-1]-prices[n-2]).toFixed(4)):0;
+
+  // ── Payout analysis ───────────────────────────────────────────
+  var higherMult=stake>0?parseFloat((callPay/stake).toFixed(4)):0;
+  var lowerMult=stake>0?parseFloat((putPay/stake).toFixed(4)):0;
+  var combinedPay=callPay+putPay;
+  var expectedNet=parseFloat((Math.min(callPay,putPay)-(stake*2)).toFixed(2));
+  var payoutEdge=parseFloat(((combinedPay/(stake*2)-1)*100).toFixed(2)); // % edge above breakeven
+
+  // ── Confidence ───────────────────────────────────────────────
+  var confLabel=biasStrength>=20?'HIGH':biasStrength>=10?'MED':'LOW';
+  var confThresh=GM.confThresh||0;
+
+  // ── Price position (where in day range) ──────────────────────
+  var pricePos=rangeHigh>rangeLow?parseFloat(((entry-rangeLow)/(rangeHigh-rangeLow)*100).toFixed(1)):50;
+
+  return {
+    // Identity
+    rid:GM.roundId, asset:GM.asset, time:timeStr, date:dateStr,
+    hour:hour, minute:minute, dayOfWeek:dayOfWeek, session:session,
+    // Price
+    entry:entry, offset:offset, stake:stake,
+    higherBarrier:parseFloat((entry+offset).toFixed(entry>100?2:5)),
+    lowerBarrier:parseFloat((entry-offset).toFixed(entry>100?2:5)),
+    // ATR / Volatility
+    atr5:atr5, atr14:atr14, atr20:atr20,
+    atrRatio:atrRatio, atrLabel:atrLabel,
+    // Range
+    range20:range20, rangeHigh:parseFloat(rangeHigh.toFixed(entry>100?2:5)),
+    rangeLow:parseFloat(rangeLow.toFixed(entry>100?2:5)),
+    offsetVsRange:offsetVsRange, pricePos:pricePos,
+    // Direction
+    upPct:upPct, dnPct:dnPct, dominantDir:dominantDir, biasStrength:biasStrength,
+    confLabel:confLabel, confThresh:confThresh,
+    flats:flats,
+    // Momentum & Trend
+    momentum:momentum, momentumStrength:momentumStrength,
+    trend:trend, slope:slope,
+    // Bollinger
+    bbWidth:bbWidth, bbSqueeze:bbSqueeze,
+    // Tick
+    lastTickMove:tickSpeed,
+    // Payout
+    callPay:callPay, putPay:putPay, combinedPay:combinedPay,
+    higherMult:higherMult, lowerMult:lowerMult,
+    expectedNet:expectedNet, payoutEdge:payoutEdge,
+    // Duration
+    duration:GM.dur
+  };
+}
+
+// ── gmExportData() — export full journal as CSV ──────────────────
+function gmExportData(){
+  if(!GM.history.length){notify('!','No trade data to export','loss');return;}
+  var cols=[
+    'rid','date','time','hour','minute','dayOfWeek','session',
+    'asset','duration','offset','stake',
+    'entry','higherBarrier','lowerBarrier',
+    'atr5','atr14','atr20','atrRatio','atrLabel',
+    'range20','rangeHigh','rangeLow','offsetVsRange','pricePos',
+    'upPct','dnPct','dominantDir','biasStrength','confLabel','confThresh','flats',
+    'momentum','momentumStrength','trend','slope',
+    'bbWidth','bbSqueeze','lastTickMove',
+    'callPay','putPay','combinedPay','higherMult','lowerMult','expectedNet','payoutEdge',
+    'exitPrice','priceMove','moveDirection','brokeBarrier','gapLoss',
+    'winnerSide','winnerPnl','loserPnl','netPnl','result'
+  ];
+  var rows=[cols.join(',')];
+  GM.history.forEach(function(r){
+    var snap=r.snap||{};
+    var row=cols.map(function(c){
+      var val=snap[c]!==undefined?snap[c]:(r[c]!==undefined?r[c]:'');
+      // Quote strings with commas
+      if(typeof val==='string'&&val.indexOf(',')!==-1)val='"'+val+'"';
+      return val;
+    });
+    rows.push(row.join(','));
+  });
+  var csv=rows.join('\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='gmilli_data_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  notify('OK','Exported '+GM.history.length+' rounds to CSV','win');
+}
+// ════════════════════════════════════════════════════════════════
+// END GM DATA ENGINE
+// ════════════════════════════════════════════════════════════════
+
 
 function gmCalc(){
   var stake=parseFloat(document.getElementById('gm-stake').value)||1.50;
@@ -4346,15 +4538,18 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   GM.lastRoundTime=Date.now();
 
   var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+  // ── Capture full market snapshot silently at entry ──
+  var _snap=gmSnapshot(entry,offset,stake,callPay,putPay);
   GM.pending[rid]={
     results:{call:null,put:null},settled:0,
     entry:entry,barrier:barrier,stake:stake,offset:offset,
     callPay:callPay,putPay:putPay,
     combinedPay:callPay+putPay,
-    bias:(gmGetConfidence()||{}).bias||'--',
+    bias:_snap.dominantDir||'--',
     callPlaced:false,putPlaced:false,
     callCid:null,putCid:null,
-    time:new Date().toLocaleTimeString(),asset:GM.asset
+    time:_snap.time,asset:GM.asset,
+    snap:_snap  // full data snapshot stored here
   };
 
   var set=function(id,val){var e=document.getElementById(id);if(e)e.textContent=val;};
@@ -4467,13 +4662,35 @@ function gmSettle(rid){
   // Remove from active trades
   S.activeTrades=S.activeTrades.filter(function(t){return !(t.isGM&&t.gmRound===rid);});
 
+  // ── Enrich snapshot with exit data ──
+  var snap=r.snap||{};
+  var exitPrice=S.prices[r.asset]||0;
+  var priceMove=exitPrice>0&&r.entry>0?parseFloat((exitPrice-r.entry).toFixed(exitPrice>100?2:5)):0;
+  var moveDir=priceMove>0?'UP':priceMove<0?'DN':'FLAT';
+  var brokeHigher=exitPrice>0&&r.snap?exitPrice>r.snap.higherBarrier:false;
+  var brokeLower=exitPrice>0&&r.snap?exitPrice<r.snap.lowerBarrier:false;
+  var brokeBarrier=brokeHigher||brokeLower;
+  var gapLoss=!callWon&&!putWon;
+  // Merge exit data into snap
+  snap.exitPrice=parseFloat((exitPrice||(r.entry||0)).toFixed(exitPrice>100?2:5));
+  snap.priceMove=priceMove;
+  snap.moveDirection=moveDir;
+  snap.brokeBarrier=brokeBarrier;
+  snap.gapLoss=gapLoss;
+  snap.winnerSide=callWon?'HIGHER':putWon?'LOWER':'NONE';
+  snap.winnerPnl=parseFloat(Math.max(cPnl,pPnl).toFixed(2));
+  snap.loserPnl=parseFloat(Math.min(cPnl,pPnl).toFixed(2));
+  snap.netPnl=total;
+  snap.result=isWin?'WIN':gapLoss?'GAP_LOSS':'LOSS';
+
   GM.history.unshift({
     rid:rid,total:total,win:isWin,
     callPnl:cPnl,putPnl:pPnl,
     callWon:callWon,putWon:putWon,
     time:r.time,asset:r.asset,
     stake:stake,callPay:r.callPay,putPay:r.putPay,
-    combinedPay:r.combinedPay,entry:r.entry,offset:r.offset||0.12
+    combinedPay:r.combinedPay,entry:r.entry,offset:r.offset||0.12,
+    snap:snap  // full enriched snapshot
   });
 
   gmUpdateStats();
@@ -4532,20 +4749,43 @@ function gmRenderHistory(){
     return;
   }
   el.innerHTML=GM.history.slice(0,20).map(function(r){
+    var s=r.snap||{};
+    var gapLoss=s.gapLoss||(!r.callWon&&!r.putWon);
     var winSide=r.callWon?'↑ HIGHER':'↓ LOWER';
     var loseSide=r.callWon?'↓ LOWER':'↑ HIGHER';
+    var resultBg=gapLoss?'rgba(245,166,35,0.2)':r.win?'var(--ad)':'var(--rd)';
+    var resultColor=gapLoss?'var(--go)':r.win?'var(--ac)':'var(--re)';
+    var resultLabel=gapLoss?'GAP':r.win?'WIN':'LOSS';
+    var snapRow='';
+    if(s.atr5!==undefined){
+      snapRow='<div style="display:flex;gap:8px;font-size:9px;color:var(--t3);font-family:var(--mo);flex-wrap:wrap;padding:4px 6px;background:var(--bg3);border-radius:4px;margin-top:3px">'
+        +'<span>ATR:'+s.atr5+' ['+s.atrLabel+']</span>'
+        +'<span>Vol:±'+s.range20+'</span>'
+        +'<span>'+s.upPct+'%↑ '+s.dnPct+'%↓</span>'
+        +'<span>Conf:'+s.confLabel+'</span>'
+        +'<span>Mom:'+s.momentum+'</span>'
+        +'<span>Trend:'+s.trend+'</span>'
+        +'<span>BB:'+(s.bbSqueeze?'SQUEEZE':parseFloat(s.bbWidth||0).toFixed(2)+'%')+'</span>'
+        +'<span>Move:'+(s.priceMove!==undefined?(s.priceMove>=0?'+':'')+s.priceMove:'--')+'</span>'
+        +'<span>'+s.session+'</span>'
+        +'</div>';
+    }
     return '<div style="padding:9px 0;border-bottom:1px solid var(--bo);font-size:12px">'
       +'<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">'
-      +'<span style="padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;background:'+(r.win?'var(--ad)':'var(--rd)')+';color:'+(r.win?'var(--ac)':'var(--re)')+'">'+( r.win?'WIN':'LOSS')+'</span>'
+      +'<span style="padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;background:'+resultBg+';color:'+resultColor+'">'+resultLabel+'</span>'
       +'<span style="color:var(--t2);font-weight:600">'+r.asset+'</span>'
-      +'<span style="color:var(--t3);font-size:10px">'+r.time+'</span>'
+      +'<span style="color:var(--t3);font-size:10px">'+r.time+(s.session?' • '+s.session:'')+'</span>'
       +'<span style="margin-left:auto;font-weight:700;font-family:var(--mo);color:'+(r.total>=0?'var(--ac)':'var(--re)')+'">'+( r.total>=0?'+':'')+r.total.toFixed(2)+'</span>'
       +'</div>'
-      +'<div style="display:flex;gap:10px;font-size:10px;color:var(--t3);font-family:var(--mo)">'
-      +'<span style="color:'+(r.callWon?'var(--ac)':'var(--re)')+'">'+winSide+' WON +$'+(r.callWon?r.callPnl:r.putPnl).toFixed(2)+'</span>'
-      +'<span>'+loseSide+' lost -$'+r.stake.toFixed(2)+'</span>'
-      +'<span style="color:var(--t3)">combined: $'+r.combinedPay.toFixed(2)+'</span>'
+      +'<div style="display:flex;gap:8px;font-size:10px;font-family:var(--mo);flex-wrap:wrap;margin-bottom:2px">'
+      +(gapLoss
+        ?'<span style="color:var(--go)">⚠ GAP — price inside ±'+parseFloat(r.offset||0.12).toFixed(2)+'</span>'
+        :'<span style="color:'+(r.callWon?'var(--ac)':'var(--re)')+'">'+winSide+' WON +$'+(r.callWon?r.callPnl:r.putPnl).toFixed(2)+'</span>'
+         +'<span style="color:var(--t3)">'+loseSide+' -$'+r.stake.toFixed(2)+'</span>'
+      )
+      +'<span style="color:var(--t3)">pay:$'+r.combinedPay.toFixed(2)+'</span>'
       +'</div>'
+      +snapRow
       +'</div>';
   }).join('');
 }
