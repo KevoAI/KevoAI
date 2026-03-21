@@ -1115,7 +1115,22 @@ function handleMsg(d) {
       console.warn('Deriv error:', code, msg, 'req_id:', d.req_id);
       // Check if this error belongs to an HB proposal or buy
       var pend = d.req_id ? S.pending[d.req_id] : null;
-      if(pend && (pend.isHB || pend.type==='hb_proposal')){
+      // Handle PriceMoved error for GM contracts
+  if(code==='PriceMoved'&&pend&&pend.isGM){
+    var _gmRid=pend.gmRound;
+    var _gmRound=GM.pending[_gmRid];
+    if(_gmRound){
+      console.log('[GM] PriceMoved on '+pend.gmSide+' - marking as not placed');
+      if(pend.gmSide==='call')_gmRound.callPlaced=false;
+      else _gmRound.putPlaced=false;
+      // Check if other side already settled - if so settle now
+      var _otherSettled=pend.gmSide==='call'?
+        _gmRound.results.put!==null:_gmRound.results.call!==null;
+      if(_otherSettled)gmSettle(_gmRid);
+    }
+    return;
+  }
+  if(pend && (pend.isHB || pend.type==='hb_proposal')){
         var failedRid = pend.hbRound;
         _hbCleanupOnError(failedRid);
         notify('!', 'WW round cancelled: '+msg.substring(0,60), 'loss');
@@ -1469,6 +1484,8 @@ function onBuy(buy, reqId) {
   if(p.isGM){
     t.isGM=true;t.gmRound=p.gmRound;t.gmSide=p.gmSide;
     onGMBuy(buy.contract_id+'',p.gmSide,p.gmRound);
+    // Remove GM trades from main S.trades so they dont show in dashboard
+    S.trades=S.trades.filter(function(x){return x.contractId!==t.contractId;});
   }
   wsSend({proposal_open_contract:1,contract_id:buy.contract_id,subscribe:1});
   var _cid=buy.contract_id, _durMs=t.durMs;
@@ -4186,8 +4203,17 @@ function onGMProposal(proposal,pendInfo){
   // Solve for stakes using same logic as WinWin
   var res=solveHybridStakes(round.budget,P_c,P_p);
   if(!res||!res.valid){
-    notify('SKIP','GM stake solve failed - skipping','loss');
-    gmCleanup(rid);return;
+    // Fallback: use direction-biased 70/30 split rather than skipping
+    var _fb=round.budget;
+    var _dir2=gmUpdateDirection();
+    var _callBig=!_dir2||_dir2.upPct>=_dir2.dnPct;
+    res={
+      S_t:parseFloat((_callBig?_fb*0.70:_fb*0.30).toFixed(2)),
+      S_c:parseFloat((_callBig?_fb*0.30:_fb*0.70).toFixed(2)),
+      profitA:0,profitB:0,valid:false,
+      totalRisk:_fb
+    };
+    notify('GM','Using fallback 70/30 split (P:'+P_c.toFixed(2)+'x/'+P_p.toFixed(2)+'x)','info');
   }
 
   // Update round with solved stakes
@@ -4265,13 +4291,13 @@ function onGMProposal2(proposal,pendInfo){
 }
 
 function onGMBuy(cid,side,rid){
-  // Track contract IDs for settlement
   GM.activeCids[cid]={rid:rid,side:side};
   var round=GM.pending[rid];
   if(round){
-    if(side==='call')round.callCid=cid;
-    else round.putCid=cid;
+    if(side==='call'){round.callCid=cid;round.callPlaced=true;}
+    else{round.putCid=cid;round.putPlaced=true;}
   }
+  console.log('[GM BUY CONFIRMED] cid:'+cid+' side:'+side+' rid:'+rid);
 }
 
 function onGMResult(rid,side,profit){
@@ -4298,9 +4324,11 @@ function onGMResult(rid,side,profit){
 function gmForceSettle(rid){
   var round=GM.pending[rid];
   if(!round)return;
-  // Fill in missing results as losses
-  if(!round.results.call)round.results.call={profit:-round.stakeCall,win:false};
-  if(!round.results.put)round.results.put={profit:-round.stakePut,win:false};
+  // Only fill missing results for sides that were actually placed
+  if(!round.results.call&&round.callPlaced!==false)
+    round.results.call={profit:-round.stakeCall,win:false};
+  if(!round.results.put&&round.putPlaced!==false)
+    round.results.put={profit:-round.stakePut,win:false};
   // Clear any stuck active CIDs for this round
   Object.keys(GM.activeCids).forEach(function(cid){
     if(GM.activeCids[cid].rid===rid)delete GM.activeCids[cid];
@@ -4325,13 +4353,15 @@ function gmSettle(rid){
   var pRes=r.results.put;
   var cStake=r.stakeCall||1.50;
   var pStake=r.stakePut||1.50;
-  var cPnl=cRes?(cRes.win?cRes.profit:-cStake):(-cStake);
-  var pPnl=pRes?(pRes.win?pRes.profit:-pStake):(-pStake);
-  // Net = winner profit - loser stake (winner gets stake back too)
+  // Only count a side if it was actually placed (not PriceMoved rejected)
+  var callWasPlaced=r.callPlaced!==false; // default true if not tracked
+  var putWasPlaced=r.putPlaced!==false;
+  var cPnl=callWasPlaced?(cRes?(cRes.win?cRes.profit:-cStake):-cStake):0;
+  var pPnl=putWasPlaced?(pRes?(pRes.win?pRes.profit:-pStake):-pStake):0;
   var total=parseFloat((cPnl+pPnl).toFixed(2));
   console.log('[GM SETTLE] cStake:'+cStake+' pStake:'+pStake+
-    ' cPnl:'+cPnl+' pPnl:'+pPnl+' total:'+total+
-    ' cWin:'+(cRes?cRes.win:false)+' pWin:'+(pRes?pRes.win:false));
+    ' cPlaced:'+callWasPlaced+' pPlaced:'+putWasPlaced+
+    ' cPnl:'+cPnl+' pPnl:'+pPnl+' total:'+total);
   var isWin=total>0;
   var callWon=r.results.call&&r.results.call.win;
   var putWon=r.results.put&&r.results.put.win;
