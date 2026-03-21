@@ -1562,7 +1562,9 @@ function onContract(c) {
   if(isNaN(profit)) profit=0;
   if(profit===0){
     var sp=parseFloat(c.sell_price||c.sell_spot||0);
-    var bp=parseFloat(c.buy_price||t.stake||0);
+    // For GM trades use t.stake (solved stake) not buy_price (proposal ask)
+    // buy_price reflects original proposal amount, not the solved stake amount
+    var bp=t.isGM?parseFloat(t.stake||0):parseFloat(c.buy_price||t.stake||0);
     if(sp===0&&bp>0) profit=-bp;
     else if(sp>0&&sp<bp) profit=sp-bp;
     if(profit===0&&t.stake) profit=-t.stake;
