@@ -721,14 +721,14 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <!-- Overlapping Barrier Config -->
             <div class="card" style="margin-bottom:12px">
               <div class="ch">
-                <div class="ct">&#127919; Overlapping Barrier System</div>
-                <span style="font-size:10px;color:var(--ac);font-family:var(--mo)">1 ALWAYS WINS</span>
+                <div class="ct">&#127919; EXPIRYRANGE Dual Zone</div>
+                <span style="font-size:10px;color:var(--ac);font-family:var(--mo)">DIRECTION WINS</span>
               </div>
               <div class="cb">
                 <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:9px 11px;margin-bottom:11px;font-size:10px;color:var(--t2);line-height:1.7">
-                  Higher barrier sits <b style="color:var(--ac)">BELOW</b> entry price &#8594; already winning<br>
-                  Lower barrier sits <b style="color:var(--re)">ABOVE</b> entry price &#8594; already winning<br>
-                  Distance = <b style="color:var(--go)">ATR &times; multiplier</b> &#8212; adapts to market volatility
+                  <b style="color:var(--ac)">UP Zone</b>: EXPIRYRANGE between entry+dist and entry+(dist&#215;2)<br>
+                  <b style="color:var(--re)">DN Zone</b>: EXPIRYRANGE between entry-(dist&#215;2) and entry-dist<br>
+                  Price moves UP &#8594; Zone A wins. Price moves DOWN &#8594; Zone B wins.
                 </div>
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Barrier Distance (&#215; ATR) &#8212; both sides</div>
@@ -1583,10 +1583,10 @@ function calcWWDaily(){
   var el=document.getElementById('ww-progress-target');if(el)el.textContent='$'+tp;
   var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=budget.toFixed(2);
   var math=[
-    'OVERLAPPING BARRIER SYSTEM',
-    'Higher barrier: BELOW entry  (already winning)',
-    'Lower  barrier: ABOVE entry  (already winning)',
-    'At least 1 side ALWAYS wins',
+    'EXPIRYRANGE DUAL ZONE SYSTEM',
+    'Zone A (UP):  EXPIRYRANGE entry+dist → entry+(dist×2)',
+    'Zone B (DN):  EXPIRYRANGE entry-(dist×2) → entry-dist',
+    'Direction filter ensures price lands in one zone',
     '',
     'Budget per round: $'+budget.toFixed(2),
     'Each side stake:  $'+stakeEach.toFixed(2),
@@ -1656,10 +1656,12 @@ function updateBarrierPreview(){
   var hBarrier=entry>0?(entry-_pvDist).toFixed(2):'entry-'+_pvDist;
   var lBarrier=entry>0?(entry+_pvDist).toFixed(2):'entry+'+_pvDist;
   var pt=document.getElementById('barrier-preview-txt');
+  var _pvDist2=Math.max(0.02,Math.round(_pvATR*mult*2*100)/100);
   if(pt)pt.innerHTML=
-    '<span style="color:var(--ac)">H HIGHER</span> barrier: <b>-'+_pvDist+'</b> ('+hBarrier+') $'+stakeEach+'<br>'+
-    '<span style="color:var(--re)">V LOWER</span>  barrier: <b>+'+_pvDist+'</b> ('+lBarrier+') $'+stakeEach+'<br>'+
-    '<span style="color:var(--go)">ATR:</span> '+(_pvATR>0?_pvATR.toFixed(5):'warming up')+'  ×'+mult+' = dist '+_pvDist;
+    '<span style="color:var(--ac)">▲ UP ZONE</span>  EXPIRYRANGE: <b>+'+_pvDist+'</b> to <b>+'+_pvDist2+'</b><br>'+
+    '<span style="color:var(--re)">▼ DN ZONE</span>  EXPIRYRANGE: <b>-'+_pvDist2+'</b> to <b>-'+_pvDist+'</b><br>'+
+    '<span style="color:var(--go)">Each stake: $'+stakeEach+'  ATR:</span> '+(_pvATR>0?_pvATR.toFixed(4):'warming')+'  ×'+mult+'<br>'+
+    '<span style="color:var(--t3)">Price moves UP → Zone A wins | Price moves DOWN → Zone B wins</span>';
   var btn=document.getElementById('btn-stake-display');if(btn)btn.textContent=budget.toFixed(2);
 }
 
@@ -2209,30 +2211,52 @@ function placeHybridRound(){
 
   // Decimal zone filter removed — not relevant to overlapping barrier system
 
-  // ── OVERLAPPING BARRIER SYSTEM ───────────────────────────────
-  // Higher barrier = BELOW entry (already winning)
-  // Lower  barrier = ABOVE entry (already winning)
-  // Both barriers cross the current price → at least 1 ALWAYS wins
-  // Distance = ATR × user multiplier (adaptive to volatility)
+  // ══════════════════════════════════════════════════════════════
+  // EXPIRYRANGE DUAL ZONE SYSTEM
+  // ══════════════════════════════════════════════════════════════
+  // TWO EXPIRYRANGE (Ends Between) contracts placed simultaneously
+  // Each covers a zone on one side of entry price
+  //
+  // CONTRACT A — UP ZONE (EXPIRYRANGE):
+  //   barrier  = +(dist*2) → High barrier ABOVE entry
+  //   barrier2 = +(dist)   → Low barrier  just above entry
+  //   Wins if exit ends between entry+dist and entry+(dist*2)
+  //
+  // CONTRACT B — DOWN ZONE (EXPIRYRANGE):
+  //   barrier  = -(dist)   → High barrier just below entry
+  //   barrier2 = -(dist*2) → Low barrier  BELOW entry
+  //   Wins if exit ends between entry-(dist*2) and entry-dist
+  //
+  // If market moves UP   → Contract A wins ✅
+  // If market moves DOWN → Contract B wins ✅
+  // If market stays flat → NEITHER wins (very small range missed)
+  // Direction filter ensures market is moving → one always wins
+  // ══════════════════════════════════════════════════════════════
   var _obMult=parseFloat(document.getElementById('ob-atr-mult').value)||0.5;
   var _obPrices=getInd(HB.asset).prices,_obN=_obPrices.length;
   var _obATR=0;
   if(_obN>=5){for(var _oi=_obN-5;_oi<_obN;_oi++)_obATR+=Math.abs(_obPrices[_oi]-_obPrices[_oi-1]);_obATR/=5;}
-  if(_obATR<0.01)_obATR=0.05; // floor
-  var _obDist=Math.max(0.01, Math.round(_obATR*_obMult*100)/100); // strict 2dp, min 0.01
-  // Higher wins if exit > (entry - dist)  → barrier BELOW entry
-  // Lower  wins if exit < (entry + dist)  → barrier ABOVE entry
-  var bHigher = _obDist; // used as negative offset: -(dist)
-  var bLower  = _obDist; // used as positive offset:  +(dist)
-  var trendDir='up'; // kept for journal compatibility
+  if(_obATR<0.01)_obATR=0.05;
+  // dist = one zone width, strict 2dp for Deriv
+  var _obDist=Math.max(0.01, Math.round(_obATR*_obMult*100)/100);
+  var _obDist2=Math.max(0.02, Math.round(_obATR*_obMult*2*100)/100);
+
+  // UP zone barriers
+  var bUpHigh  = '+'+_obDist2.toFixed(2);  // e.g. +0.10
+  var bUpLow   = '+'+_obDist.toFixed(2);   // e.g. +0.05
+  // DOWN zone barriers
+  var bDnHigh  = '-'+_obDist.toFixed(2);   // e.g. -0.05
+  var bDnLow   = '-'+_obDist2.toFixed(2);  // e.g. -0.10
+
+  var trendDir='up';
   var _zoneAgree=true;
-  console.log('[OB] entry:'+entry.toFixed(2)+' ATR:'+_obATR.toFixed(4)+' dist:'+_obDist+
-    ' H-barrier:'+(entry-_obDist).toFixed(2)+' L-barrier:'+(entry+_obDist).toFixed(2));
+  console.log('[ER] entry:'+entry.toFixed(2)+
+    ' UP zone: '+(entry+parseFloat(_obDist.toFixed(2))).toFixed(2)+' to '+(entry+parseFloat(_obDist2.toFixed(2))).toFixed(2)+
+    ' DN zone: '+(entry-parseFloat(_obDist2.toFixed(2))).toFixed(2)+' to '+(entry-parseFloat(_obDist.toFixed(2))).toFixed(2));
 
   var budget=Math.max(0.70,parseFloat((parseFloat(document.getElementById('ww-risk').value)||3).toFixed(2)));
-  // Equal split — both sides same stake
-  var bTrend=bHigher;
-  var bCounter=bLower;
+  var bTrend=_obDist;
+  var bCounter=_obDist;
 
   // Increment rounds/roundId HERE — after all pre-flight checks pass
   HB.roundId++;var rid=HB.roundId;
@@ -2271,33 +2295,39 @@ function placeHybridRound(){
       nearestInt:zone.nearestInt,distToWall:zone.distToNearest,entryPrice:entry}
   };
 
-  // ── OVERLAPPING CONTRACT SETUP ───────────────────────────────
-  // HIGHER contract: barrier = -(dist) → BELOW entry → already winning
-  // LOWER  contract: barrier = +(dist) → ABOVE entry → already winning
-  var trendType='CALL';    // HIGHER
-  var counterType='PUT';   // LOWER
-  // Build barrier strings — must be exactly 2dp for Deriv
-  var _barrStr=(Math.round(bTrend*100)/100).toFixed(2);
-  var trendBar='-'+_barrStr;      // negative = below entry
-  var counterBar='+'+_barrStr;    // positive = above entry
+  // ── EXPIRYRANGE DUAL ZONE CONTRACT FIRING ────────────────────
+  // Contract A: UP zone  — EXPIRYRANGE with barrier=+dist2, barrier2=+dist
+  // Contract B: DOWN zone — EXPIRYRANGE with barrier=-dist,  barrier2=-dist2
+  var trendType='EXPIRYRANGE';
+  var counterType='EXPIRYRANGE';
   var dur=HB._durSecs||20;
-
-  notify('OB R'+HB.rounds,
-    'HIGHER -'+bTrend.toFixed(2)+' ('+((entry-bTrend).toFixed(2))+')'+
-    ' | LOWER +'+bCounter.toFixed(2)+' ('+((entry+bCounter).toFixed(2))+')'+
-    ' | stake $'+(budget/2).toFixed(2)+' each','info');
-
-  // Equal split — overlapping system both sides same stake
   var estSt=Math.max(0.35,budget/2);
   var estSc=Math.max(0.35,budget/2);
 
-  // Fire BOTH proposals at the estimated stake amounts
-  // Deriv then returns ask_price for exactly that stake
-  var p1=wsSend({proposal:1,amount:estSt,basis:'stake',contract_type:trendType,currency:S.currency,duration:dur,duration_unit:'s',symbol:HB.asset,barrier:trendBar});
-  if(p1)S.pending[p1]={type:'hb_proposal',hbRound:rid,hbSide:'trend',estStake:estSt,contractType:trendType,barrier:bTrend,barrierStr:trendBar,durVal:dur,durUnit:'s',asset:HB.asset};
+  notify('ER R'+HB.rounds,
+    'UP:'+bUpLow+'→'+bUpHigh+
+    ' DN:'+bDnLow+'→'+bDnHigh+
+    ' | $'+estSt.toFixed(2)+' each','info');
 
-  var p2=wsSend({proposal:1,amount:estSc,basis:'stake',contract_type:counterType,currency:S.currency,duration:dur,duration_unit:'s',symbol:HB.asset,barrier:counterBar});
-  if(p2)S.pending[p2]={type:'hb_proposal',hbRound:rid,hbSide:'counter',estStake:estSc,contractType:counterType,barrier:bCounter,barrierStr:counterBar,durVal:dur,durUnit:'s',asset:HB.asset};
+  // Contract A — UP zone
+  var p1=wsSend({proposal:1,amount:estSt,basis:'stake',
+    contract_type:'EXPIRYRANGE',currency:S.currency,
+    duration:dur,duration_unit:'s',symbol:HB.asset,
+    barrier:bUpHigh,barrier2:bUpLow});
+  if(p1)S.pending[p1]={type:'hb_proposal',hbRound:rid,hbSide:'trend',
+    estStake:estSt,contractType:'EXPIRYRANGE',
+    barrier:bTrend,barrierStr:bUpHigh+'|'+bUpLow,
+    durVal:dur,durUnit:'s',asset:HB.asset};
+
+  // Contract B — DOWN zone
+  var p2=wsSend({proposal:1,amount:estSc,basis:'stake',
+    contract_type:'EXPIRYRANGE',currency:S.currency,
+    duration:dur,duration_unit:'s',symbol:HB.asset,
+    barrier:bDnHigh,barrier2:bDnLow});
+  if(p2)S.pending[p2]={type:'hb_proposal',hbRound:rid,hbSide:'counter',
+    estStake:estSc,contractType:'EXPIRYRANGE',
+    barrier:bCounter,barrierStr:bDnHigh+'|'+bDnLow,
+    durVal:dur,durUnit:'s',asset:HB.asset};
 
   setWWBarrierLines(entry,bTrend);
   var prev=solveHybridStakes(budget,1.85,1.40)||{S_t:budget*0.57,S_c:budget*0.43,profitA:0,profitB:0,totalRisk:budget,valid:false};
