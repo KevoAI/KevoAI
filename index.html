@@ -2952,7 +2952,7 @@ function getSignal(sym){
 // ══════════════════════════════════════
 function buildAllDDs(){
   buildDD('dd1',false); buildDD('dd2',false); buildDD('dd3',true);
-  buildDDasset('dd5','HB'); buildDDasset('dd6','DD');
+  buildDDasset('dd5','HB'); buildDDasset('dd6','DD'); buildGMDD();
 }
 
 function buildDDasset(id,type){
@@ -4366,15 +4366,27 @@ function gmReset(){
 function buildGMDD(){
   var dd=document.getElementById('gm-dd');
   if(!dd)return;
-  var html='';
-  for(var g in INSTR){
-    html+='<div class="ddgl">'+g+'</div>';
-    INSTR[g].forEach(function(inst){
-      html+='<div class="ddo" onclick="gmAsset(''+inst.sym+'',''+inst.name+'');toggleDD('gm-dd')">'+
-        '<span>'+inst.sym+'</span><span style="font-size:10px;color:var(--t3)">'+inst.name+'</span></div>';
+  dd.innerHTML='';
+  Object.keys(INSTR).forEach(function(grp){
+    var lbl=document.createElement('div');
+    lbl.className='ddgl';lbl.textContent=grp;dd.appendChild(lbl);
+    INSTR[grp].forEach(function(inst){
+      var opt=document.createElement('div');
+      opt.className='ddo';
+      opt.innerHTML='<span style="font-weight:600">'+inst.sym+'</span>'+
+        '<span style="font-size:10px;color:var(--t3);font-family:var(--mo)">'+inst.name+'</span>';
+      opt.addEventListener('click',function(){
+        GM.asset=inst.sym;
+        var n=document.getElementById('gm-asset-n');
+        var i=document.getElementById('gm-asset-i');
+        if(n)n.textContent=inst.sym;
+        if(i)i.textContent=inst.name;
+        dd.classList.remove('open');
+        gmCalc();
+      });
+      dd.appendChild(opt);
     });
-  }
-  dd.innerHTML=html;
+  });
 }
 // ── END GMILLI BOT ──────────────────────────────────────────────
 
