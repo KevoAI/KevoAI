@@ -793,102 +793,185 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         <div style="background:linear-gradient(135deg,rgba(0,229,160,0.1),rgba(59,130,246,0.08));border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:16px;margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
             <div style="font-size:18px;font-weight:800;color:var(--ac)">Gmilli Bot</div>
-            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">Zero-Gap Overlapping System</div>
+            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">HIGHER + LOWER — Zero Gap Strategy</div>
           </div>
-          <div style="font-size:11px;color:var(--t2)">CALL barrier below entry + PUT barrier above entry. One side ALWAYS wins.</div>
+          <div style="font-size:11px;color:var(--t2)">Barrier set at entry spot — one side ALWAYS wins. Only trades when combined payout > 2× stake.</div>
         </div>
         <div class="sr" style="margin-bottom:12px">
           <div class="sc g"><div class="sl">Net P&amp;L</div><div class="sv g" id="gm-pnl">+$0.00</div><div class="ss">Session</div></div>
           <div class="sc b"><div class="sl">Rounds</div><div class="sv b" id="gm-rounds">0</div><div class="ss">This session</div></div>
           <div class="sc go"><div class="sl">Win Rate</div><div class="sv go" id="gm-wr">0%</div><div class="ss" id="gm-wl">0W / 0L</div></div>
-          <div class="sc r"><div class="sl">Active</div><div class="sv r" id="gm-active">0</div><div class="ss">Running</div></div>
+          <div class="sc r"><div class="sl">Skipped</div><div class="sv r" id="gm-skipped">0</div><div class="ss">Gate failed</div></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 320px;gap:12px">
           <div>
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div style="font-size:13px;font-weight:700">Direction Monitor</div>
-                <div style="font-size:11px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--t3)" id="gm-dir-label">Analysing...</div>
+                <div style="font-size:13px;font-weight:700">Live Entry Preview</div>
+                <div style="font-size:11px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--ac)" id="gm-entry-display">--</div>
               </div>
-              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:5px">
-                <span style="color:var(--ac)">UP <span id="gm-up-pct">50%</span></span>
-                <span style="color:var(--re)">DOWN <span id="gm-dn-pct">50%</span></span>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:10px;text-align:center">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px">HIGHER wins if exit above</div>
+                  <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-higher-level">--</div>
+                </div>
+                <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:10px;text-align:center">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px">LOWER wins if exit below</div>
+                  <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-lower-level">--</div>
+                </div>
               </div>
-              <div style="height:10px;border-radius:5px;background:var(--bg4);overflow:hidden;position:relative;margin-bottom:10px">
-                <div id="gm-bar-up" style="position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--ac),#00ff88);border-radius:5px;transition:width .8s;width:50%"></div>
-                <div id="gm-bar-dn" style="position:absolute;right:0;top:0;bottom:0;background:linear-gradient(270deg,var(--re),#ff8800);border-radius:0 5px 5px 0;transition:width .8s;width:50%"></div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:7px;text-align:center;border:1px solid var(--bo)"><div style="font-size:9px;color:var(--t3);text-transform:uppercase">Status</div><div style="font-size:12px;font-weight:700;margin-top:2px;color:var(--go)" id="gm-dir-status">WAITING</div></div>
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:7px;text-align:center;border:1px solid var(--bo)"><div style="font-size:9px;color:var(--t3);text-transform:uppercase">Bias</div><div style="font-size:12px;font-weight:700;margin-top:2px" id="gm-dir-bias">--</div></div>
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:7px;text-align:center;border:1px solid var(--bo)"><div style="font-size:9px;color:var(--t3);text-transform:uppercase">ATR</div><div style="font-size:12px;font-weight:700;margin-top:2px;color:var(--t2)" id="gm-atr-val">--</div></div>
-              </div>
+              <div style="margin-top:8px;font-size:10px;color:var(--t3);text-align:center;font-family:var(--mo)">Barrier = entry spot. No gap. One side always wins.</div>
             </div>
-            <!-- Gmilli Live Chart -->
+            <!-- Live Chart -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
               <div style="padding:8px 12px;border-bottom:1px solid var(--bo);display:flex;align-items:center;gap:8px">
                 <span style="font-size:12px;font-weight:700;font-family:var(--mo)" id="gm-chart-sym">R_100</span>
                 <span style="font-size:13px;font-weight:700;color:var(--ac);font-family:var(--mo)" id="gm-chart-price">--</span>
                 <span style="flex:1"></span>
-                <span style="font-size:10px;font-family:var(--mo);padding:2px 7px;border-radius:4px;background:var(--bg4);color:var(--t3)" id="gm-chart-dir">UP:50% DN:50%</span>
+                <span style="font-size:10px;font-family:var(--mo);padding:2px 7px;border-radius:4px;background:var(--bg4);color:var(--t3)" id="gm-chart-dir">--</span>
               </div>
               <div style="position:relative;height:200px">
                 <canvas id="gmChart" height="200"></canvas>
                 <div id="gm-barrier-legend" style="position:absolute;top:6px;right:8px;font-size:9px;font-family:var(--mo);line-height:1.8;text-align:right"></div>
               </div>
             </div>
+
+            <!-- Payout Gate -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
-              <div style="font-size:13px;font-weight:700;margin-bottom:10px">Live Barrier Preview</div>
-              <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;border:1px solid var(--bo);font-size:11px;font-family:var(--mo);line-height:2" id="gm-barrier-preview"><span style="color:var(--t3)">Connect to see live barriers</span></div>
+              <div style="font-size:12px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+                Payout Gate
+                <span style="font-size:10px;color:var(--t3);font-weight:400">— only trades when combined payout > 2× stake</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;text-align:center;border:1px solid var(--bo)">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">HIGHER Payout</div>
+                  <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-call-pay">--</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;text-align:center;border:1px solid var(--bo)">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">LOWER Payout</div>
+                  <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-put-pay">--</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;text-align:center;border:1px solid var(--bo)">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Gate Status</div>
+                  <div style="font-size:12px;font-weight:700;color:var(--go)" id="gm-gate-status">WAITING</div>
+                </div>
+              </div>
+              <!-- Expected profit display -->
+              <div style="margin-top:8px;background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.15);border-radius:var(--rs);padding:9px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:11px;color:var(--t2)">Expected profit if gate passes</span>
+                <span style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-expected-profit">--</span>
+              </div>
             </div>
+
+            <!-- This Round -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
                 <div style="font-size:13px;font-weight:700">This Round</div>
                 <div style="font-size:11px;font-family:var(--mo);font-weight:700;padding:3px 10px;border-radius:99px;background:var(--bg4);color:var(--t3)" id="gm-round-status">IDLE</div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:10px">
-                  <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:4px">CALL (HIGHER)</div>
-                  <div style="font-size:11px;color:var(--t2);margin-bottom:4px" id="gm-call-barrier">barrier: --</div>
-                  <div style="font-size:13px;font-weight:700;color:var(--ac)" id="gm-call-pnl">$0.00</div>
-                  <div style="font-size:10px;color:var(--t3)" id="gm-call-stake">stake: $0.00</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:12px">
+                  <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:6px">↑ HIGHER</div>
+                  <div style="font-size:10px;color:var(--t3);margin-bottom:2px">barrier: entry spot</div>
+                  <div style="font-size:18px;font-weight:700;color:var(--ac);font-family:var(--mo)" id="gm-call-pnl">$0.00</div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px" id="gm-call-stake">stake: --</div>
                 </div>
-                <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:10px">
-                  <div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:4px">PUT (LOWER)</div>
-                  <div style="font-size:11px;color:var(--t2);margin-bottom:4px" id="gm-put-barrier">barrier: --</div>
-                  <div style="font-size:13px;font-weight:700;color:var(--re)" id="gm-put-pnl">$0.00</div>
-                  <div style="font-size:10px;color:var(--t3)" id="gm-put-stake">stake: $0.00</div>
+                <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:12px">
+                  <div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:6px">↓ LOWER</div>
+                  <div style="font-size:10px;color:var(--t3);margin-bottom:2px">barrier: entry spot</div>
+                  <div style="font-size:18px;font-weight:700;color:var(--re);font-family:var(--mo)" id="gm-put-pnl">$0.00</div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px" id="gm-put-stake">stake: --</div>
                 </div>
               </div>
-              <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
                 <span style="font-size:11px;color:var(--t2)">Round Net</span>
-                <span style="font-size:14px;font-weight:700;font-family:var(--mo)" id="gm-round-net">$0.00</span>
+                <span style="font-size:16px;font-weight:700;font-family:var(--mo)" id="gm-round-net">$0.00</span>
               </div>
             </div>
-            <div class="card"><div class="ch"><div class="ct">Round History</div></div><div class="cb" id="gm-history-list"><div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No rounds yet.</div></div></div>
+
+            <!-- Round History -->
+            <div class="card"><div class="ch"><div class="ct">Round History</div><span style="font-size:10px;color:var(--t3)" id="gm-streak-display"></span></div><div class="cb" id="gm-history-list"><div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No rounds yet.</div></div></div>
           </div>
+
+          <!-- RIGHT: Config -->
           <div>
             <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct">Config</div></div>
+              <div class="ch"><div class="ct">⚙ Config</div></div>
               <div class="cb">
-                <div class="ig" style="margin-bottom:11px"><div class="il">Asset</div><div class="aswrap"><div class="assel" onclick="toggleDD('gm-dd')"><div><div style="font-size:13px;font-weight:700" id="gm-asset-n">R_100</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="gm-asset-i">Volatility 100 Index</div></div><span style="color:var(--t3);font-size:11px">v</span></div><div class="asdd" id="gm-dd"></div></div></div>
-                <div class="ig" style="margin-bottom:11px"><div class="il">Budget Per Round ($)</div><div class="ir"><div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=Math.max(0.70,(parseFloat(e.value)-0.50)).toFixed(2);gmCalc()">-</div><input type="number" class="iif" id="gm-budget" value="3.00" min="0.70" step="0.50" oninput="gmCalc()"><div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.50).toFixed(2);gmCalc()">+</div></div></div>
-                <div class="ig" style="margin-bottom:11px"><div class="il">Barrier Distance (x ATR)</div><div class="ir"><div class="ia" onclick="var e=document.getElementById('gm-atr-mult');e.value=Math.max(0.1,(parseFloat(e.value)-0.1)).toFixed(1);gmCalc()">-</div><input type="number" class="iif" id="gm-atr-mult" value="0.5" min="0.1" max="5.0" step="0.1" oninput="gmCalc()"><div class="ia" onclick="var e=document.getElementById('gm-atr-mult');e.value=(parseFloat(e.value)+0.1).toFixed(1);gmCalc()">+</div></div><div style="font-size:10px;color:var(--t3);margin-top:3px">Lower = tighter = higher payout (0.5–1.0 recommended)</div></div>
-                <div class="ig" style="margin-bottom:11px"><div class="il">Duration</div><div class="dr"><div class="db" onclick="GM.dur=5;gmSetActive(this)">5S</div><div class="db active" onclick="GM.dur=15;gmSetActive(this)">15S</div><div class="db" onclick="GM.dur=30;gmSetActive(this)">30S</div><div class="db" onclick="GM.dur=60;gmSetActive(this)">60S</div><div class="db" onclick="GM.dur=120;gmSetActive(this)">2M</div></div></div>
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:10px 11px;border:1px solid var(--bo);margin-bottom:11px">
-                  <div style="font-size:11px;font-weight:700;margin-bottom:8px">Direction Thresholds</div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                    <div class="ig"><div class="il" style="color:var(--ac)">UP Min %</div><div class="ir"><div class="ia" onclick="var e=document.getElementById('gm-up-thresh');e.value=Math.max(51,parseInt(e.value)-1)">-</div><input type="number" class="iif" id="gm-up-thresh" value="65" min="51" max="99"><div class="ia" onclick="var e=document.getElementById('gm-up-thresh');e.value=Math.min(99,parseInt(e.value)+1)">+</div></div></div>
-                    <div class="ig"><div class="il" style="color:var(--re)">DN Min %</div><div class="ir"><div class="ia" onclick="var e=document.getElementById('gm-dn-thresh');e.value=Math.max(51,parseInt(e.value)-1)">-</div><input type="number" class="iif" id="gm-dn-thresh" value="75" min="51" max="99"><div class="ia" onclick="var e=document.getElementById('gm-dn-thresh');e.value=Math.min(99,parseInt(e.value)+1)">+</div></div></div>
+                <!-- Asset -->
+                <div class="ig" style="margin-bottom:11px">
+                  <div class="il">Asset</div>
+                  <div class="aswrap"><div class="assel" onclick="toggleDD('gm-dd')"><div><div style="font-size:13px;font-weight:700" id="gm-asset-n">R_100</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="gm-asset-i">Volatility 100 Index</div></div><span style="color:var(--t3);font-size:11px">v</span></div><div class="asdd" id="gm-dd"></div></div>
+                </div>
+                <!-- Stake each side -->
+                <div class="ig" style="margin-bottom:11px">
+                  <div class="il">Stake Each Side ($)</div>
+                  <div class="ir">
+                    <div class="ia" onclick="var e=document.getElementById('gm-stake');e.value=Math.max(0.35,(parseFloat(e.value)-0.35)).toFixed(2);gmCalc()">-</div>
+                    <input type="number" class="iif" id="gm-stake" value="1.50" min="0.35" step="0.35" oninput="gmCalc()">
+                    <div class="ia" onclick="var e=document.getElementById('gm-stake');e.value=(parseFloat(e.value)+0.35).toFixed(2);gmCalc()">+</div>
+                  </div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Total risk per round = stake × 2</div>
+                </div>
+                <!-- Duration -->
+                <div class="ig" style="margin-bottom:11px">
+                  <div class="il">Duration</div>
+                  <div class="dr">
+                    <div class="db" onclick="GM.dur=5;gmSetActive(this)">5S</div>
+                    <div class="db active" onclick="GM.dur=15;gmSetActive(this)">15S</div>
+                    <div class="db" onclick="GM.dur=30;gmSetActive(this)">30S</div>
+                    <div class="db" onclick="GM.dur=60;gmSetActive(this)">60S</div>
+                    <div class="db" onclick="GM.dur=120;gmSetActive(this)">2M</div>
                   </div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px"><div class="ig"><div class="il">Daily SL ($)</div><input type="number" class="iif" id="gm-daily-sl" value="30" min="1"></div><div class="ig"><div class="il">Daily TP ($)</div><input type="number" class="iif" id="gm-daily-tp" value="60" min="1"></div></div>
-                <div class="ig" style="margin-bottom:11px"><div class="il">Min Gap Between Rounds</div><div class="dr" style="grid-template-columns:repeat(4,1fr)"><div class="db" onclick="GM.minGap=15;gmSetActive(this)">15s</div><div class="db active" onclick="GM.minGap=30;gmSetActive(this)">30s</div><div class="db" onclick="GM.minGap=45;gmSetActive(this)">45s</div><div class="db" onclick="GM.minGap=60;gmSetActive(this)">60s</div></div></div>
+                <!-- Daily limits -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px">
+                  <div class="ig"><div class="il">Daily SL ($)</div><input type="number" class="iif" id="gm-daily-sl" value="30" min="1" oninput="gmCalc()"></div>
+                  <div class="ig"><div class="il">Daily TP ($)</div><input type="number" class="iif" id="gm-daily-tp" value="60" min="1" oninput="gmCalc()"></div>
+                </div>
+                <!-- Gap between rounds -->
+                <div class="ig" style="margin-bottom:11px">
+                  <div class="il">Min Gap Between Rounds</div>
+                  <div class="dr" style="grid-template-columns:repeat(4,1fr)">
+                    <div class="db" onclick="GM.minGap=15;gmSetActive(this)">15s</div>
+                    <div class="db active" onclick="GM.minGap=30;gmSetActive(this)">30s</div>
+                    <div class="db" onclick="GM.minGap=45;gmSetActive(this)">45s</div>
+                    <div class="db" onclick="GM.minGap=60;gmSetActive(this)">60s</div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="card" style="margin-bottom:12px"><div class="ch"><div class="ct">Round Math</div></div><div class="cb"><div style="background:var(--bg3);border-radius:var(--rs);padding:10px;border:1px solid var(--bo);font-size:11px;font-family:var(--mo);line-height:1.9;white-space:pre-line" id="gm-calc-display">Calculating...</div></div></div>
-            <button id="gm-toggle-btn" onclick="gmToggle()" style="width:100%;padding:14px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--fn);font-size:14px;font-weight:800;background:var(--ac);color:var(--bg0)">START GMILLI</button>
-            <button onclick="gmReset()" style="width:100%;padding:8px;border-radius:var(--rs);border:1px solid var(--bo);background:var(--bg3);color:var(--t2);font-family:var(--fn);font-size:11px;cursor:pointer;margin-top:6px">Reset Session</button>
+
+            <!-- Round Math -->
+            <div class="card" style="margin-bottom:12px">
+              <div class="ch"><div class="ct">Round Math</div></div>
+              <div class="cb">
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;border:1px solid var(--bo);font-size:11px;font-family:var(--mo);line-height:1.9;white-space:pre-line" id="gm-calc-display">Calculating...</div>
+              </div>
+            </div>
+
+            <!-- Stats -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px">
+              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;text-align:center">
+                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Session P&L</div>
+                <div style="font-size:18px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-pnl">$0.00</div>
+              </div>
+              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;text-align:center">
+                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Rounds</div>
+                <div style="font-size:18px;font-weight:700;font-family:var(--mo);color:var(--bl)" id="gm-rounds">0</div>
+              </div>
+              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;text-align:center">
+                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Profitable</div>
+                <div style="font-size:18px;font-weight:700;font-family:var(--mo);color:var(--go)" id="gm-wr">0%</div>
+              </div>
+              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;text-align:center">
+                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">W / L</div>
+                <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--t2)" id="gm-wl">0 / 0</div>
+              </div>
+            </div>
+
+            <button id="gm-toggle-btn" onclick="gmToggle()" style="width:100%;padding:14px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--fn);font-size:14px;font-weight:800;background:var(--ac);color:var(--bg0);margin-bottom:6px">START GMILLI</button>
+            <button onclick="gmReset()" style="width:100%;padding:8px;border-radius:var(--rs);border:1px solid var(--bo);background:var(--bg3);color:var(--t2);font-family:var(--fn);font-size:11px;cursor:pointer">Reset Session</button>
           </div>
         </div>
       </div>
@@ -1213,8 +1296,7 @@ function onProposal(proposal, reqId){
 
   // Route HB proposals to dual-trade handler
   if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
-  if(p.type==='gm_proposal'){onGMProposal(proposal,p);delete S.pending[reqId];return;}
-  if(p.type==='gm_proposal2'){onGMProposal2(proposal,p);delete S.pending[reqId];return;}
+  if(p.type==='gm_probe'){onGMProbe(proposal,p);delete S.pending[reqId];return;}
 }
 
 function onAuth(a) {
@@ -1409,8 +1491,7 @@ function onTick(tick) {
   if(sym===HB.asset){updatePrediction();updateZoneDisplay();}
   if(sym===GM.asset){
     var _gmPg=document.getElementById('page-gmilli');
-    if(_gmPg&&_gmPg.classList.contains('active')){gmUpdateDirection();gmDrawChart();}
-    else gmUpdatePreview();
+    if(_gmPg&&_gmPg.classList.contains('active')){gmDrawChart();gmCalc();}
   }
 }
 function dp(q){return q.toFixed(q>100?2:4);}
@@ -3971,10 +4052,18 @@ connectWS(); switchAcc(S.accType);
 // FIX 2: Trades stuck - proper settlement via contract subscription
 // FIX 3: Active trades - GM trades removed from S.activeTrades on settle
 // ================================================================
+// GMILLI BOT v3 — HIGHER/LOWER at entry spot
+// Strategy:
+//   - Place HIGHER + LOWER at the SAME barrier (entry spot)
+//   - One side ALWAYS wins, one ALWAYS loses — no gap
+//   - Only trade when combined payout > 2× total stake
+//   - Winner covers loser stake + delivers profit
+// ================================================================
 var GM = {
   running:false, interval:null, asset:'R_100', dur:15, minGap:30,
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
-  pending:{}, history:[], activeCids:{}
+  pending:{}, history:[], activeCids:{},
+  lastCallPay:0, lastPutPay:0, lastCombinedPay:0
 };
 
 function gmSetActive(el){
@@ -3983,70 +4072,35 @@ function gmSetActive(el){
   el.classList.add('active');
 }
 
+// ── Gate: combined payout must exceed 2× total stake ──
+function gmGatePasses(callPay, putPay, stake){
+  return (callPay + putPay) > (stake * 2);
+}
+
 function gmCalc(){
-  var budget=parseFloat(document.getElementById('gm-budget').value)||3;
-  var mult=parseFloat(document.getElementById('gm-atr-mult').value)||0.5;
+  var stake=parseFloat(document.getElementById('gm-stake').value)||1.50;
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
-  var stakeEach=(budget/2).toFixed(2);
-  var estPay=1.26;
-  var bothWin=((budget/2)*estPay*2-budget).toFixed(2);
-  var oneWin=((budget/2)*estPay-budget).toFixed(2);
+  var totalRisk=stake*2;
+  // Use last known payouts if available
+  var cPay=GM.lastCallPay||0;
+  var pPay=GM.lastPutPay||0;
+  var combined=cPay+pPay;
+  var passes=combined>0&&gmGatePasses(cPay,pPay,stake);
+  var bestProfit=combined>0?parseFloat((Math.max(cPay,pPay)-totalRisk).toFixed(2)):null;
+  var worstProfit=combined>0?parseFloat((Math.min(cPay,pPay)-totalRisk).toFixed(2)):null;
   var el=document.getElementById('gm-calc-display');
-  if(el)el.textContent='Budget: $'+budget.toFixed(2)+'\n'
-    +'Barrier: ATR x'+mult+' both sides\n\n'
-    +'CALL: -dist (below entry) already winning\n'
-    +'PUT:  +dist (above entry) already winning\n'
-    +'GAP = ZERO - one ALWAYS wins\n\n'
-    +'Stakes solved LIVE from real payouts:\n'
-    +'S_call x P_call > S_put (scenario A profit)\n'
-    +'S_put  x P_put  > S_call (scenario B profit)\n'
-    +'Both scenarios always profitable\n\n'
-    +'Daily SL: $'+sl+'  |  Daily TP: $'+tp;
-  gmUpdatePreview();
-}
-
-function gmUpdatePreview(){
-  var mult=parseFloat(document.getElementById('gm-atr-mult').value)||0.5;
-  var budget=parseFloat(document.getElementById('gm-budget').value)||3;
-  var prices=getInd(GM.asset).prices,n=prices.length,atr=0;
-  if(n>=5){for(var i=n-5;i<n;i++)atr+=Math.abs(prices[i]-prices[i-1]);atr/=5;}
-  var dist=atr>0?Math.max(0.01,Math.round(atr*mult*100)/100):parseFloat((mult*0.05).toFixed(2));
-  var entry=S.prices[GM.asset]||0;
-  var el=document.getElementById('gm-barrier-preview');
-  if(!el)return;
-  if(entry<=0){el.innerHTML='<span style="color:var(--t3)">Connect to see live barriers</span>';return;}
-  var _cbp=(entry-dist).toFixed(2),_pbp=(entry+dist).toFixed(2);
-  el.innerHTML='<span style="color:var(--ac)">CALL</span> barrier: '+_cbp+' (wins if exit > '+_cbp+')<br>'
-    +'<span style="color:var(--re)">PUT</span>  barrier: '+_pbp+' (wins if exit < '+_pbp+')<br>'
-    +'<span style="color:var(--go)">ATR: '+atr.toFixed(4)+'  stake: $'+(budget/2).toFixed(2)+' each</span>';
-}
-
-function gmUpdateDirection(){
-  var prices=getInd(GM.asset).prices,n=prices.length;
-  if(n<5)return null;
-  var look=Math.min(20,n-1),ups=0,dns=0;
-  for(var i=n-look;i<n;i++){var d=prices[i]-prices[i-1];if(d>0)ups++;else if(d<0)dns++;}
-  var total=ups+dns||1;
-  var upPct=Math.round(ups/total*100),dnPct=100-upPct;
-  var upT=parseInt(document.getElementById('gm-up-thresh').value)||65;
-  var dnT=parseInt(document.getElementById('gm-dn-thresh').value)||75;
-  var pass=(upPct>=upT)||(dnPct>=dnT);
-  var bias=upPct>dnPct?'UP':'DN';
-  var set=function(id,val,col){var e=document.getElementById(id);if(e){e.textContent=val;if(col)e.style.color=col;}};
-  set('gm-up-pct',upPct+'%');set('gm-dn-pct',dnPct+'%');
-  set('gm-dir-label',pass?'READY':'WAITING',pass?'var(--ac)':'var(--go)');
-  set('gm-dir-status',pass?'READY':'WAITING',pass?'var(--ac)':'var(--go)');
-  set('gm-dir-bias',bias,upPct>dnPct?'var(--ac)':'var(--re)');
-  var upBar=document.getElementById('gm-bar-up');
-  var dnBar=document.getElementById('gm-bar-dn');
-  if(upBar)upBar.style.width=upPct+'%';
-  if(dnBar)dnBar.style.width=dnPct+'%';
-  var prices2=getInd(GM.asset).prices,n2=prices2.length,atr2=0;
-  if(n2>=5){for(var j=n2-5;j<n2;j++)atr2+=Math.abs(prices2[j]-prices2[j-1]);atr2/=5;}
-  set('gm-atr-val',atr2.toFixed(4));
-  gmUpdatePreview();
-  return {pass:pass,upPct:upPct,dnPct:dnPct};
+  if(el)el.textContent=
+    'Stake each side:  $'+stake.toFixed(2)+'\n'
+   +'Total risk:       $'+totalRisk.toFixed(2)+'\n\n'
+   +'HIGHER payout:    $'+(cPay?cPay.toFixed(2):'--')+'\n'
+   +'LOWER payout:     $'+(pPay?pPay.toFixed(2):'--')+'\n'
+   +'Combined payout:  $'+(combined?combined.toFixed(2):'--')+'\n\n'
+   +'Gate: need > $'+totalRisk.toFixed(2)+' combined\n'
+   +'Status: '+(combined?( passes?'✅ PASS — will trade':'❌ SKIP — payout too low'):'Fetching...')+'\n\n'
+   +'Best profit (high pays): '+(bestProfit!==null?(bestProfit>=0?'+$'+bestProfit.toFixed(2):'-$'+Math.abs(bestProfit).toFixed(2)):'--')+'\n'
+   +'Worst profit (low pays): '+(worstProfit!==null?(worstProfit>=0?'+$'+worstProfit.toFixed(2):'-$'+Math.abs(worstProfit).toFixed(2)):'--')+'\n\n'
+   +'Daily SL: $'+sl+' | Daily TP: $'+tp;
 }
 
 function gmToggle(){
@@ -4071,12 +4125,16 @@ function gmLoop(){
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
   if(GM.pnl<=-sl){gmToggle();notify('STOP','Gmilli daily SL hit','loss');return;}
-  if(GM.pnl>=tp){gmToggle();notify('TP','Gmilli daily target hit','win');return;}
+  if(GM.pnl>=tp){gmToggle();notify('DONE','Gmilli daily target hit!','win');return;}
+
+  // Wait for active round to finish
   if(gmActiveCount()>0){
     var rs=document.getElementById('gm-round-status');
     if(rs)rs.textContent='ACTIVE';
     GM.interval=setTimeout(gmLoop,500);return;
   }
+
+  // Enforce gap between rounds
   var now=Date.now();
   var gap=(GM.minGap||30)*1000;
   if(now-GM.lastRoundTime<gap){
@@ -4085,231 +4143,148 @@ function gmLoop(){
     if(rs2)rs2.textContent='GAP '+wait+'s';
     GM.interval=setTimeout(gmLoop,1000);return;
   }
-  var dir=gmUpdateDirection();
-  if(!dir||!dir.pass){
-    var rs3=document.getElementById('gm-round-status');
-    if(rs3)rs3.textContent='WAITING DIR';
-    GM.interval=setTimeout(gmLoop,2000);return;
-  }
-  var prices=getInd(GM.asset).prices,pn=prices.length,atr=0;
-  if(pn>=5){for(var pi=pn-5;pi<pn;pi++)atr+=Math.abs(prices[pi]-prices[pi-1]);atr/=5;}
-  if(atr<0.02){
-    var rs4=document.getElementById('gm-round-status');
-    if(rs4)rs4.textContent='DEAD MARKET';
-    GM.interval=setTimeout(gmLoop,2000);return;
-  }
-  gmPlace();
+
+  // Fire a payout check — fetch proposals at current stake
+  // Once we get both payouts back, gate decides whether to buy
+  gmFetchProposals();
   GM.interval=setTimeout(gmLoop,500);
 }
 
-function gmPlace(){
+function gmFetchProposals(){
   if(!S.connected)return;
   var entry=S.prices[GM.asset]||0;
   if(entry<=0)return;
-  var mult=parseFloat(document.getElementById('gm-atr-mult').value)||0.5;
-  var prices=getInd(GM.asset).prices,pn=prices.length,atr=0;
-  if(pn>=5){for(var pi=pn-5;pi<pn;pi++)atr+=Math.abs(prices[pi]-prices[pi-1]);atr/=5;}
-  if(atr<0.01)atr=0.05;
-  var dist=Math.max(0.01,Math.round(atr*mult*100)/100);
+  var stake=Math.max(0.35,parseFloat(document.getElementById('gm-stake').value)||1.50);
 
-  // FIX: Validate barrier BEFORE doing anything else
-  if(isNaN(dist)||dist<=0){
-    notify('SKIP','GM barrier invalid (ATR too low)','loss');
+  // HIGHER/LOWER with barrier AT the entry spot
+  // This means: HIGHER wins if exit > entry, LOWER wins if exit < entry
+  // No gap — one side always wins
+  var barrierStr=entry.toFixed(entry>100?2:5);
+
+  var rs=document.getElementById('gm-round-status');
+  if(rs)rs.textContent='CHECKING...';
+
+  var p1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
+    currency:S.currency,duration:GM.dur,duration_unit:'s',
+    symbol:GM.asset,barrier:barrierStr});
+  if(p1)S.pending[p1]={type:'gm_probe',gmSide:'call',probeEntry:entry,probeStake:stake,probeBarrier:barrierStr};
+
+  var p2=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'PUT',
+    currency:S.currency,duration:GM.dur,duration_unit:'s',
+    symbol:GM.asset,barrier:barrierStr});
+  if(p2)S.pending[p2]={type:'gm_probe',gmSide:'put',probeEntry:entry,probeStake:stake,probeBarrier:barrierStr};
+}
+
+// Probe responses come back — check gate, then place or skip
+var _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:''};
+
+function onGMProbe(proposal,pendInfo){
+  if(!proposal||!proposal.id){
+    var rs=document.getElementById('gm-round-status');
+    if(rs)rs.textContent='PROBE FAIL';
+    return;
+  }
+  var pay=parseFloat(proposal.payout||0);
+  var ask=parseFloat(proposal.ask_price||0);
+  if(pendInfo.gmSide==='call'){
+    _gmProbe.call=pay;_gmProbe.callId=proposal.id;_gmProbe.callAsk=ask;
+  } else {
+    _gmProbe.put=pay;_gmProbe.putId=proposal.id;_gmProbe.putAsk=ask;
+  }
+  _gmProbe.stake=pendInfo.probeStake;
+  _gmProbe.entry=pendInfo.probeEntry;
+  _gmProbe.barrier=pendInfo.probeBarrier;
+
+  // Update live payout display
+  GM.lastCallPay=_gmProbe.call||GM.lastCallPay;
+  GM.lastPutPay=_gmProbe.put||GM.lastPutPay;
+  GM.lastCombinedPay=(GM.lastCallPay+GM.lastPutPay);
+
+  var cEl=document.getElementById('gm-call-pay');
+  var pEl=document.getElementById('gm-put-pay');
+  var gEl=document.getElementById('gm-gate-status');
+  var epEl=document.getElementById('gm-expected-profit');
+  if(cEl&&_gmProbe.call)cEl.textContent='$'+_gmProbe.call.toFixed(2);
+  if(pEl&&_gmProbe.put)pEl.textContent='$'+_gmProbe.put.toFixed(2);
+
+  // Need both probes before deciding
+  if(!_gmProbe.call||!_gmProbe.put)return;
+
+  var stake=_gmProbe.stake;
+  var passes=gmGatePasses(_gmProbe.call,_gmProbe.put,stake);
+  var combined=_gmProbe.call+_gmProbe.put;
+  var bestProfit=parseFloat((Math.max(_gmProbe.call,_gmProbe.put)-stake*2).toFixed(2));
+  var worstProfit=parseFloat((Math.min(_gmProbe.call,_gmProbe.put)-stake*2).toFixed(2));
+
+  if(gEl){gEl.textContent=passes?'✅ PASS':'❌ SKIP';gEl.style.color=passes?'var(--ac)':'var(--re)';}
+  if(epEl){
+    epEl.textContent=passes?'+$'+bestProfit.toFixed(2)+' / +$'+worstProfit.toFixed(2):'--';
+    epEl.style.color=passes?'var(--ac)':'var(--re)';
+  }
+
+  gmCalc();
+
+  if(!passes){
+    var rs=document.getElementById('gm-round-status');
+    if(rs)rs.textContent='SKIP ($'+combined.toFixed(2)+'<$'+(stake*2).toFixed(2)+')';
+    // Track skips
+    GM._skipped=(GM._skipped||0)+1;
+    var skEl=document.getElementById('gm-skipped');if(skEl)skEl.textContent=GM._skipped;
+    // Reset probes for next loop
+    _gmProbe.call=null;_gmProbe.put=null;
     return;
   }
 
-  // Absolute barrier prices
-  var callBarPrice=parseFloat((entry-dist).toFixed(2));
-  var putBarPrice=parseFloat((entry+dist).toFixed(2));
-  var callBar=callBarPrice.toFixed(2);
-  var putBar=putBarPrice.toFixed(2);
-  console.log('[GM barrier] entry:'+entry+' dist:'+dist+' CALL:'+callBar+' PUT:'+putBar+' ATR:'+atr.toFixed(4));
+  // Gate passes — place the actual trades
+  gmPlace(_gmProbe.callId,_gmProbe.putId,_gmProbe.callAsk,_gmProbe.putAsk,stake,_gmProbe.entry,_gmProbe.barrier,_gmProbe.call,_gmProbe.put);
+  _gmProbe.call=null;_gmProbe.put=null;
+}
 
-  var budget=Math.max(0.70,parseFloat(document.getElementById('gm-budget').value)||3);
-
-  // FIX: Resolve direction bias BEFORE building pending object and BEFORE any variable use
-  var dir=gmUpdateDirection();
-  var dirBias=dir&&dir.dnPct>dir.upPct?'DN':'UP';
-
-  // Pre-estimate stake split based on direction bias
-  // DN bias: PUT gets bigger stake; UP bias: CALL gets bigger stake
-  var estBig=Math.max(0.35,parseFloat((budget*0.70).toFixed(2)));
-  var estSmall=Math.max(0.35,parseFloat((budget*0.30).toFixed(2)));
-  var _callEst= dirBias==='DN' ? estSmall : estBig;
-  var _putEst  = dirBias==='DN' ? estBig   : estSmall;
-
+function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay){
+  if(!S.connected)return;
   GM.roundId++;
   var rid=GM.roundId;
   GM.rounds++;
   GM.lastRoundTime=Date.now();
 
-  // FIX: pending object now uses properly declared variables
   GM.pending[rid]={
     results:{call:null,put:null},settled:0,
-    entry:entry,dist:dist,budget:budget,
-    stakeCall:_callEst,stakePut:_putEst,
-    dirBias:dirBias,
-    P_call:0,P_put:0,proposalsReady:0,
-    callProposalId:null,putProposalId:null,
-    callAsk:_callEst,putAsk:_putEst,
-    callBar:callBar,putBar:putBar,
+    entry:entry,barrier:barrier,stake:stake,
+    callPay:callPay,putPay:putPay,
+    combinedPay:callPay+putPay,
+    callPlaced:false,putPlaced:false,
+    callCid:null,putCid:null,
     time:new Date().toLocaleTimeString(),asset:GM.asset
   };
 
   var set=function(id,val){var e=document.getElementById(id);if(e)e.textContent=val;};
-  set('gm-call-stake','stake: ~$'+_callEst.toFixed(2)+' ('+dirBias+' bias)');
-  set('gm-put-stake','stake: ~$'+_putEst.toFixed(2)+' ('+dirBias+' bias)');
-  set('gm-call-barrier','barrier: '+callBar+' (CALL wins if exit > '+callBar+')');
-  set('gm-put-barrier','barrier: '+putBar+' (PUT wins if exit < '+putBar+')');
-  set('gm-round-status','FETCHING...');
-  set('gm-active','0');
-  gmSetBarrierLines(entry,dist,true);
+  set('gm-call-stake','stake: $'+stake.toFixed(2)+' | pays: $'+callPay.toFixed(2));
+  set('gm-put-stake','stake: $'+stake.toFixed(2)+' | pays: $'+putPay.toFixed(2));
+  set('gm-call-pnl','...');
+  set('gm-put-pnl','...');
+  set('gm-round-status','BUYING...');
+  set('gm-round-net','...');
 
-  // Fetch proposals — once we get both payouts back, onGMProposal will
-  // call solveHybridStakes with real payout multipliers and buy at correct amounts
-  var p1=wsSend({proposal:1,amount:_callEst,basis:'stake',contract_type:'CALL',
-    currency:S.currency,duration:GM.dur,duration_unit:'s',symbol:GM.asset,barrier:callBar});
-  if(p1)S.pending[p1]={type:'gm_proposal',gmRound:rid,gmSide:'call',estStake:_callEst};
+  console.log('[GM PLACE] R'+rid+' entry:'+entry+' barrier:'+barrier+' stake:$'+stake.toFixed(2)+' CALL pays:$'+callPay.toFixed(2)+' PUT pays:$'+putPay.toFixed(2));
 
-  var p2=wsSend({proposal:1,amount:_putEst,basis:'stake',contract_type:'PUT',
-    currency:S.currency,duration:GM.dur,duration_unit:'s',symbol:GM.asset,barrier:putBar});
-  if(p2)S.pending[p2]={type:'gm_proposal',gmRound:rid,gmSide:'put',estStake:_putEst};
+  // Buy both contracts at their proposal prices
+  var b1=wsSend({buy:callId,price:callAsk});
+  if(b1)S.pending[b1]={dir:'HIGHER',stake:stake,asset:GM.asset,
+    isBot:true,isGM:true,gmRound:rid,gmSide:'call',
+    entryPrice:entry,durVal:GM.dur,durUnit:'s'};
 
-  // Timeout failsafe — force-settle if contracts never report back within 2 min
+  var b2=wsSend({buy:putId,price:putAsk});
+  if(b2)S.pending[b2]={dir:'LOWER',stake:stake,asset:GM.asset,
+    isBot:true,isGM:true,gmRound:rid,gmSide:'put',
+    entryPrice:entry,durVal:GM.dur,durUnit:'s'};
+
+  // 2-minute force-settle timeout
   GM.pending[rid]._timeout=setTimeout(function(){
     if(GM.pending[rid]&&GM.pending[rid].settled<2){
-      console.warn('[GM] Round '+rid+' timed out - force settling');
+      console.warn('[GM] Round '+rid+' timed out');
       gmForceSettle(rid);
     }
   },120000);
-}
-
-function onGMProposal(proposal,pendInfo){
-  if(!proposal||!proposal.id){
-    notify('!','GM proposal failed - skipping round','loss');
-    gmCleanup(pendInfo.gmRound);return;
-  }
-  var rid=pendInfo.gmRound;
-  var round=GM.pending[rid];
-  if(!round)return;
-  var ask=parseFloat(proposal.ask_price||1);
-  var pay=parseFloat(proposal.payout||0);
-  // FIX: Only use payout multiplier if payout is non-zero (avoids no-return contracts)
-  if(pay<=0){
-    notify('SKIP','GM proposal has no payout - skipping (barrier too far?)','loss');
-    gmCleanup(rid);return;
-  }
-  var mult2=ask>0&&pay>0?parseFloat((pay/ask).toFixed(4)):0;
-  // FIX: Gate on minimum viable payout right here before storing
-  if(mult2<1.15){
-    notify('SKIP','GM payout '+mult2.toFixed(2)+'x too low (need 1.15x+)','loss');
-    gmCleanup(rid);return;
-  }
-  if(pendInfo.gmSide==='call'){round.P_call=mult2;round.callProposalId=proposal.id;round.callAsk=ask;}
-  else{round.P_put=mult2;round.putProposalId=proposal.id;round.putAsk=ask;}
-  round.proposalsReady=(round.proposalsReady||0)+1;
-  if(round.proposalsReady<2)return;
-
-  // ── USE solveHybridStakes WITH REAL LIVE PAYOUTS ──────────────
-  var P_c=round.P_call;
-  var P_p=round.P_put;
-  console.log('[GM] P_call:'+P_c.toFixed(3)+' P_put:'+P_p.toFixed(3)+' product:'+(P_c*P_p).toFixed(3));
-
-  // Check if the combined math can produce profit
-  if(P_c*P_p<=1.0){
-    notify('SKIP','GM product<=1 ('+P_c.toFixed(2)+'x x '+P_p.toFixed(2)+'x) - skipping','loss');
-    gmCleanup(rid);return;
-  }
-
-  // Solve for optimal stake split using real payouts
-  var res=solveHybridStakes(round.budget,P_c,P_p);
-  if(!res||!res.valid){
-    // Fallback: direction-biased 70/30 if math won't solve perfectly
-    var _isDnBias2=round.dirBias==='DN';
-    res={
-      S_t:parseFloat((_isDnBias2?round.budget*0.30:round.budget*0.70).toFixed(2)),
-      S_c:parseFloat((_isDnBias2?round.budget*0.70:round.budget*0.30).toFixed(2)),
-      profitA:0,profitB:0,valid:false,
-      totalRisk:round.budget
-    };
-    console.warn('[GM] solveHybridStakes fallback 70/30 P:'+P_c.toFixed(2)+'x/'+P_p.toFixed(2)+'x');
-  }
-
-  // Assign solved stakes: trend side = bigger stake, counter = smaller
-  var _isDnBias=round.dirBias==='DN';
-  round.stakeCall=_isDnBias?res.S_c:res.S_t;  // DN=CALL is counter(small)
-  round.stakePut =_isDnBias?res.S_t:res.S_c;  // DN=PUT is trend(big)
-  round.P_call_final=P_c;
-  round.P_put_final=P_p;
-  round.profitA=res.profitA;
-  round.profitB=res.profitB;
-  console.log('[GM stakes] bias:'+round.dirBias+' CALL:$'+round.stakeCall.toFixed(2)+' PUT:$'+round.stakePut.toFixed(2));
-
-  // Update UI with solved stakes
-  var setEl=function(id,val){var e=document.getElementById(id);if(e)e.textContent=val;};
-  setEl('gm-call-stake','stake: $'+round.stakeCall.toFixed(2)+' ('+P_c.toFixed(2)+'x)');
-  setEl('gm-put-stake','stake: $'+round.stakePut.toFixed(2)+' ('+P_p.toFixed(2)+'x)');
-
-  var rs=document.getElementById('gm-round-status');
-  if(rs)rs.textContent='RE-FETCHING...';
-
-  // FIX: Re-fetch proposals at the SOLVED stake amounts so the locked payout
-  // ratio actually matches the math. Mark as phase2 so onGMProposal2 handles them.
-  round.proposalsReady=0; // reset so phase2 waits for both
-  var rp1=wsSend({proposal:1,amount:round.stakeCall,basis:'stake',contract_type:'CALL',
-    currency:S.currency,duration:GM.dur,duration_unit:'s',symbol:GM.asset,barrier:round.callBar});
-  if(rp1)S.pending[rp1]={type:'gm_proposal2',gmRound:rid,gmSide:'call'};
-
-  var rp2=wsSend({proposal:1,amount:round.stakePut,basis:'stake',contract_type:'PUT',
-    currency:S.currency,duration:GM.dur,duration_unit:'s',symbol:GM.asset,barrier:round.putBar});
-  if(rp2)S.pending[rp2]={type:'gm_proposal2',gmRound:rid,gmSide:'put'};
-}
-
-function onGMProposal2(proposal,pendInfo){
-  // Phase 2: re-fetched proposals at SOLVED stake amounts — now we buy
-  if(!proposal||!proposal.id){
-    notify('!','GM proposal2 failed - skipping','loss');
-    gmCleanup(pendInfo.gmRound);return;
-  }
-  var rid=pendInfo.gmRound;
-  var round=GM.pending[rid];
-  if(!round)return;
-  var ask=parseFloat(proposal.ask_price||1);
-  var pay=parseFloat(proposal.payout||0);
-  // FIX: Guard against zero-return contracts in phase 2 as well
-  if(pay<=0){
-    notify('SKIP','GM phase2 no payout - barrier rejected by broker','loss');
-    gmCleanup(rid);return;
-  }
-  if(pendInfo.gmSide==='call'){round.callProposalId=proposal.id;round.callAsk=ask;}
-  else{round.putProposalId=proposal.id;round.putAsk=ask;}
-  round.proposalsReady=(round.proposalsReady||0)+1;
-  if(round.proposalsReady<2)return;
-
-  // Both proposals re-fetched at correct solved amounts — NOW buy
-  var rs=document.getElementById('gm-round-status');
-  if(rs)rs.textContent='BUYING...';
-  console.log('[GM BUY] CALL $'+round.stakeCall.toFixed(2)+' @ ask:$'+round.callAsk+
-    ' | PUT $'+round.stakePut.toFixed(2)+' @ ask:$'+round.putAsk);
-
-  notify('GM R'+GM.rounds,
-    'CALL:'+round.P_call_final.toFixed(2)+'x $'+round.stakeCall.toFixed(2)+
-    ' PUT:'+round.P_put_final.toFixed(2)+'x $'+round.stakePut.toFixed(2)+
-    ' A:+$'+round.profitA.toFixed(2)+' B:+$'+round.profitB.toFixed(2),'win');
-
-  var b1=wsSend({buy:round.callProposalId,price:round.callAsk});
-  if(b1)S.pending[b1]={dir:'CALL',stake:round.stakeCall,asset:round.asset,
-    isBot:true,isGM:true,gmRound:rid,gmSide:'call',
-    entryPrice:round.entry,durVal:GM.dur,durUnit:'s'};
-
-  var b2=wsSend({buy:round.putProposalId,price:round.putAsk});
-  if(b2)S.pending[b2]={dir:'PUT',stake:round.stakePut,asset:round.asset,
-    isBot:true,isGM:true,gmRound:rid,gmSide:'put',
-    entryPrice:round.entry,durVal:GM.dur,durUnit:'s'};
-
-  var gmA=document.getElementById('gm-active');
-  if(gmA)gmA.textContent='2';
-  if(rs)rs.textContent='2 ACTIVE';
 }
 
 function onGMBuy(cid,side,rid){
@@ -4318,6 +4293,11 @@ function onGMBuy(cid,side,rid){
   if(round){
     if(side==='call'){round.callCid=cid;round.callPlaced=true;}
     else{round.putCid=cid;round.putPlaced=true;}
+    // Update status once both are placed
+    if(round.callPlaced&&round.putPlaced){
+      var rs=document.getElementById('gm-round-status');
+      if(rs)rs.textContent='2 ACTIVE';
+    }
   }
   console.log('[GM BUY CONFIRMED] cid:'+cid+' side:'+side+' rid:'+rid);
 }
@@ -4328,30 +4308,28 @@ function onGMResult(rid,side,profit){
   var pnl=parseFloat(profit||0);
   round.results[side]={profit:pnl,win:pnl>0};
   round.settled=(round.settled||0)+1;
+
   // Remove from active CIDs
   var cid=side==='call'?round.callCid:round.putCid;
   if(cid)delete GM.activeCids[cid];
-  // Update UI
+
+  // Update individual side display
   if(side==='call'){
     var el=document.getElementById('gm-call-pnl');
-    if(el){el.textContent=(pnl>=0?'+':'')+'$'+pnl.toFixed(2);el.style.color=pnl>0?'var(--ac)':'var(--re)';}
+    if(el){el.textContent=(pnl>=0?'+':'')+'$'+Math.abs(pnl).toFixed(2);el.style.color=pnl>0?'var(--ac)':'var(--re)';}
   } else {
     var el2=document.getElementById('gm-put-pnl');
-    if(el2){el2.textContent=(pnl>=0?'+':'')+'$'+pnl.toFixed(2);el2.style.color=pnl>0?'var(--ac)':'var(--re)';}
+    if(el2){el2.textContent=(pnl>=0?'+':'')+'$'+Math.abs(pnl).toFixed(2);el2.style.color=pnl>0?'var(--ac)':'var(--re)';}
   }
-  // FIX: Settle when both sides reported OR when one side reported and other timed out
+
   if(round.settled>=2)gmSettle(rid);
 }
 
 function gmForceSettle(rid){
   var round=GM.pending[rid];
   if(!round)return;
-  // Only fill missing results for sides that were actually placed
-  if(!round.results.call&&round.callPlaced!==false)
-    round.results.call={profit:-round.stakeCall,win:false};
-  if(!round.results.put&&round.putPlaced!==false)
-    round.results.put={profit:-round.stakePut,win:false};
-  // Clear any stuck active CIDs for this round
+  if(!round.results.call)round.results.call={profit:-(round.stake||0),win:false};
+  if(!round.results.put)round.results.put={profit:-(round.stake||0),win:false};
   Object.keys(GM.activeCids).forEach(function(cid){
     if(GM.activeCids[cid].rid===rid)delete GM.activeCids[cid];
   });
@@ -4363,53 +4341,50 @@ function gmSettle(rid){
   if(!r||r._settled)return;
   r._settled=true;
   clearTimeout(r._timeout);
-  // Deriv profit field = net profit on win, negative stake on loss
-  // Real net = winner total return - loser stake
-  // = (winnerStake + winnerProfit) - loserStake
-  // = winnerProfit - loserStake + winnerStake - winnerStake  [cancel]
-  // = winnerProfit + loserProfit  [since loserProfit = -loserStake]
-  // So cPnl + pPnl IS correct... 
-  // BUT: Deriv sometimes reports loser profit as 0 not -stake
-  // Fix: if profit is 0 and trade lost, use -stake
+
+  var stake=r.stake||1.50;
   var cRes=r.results.call;
   var pRes=r.results.put;
-  var cStake=r.stakeCall||1.50;
-  var pStake=r.stakePut||1.50;
-  // Only count a side if it was actually placed (not PriceMoved rejected)
-  var callWasPlaced=r.callPlaced!==false; // default true if not tracked
-  var putWasPlaced=r.putPlaced!==false;
-  var cPnl=callWasPlaced?(cRes?(cRes.win?cRes.profit:-cStake):-cStake):0;
-  var pPnl=putWasPlaced?(pRes?(pRes.win?pRes.profit:-pStake):-pStake):0;
+  // Deriv profit field = net profit on win (payout - stake), negative on loss
+  // We need total net = winner profit - loser stake
+  var cPnl=cRes?(cRes.win?cRes.profit:-stake):-stake;
+  var pPnl=pRes?(pRes.win?pRes.profit:-stake):-stake;
   var total=parseFloat((cPnl+pPnl).toFixed(2));
-  console.log('[GM SETTLE] cStake:'+cStake+' pStake:'+pStake+
-    ' cPlaced:'+callWasPlaced+' pPlaced:'+putWasPlaced+
-    ' cPnl:'+cPnl+' pPnl:'+pPnl+' total:'+total);
+
+  console.log('[GM SETTLE] cPnl:'+cPnl+' pPnl:'+pPnl+' total:'+total);
+
   var isWin=total>0;
-  var callWon=r.results.call&&r.results.call.win;
-  var putWon=r.results.put&&r.results.put.win;
-  console.log('[GM PNL] before:'+GM.pnl.toFixed(2)+' adding:'+total.toFixed(2));
-  GM.pnl+=total;
+  var callWon=cRes&&cRes.win;
+  var putWon=pRes&&pRes.win;
+
+  GM.pnl=parseFloat((GM.pnl+total).toFixed(2));
   if(isWin)GM.won++;else GM.lost++;
-  // FIX: Remove GM trades from S.activeTrades so dashboard clears
-  S.activeTrades=S.activeTrades.filter(function(t){
-    return !(t.isGM&&t.gmRound===rid);
+
+  // Remove from active trades
+  S.activeTrades=S.activeTrades.filter(function(t){return !(t.isGM&&t.gmRound===rid);});
+
+  GM.history.unshift({
+    rid:rid,total:total,win:isWin,
+    callPnl:cPnl,putPnl:pPnl,
+    callWon:callWon,putWon:putWon,
+    time:r.time,asset:r.asset,
+    stake:stake,callPay:r.callPay,putPay:r.putPay,
+    combinedPay:r.combinedPay,entry:r.entry
   });
-  GM.history.unshift({rid:rid,total:total,win:isWin,callPnl:cPnl,putPnl:pPnl,
-    callWon:callWon,putWon:putWon,time:r.time,asset:r.asset,
-    dist:r.dist,entry:r.entry,P_call:r.P_call,P_put:r.P_put});
+
   gmUpdateStats();
   gmRenderHistory();
-  gmSetBarrierLines(0,0,false);
+
+  // Update round display
   var net=document.getElementById('gm-round-net');
-  if(net){net.textContent=(total>=0?'+':'')+'$'+total.toFixed(2);net.style.color=total>0?'var(--ac)':'var(--re)';}
+  if(net){net.textContent=(total>=0?'+':'')+'$'+Math.abs(total).toFixed(2);net.style.color=total>0?'var(--ac)':'var(--re)';}
   var rs=document.getElementById('gm-round-status');
-  if(rs)rs.textContent=isWin?'WIN':'LOSS';
-  var gmA=document.getElementById('gm-active');
-  if(gmA)gmA.textContent='0';
-  notify('GM '+(isWin?'WIN':'LOSS'),
-    'CALL:'+(callWon?'WON':'LOST')+' $'+cPnl.toFixed(2)
-    +' PUT:'+(putWon?'WON':'LOST')+' $'+pPnl.toFixed(2)
-    +' Net:'+(total>=0?'+':'')+total.toFixed(2),isWin?'win':'loss');
+  if(rs){rs.textContent=isWin?'WIN ✅':'LOSS ❌';rs.style.color=isWin?'var(--ac)':'var(--re)';}
+
+  notify('GM '+(isWin?'WIN ✅':'LOSS ❌'),
+    (callWon?'HIGHER':'LOWER')+' won | Net:'+(total>=0?'+':'')+total.toFixed(2),
+    isWin?'win':'loss');
+
   delete GM.pending[rid];
   updateStats();renderTrades();renderActive();
 }
@@ -4427,28 +4402,43 @@ function gmCleanup(rid){
     }
   }
   var rs=document.getElementById('gm-round-status');if(rs)rs.textContent='ERROR';
-  var gmA=document.getElementById('gm-active');if(gmA)gmA.textContent='0';
   updateStats();renderTrades();renderActive();
 }
 
 function gmUpdateStats(){
   var total=GM.won+GM.lost,wr=total>0?Math.round(GM.won/total*100):0;
   var set=function(id,val,cls){var e=document.getElementById(id);if(e){e.textContent=val;if(cls)e.className=cls;}};
-  set('gm-pnl',(GM.pnl>=0?'+':'')+'$'+Math.abs(GM.pnl).toFixed(2),'sv '+(GM.pnl>=0?'g':'r'));
-  set('gm-rounds',GM.rounds);set('gm-wr',wr+'%');set('gm-wl',GM.won+'W / '+GM.lost+'L');
+  var pnlStr=(GM.pnl>=0?'+$':'-$')+Math.abs(GM.pnl).toFixed(2);
+  set('gm-pnl',pnlStr);
+  var pnlEl=document.getElementById('gm-pnl');
+  if(pnlEl)pnlEl.style.color=GM.pnl>=0?'var(--ac)':'var(--re)';
+  set('gm-rounds',GM.rounds);
+  set('gm-wr',wr+'%');
+  set('gm-wl',GM.won+'W / '+GM.lost+'L');
 }
 
 function gmRenderHistory(){
   var el=document.getElementById('gm-history-list');
   if(!el)return;
-  if(!GM.history.length){el.innerHTML='<div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No rounds yet.</div>';return;}
-  el.innerHTML=GM.history.slice(0,15).map(function(r){
-    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bo);font-size:12px">'
+  if(!GM.history.length){
+    el.innerHTML='<div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No rounds yet.</div>';
+    return;
+  }
+  el.innerHTML=GM.history.slice(0,20).map(function(r){
+    var winSide=r.callWon?'↑ HIGHER':'↓ LOWER';
+    var loseSide=r.callWon?'↓ LOWER':'↑ HIGHER';
+    return '<div style="padding:9px 0;border-bottom:1px solid var(--bo);font-size:12px">'
+      +'<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">'
       +'<span style="padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;background:'+(r.win?'var(--ad)':'var(--rd)')+';color:'+(r.win?'var(--ac)':'var(--re)')+'">'+( r.win?'WIN':'LOSS')+'</span>'
-      +'<span style="color:var(--t2)">'+r.asset+'</span>'
+      +'<span style="color:var(--t2);font-weight:600">'+r.asset+'</span>'
       +'<span style="color:var(--t3);font-size:10px">'+r.time+'</span>'
-      +'<span style="font-size:10px;color:var(--t3)">C:'+(r.callWon?'OK':'X')+' P:'+(r.putWon?'OK':'X')+'</span>'
       +'<span style="margin-left:auto;font-weight:700;font-family:var(--mo);color:'+(r.total>=0?'var(--ac)':'var(--re)')+'">'+( r.total>=0?'+':'')+r.total.toFixed(2)+'</span>'
+      +'</div>'
+      +'<div style="display:flex;gap:10px;font-size:10px;color:var(--t3);font-family:var(--mo)">'
+      +'<span style="color:'+(r.callWon?'var(--ac)':'var(--re)')+'">'+winSide+' WON +$'+(r.callWon?r.callPnl:r.putPnl).toFixed(2)+'</span>'
+      +'<span>'+loseSide+' lost -$'+r.stake.toFixed(2)+'</span>'
+      +'<span style="color:var(--t3)">combined: $'+r.combinedPay.toFixed(2)+'</span>'
+      +'</div>'
       +'</div>';
   }).join('');
 }
@@ -4456,9 +4446,15 @@ function gmRenderHistory(){
 function gmReset(){
   GM.pnl=0;GM.rounds=0;GM.won=0;GM.lost=0;
   GM.history=[];GM.activeCids={};GM.pending={};GM.lastRoundTime=0;
+  GM.lastCallPay=0;GM.lastPutPay=0;GM.lastCombinedPay=0;GM._skipped=0;
+  _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:''};
   gmUpdateStats();gmRenderHistory();
-  var net=document.getElementById('gm-round-net');if(net)net.textContent='$0.00';
+  var net=document.getElementById('gm-round-net');if(net)net.textContent='$0.00';var skEl2=document.getElementById('gm-skipped');if(skEl2)skEl2.textContent='0';
   var rs=document.getElementById('gm-round-status');if(rs)rs.textContent='IDLE';
+  var cEl=document.getElementById('gm-call-pay');if(cEl)cEl.textContent='--';
+  var pEl=document.getElementById('gm-put-pay');if(pEl)pEl.textContent='--';
+  var gEl=document.getElementById('gm-gate-status');if(gEl)gEl.textContent='WAITING';
+  var epEl=document.getElementById('gm-expected-profit');if(epEl)epEl.textContent='--';
   notify('Reset','Gmilli session reset','info');
 }
 
@@ -4483,7 +4479,6 @@ function buildGMDD(){
 
 // ── GMILLI CHART ────────────────────────────────────────────────
 var gmChart=null;
-var gmActiveBarrier={entry:0,dist:0,active:false};
 
 function gmInitChart(){
   var ctx=document.getElementById('gmChart');
@@ -4491,21 +4486,13 @@ function gmInitChart(){
   gmChart=new Chart(ctx.getContext('2d'),{
     type:'line',
     data:{labels:[],datasets:[
-      // Price line
       {label:'Price',data:[],borderColor:'#00e5a0',borderWidth:1.5,
-       fill:false,pointRadius:0,tension:0.3,order:3},
-      // Upper barrier (PUT - red zone top)
-      {label:'PUT barrier',data:[],borderColor:'rgba(255,77,106,0.9)',
-       borderWidth:2,borderDash:[6,3],fill:'+1',
-       backgroundColor:'rgba(255,77,106,0.12)',pointRadius:0,tension:0,order:2},
-      // Lower barrier (CALL - green zone bottom)
-      {label:'CALL barrier',data:[],borderColor:'rgba(0,229,160,0.9)',
-       borderWidth:2,borderDash:[6,3],fill:false,
-       backgroundColor:'rgba(0,229,160,0.12)',pointRadius:0,tension:0,order:1}
+       fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,180);g.addColorStop(0,'rgba(0,229,160,.12)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},
+       pointRadius:0,tension:0.3,order:1}
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},filler:{propagate:false}},
+      plugins:{legend:{display:false}},
       scales:{
         x:{display:false},
         y:{display:true,grid:{color:'rgba(255,255,255,0.04)'},
@@ -4520,53 +4507,39 @@ function gmDrawChart(){
   if(!gmChart)return;
   var ind=getInd(GM.asset);
   var prices=ind.prices.slice(-80);
-  var len=prices.length;
-  if(!len)return;
-  var labels=prices.map(function(){return '';});
-  gmChart.data.labels=labels;
+  if(!prices.length)return;
+  gmChart.data.labels=prices.map(function(){return '';});
   gmChart.data.datasets[0].data=prices.slice();
-  // Draw barriers if active round
-  if(gmActiveBarrier.active&&gmActiveBarrier.entry>0){
-    var callB=parseFloat((gmActiveBarrier.entry-gmActiveBarrier.dist).toFixed(2));
-    var putB=parseFloat((gmActiveBarrier.entry+gmActiveBarrier.dist).toFixed(2));
-    gmChart.data.datasets[1].data=Array(len).fill(putB);
-    gmChart.data.datasets[2].data=Array(len).fill(callB);
-    // Update legend
-    var leg=document.getElementById('gm-barrier-legend');
-    if(leg)leg.innerHTML=
-      '<span style="color:rgba(255,77,106,0.9)">PUT +'+gmActiveBarrier.dist.toFixed(2)+' = '+putB+'</span><br>'
-      +'<span style="color:rgba(0,229,160,0.9)">CALL -'+gmActiveBarrier.dist.toFixed(2)+' = '+callB+'</span>';
-  } else {
-    gmChart.data.datasets[1].data=[];
-    gmChart.data.datasets[2].data=[];
-    var leg=document.getElementById('gm-barrier-legend');
-    if(leg)leg.innerHTML='<span style="color:var(--t3)">No active round</span>';
-  }
   gmChart.update('none');
-  // Update price display
   var p=prices[prices.length-1];
   var priceEl=document.getElementById('gm-chart-price');
   if(priceEl)priceEl.textContent=p?p.toFixed(p>100?2:5):'--';
   var symEl=document.getElementById('gm-chart-sym');
   if(symEl)symEl.textContent=GM.asset;
-  // Update direction %
   var dirEl=document.getElementById('gm-chart-dir');
   if(dirEl){
-    var n2=prices.length,ups2=0,dns2=0,look2=Math.min(20,n2-1);
-    for(var i2=n2-look2;i2<n2;i2++){var d2=prices[i2]-prices[i2-1];if(d2>0)ups2++;else if(d2<0)dns2++;}
-    var t2=ups2+dns2||1,up2=Math.round(ups2/t2*100);
-    dirEl.textContent='UP:'+up2+'% DN:'+(100-up2)+'%';
-    dirEl.style.color=up2>=65?'var(--ac)':(100-up2)>=75?'var(--re)':'var(--go)';
+    var n=prices.length,ups=0,dns=0,look=Math.min(20,n-1);
+    for(var i=n-look;i<n;i++){var d=prices[i]-prices[i-1];if(d>0)ups++;else if(d<0)dns++;}
+    var t=ups+dns||1;
+    dirEl.textContent='UP:'+Math.round(ups/t*100)+'% DN:'+Math.round(dns/t*100)+'%';
   }
-}
-
-function gmSetBarrierLines(entry,dist,active){
-  gmActiveBarrier={entry:entry,dist:dist,active:active};
-  gmDrawChart();
+  // Update entry preview
+  var curP=S.prices[GM.asset]||0;
+  var entryEl=document.getElementById('gm-entry-display');
+  var higherEl=document.getElementById('gm-higher-level');
+  var lowerEl=document.getElementById('gm-lower-level');
+  if(curP>0){
+    var pStr=curP.toFixed(curP>100?2:5);
+    if(entryEl)entryEl.textContent='Entry: '+pStr;
+    if(higherEl)higherEl.textContent='> '+pStr;
+    if(lowerEl)lowerEl.textContent='< '+pStr;
+  }
 }
 // ── END GMILLI CHART ────────────────────────────────────────────
 
 // END GMILLI BOT
+
+
 
 </script>
 </body>
