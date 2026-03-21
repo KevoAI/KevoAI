@@ -873,7 +873,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <div class="cb">
                 <div class="ig" style="margin-bottom:11px"><div class="il">Asset</div><div class="aswrap"><div class="assel" onclick="toggleDD('gm-dd')"><div><div style="font-size:13px;font-weight:700" id="gm-asset-n">R_100</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="gm-asset-i">Volatility 100 Index</div></div><span style="color:var(--t3);font-size:11px">v</span></div><div class="asdd" id="gm-dd"></div></div></div>
                 <div class="ig" style="margin-bottom:11px"><div class="il">Budget Per Round ($)</div><div class="ir"><div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=Math.max(0.70,(parseFloat(e.value)-0.50)).toFixed(2);gmCalc()">-</div><input type="number" class="iif" id="gm-budget" value="3.00" min="0.70" step="0.50" oninput="gmCalc()"><div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.50).toFixed(2);gmCalc()">+</div></div></div>
-                <div class="ig" style="margin-bottom:11px"><div class="il">Barrier Distance (x ATR)</div><div class="ir"><div class="ia" onclick="var e=document.getElementById('gm-atr-mult');e.value=Math.max(0.1,(parseFloat(e.value)-0.1)).toFixed(1);gmCalc()">-</div><input type="number" class="iif" id="gm-atr-mult" value="2.0" min="0.1" max="5.0" step="0.1" oninput="gmCalc()"><div class="ia" onclick="var e=document.getElementById('gm-atr-mult');e.value=(parseFloat(e.value)+0.1).toFixed(1);gmCalc()">+</div></div><div style="font-size:10px;color:var(--t3);margin-top:3px">Lower = tighter = higher payout</div></div>
+                <div class="ig" style="margin-bottom:11px"><div class="il">Barrier Distance (x ATR)</div><div class="ir"><div class="ia" onclick="var e=document.getElementById('gm-atr-mult');e.value=Math.max(0.1,(parseFloat(e.value)-0.1)).toFixed(1);gmCalc()">-</div><input type="number" class="iif" id="gm-atr-mult" value="3.0" min="0.1" max="5.0" step="0.1" oninput="gmCalc()"><div class="ia" onclick="var e=document.getElementById('gm-atr-mult');e.value=(parseFloat(e.value)+0.1).toFixed(1);gmCalc()">+</div></div><div style="font-size:10px;color:var(--t3);margin-top:3px">Lower = tighter = higher payout</div></div>
                 <div class="ig" style="margin-bottom:11px"><div class="il">Duration</div><div class="dr"><div class="db" onclick="GM.dur=5;gmSetActive(this)">5S</div><div class="db active" onclick="GM.dur=15;gmSetActive(this)">15S</div><div class="db" onclick="GM.dur=30;gmSetActive(this)">30S</div><div class="db" onclick="GM.dur=60;gmSetActive(this)">60S</div><div class="db" onclick="GM.dur=120;gmSetActive(this)">2M</div></div></div>
                 <div style="background:var(--bg3);border-radius:var(--rs);padding:10px 11px;border:1px solid var(--bo);margin-bottom:11px">
                   <div style="font-size:11px;font-weight:700;margin-bottom:8px">Direction Thresholds</div>
@@ -4156,6 +4156,8 @@ function gmPlace(){
   var dir=gmUpdateDirection();
   var _callEst=estSt,_putEst=estSc;
   if(dir&&dir.dnPct>dir.upPct){_callEst=estSc;_putEst=estSt;} // DN bias = PUT gets bigger stake
+  // Update pending stakes to match direction bias immediately
+  if(GM.pending[rid]){GM.pending[rid].stakeCall=_callEst;GM.pending[rid].stakePut=_putEst;}
   var p1=wsSend({proposal:1,amount:_callEst,basis:'stake',contract_type:'CALL',
     currency:S.currency,duration:GM.dur,duration_unit:'s',symbol:GM.asset,barrier:callBar});
   if(p1)S.pending[p1]={type:'gm_proposal',gmRound:rid,gmSide:'call',estStake:_callEst};
@@ -4196,9 +4198,14 @@ function onGMProposal(proposal,pendInfo){
   var P_p=round.P_put;
   console.log('[GM] P_call:'+P_c.toFixed(3)+' P_put:'+P_p.toFixed(3)+' product:'+(P_c*P_p).toFixed(3));
 
-  // Check if math is even possible (Pt × Pc must be > 1)
+  // Check if math is even possible
   if(P_c*P_p<=1.0){
-    notify('SKIP','GM payouts too low ('+P_c.toFixed(2)+'x x '+P_p.toFixed(2)+'x) - skipping','loss');
+    notify('SKIP','GM product<=1 ('+P_c.toFixed(2)+'x x '+P_p.toFixed(2)+'x) - skipping','info');
+    gmCleanup(rid);return;
+  }
+  // Minimum payout gate - need at least 1.20x on both sides
+  if(P_c<1.15||P_p<1.15){
+    notify('SKIP','GM payout too low ('+P_c.toFixed(2)+'x/'+P_p.toFixed(2)+'x) need 1.15x+','info');
     gmCleanup(rid);return;
   }
 
@@ -4246,12 +4253,12 @@ function onGMProposal(proposal,pendInfo){
   // The actual payout ratio is locked in at proposal time
   // solveHybridStakes ensures the ratio is profitable regardless of which side wins
   var b1=wsSend({buy:round.callProposalId,price:round.callAsk});
-  if(b1)S.pending[b1]={dir:'CALL',stake:round.callAsk,asset:round.asset,
+  if(b1)S.pending[b1]={dir:'CALL',stake:round.stakeCall,asset:round.asset,
     isBot:true,isGM:true,gmRound:rid,gmSide:'call',
     entryPrice:round.entry,durVal:GM.dur,durUnit:'s'};
 
   var b2=wsSend({buy:round.putProposalId,price:round.putAsk});
-  if(b2)S.pending[b2]={dir:'PUT',stake:round.putAsk,asset:round.asset,
+  if(b2)S.pending[b2]={dir:'PUT',stake:round.stakePut,asset:round.asset,
     isBot:true,isGM:true,gmRound:rid,gmSide:'put',
     entryPrice:round.entry,durVal:GM.dur,durUnit:'s'};
 
