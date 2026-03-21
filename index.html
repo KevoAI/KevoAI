@@ -1654,7 +1654,11 @@ function getWWSignal(){
     var ss=document.getElementById('sig-status');
     if(ss){
       if(!cdOk){ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+dsecs+'s':'Gap: '+dsecs+'s until ready');ss.style.color='var(--go)';}
-      else if(score>=minS){ss.textContent='✅ SETUP FOUND — Score '+score+'/5 — Placing now...';ss.style.color='var(--ac)';}
+      else if(score>=minS){
+        var _zReady=getIntegerWallZone().ready;
+        ss.textContent=_zReady?'✅ SETUP FOUND — Score '+score+'/5 — Placing now...':'✅ Score '+score+'/5 ready — ⛔ DEAD ZONE, waiting for wall';
+        ss.style.color=_zReady?'var(--ac)':'var(--go)';
+      }
       else{var miss=[];if(!ind.bbSqueeze&&!expanding)miss.push('BB squeeze');if(!momBurst)miss.push('momentum');if(!lowVol)miss.push('low volatility');ss.textContent='⏳ Waiting ('+score+'/'+minS+'): need '+miss.join(', ');ss.style.color='var(--t2)';}
     }
   }
@@ -1993,6 +1997,13 @@ function runHybridAuto(){
   }
   var sig=getWWSignal();
   if(!sig.ready){document.getElementById('hb-active-count').textContent='0 ACTIVE';HB.interval=setTimeout(runHybridAuto,2000);return;}
+  // ── Zone gate — check BEFORE calling placeHybridRound ──────────
+  // Signal score can be ready but price still in dead zone — skip silently
+  var _zone=getIntegerWallZone();
+  if(!_zone.ready){
+    document.getElementById('hb-active-count').textContent='0 ACTIVE — DEAD ZONE';
+    HB.interval=setTimeout(runHybridAuto,2000);return;
+  }
   placeHybridRound();
   HB.interval=setTimeout(runHybridAuto,500);
 }
@@ -2211,13 +2222,13 @@ function onHBProposal(proposal,reqId,pendInfo){
   notify('WW R'+HB.rounds,'Pt×Pc='+product.toFixed(2)+' ✅ | $'+res.S_t+' trend / $'+res.S_c+' counter | A:+$'+res.profitA.toFixed(2)+' B:+$'+res.profitB.toFixed(2),'win');
 
   // ── Fire both buys simultaneously ────────────────────────────
-  // Buy at ask_price — proposal was already at the correct stake amount
-  // ask_price is what Deriv charges for that exact contract
-  var b1=wsSend({buy:round.trendProposalId,price:round.trendAsk});
-  if(b1)S.pending[b1]={dir:'TREND',contractDir:round.trendType,stake:round.S_t,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:0,barrier:round.bTrend,durVal:round.trendDur,durUnit:round.trendUnit,entryPrice:round.entry};
+  // Buy using the SOLVED stakes (res.S_t / res.S_c) not the estimated ask prices.
+  // The proposal price field accepts the stake amount we want to spend.
+  var b1=wsSend({buy:round.trendProposalId,price:res.S_t});
+  if(b1)S.pending[b1]={dir:'TREND',contractDir:round.trendType,stake:res.S_t,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:0,barrier:round.bTrend,durVal:round.trendDur,durUnit:round.trendUnit,entryPrice:round.entry};
 
-  var b2=wsSend({buy:round.counterProposalId,price:round.counterAsk});
-  if(b2)S.pending[b2]={dir:'COUNTER',contractDir:round.counterType,stake:round.S_c,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:1,barrier:round.bCounter,durVal:round.counterDur,durUnit:round.counterUnit,entryPrice:round.entry};
+  var b2=wsSend({buy:round.counterProposalId,price:res.S_c});
+  if(b2)S.pending[b2]={dir:'COUNTER',contractDir:round.counterType,stake:res.S_c,asset:round.asset,isBot:true,isHB:true,hbRound:rid,hbIdx:1,barrier:round.bCounter,durVal:round.counterDur,durUnit:round.counterUnit,entryPrice:round.entry};
 
   renderTradeBreakdown(round.bTrend,round.bCounter,round.S_t,round.S_c,P_t,P_c,res);
   document.getElementById('hb-active-count').textContent='2 ACTIVE';
