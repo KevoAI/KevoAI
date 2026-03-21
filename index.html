@@ -3195,10 +3195,10 @@ function rendHist(f){
     if(t.isHB&&t.isHBSummary&&t.hbRound!==null){
       if(!hbRoundMap[t.hbRound])hbRoundMap[t.hbRound]=[];
       hbRoundMap[t.hbRound].push(t);
-    } else if(!t.isHB){
+    } else if(!t.isHB&&!t.isGM){
       individuals.push(t);
     }
-    // Skip raw HB individual contracts (not isHBSummary)
+    // Skip raw HB and GM individual contracts
   });
   var html='';
   Object.keys(hbRoundMap).sort(function(a,b){return b-a;}).forEach(function(rid){
