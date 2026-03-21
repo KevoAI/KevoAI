@@ -1484,8 +1484,8 @@ function onBuy(buy, reqId) {
   if(p.isGM){
     t.isGM=true;t.gmRound=p.gmRound;t.gmSide=p.gmSide;
     onGMBuy(buy.contract_id+'',p.gmSide,p.gmRound);
-    // Remove GM trades from main S.trades so they dont show in dashboard
-    S.trades=S.trades.filter(function(x){return x.contractId!==t.contractId;});
+    // Keep GM trades in S.trades for settlement routing
+    // They are filtered from display in renderTrades/renderActive
   }
   wsSend({proposal_open_contract:1,contract_id:buy.contract_id,subscribe:1});
   var _cid=buy.contract_id, _durMs=t.durMs;
@@ -3167,8 +3167,8 @@ function hbRoundRow(roundId, trades){
 }
 
 function renderTrades(){
-  // Show only HB summary trades + non-HB trades (skip raw HB individual contracts)
-  var all=S.trades.filter(function(t){return !t.isHB||t.isHBSummary;}).slice(0,10);
+  // Show only HB summary trades + non-HB + non-GM trades
+  var all=S.trades.filter(function(t){return (!t.isHB||t.isHBSummary)&&!t.isGM;}).slice(0,10);
   if(!all.length){document.getElementById('recentTrades').innerHTML='<div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No trades yet.</div>';return;}
   // Group HB summaries by round
   var shown=[], seenRounds={};
@@ -3220,9 +3220,10 @@ function filtH(f,el){document.querySelectorAll('#page-history .btn').forEach(fun
 
 function renderActive(){
   var el=document.getElementById('activeTrades');
-  if(!S.activeTrades.length){el.innerHTML='';return;}
+  var visibleTrades=S.activeTrades.filter(function(t){return !t.isGM;});
+  if(!visibleTrades.length){el.innerHTML='';return;}
   var html='';
-  S.activeTrades.forEach(function(t){
+  visibleTrades.forEach(function(t){
     var now=Date.now(),elapsed=now-(t.startTime||now),durMs=t.durMs||8000,remaining=Math.max(0,durMs-elapsed),secs=Math.ceil(remaining/1000),pct=Math.min(100,(elapsed/durMs)*100);
     var entryP=parseFloat(t.price)||0,curP=S.prices[t.asset]||entryP,winning=t.direction==='HIGHER'?curP>entryP:curP<entryP;
     var cardColor=winning?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.1)',borderColor=winning?'rgba(0,229,160,0.4)':'rgba(255,77,106,0.4)',textColor=winning?'var(--ac)':'var(--re)';
