@@ -1655,8 +1655,10 @@ function getWWSignal(){
     if(ss){
       if(!cdOk){ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+dsecs+'s':'Gap: '+dsecs+'s until ready');ss.style.color='var(--go)';}
       else if(score>=minS){
-        var _zReady=getIntegerWallZone().ready;
-        ss.textContent=_zReady?'✅ SETUP FOUND — Score '+score+'/5 — Placing now...':'✅ Score '+score+'/5 ready — ⛔ DEAD ZONE, waiting for wall';
+        var _z=getIntegerWallZone();
+        var _zReady=_z.ready;
+        var _zDir=_z.zone==='near_floor'?'▼ LOWER':'▲ HIGHER';
+        ss.textContent=_zReady?'✅ Score '+score+'/5 — WALL:'+_z.nearestInt+'.00 → '+_zDir+' — Placing now...':'✅ Score '+score+'/5 ready — ⛔ DEAD ZONE, waiting for wall';
         ss.style.color=_zReady?'var(--ac)':'var(--go)';
       }
       else{var miss=[];if(!ind.bbSqueeze&&!expanding)miss.push('BB squeeze');if(!momBurst)miss.push('momentum');if(!lowVol)miss.push('low volatility');ss.textContent='⏳ Waiting ('+score+'/'+minS+'): need '+miss.join(', ');ss.style.color='var(--t2)';}
@@ -2055,55 +2057,17 @@ function placeHybridRound(){
     if(!inZone){notify('SKIP','Dec .'+Math.round(decPart*100).toString().padStart(2,'0')+' — skipping','info');return;}
   }
 
-  // ── Confidence gate — calculated live from ticks, not DOM ──────
-  // Bias = how skewed up/down split is over last 20 ticks
-  // LOW (<10 bias) = market too even = flat = skip
-  var _cPrices=getInd(HB.asset).prices,_cN=_cPrices.length;
-  var _cUps=0,_cDns=0,_cLook=Math.min(20,_cN-1);
-  for(var _ci=_cN-_cLook;_ci<_cN;_ci++){
-    if(_cPrices[_ci]>_cPrices[_ci-1])_cUps++;
-    else if(_cPrices[_ci]<_cPrices[_ci-1])_cDns++;
-  }
-  var _cTotal=_cUps+_cDns||1;
-  var _cUpPct=Math.round(_cUps/_cTotal*100);
-  var _cBias=Math.abs(_cUpPct-50);
-  if(_cBias<10){
-    notify('SKIP','Market too flat (bias '+_cBias+'%) — need >10% bias to trade','info');
-    // NOTE: rounds/roundId not yet incremented here — do NOT decrement
-    return;
-  }
-  console.log('[CONFIDENCE] upPct:'+_cUpPct+'% bias:'+_cBias+'% -> '+((_cBias>=20)?'HIGH':(_cBias>=10)?'MED':'LOW'));
-
-  // ── Trend direction — confluences drive direction ─────────────
-  // Zone confirms we're near a wall. Now confluences pick the side.
-  // 2-of-3 vote: EMA trend, long slope, prediction bar.
-  var ind=getInd(HB.asset);
-  var prices=ind.prices,n=prices.length;
-  if(n<10){notify('!','Not enough ticks','info');return;}
-  var votes={up:0,down:0};
-  var emaDir=ind.trend==='up'?'up':ind.trend==='down'?'down':null;
-  if(emaDir==='up')votes.up++;else if(emaDir==='down')votes.down++;
-  var lk=Math.min(80,n-1),slope=prices[n-1]-prices[n-1-lk];
-  if(slope>0)votes.up++;else if(slope<0)votes.down++;
-  var _pue=document.getElementById('pred-up-pct');
-  var _pup=_pue?parseInt(_pue.textContent)||50:50;
-  if(_pup>55)votes.up++;else if(_pup<45)votes.down++;
-
-  var trendDir=votes.up>=2?'up':votes.down>=2?'down':null;
-  if(!trendDir){
-    notify('SKIP','Trend unclear ('+votes.up+'up/'+votes.down+'dn) — need 2/3','info');
-    return;
-  }
-
-  // Zone-direction agreement check for logging
-  // near_floor + up = heading toward floor integer = makes sense
-  // near_ceil  + up = heading toward ceil integer = makes sense
-  var zoneVoteAgree=(zone.zone==='near_floor'&&trendDir==='down')||
-                    (zone.zone==='near_ceil'&&trendDir==='up')||
-                    true; // both directions valid near a wall
-  var _zoneAgree=zoneVoteAgree;
-  console.log('[TREND] wall:'+zone.nearestInt+'.00 confluence:'+trendDir+
-    ' ('+votes.up+'up/'+votes.down+'dn) zone:'+zone.zone);
+  // ── DIRECTION FROM ZONE POSITION — data proven ───────────────
+  // Analysis of 114 trades shows:
+  //   near_floor (price just above integer e.g. 605.05) → LOWER  77% WR
+  //   near_ceil  (price just below integer e.g. 605.94) → HIGHER 80% WR
+  // The integer acts as a magnet — price reverts toward it from below,
+  // and breaks through it from above.
+  // EMA/slope/vote removed — zone position IS the direction signal.
+  var trendDir=zone.zone==='near_floor'?'down':'up';
+  var _zoneAgree=true;
+  console.log('[DIRECTION] '+zone.zone+' → '+trendDir+
+    ' (wall:'+zone.nearestInt+'.00 dist:'+zone.distToNearest.toFixed(3)+')');
 
   // ── Asymmetric barriers ──────────────────────────────────────
   var bTrend=getTrendBarrier();     // ATR×5 — with trend, further out
@@ -2146,8 +2110,10 @@ function placeHybridRound(){
   var counterBar=(counterType==='CALL'?'+':'-')+bCounter.toFixed(2);
   var dur=HB._durSecs||20;
 
-  notify('WW R'+HB.rounds,'WALL '+zone.nearestInt+'.00 ('+zone.distToNearest.toFixed(3)+' away) '+
-    trendDir.toUpperCase()+' — trend:'+trendType+' ±'+bTrend+' | counter:'+counterType+' ±'+bCounter,'info');
+  notify('WW R'+HB.rounds,
+    zone.zone.toUpperCase()+' → '+(trendDir==='down'?'LOWER':'HIGHER')+
+    ' | WALL:'+zone.nearestInt+'.00 ('+zone.distToNearest.toFixed(3)+' away)'+
+    ' | trend:'+trendType+' ±'+bTrend+' counter:'+counterType+' ±'+bCounter,'info');
 
   // Pre-estimate stakes using estimated payouts so proposals are at correct amounts
   // This avoids ContractCreationFailure (stake > max purchase price)
