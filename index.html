@@ -1199,6 +1199,7 @@ function onProposal(proposal, reqId){
   // Route HB proposals to dual-trade handler
   if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
   if(p.type==='gm_proposal'){onGMProposal(proposal,p);delete S.pending[reqId];return;}
+  if(p.type==='gm_proposal2'){onGMProposal2(proposal,p);delete S.pending[reqId];return;}
 }
 
 function onAuth(a) {
@@ -4172,6 +4173,10 @@ function onGMProposal(proposal,pendInfo){
   // Update round with solved stakes
   round.stakeCall=res.S_t;
   round.stakePut=res.S_c;
+  round.P_call_final=P_c;
+  round.P_put_final=P_p;
+  round.profitA=res.profitA;
+  round.profitB=res.profitB;
 
   notify('GM R'+GM.rounds,
     'CALL:'+P_c.toFixed(2)+'x $'+res.S_t.toFixed(2)+
@@ -4179,20 +4184,58 @@ function onGMProposal(proposal,pendInfo){
     ' A:+$'+res.profitA.toFixed(2)+' B:+$'+res.profitB.toFixed(2),'info');
 
   // Update UI with solved stakes
-  var set=function(id,val){var e=document.getElementById(id);if(e)e.textContent=val;};
-  set('gm-call-stake','stake: $'+res.S_t.toFixed(2)+' ('+P_c.toFixed(2)+'x)');
-  set('gm-put-stake','stake: $'+res.S_c.toFixed(2)+' ('+P_p.toFixed(2)+'x)');
+  var setEl=function(id,val){var e=document.getElementById(id);if(e)e.textContent=val;};
+  setEl('gm-call-stake','stake: $'+res.S_t.toFixed(2)+' ('+P_c.toFixed(2)+'x)');
+  setEl('gm-put-stake','stake: $'+res.S_c.toFixed(2)+' ('+P_p.toFixed(2)+'x)');
 
   var rs=document.getElementById('gm-round-status');
-  if(rs)rs.textContent='BUYING...';
+  if(rs)rs.textContent='REFETCHING...';
 
-  // Buy at the solved stake amounts
+  // Re-fetch proposals at the SOLVED stake amounts so buy price is correct
+  // This prevents stake mismatch between proposal and actual buy
+  round.proposalsReady=0;
+  round.callProposalId=null;
+  round.putProposalId=null;
+  round._usesolvedStakes=true;
+
+  var p1b=wsSend({proposal:1,amount:res.S_t,basis:'stake',contract_type:'CALL',
+    currency:S.currency,duration:GM.dur,duration_unit:'s',
+    symbol:GM.asset,barrier:round.callBar});
+  if(p1b)S.pending[p1b]={type:'gm_proposal2',gmRound:rid,gmSide:'call',estStake:res.S_t};
+
+  var p2b=wsSend({proposal:1,amount:res.S_c,basis:'stake',contract_type:'PUT',
+    currency:S.currency,duration:GM.dur,duration_unit:'s',
+    symbol:GM.asset,barrier:round.putBar});
+  if(p2b)S.pending[p2b]={type:'gm_proposal2',gmRound:rid,gmSide:'put',estStake:res.S_c};
+}
+
+function onGMProposal2(proposal,pendInfo){
+  // Second proposal fetch at SOLVED stake amounts - now we buy
+  if(!proposal||!proposal.id){
+    notify('!','GM proposal2 failed','loss');
+    gmCleanup(pendInfo.gmRound);return;
+  }
+  var rid=pendInfo.gmRound;
+  var round=GM.pending[rid];
+  if(!round)return;
+  var ask=parseFloat(proposal.ask_price||1);
+  if(pendInfo.gmSide==='call'){round.callProposalId=proposal.id;round.callAsk=ask;}
+  else{round.putProposalId=proposal.id;round.putAsk=ask;}
+  round.proposalsReady=(round.proposalsReady||0)+1;
+  if(round.proposalsReady<2)return;
+
+  // Both re-fetched at correct amounts - NOW buy
+  var rs=document.getElementById('gm-round-status');
+  if(rs)rs.textContent='BUYING...';
+  console.log('[GM BUY] CALL $'+round.stakeCall.toFixed(2)+' PUT $'+round.stakePut.toFixed(2));
+
   var b1=wsSend({buy:round.callProposalId,price:round.callAsk});
-  if(b1)S.pending[b1]={dir:'CALL',stake:res.S_t,asset:round.asset,
+  if(b1)S.pending[b1]={dir:'CALL',stake:round.stakeCall,asset:round.asset,
     isBot:true,isGM:true,gmRound:rid,gmSide:'call',
     entryPrice:round.entry,durVal:GM.dur,durUnit:'s'};
+
   var b2=wsSend({buy:round.putProposalId,price:round.putAsk});
-  if(b2)S.pending[b2]={dir:'PUT',stake:res.S_c,asset:round.asset,
+  if(b2)S.pending[b2]={dir:'PUT',stake:round.stakePut,asset:round.asset,
     isBot:true,isGM:true,gmRound:rid,gmSide:'put',
     entryPrice:round.entry,durVal:GM.dur,durUnit:'s'};
 
