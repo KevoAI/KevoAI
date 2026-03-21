@@ -1651,10 +1651,10 @@ function updateBarrierPreview(){
   var _pvPrices=getInd(HB.asset).prices,_pvN=_pvPrices.length;
   var _pvATR=0;
   if(_pvN>=5){for(var _pvi=_pvN-5;_pvi<_pvN;_pvi++)_pvATR+=Math.abs(_pvPrices[_pvi]-_pvPrices[_pvi-1]);_pvATR/=5;}
-  var _pvDist=_pvATR>0?parseFloat((_pvATR*mult).toFixed(4)):parseFloat((mult*0.05).toFixed(4));
+  var _pvDist=_pvATR>0?parseFloat((_pvATR*mult).toFixed(2)):parseFloat((mult*0.05).toFixed(2));
   var entry=S.prices[HB.asset]||0;
-  var hBarrier=entry>0?(entry-_pvDist).toFixed(4):'entry-'+_pvDist;
-  var lBarrier=entry>0?(entry+_pvDist).toFixed(4):'entry+'+_pvDist;
+  var hBarrier=entry>0?(entry-_pvDist).toFixed(2):'entry-'+_pvDist;
+  var lBarrier=entry>0?(entry+_pvDist).toFixed(2):'entry+'+_pvDist;
   var pt=document.getElementById('barrier-preview-txt');
   if(pt)pt.innerHTML=
     '<span style="color:var(--ac)">H HIGHER</span> barrier: <b>-'+_pvDist+'</b> ('+hBarrier+') $'+stakeEach+'<br>'+
@@ -1730,10 +1730,9 @@ function getWWSignal(){
 
     // BB card — squeeze is now a RED block
     var bc=document.getElementById('sig-bb-card'),bv=document.getElementById('sig-bb-val');
-    if(bc){bc.style.borderColor=isSqueeze?'var(--re)':'var(--bo)';
-           bc.style.background=isSqueeze?'rgba(255,77,106,0.1)':'var(--bg3)';}
-    if(bv){bv.textContent=isSqueeze?'BLOCKED':'OK';
-           bv.style.color=isSqueeze?'var(--re)':'var(--t2)';}
+    if(bc){bc.style.borderColor='var(--bo)';bc.style.background='var(--bg3)';}
+    if(bv){bv.textContent=isSqueeze?'INFO':'OK';
+           bv.style.color=isSqueeze?'var(--go)':'var(--t2)';}  // info only, never blocks
   }
 
   // If market is dead or squeezing — hard block, do not score
@@ -1742,7 +1741,7 @@ function getWWSignal(){
       var sb3=document.getElementById('sig-score-badge');
       if(sb3){sb3.textContent='WAITING';sb3.style.background='var(--gd)';sb3.style.color='var(--go)';sb3.style.border='1px solid rgba(245,166,35,0.3)';}
       var ss3=document.getElementById('sig-status');
-      if(ss3){ss3.textContent='⛔ '+(isSqueeze?'BB SQUEEZE — dead market, skipping':'LOW VOL — market flat, skipping');ss3.style.color='var(--re)';}
+      if(ss3){ss3.textContent='ℹ BB:'+(isSqueeze?'Squeeze (ignored)':'OK')+' — Direction filter active';ss3.style.color='var(--go)';}
     }
     return{score:0,ready:false};
   }
@@ -1790,10 +1789,7 @@ function getWWSignal(){
     var ss=document.getElementById('sig-status');
     if(ss){
       if(!cdOk){ss.textContent='⏱ '+(HB.coolingDown&&!coolOk?'Cooldown: '+dsecs+'s':'Gap: '+dsecs+'s until ready');ss.style.color='var(--go)';}
-      else if(score>=minS){
-        var _z=getIntegerWallZone();
-        var _zReady=_z.ready;
-        var _zDir=_z.zone==='near_floor'?'▼ LOWER':'▲ HIGHER';
+      else if(true){ // OB system: always show direction status when cooldown ok
         // Show overlapping barrier direction status
         var _ssPrices=getInd(HB.asset).prices,_ssN=_ssPrices.length;
         var _ssUps=0,_ssDns=0,_ssLook=Math.min(20,_ssN-1);
@@ -1814,7 +1810,7 @@ function getWWSignal(){
   if(_np>=5){for(var _fi=_np-5;_fi<_np;_fi++)_af+=Math.abs(_pp[_fi]-_pp[_fi-1]);_af/=5;}
   var atrOk=_af>=0.05;
   if(updateDOM&&!atrOk){var _av2=document.getElementById('sig-atr-val');if(_av2)_av2.textContent='FLAT!';}
-  return{score:score,ready:cdOk&&atrOk};  // OB system: removed BB/lowVol blocks — direction threshold handles filtering
+  return{score:score,ready:cdOk};  // OB system: only cooldown/gap needed — direction threshold handles filtering
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2177,7 +2173,7 @@ function placeHybridRound(){
   var active=S.activeTrades.filter(function(t){return t.isHB;});
   if(active.length>0){notify('!','Round already active','loss');return;}
   var sig=getWWSignal();
-  if(!sig.ready){notify('!','Signal not ready (Score:'+sig.score+'/5) — skipping','loss');return;}
+  if(!sig.ready){notify('!','Not ready — waiting for gap/cooldown','info');return;}
 
   var entry=S.prices[HB.asset]||0;
   if(entry<=0){notify('!','No price data for '+HB.asset,'loss');return;}
@@ -2223,15 +2219,15 @@ function placeHybridRound(){
   var _obATR=0;
   if(_obN>=5){for(var _oi=_obN-5;_oi<_obN;_oi++)_obATR+=Math.abs(_obPrices[_oi]-_obPrices[_oi-1]);_obATR/=5;}
   if(_obATR<0.01)_obATR=0.05; // floor
-  var _obDist=parseFloat((_obATR*_obMult).toFixed(4));
+  var _obDist=parseFloat((_obATR*_obMult).toFixed(2));
   // Higher wins if exit > (entry - dist)  → barrier BELOW entry
   // Lower  wins if exit < (entry + dist)  → barrier ABOVE entry
   var bHigher = _obDist; // used as negative offset: -(dist)
   var bLower  = _obDist; // used as positive offset:  +(dist)
   var trendDir='up'; // kept for journal compatibility
   var _zoneAgree=true;
-  console.log('[OB] entry:'+entry.toFixed(4)+' ATR:'+_obATR.toFixed(4)+' dist:'+_obDist+
-    ' H-barrier:'+(entry-_obDist).toFixed(4)+' L-barrier:'+(entry+_obDist).toFixed(4));
+  console.log('[OB] entry:'+entry.toFixed(2)+' ATR:'+_obATR.toFixed(4)+' dist:'+_obDist+
+    ' H-barrier:'+(entry-_obDist).toFixed(2)+' L-barrier:'+(entry+_obDist).toFixed(2));
 
   var budget=Math.max(0.70,parseFloat((parseFloat(document.getElementById('ww-risk').value)||3).toFixed(2)));
   // Equal split — both sides same stake
@@ -2280,13 +2276,13 @@ function placeHybridRound(){
   // LOWER  contract: barrier = +(dist) → ABOVE entry → already winning
   var trendType='CALL';    // HIGHER
   var counterType='PUT';   // LOWER
-  var trendBar='-'+bTrend.toFixed(4);       // negative = below entry
-  var counterBar='+'+bCounter.toFixed(4);   // positive = above entry
+  var trendBar='-'+bTrend.toFixed(2);       // negative = below entry
+  var counterBar='+'+bCounter.toFixed(2);   // positive = above entry
   var dur=HB._durSecs||20;
 
   notify('OB R'+HB.rounds,
-    'HIGHER -'+bTrend.toFixed(4)+' ('+((entry-bTrend).toFixed(4))+')'+
-    ' | LOWER +'+bCounter.toFixed(4)+' ('+((entry+bCounter).toFixed(4))+')'+
+    'HIGHER -'+bTrend.toFixed(2)+' ('+((entry-bTrend).toFixed(2))+')'+
+    ' | LOWER +'+bCounter.toFixed(2)+' ('+((entry+bCounter).toFixed(2))+')'+
     ' | stake $'+(budget/2).toFixed(2)+' each','info');
 
   // Equal split — overlapping system both sides same stake
