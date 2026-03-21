@@ -3996,8 +3996,9 @@ function gmUpdatePreview(){
   var el=document.getElementById('gm-barrier-preview');
   if(!el)return;
   if(entry<=0){el.innerHTML='<span style="color:var(--t3)">Connect to see live barriers</span>';return;}
-  el.innerHTML='<span style="color:var(--ac)">CALL</span> barrier: -'+dist.toFixed(2)+' = '+(entry-dist).toFixed(2)+'<br>'
-    +'<span style="color:var(--re)">PUT</span>  barrier: +'+dist.toFixed(2)+' = '+(entry+dist).toFixed(2)+'<br>'
+  var _cbp=(entry-dist).toFixed(2),_pbp=(entry+dist).toFixed(2);
+  el.innerHTML='<span style="color:var(--ac)">CALL</span> barrier: '+_cbp+' (wins if exit > '+_cbp+')<br>'
+    +'<span style="color:var(--re)">PUT</span>  barrier: '+_pbp+' (wins if exit < '+_pbp+')<br>'
     +'<span style="color:var(--go)">ATR: '+atr.toFixed(4)+'  stake: $'+(budget/2).toFixed(2)+' each</span>';
 }
 
@@ -4090,8 +4091,14 @@ function gmPlace(){
   if(pn>=5){for(var pi=pn-5;pi<pn;pi++)atr+=Math.abs(prices[pi]-prices[pi-1]);atr/=5;}
   if(atr<0.01)atr=0.05;
   var dist=Math.max(0.01,Math.round(atr*mult*100)/100);
-  var callBar='-'+dist.toFixed(2);
-  var putBar='+'+dist.toFixed(2);
+  // Use ABSOLUTE barrier prices - more reliable than relative offsets
+  // CALL wins if exit > callBarPrice (barrier BELOW entry)
+  // PUT  wins if exit < putBarPrice  (barrier ABOVE entry)
+  var callBarPrice=parseFloat((entry-dist).toFixed(2));
+  var putBarPrice=parseFloat((entry+dist).toFixed(2));
+  var callBar=callBarPrice.toFixed(2);   // absolute price e.g. "639.31"
+  var putBar=putBarPrice.toFixed(2);     // absolute price e.g. "639.49"
+  console.log('[GM barrier] entry:'+entry+' dist:'+dist+' CALL:'+callBar+' PUT:'+putBar+' ATR:'+atr.toFixed(4));
   var budget=Math.max(0.70,parseFloat(document.getElementById('gm-budget').value)||3);
   var stakeEach=Math.max(0.35,budget/2);
   GM.roundId++;
@@ -4111,8 +4118,15 @@ function gmPlace(){
   var set=function(id,val){var e=document.getElementById(id);if(e)e.textContent=val;};
   set('gm-call-stake','stake: $'+stakeEach.toFixed(2));
   set('gm-put-stake','stake: $'+stakeEach.toFixed(2));
-  set('gm-call-barrier','barrier: '+callBar+' ('+(entry-dist).toFixed(2)+')');
-  set('gm-put-barrier','barrier: '+putBar+' ('+(entry+dist).toFixed(2)+')');
+  set('gm-call-barrier','barrier: '+callBar+' (CALL wins if exit > '+callBar+')');
+  set('gm-put-barrier','barrier: '+putBar+' (PUT wins if exit < '+putBar+')');
+  // Validate barrier before sending
+  if(isNaN(dist)||dist<=0){
+    notify('SKIP','GM barrier invalid (ATR too low)','info');
+    GM.rounds--;GM.lastRoundTime=0;
+    delete GM.pending[rid];
+    return;
+  }
   set('gm-round-status','FETCHING...');
   set('gm-active','0');
   gmSetBarrierLines(entry,dist,true);
