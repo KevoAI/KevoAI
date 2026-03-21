@@ -4129,6 +4129,7 @@ function gmPlace(){
     results:{call:null,put:null},settled:0,
     entry:entry,dist:dist,budget:budget,
     stakeCall:_callEst,stakePut:_putEst,
+    dirBias:dir&&dir.dnPct>dir.upPct?'DN':'UP',
     P_call:0,P_put:0,proposalsReady:0,
     callProposalId:null,putProposalId:null,
     callAsk:_callEst,putAsk:_putEst,
@@ -4217,13 +4218,16 @@ function onGMProposal(proposal,pendInfo){
     notify('GM','Using fallback 70/30 split (P:'+P_c.toFixed(2)+'x/'+P_p.toFixed(2)+'x)','info');
   }
 
-  // Update round with solved stakes
-  round.stakeCall=res.S_t;
-  round.stakePut=res.S_c;
+  // Assign solved stakes based on direction bias
+  // Trend side (S_t = bigger stake) goes to the biased direction
+  var _isDnBias=round.dirBias==='DN';
+  round.stakeCall=_isDnBias?res.S_c:res.S_t;  // DN=CALL is counter(small), UP=CALL is trend(big)
+  round.stakePut=_isDnBias?res.S_t:res.S_c;   // DN=PUT is trend(big),  UP=PUT is counter(small)
   round.P_call_final=P_c;
   round.P_put_final=P_p;
   round.profitA=res.profitA;
   round.profitB=res.profitB;
+  console.log('[GM stakes] bias:'+round.dirBias+' CALL:$'+round.stakeCall.toFixed(2)+' PUT:$'+round.stakePut.toFixed(2));
 
   notify('GM R'+GM.rounds,
     'CALL:'+P_c.toFixed(2)+'x $'+res.S_t.toFixed(2)+
@@ -4366,6 +4370,7 @@ function gmSettle(rid){
   var isWin=total>0;
   var callWon=r.results.call&&r.results.call.win;
   var putWon=r.results.put&&r.results.put.win;
+  console.log('[GM PNL] before:'+GM.pnl.toFixed(2)+' adding:'+total.toFixed(2));
   GM.pnl+=total;
   if(isWin)GM.won++;else GM.lost++;
   // FIX: Remove GM trades from S.activeTrades so dashboard clears
