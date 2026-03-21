@@ -2219,7 +2219,7 @@ function placeHybridRound(){
   var _obATR=0;
   if(_obN>=5){for(var _oi=_obN-5;_oi<_obN;_oi++)_obATR+=Math.abs(_obPrices[_oi]-_obPrices[_oi-1]);_obATR/=5;}
   if(_obATR<0.01)_obATR=0.05; // floor
-  var _obDist=parseFloat((_obATR*_obMult).toFixed(2));
+  var _obDist=Math.max(0.01, Math.round(_obATR*_obMult*100)/100); // strict 2dp, min 0.01
   // Higher wins if exit > (entry - dist)  → barrier BELOW entry
   // Lower  wins if exit < (entry + dist)  → barrier ABOVE entry
   var bHigher = _obDist; // used as negative offset: -(dist)
@@ -2276,8 +2276,10 @@ function placeHybridRound(){
   // LOWER  contract: barrier = +(dist) → ABOVE entry → already winning
   var trendType='CALL';    // HIGHER
   var counterType='PUT';   // LOWER
-  var trendBar='-'+bTrend.toFixed(2);       // negative = below entry
-  var counterBar='+'+bCounter.toFixed(2);   // positive = above entry
+  // Build barrier strings — must be exactly 2dp for Deriv
+  var _barrStr=(Math.round(bTrend*100)/100).toFixed(2);
+  var trendBar='-'+_barrStr;      // negative = below entry
+  var counterBar='+'+_barrStr;    // positive = above entry
   var dur=HB._durSecs||20;
 
   notify('OB R'+HB.rounds,
