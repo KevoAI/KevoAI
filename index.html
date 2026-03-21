@@ -812,15 +812,17 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                 <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:10px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px">HIGHER wins if exit above</div>
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px">HIGHER barrier</div>
                   <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-higher-level">--</div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:2px">entry + offset</div>
                 </div>
                 <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:10px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px">LOWER wins if exit below</div>
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px">LOWER barrier</div>
                   <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-lower-level">--</div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:2px">entry - offset</div>
                 </div>
               </div>
-              <div style="margin-top:8px;font-size:10px;color:var(--t3);text-align:center;font-family:var(--mo)">Barrier = entry spot. No gap. One side always wins.</div>
+              <div style="margin-top:8px;font-size:10px;color:var(--t3);text-align:center;font-family:var(--mo)" id="gm-gap-display">Gap zone shown after connect</div>
             </div>
             <!-- Live Chart -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
@@ -872,13 +874,13 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
                 <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:12px">
                   <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:6px">↑ HIGHER</div>
-                  <div style="font-size:10px;color:var(--t3);margin-bottom:2px">barrier: entry spot</div>
+                  <div style="font-size:10px;color:var(--t3);margin-bottom:2px" id="gm-call-barrier-lbl">barrier: entry + offset</div>
                   <div style="font-size:18px;font-weight:700;color:var(--ac);font-family:var(--mo)" id="gm-call-pnl">$0.00</div>
                   <div style="font-size:10px;color:var(--t3);margin-top:3px" id="gm-call-stake">stake: --</div>
                 </div>
                 <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:12px">
                   <div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:6px">↓ LOWER</div>
-                  <div style="font-size:10px;color:var(--t3);margin-bottom:2px">barrier: entry spot</div>
+                  <div style="font-size:10px;color:var(--t3);margin-bottom:2px" id="gm-put-barrier-lbl">barrier: entry - offset</div>
                   <div style="font-size:18px;font-weight:700;color:var(--re);font-family:var(--mo)" id="gm-put-pnl">$0.00</div>
                   <div style="font-size:10px;color:var(--t3);margin-top:3px" id="gm-put-stake">stake: --</div>
                 </div>
@@ -913,13 +915,23 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   </div>
                   <div style="font-size:10px;color:var(--t3);margin-top:3px">Total risk per round = stake × 2</div>
                 </div>
+                <!-- Barrier Offset -->
+                <div class="ig" style="margin-bottom:11px">
+                  <div class="il">Barrier Offset (± price)</div>
+                  <div class="ir">
+                    <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=Math.max(0.01,(parseFloat(e.value)-0.01)).toFixed(2);gmCalc()">-</div>
+                    <input type="number" class="iif" id="gm-offset" value="0.12" min="0.01" step="0.01" oninput="gmCalc()">
+                    <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=(parseFloat(e.value)+0.01).toFixed(2);gmCalc()">+</div>
+                  </div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">HIGHER barrier = entry+offset | LOWER = entry-offset</div>
+                </div>
                 <!-- Duration -->
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Duration</div>
                   <div class="dr">
                     <div class="db" onclick="GM.dur=5;gmSetActive(this)">5S</div>
-                    <div class="db active" onclick="GM.dur=15;gmSetActive(this)">15S</div>
-                    <div class="db" onclick="GM.dur=30;gmSetActive(this)">30S</div>
+                    <div class="db" onclick="GM.dur=15;gmSetActive(this)">15S</div>
+                    <div class="db active" onclick="GM.dur=30;gmSetActive(this)">30S</div>
                     <div class="db" onclick="GM.dur=60;gmSetActive(this)">60S</div>
                     <div class="db" onclick="GM.dur=120;gmSetActive(this)">2M</div>
                   </div>
@@ -4060,7 +4072,7 @@ connectWS(); switchAcc(S.accType);
 //   - Winner covers loser stake + delivers profit
 // ================================================================
 var GM = {
-  running:false, interval:null, asset:'R_100', dur:15, minGap:30,
+  running:false, interval:null, asset:'R_100', dur:30, minGap:30,
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0
@@ -4074,13 +4086,17 @@ function gmSetActive(el){
 
 // ── Gate: combined payout must exceed 2× total stake ──
 function gmGatePasses(callPay, putPay, stake){
-  return (callPay + putPay) > (stake * 2);
+  // Each individual payout must exceed the total risk (stake x2)
+  // because whichever side wins, it must return more than both stakes combined
+  var totalRisk = stake * 2;
+  return callPay > totalRisk && putPay > totalRisk;
 }
 
 function gmCalc(){
   var stake=parseFloat(document.getElementById('gm-stake').value)||1.50;
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
+  var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
   var totalRisk=stake*2;
   // Use last known payouts if available
   var cPay=GM.lastCallPay||0;
@@ -4092,11 +4108,12 @@ function gmCalc(){
   var el=document.getElementById('gm-calc-display');
   if(el)el.textContent=
     'Stake each side:  $'+stake.toFixed(2)+'\n'
+   +'Barrier offset:   ±'+offset.toFixed(2)+'\n'
    +'Total risk:       $'+totalRisk.toFixed(2)+'\n\n'
    +'HIGHER payout:    $'+(cPay?cPay.toFixed(2):'--')+'\n'
    +'LOWER payout:     $'+(pPay?pPay.toFixed(2):'--')+'\n'
    +'Combined payout:  $'+(combined?combined.toFixed(2):'--')+'\n\n'
-   +'Gate: need > $'+totalRisk.toFixed(2)+' combined\n'
+   +'Gate: each payout must > $'+totalRisk.toFixed(2)+'\n'
    +'Status: '+(combined?( passes?'✅ PASS — will trade':'❌ SKIP — payout too low'):'Fetching...')+'\n\n'
    +'Best profit (high pays): '+(bestProfit!==null?(bestProfit>=0?'+$'+bestProfit.toFixed(2):'-$'+Math.abs(bestProfit).toFixed(2)):'--')+'\n'
    +'Worst profit (low pays): '+(worstProfit!==null?(worstProfit>=0?'+$'+worstProfit.toFixed(2):'-$'+Math.abs(worstProfit).toFixed(2)):'--')+'\n\n'
@@ -4155,24 +4172,34 @@ function gmFetchProposals(){
   var entry=S.prices[GM.asset]||0;
   if(entry<=0)return;
   var stake=Math.max(0.35,parseFloat(document.getElementById('gm-stake').value)||1.50);
+  var offset=Math.max(0.01,parseFloat(document.getElementById('gm-offset').value)||0.12);
 
-  // HIGHER/LOWER with barrier AT the entry spot
-  // This means: HIGHER wins if exit > entry, LOWER wins if exit < entry
-  // No gap — one side always wins
-  var barrierStr=entry.toFixed(entry>100?2:5);
+  // HIGHER barrier = entry + offset (price must close ABOVE this)
+  // LOWER barrier  = entry - offset (price must close BELOW this)
+  // Gap zone = entry-offset to entry+offset (both lose if price stays inside)
+  // On R_100 at 30s, price almost always moves more than 0.12
+  var dp=entry>100?2:5;
+  var callBarrier='+'+offset.toFixed(2);   // relative offset format for Deriv API
+  var putBarrier ='-'+offset.toFixed(2);
 
   var rs=document.getElementById('gm-round-status');
   if(rs)rs.textContent='CHECKING...';
 
+  // Update barrier display labels
+  var cbLbl=document.getElementById('gm-call-barrier-lbl');
+  var pbLbl=document.getElementById('gm-put-barrier-lbl');
+  if(cbLbl)cbLbl.textContent='barrier: '+parseFloat((entry+offset).toFixed(dp))+' (entry+'+offset.toFixed(2)+')';
+  if(pbLbl)pbLbl.textContent='barrier: '+parseFloat((entry-offset).toFixed(dp))+' (entry-'+offset.toFixed(2)+')';
+
   var p1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
     currency:S.currency,duration:GM.dur,duration_unit:'s',
-    symbol:GM.asset,barrier:barrierStr});
-  if(p1)S.pending[p1]={type:'gm_probe',gmSide:'call',probeEntry:entry,probeStake:stake,probeBarrier:barrierStr};
+    symbol:GM.asset,barrier:callBarrier});
+  if(p1)S.pending[p1]={type:'gm_probe',gmSide:'call',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:callBarrier};
 
   var p2=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'PUT',
     currency:S.currency,duration:GM.dur,duration_unit:'s',
-    symbol:GM.asset,barrier:barrierStr});
-  if(p2)S.pending[p2]={type:'gm_probe',gmSide:'put',probeEntry:entry,probeStake:stake,probeBarrier:barrierStr};
+    symbol:GM.asset,barrier:putBarrier});
+  if(p2)S.pending[p2]={type:'gm_probe',gmSide:'put',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:putBarrier};
 }
 
 // Probe responses come back — check gate, then place or skip
@@ -4226,7 +4253,7 @@ function onGMProbe(proposal,pendInfo){
 
   if(!passes){
     var rs=document.getElementById('gm-round-status');
-    if(rs)rs.textContent='SKIP ($'+combined.toFixed(2)+'<$'+(stake*2).toFixed(2)+')';
+    if(rs)rs.textContent='SKIP (need each payout>$'+(stake*2).toFixed(2)+')';
     // Track skips
     GM._skipped=(GM._skipped||0)+1;
     var skEl=document.getElementById('gm-skipped');if(skEl)skEl.textContent=GM._skipped;
@@ -4247,9 +4274,10 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   GM.rounds++;
   GM.lastRoundTime=Date.now();
 
+  var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
   GM.pending[rid]={
     results:{call:null,put:null},settled:0,
-    entry:entry,barrier:barrier,stake:stake,
+    entry:entry,barrier:barrier,stake:stake,offset:offset,
     callPay:callPay,putPay:putPay,
     combinedPay:callPay+putPay,
     callPlaced:false,putPlaced:false,
@@ -4258,14 +4286,14 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   };
 
   var set=function(id,val){var e=document.getElementById(id);if(e)e.textContent=val;};
-  set('gm-call-stake','stake: $'+stake.toFixed(2)+' | pays: $'+callPay.toFixed(2));
-  set('gm-put-stake','stake: $'+stake.toFixed(2)+' | pays: $'+putPay.toFixed(2));
+  set('gm-call-stake','stake: $'+stake.toFixed(2)+' | pays: $'+callPay.toFixed(2)+' | barrier: +'+(offset||0.12).toFixed(2));
+  set('gm-put-stake','stake: $'+stake.toFixed(2)+' | pays: $'+putPay.toFixed(2)+' | barrier: -'+(offset||0.12).toFixed(2));
   set('gm-call-pnl','...');
   set('gm-put-pnl','...');
   set('gm-round-status','BUYING...');
   set('gm-round-net','...');
 
-  console.log('[GM PLACE] R'+rid+' entry:'+entry+' barrier:'+barrier+' stake:$'+stake.toFixed(2)+' CALL pays:$'+callPay.toFixed(2)+' PUT pays:$'+putPay.toFixed(2));
+  console.log('[GM PLACE] R'+rid+' entry:'+entry+' offset:'+offset.toFixed(2)+' stake:$'+stake.toFixed(2)+' HIGHER pays:$'+callPay.toFixed(2)+' LOWER pays:$'+putPay.toFixed(2));
 
   // Buy both contracts at their proposal prices
   var b1=wsSend({buy:callId,price:callAsk});
@@ -4369,7 +4397,7 @@ function gmSettle(rid){
     callWon:callWon,putWon:putWon,
     time:r.time,asset:r.asset,
     stake:stake,callPay:r.callPay,putPay:r.putPay,
-    combinedPay:r.combinedPay,entry:r.entry
+    combinedPay:r.combinedPay,entry:r.entry,offset:r.offset||0.12
   });
 
   gmUpdateStats();
@@ -4523,16 +4551,21 @@ function gmDrawChart(){
     var t=ups+dns||1;
     dirEl.textContent='UP:'+Math.round(ups/t*100)+'% DN:'+Math.round(dns/t*100)+'%';
   }
-  // Update entry preview
+  // Update entry preview with offset barriers
   var curP=S.prices[GM.asset]||0;
+  var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
   var entryEl=document.getElementById('gm-entry-display');
   var higherEl=document.getElementById('gm-higher-level');
   var lowerEl=document.getElementById('gm-lower-level');
+  var gapEl=document.getElementById('gm-gap-display');
   if(curP>0){
-    var pStr=curP.toFixed(curP>100?2:5);
-    if(entryEl)entryEl.textContent='Entry: '+pStr;
-    if(higherEl)higherEl.textContent='> '+pStr;
-    if(lowerEl)lowerEl.textContent='< '+pStr;
+    var dp=curP>100?2:5;
+    var hBar=parseFloat((curP+offset).toFixed(dp));
+    var lBar=parseFloat((curP-offset).toFixed(dp));
+    if(entryEl)entryEl.textContent='Entry: '+curP.toFixed(dp);
+    if(higherEl)higherEl.textContent=hBar;
+    if(lowerEl)lowerEl.textContent=lBar;
+    if(gapEl)gapEl.textContent='Gap: '+lBar+' — '+hBar+' ('+parseFloat((offset*2).toFixed(dp))+' wide)';
   }
 }
 // ── END GMILLI CHART ────────────────────────────────────────────
