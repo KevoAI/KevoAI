@@ -4534,6 +4534,13 @@ function gmCalc(){
    +'Daily SL: $'+sl+' | Daily TP: $'+tp;
 }
 
+function gmSubscribeAllAssets(){
+  // Subscribe to all scanner assets so getInd() has price data
+  GM_SCAN_ASSETS.forEach(function(sym){
+    wsSend({ticks:sym,subscribe:1});
+  });
+}
+
 function gmToggle(){
   GM.running=!GM.running;
   var btn=document.getElementById('gm-toggle-btn');
@@ -4541,7 +4548,7 @@ function gmToggle(){
     if(!S.connected){notify('!','Connect first!','loss');GM.running=false;return;}
     if(btn){btn.textContent='STOP GMILLI';btn.style.background='var(--re)';btn.style.color='#fff';}
     gmSubscribeAllAssets();
-    setTimeout(gmLoop,2000); // give 2s for prices to come in
+    GM.interval=setTimeout(gmLoop,2000); // give 2s for prices to come in
   } else {
     if(btn){btn.textContent='START GMILLI';btn.style.background='var(--ac)';btn.style.color='var(--bg0)';}
     if(GM.interval)clearTimeout(GM.interval);
@@ -4583,34 +4590,42 @@ function gmLoop(){
   // Need at least some price data on best asset
   var bestPrices=getInd(GM.bestAsset).prices;
   if(bestPrices.length<GM.scanWindow){
-    if(rs6)rs6.textContent='WARMING UP...';
+    if(rs6)rs6.textContent='WARMING UP ('+bestPrices.length+'/'+GM.scanWindow+' ticks)';
     GM.interval=setTimeout(gmLoop,2000);return;
   }
 
   // ── Confidence check on BEST asset ──
   var _prevAsset=GM.asset;
-  GM.asset=GM.bestAsset; // temporarily switch for confidence check
+  GM.asset=GM.bestAsset;
   var conf=gmGetConfidence();
   GM.asset=_prevAsset;
 
-  if(!conf.passes){
-    if(rs6)rs6.textContent='CONF '+Math.max(conf.upPct,conf.dnPct)+'% < '+GM.confThresh+'%';
+  if(GM.confThresh>0&&!conf.passes){
+    if(rs6)rs6.textContent='CONF '+Math.max(conf.upPct,conf.dnPct)+'%/'+GM.confThresh+'% — '+GM.bestAsset;
     GM.interval=setTimeout(gmLoop,2000);return;
   }
 
-  // Use best asset and dynamic barrier for this round
+  // Set asset to best and fetch proposals
   GM.asset=GM.bestAsset;
+  if(rs6)rs6.textContent='SCANNING '+GM.bestAsset+'...';
 
-  // Fire a payout check — fetch proposals at current stake
-  // Once we get both payouts back, gate decides whether to buy
   gmFetchProposals();
-  GM.interval=setTimeout(gmLoop,500);
+  GM.interval=setTimeout(gmLoop,3000); // wait 3s for probe to resolve before next loop
 }
 
 function gmFetchProposals(){
   if(!S.connected)return;
   var entry=S.prices[GM.asset]||0;
-  if(entry<=0)return;
+  if(entry<=0){
+    var rs=document.getElementById('gm-round-status');
+    if(rs)rs.textContent='NO PRICE — check connection';
+    return;
+  }
+  // Don't stack probes — wait for previous probe to resolve
+  if(_gmProbe._waiting){return;}
+  _gmProbe._waiting=true;
+  // Auto-reset probe after 6s if no response
+  setTimeout(function(){_gmProbe._waiting=false;_gmProbe.call=null;_gmProbe.put=null;},6000);
   var stake=gmStake();
 
   // ── Dynamic barrier from scanner (25% of avg move on best asset) ──
@@ -4642,12 +4657,13 @@ function gmFetchProposals(){
 }
 
 // Probe responses come back — check gate, then place or skip
-var _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:''};
+var _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:'',_waiting:false};
 
 function onGMProbe(proposal,pendInfo){
   if(!proposal||!proposal.id){
     var rs=document.getElementById('gm-round-status');
-    if(rs)rs.textContent='PROBE FAIL';
+    if(rs)rs.textContent='PROBE FAIL — retrying...';
+    _gmProbe._waiting=false;_gmProbe.call=null;_gmProbe.put=null;
     return;
   }
   var payout=parseFloat(proposal.payout||0);   // total returned to winner (stake + profit)
@@ -4703,12 +4719,14 @@ function onGMProbe(proposal,pendInfo){
     var skEl=document.getElementById('gm-skipped');if(skEl)skEl.textContent=GM._skipped;
     // Reset probes for next loop
     _gmProbe.call=null;_gmProbe.put=null;
+    _gmProbe._waiting=false;
     return;
   }
 
   // Gate passes — place the actual trades
   gmPlace(_gmProbe.callId,_gmProbe.putId,_gmProbe.callAsk,_gmProbe.putAsk,stake,_gmProbe.entry,_gmProbe.barrier,_gmProbe.call,_gmProbe.put);
   _gmProbe.call=null;_gmProbe.put=null;
+  _gmProbe._waiting=false;
 }
 
 function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay){
@@ -5018,7 +5036,7 @@ function gmReset(){
   GM.pnl=0;GM.rounds=0;GM.won=0;GM.lost=0;
   GM.history=[];GM.activeCids={};GM.pending={};GM.lastRoundTime=0;
   GM.lastCallPay=0;GM.lastPutPay=0;GM.lastCombinedPay=0;GM._skipped=0;
-  _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:''};
+  _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:'',_waiting:false};
   gmUpdateStats();gmRenderHistory();
   var net=document.getElementById('gm-round-net');if(net)net.textContent='$0.00';var skEl2=document.getElementById('gm-skipped');if(skEl2)skEl2.textContent='0';
   var rs=document.getElementById('gm-round-status');if(rs)rs.textContent='IDLE';
