@@ -797,9 +797,9 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         <div style="background:linear-gradient(135deg,rgba(0,229,160,0.1),rgba(59,130,246,0.08));border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:16px;margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
             <div style="font-size:18px;font-weight:800;color:var(--ac)">Gmilli Bot</div>
-            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">Smart Scanner — Dynamic Barrier + Best Asset</div>
+            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">Gmilli — Dynamic Barrier on R_100</div>
           </div>
-          <div style="font-size:11px;color:var(--t2)">Scans Vol 25/50/75/100 every tick. Picks best asset. Sets barrier at 25% of avg move. Gate checks payout before every trade.</div>
+          <div style="font-size:11px;color:var(--t2)">R_100 — Dynamic barrier at 25% of avg move (min ±0.14). Gate checks payout before every trade.</div>
         </div>
         <div class="sr" style="margin-bottom:12px">
           <div class="sc g"><div class="sl">Net P&amp;L</div><div class="sv g" id="gm-pnl">+$0.00</div><div class="ss">Session</div></div>
@@ -812,7 +812,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <!-- Scanner Panel -->
             <div style="background:var(--bg2);border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:14px;margin-bottom:12px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div style="font-size:13px;font-weight:700">📡 Asset Scanner <span style="font-size:10px;color:var(--t3);font-weight:400">— 15-tick window, updates every tick</span></div>
+                <div style="font-size:13px;font-weight:700">📡 Market Scanner <span style="font-size:10px;color:var(--t3);font-weight:400">— R_100 | 15-tick window</span></div>
                 <div style="font-size:10px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--ad);color:var(--ac)" id="gm-entry-display">SCANNING...</div>
               </div>
               <!-- Best asset highlight -->
@@ -925,10 +925,13 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <div class="card" style="margin-bottom:12px">
               <div class="ch"><div class="ct">⚙ Config</div></div>
               <div class="cb">
-                <!-- Asset — auto selected by scanner, manual override available -->
+                <!-- Asset locked to R_100 -->
                 <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Manual Override <span style="color:var(--t3);font-weight:400">(scanner auto-selects)</span></div>
-                  <div class="aswrap"><div class="assel" onclick="toggleDD('gm-dd')"><div><div style="font-size:13px;font-weight:700" id="gm-asset-n">Auto</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="gm-asset-i">Scanner picks best asset</div></div><span style="color:var(--t3);font-size:11px">v</span></div><div class="asdd" id="gm-dd"></div></div>
+                  <div class="il">Asset</div>
+                  <div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:9px 11px;display:flex;align-items:center;justify-content:space-between">
+                    <div><div style="font-size:13px;font-weight:700;color:var(--ac)">R_100</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)">Volatility 100 Index</div></div>
+                    <span style="font-size:10px;padding:2px 8px;background:var(--ad);color:var(--ac);border-radius:4px;font-weight:700">LOCKED</span>
+                  </div>
                 </div>
                 <!-- Budget Per Round -->
                 <div class="ig" style="margin-bottom:11px">
@@ -4135,7 +4138,7 @@ var GM = {
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
   confThresh:65,
   // Scanner state
-  scanAssets:['R_25','R_50','R_75','R_100'],
+  scanAssets:['R_100'],
   scanResults:{},       // asset → {upAvg, dnAvg, diff, barrier, score}
   bestAsset:'R_100',    // chosen by scanner each loop
   bestBarrier:0.12,     // 25% of avg move on best asset
@@ -4143,7 +4146,7 @@ var GM = {
 };
 
 // ── Assets to subscribe when scanner is active ──
-var GM_SCAN_ASSETS=['R_25','R_50','R_75','R_100'];
+var GM_SCAN_ASSETS=['R_100'];
 
 function gmSetActive(el){
   var p=el.parentElement;
@@ -4327,7 +4330,7 @@ function gmRenderScanner(){
   var bestEl=document.getElementById('gm-best-asset');
   var bestBarEl=document.getElementById('gm-best-barrier');
   var r=GM.scanResults[GM.bestAsset];
-  if(bestEl)bestEl.textContent=GM.bestAsset;
+  if(bestEl)bestEl.textContent='R_100';
   if(bestBarEl&&r)bestBarEl.textContent='±'+r.barrier.toFixed(2)+' ('+r.dominantDir+' dominant)';
 }
 
