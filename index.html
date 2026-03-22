@@ -797,9 +797,9 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         <div style="background:linear-gradient(135deg,rgba(0,229,160,0.1),rgba(59,130,246,0.08));border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:16px;margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
             <div style="font-size:18px;font-weight:800;color:var(--ac)">Gmilli Bot</div>
-            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">HIGHER + LOWER — Zero Gap Strategy</div>
+            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">Smart Scanner — Dynamic Barrier + Best Asset</div>
           </div>
-          <div style="font-size:11px;color:var(--t2)">Barrier set at entry spot — one side ALWAYS wins. Only trades when combined payout > 2× stake.</div>
+          <div style="font-size:11px;color:var(--t2)">Scans Vol 25/50/75/100 every tick. Picks best asset. Sets barrier at 25% of avg move. Gate checks payout before every trade.</div>
         </div>
         <div class="sr" style="margin-bottom:12px">
           <div class="sc g"><div class="sl">Net P&amp;L</div><div class="sv g" id="gm-pnl">+$0.00</div><div class="ss">Session</div></div>
@@ -809,10 +809,31 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         </div>
         <div style="display:grid;grid-template-columns:1fr 320px;gap:12px">
           <div>
+            <!-- Scanner Panel -->
+            <div style="background:var(--bg2);border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:14px;margin-bottom:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:13px;font-weight:700">📡 Asset Scanner <span style="font-size:10px;color:var(--t3);font-weight:400">— 15-tick window, updates every tick</span></div>
+                <div style="font-size:10px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--ad);color:var(--ac)" id="gm-entry-display">SCANNING...</div>
+              </div>
+              <!-- Best asset highlight -->
+              <div style="background:var(--bg3);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:10px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+                <div>
+                  <div style="font-size:10px;color:var(--t3);margin-bottom:3px">BEST ASSET</div>
+                  <div style="font-size:18px;font-weight:800;font-family:var(--mo);color:var(--ac)" id="gm-best-asset">R_100</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:10px;color:var(--t3);margin-bottom:3px">DYNAMIC BARRIER</div>
+                  <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--go)" id="gm-best-barrier">±0.12</div>
+                </div>
+              </div>
+              <!-- Scanner results list -->
+              <div id="gm-scanner-list"></div>
+            </div>
+
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div style="font-size:13px;font-weight:700">Live Entry Preview</div>
-                <div style="font-size:11px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--ac)" id="gm-entry-display">--</div>
+                <div style="font-size:13px;font-weight:700">Live Barrier Preview</div>
+                <div style="font-size:11px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--ac)" id="gm-entry-display2">--</div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                 <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:10px;text-align:center">
@@ -904,10 +925,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <div class="card" style="margin-bottom:12px">
               <div class="ch"><div class="ct">⚙ Config</div></div>
               <div class="cb">
-                <!-- Asset -->
+                <!-- Asset — auto selected by scanner, manual override available -->
                 <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Asset</div>
-                  <div class="aswrap"><div class="assel" onclick="toggleDD('gm-dd')"><div><div style="font-size:13px;font-weight:700" id="gm-asset-n">R_100</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="gm-asset-i">Volatility 100 Index</div></div><span style="color:var(--t3);font-size:11px">v</span></div><div class="asdd" id="gm-dd"></div></div>
+                  <div class="il">Manual Override <span style="color:var(--t3);font-weight:400">(scanner auto-selects)</span></div>
+                  <div class="aswrap"><div class="assel" onclick="toggleDD('gm-dd')"><div><div style="font-size:13px;font-weight:700" id="gm-asset-n">Auto</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="gm-asset-i">Scanner picks best asset</div></div><span style="color:var(--t3);font-size:11px">v</span></div><div class="asdd" id="gm-dd"></div></div>
                 </div>
                 <!-- Budget Per Round -->
                 <div class="ig" style="margin-bottom:11px">
@@ -1527,7 +1548,7 @@ function onTick(tick) {
   if(sym===HB.asset){updatePrediction();updateZoneDisplay();}
   if(sym===GM.asset){
     var _gmPg=document.getElementById('page-gmilli');
-    if(_gmPg&&_gmPg.classList.contains('active')){gmDrawChart();gmCalc();}
+    if(_gmPg&&_gmPg.classList.contains('active')){gmDrawChart();gmCalc();gmScan();}
   }
 }
 function dp(q){return q.toFixed(q>100?2:4);}
@@ -4112,8 +4133,17 @@ var GM = {
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
-  confThresh:65  // Min confidence threshold — matches default 65% button
+  confThresh:65,
+  // Scanner state
+  scanAssets:['R_25','R_50','R_75','R_100'],
+  scanResults:{},       // asset → {upAvg, dnAvg, diff, barrier, score}
+  bestAsset:'R_100',    // chosen by scanner each loop
+  bestBarrier:0.12,     // 25% of avg move on best asset
+  scanWindow:15         // ticks to analyse (matches his 15-tick window)
 };
+
+// ── Assets to subscribe when scanner is active ──
+var GM_SCAN_ASSETS=['R_25','R_50','R_75','R_100'];
 
 function gmSetActive(el){
   var p=el.parentElement;
@@ -4191,6 +4221,98 @@ function gmStake(){
   return parseFloat((budget/2).toFixed(2));
 }
 
+// ════════════════════════════════════════════════════════
+// GM SCANNER — finds best asset + dynamic barrier every loop
+// Logic: scan last 15 ticks on each asset
+//   upAvg   = avg size of up moves
+//   dnAvg   = avg size of down moves  
+//   barrier = 25% of the larger avg move
+//   score   = max(upAvg,dnAvg) — bigger movement = better
+//   best    = asset with highest score
+// ════════════════════════════════════════════════════════
+function gmScan(){
+  var results={};
+  var best=null,bestScore=0;
+
+  GM_SCAN_ASSETS.forEach(function(sym){
+    var prices=getInd(sym).prices;
+    var n=prices.length;
+    var look=Math.min(GM.scanWindow,n-1);
+    if(look<5){results[sym]={score:0,upAvg:0,dnAvg:0,barrier:0.12,ready:false};return;}
+
+    var upMoves=[],dnMoves=[];
+    for(var i=n-look;i<n;i++){
+      var d=prices[i]-prices[i-1];
+      if(d>0)upMoves.push(d);
+      else if(d<0)dnMoves.push(Math.abs(d));
+    }
+
+    var upAvg=upMoves.length?upMoves.reduce(function(s,v){return s+v;},0)/upMoves.length:0;
+    var dnAvg=dnMoves.length?dnMoves.reduce(function(s,v){return s+v;},0)/dnMoves.length:0;
+    var maxAvg=Math.max(upAvg,dnAvg);
+    // Barrier = 25% of avg move, minimum 0.01
+    var barrier=maxAvg>0?Math.max(0.01,parseFloat((maxAvg*0.25).toFixed(2))):0.12;
+    var diff=parseFloat((upAvg-dnAvg).toFixed(4));
+    var dominantDir=upAvg>=dnAvg?'UP':'DN';
+    var score=maxAvg; // bigger moves = better
+
+    results[sym]={
+      score:score,upAvg:parseFloat(upAvg.toFixed(4)),
+      dnAvg:parseFloat(dnAvg.toFixed(4)),
+      diff:diff,barrier:barrier,
+      dominantDir:dominantDir,ready:true,
+      upCount:upMoves.length,dnCount:dnMoves.length
+    };
+
+    if(score>bestScore){bestScore=score;best=sym;}
+  });
+
+  GM.scanResults=results;
+  if(best){
+    GM.bestAsset=best;
+    GM.bestBarrier=results[best].barrier;
+  }
+
+  // Update scanner UI
+  gmRenderScanner();
+  return results;
+}
+
+function gmRenderScanner(){
+  var el=document.getElementById('gm-scanner-list');
+  if(!el)return;
+  var assets=GM_SCAN_ASSETS.slice().sort(function(a,b){
+    return (GM.scanResults[b]?GM.scanResults[b].score:0)-(GM.scanResults[a]?GM.scanResults[a].score:0);
+  });
+  el.innerHTML=assets.map(function(sym,idx){
+    var r=GM.scanResults[sym];
+    if(!r||!r.ready)return '<div style="padding:6px 0;border-bottom:1px solid var(--bo);font-size:11px;color:var(--t3)">'+sym+' — warming up...</div>';
+    var isBest=sym===GM.bestAsset;
+    var curP=S.prices[sym]||0;
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--bo);display:flex;align-items:center;gap:8px;font-size:11px">'
+      +'<div style="width:6px;height:6px;border-radius:50%;background:'+(isBest?'var(--ac)':'var(--bg4)')+';flex-shrink:0"></div>'
+      +'<div style="font-weight:700;color:'+(isBest?'var(--ac)':'var(--t2)')+';font-family:var(--mo);width:50px">'+sym+'</div>'
+      +'<div style="flex:1">'
+        +'<div style="display:flex;gap:6px;font-family:var(--mo);font-size:10px">'
+          +'<span style="color:var(--ac)">↑'+r.upAvg.toFixed(3)+'</span>'
+          +'<span style="color:var(--re)">↓'+r.dnAvg.toFixed(3)+'</span>'
+          +'<span style="color:var(--go)">barrier:±'+r.barrier.toFixed(2)+'</span>'
+        +'</div>'
+        +'<div style="font-size:9px;color:var(--t3);margin-top:2px">'+r.dominantDir+' dominant | score:'+r.score.toFixed(3)+'</div>'
+      +'</div>'
+      +(isBest?'<span style="font-size:9px;font-weight:700;padding:1px 6px;background:var(--ad);color:var(--ac);border-radius:4px">BEST</span>':'')
+      +'</div>';
+  }).join('');
+
+  // Update best asset display
+  var bestEl=document.getElementById('gm-best-asset');
+  var bestBarEl=document.getElementById('gm-best-barrier');
+  var r=GM.scanResults[GM.bestAsset];
+  if(bestEl)bestEl.textContent=GM.bestAsset;
+  if(bestBarEl&&r)bestBarEl.textContent='±'+r.barrier.toFixed(2)+' ('+r.dominantDir+' dominant)';
+}
+
+// ── Gate: combined payout must exceed 2× total stake ──
 // ── Gate: combined payout must exceed 2× total stake ──
 function gmGatePasses(callPay, putPay, stake){
   // Each individual payout must exceed the total risk (stake x2)
@@ -4400,7 +4522,8 @@ function gmToggle(){
   if(GM.running){
     if(!S.connected){notify('!','Connect first!','loss');GM.running=false;return;}
     if(btn){btn.textContent='STOP GMILLI';btn.style.background='var(--re)';btn.style.color='#fff';}
-    gmLoop();
+    gmSubscribeAllAssets();
+    setTimeout(gmLoop,2000); // give 2s for prices to come in
   } else {
     if(btn){btn.textContent='START GMILLI';btn.style.background='var(--ac)';btn.style.color='var(--bg0)';}
     if(GM.interval)clearTimeout(GM.interval);
@@ -4435,13 +4558,30 @@ function gmLoop(){
     GM.interval=setTimeout(gmLoop,1000);return;
   }
 
-  // ── 60/40 Confidence check ──
-  var conf=gmGetConfidence();
-  if(!conf.passes){
-    var rs5=document.getElementById('gm-round-status');
-    if(rs5)rs5.textContent='CONF '+Math.max(conf.upPct,conf.dnPct)+'% < '+GM.confThresh+'%';
+  // ── Run scanner — find best asset + dynamic barrier ──
+  var scanRes=gmScan();
+  var rs6=document.getElementById('gm-round-status');
+
+  // Need at least some price data on best asset
+  var bestPrices=getInd(GM.bestAsset).prices;
+  if(bestPrices.length<GM.scanWindow){
+    if(rs6)rs6.textContent='WARMING UP...';
     GM.interval=setTimeout(gmLoop,2000);return;
   }
+
+  // ── Confidence check on BEST asset ──
+  var _prevAsset=GM.asset;
+  GM.asset=GM.bestAsset; // temporarily switch for confidence check
+  var conf=gmGetConfidence();
+  GM.asset=_prevAsset;
+
+  if(!conf.passes){
+    if(rs6)rs6.textContent='CONF '+Math.max(conf.upPct,conf.dnPct)+'% < '+GM.confThresh+'%';
+    GM.interval=setTimeout(gmLoop,2000);return;
+  }
+
+  // Use best asset and dynamic barrier for this round
+  GM.asset=GM.bestAsset;
 
   // Fire a payout check — fetch proposals at current stake
   // Once we get both payouts back, gate decides whether to buy
@@ -4454,24 +4594,23 @@ function gmFetchProposals(){
   var entry=S.prices[GM.asset]||0;
   if(entry<=0)return;
   var stake=gmStake();
-  var offset=Math.max(0.01,parseFloat(document.getElementById('gm-offset').value)||0.12);
 
-  // HIGHER barrier = entry + offset (price must close ABOVE this)
-  // LOWER barrier  = entry - offset (price must close BELOW this)
-  // Gap zone = entry-offset to entry+offset (both lose if price stays inside)
-  // On R_100 at 30s, price almost always moves more than 0.12
+  // ── Dynamic barrier from scanner (25% of avg move on best asset) ──
+  var scanR=GM.scanResults[GM.asset];
+  var offset=scanR&&scanR.barrier>0?scanR.barrier:Math.max(0.01,parseFloat(document.getElementById('gm-offset').value)||0.12);
+
   var dp=entry>100?2:5;
-  var callBarrier='+'+offset.toFixed(2);   // relative offset format for Deriv API
+  var callBarrier='+'+offset.toFixed(2);
   var putBarrier ='-'+offset.toFixed(2);
 
   var rs=document.getElementById('gm-round-status');
-  if(rs)rs.textContent='CHECKING...';
+  if(rs)rs.textContent='CHECKING '+GM.asset+'...';
 
   // Update barrier display labels
   var cbLbl=document.getElementById('gm-call-barrier-lbl');
   var pbLbl=document.getElementById('gm-put-barrier-lbl');
-  if(cbLbl)cbLbl.textContent='barrier: '+parseFloat((entry+offset).toFixed(dp))+' (entry+'+offset.toFixed(2)+')';
-  if(pbLbl)pbLbl.textContent='barrier: '+parseFloat((entry-offset).toFixed(dp))+' (entry-'+offset.toFixed(2)+')';
+  if(cbLbl)cbLbl.textContent='barrier: '+parseFloat((entry+offset).toFixed(dp))+' (+'+offset.toFixed(2)+')';
+  if(pbLbl)pbLbl.textContent='barrier: '+parseFloat((entry-offset).toFixed(dp))+' (-'+offset.toFixed(2)+')';
 
   var p1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
     currency:S.currency,duration:GM.dur,duration_unit:'s',
@@ -4988,6 +5127,7 @@ function gmDrawChart(){
     var lowerEl=document.getElementById('gm-lower-level');
     var gapEl=document.getElementById('gm-gap-display');
     if(entryEl)entryEl.textContent='Entry: '+curP.toFixed(dp);
+    var entryEl2=document.getElementById('gm-entry-display2');if(entryEl2)entryEl2.textContent='Entry: '+curP.toFixed(dp);
     if(higherEl)higherEl.textContent=hBar;
     if(lowerEl)lowerEl.textContent=lBar;
     if(gapEl)gapEl.textContent='Gap zone: '+lBar+' → '+hBar+' (±'+offset.toFixed(2)+')';
