@@ -1624,9 +1624,20 @@ function onBuy(buy, reqId) {
   if(p._vb){t._vb=true;t._vbId=p._vbId;t._vbSide=p._vbSide;t._vbIdx=p._vbIdx;}
   if(p.isGM){
     t.isGM=true;t.gmRound=p.gmRound;t.gmSide=p.gmSide;
+    t.gmSideLabel=p.gmSide==='call'?'HIGHER':'LOWER';
+    // Store barrier price on the trade for journal display
+    var _gmRnd=GM.pending[p.gmRound];
+    if(_gmRnd){
+      var _off=_gmRnd.offset||0.14;
+      t.barrier=p.gmSide==='call'?
+        parseFloat((t.price+_off).toFixed(t.price>100?2:5)):
+        parseFloat((t.price-_off).toFixed(t.price>100?2:5));
+    }
     onGMBuy(buy.contract_id+'',p.gmSide,p.gmRound);
     // Keep GM trades in S.trades for settlement routing
     // They are filtered from display in renderTrades/renderActive
+    // but DO appear in Journal with GM label
+    localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
   }
   wsSend({proposal_open_contract:1,contract_id:buy.contract_id,subscribe:1});
   var _cid=buy.contract_id, _durMs=t.durMs;
@@ -3350,10 +3361,13 @@ function rendHist(f){
     if(t.isHB&&t.isHBSummary&&t.hbRound!==null){
       if(!hbRoundMap[t.hbRound])hbRoundMap[t.hbRound]=[];
       hbRoundMap[t.hbRound].push(t);
+    } else if(!t.isHB&&t.isGM){
+      // Include GM trades in journal with GM badge
+      individuals.push(t);
     } else if(!t.isHB&&!t.isGM){
       individuals.push(t);
     }
-    // Skip raw HB and GM individual contracts
+    // Skip raw HB contracts without summary
   });
   var html='';
   Object.keys(hbRoundMap).sort(function(a,b){return b-a;}).forEach(function(rid){
@@ -4087,6 +4101,19 @@ function initCharts(){
 window.addEventListener('load',function(){
   S.botMultiplier=100; S.maxBotTrades=1;
   buildAllDDs(); buildTicker(); initCharts(); gmCalc(); setTimeout(gmInitChart,500);
+  // Restore GM history from localStorage
+  try{
+    var _gh=localStorage.getItem('kevoai_gm_history');
+    if(_gh){var _ghd=JSON.parse(_gh);if(Array.isArray(_ghd)&&_ghd.length){
+      GM.history=_ghd;
+      // Restore session stats from history
+      GM.rounds=_ghd.length;
+      GM.won=_ghd.filter(function(h){return h.win;}).length;
+      GM.lost=_ghd.filter(function(h){return !h.win;}).length;
+      GM.pnl=parseFloat(_ghd.reduce(function(s,h){return s+h.total;},0).toFixed(2));
+      gmUpdateStats();gmRenderHistory();
+    }}
+  }catch(e){}
   buildDigitGrid(); buildMultInputs(); calcWWDaily(); initWWChart();
   updateStats(); renderTrades();
   updDG();
@@ -4612,6 +4639,28 @@ function gmLoop(){
   GM.asset=GM.bestAsset;
   if(rs6)rs6.textContent='SCANNING '+GM.bestAsset+'...';
 
+  // ── ANTI-FLAT FILTER ──────────────────────────────────────────
+  // The only losing condition is price staying in the gap for full duration
+  // This happens when market is momentarily flat/consolidating
+  // Check that last 3 ticks each moved > 0.04 = price is actually moving
+  var _antiFlat=true;
+  var _prices=getInd(GM.asset).prices;
+  var _pn=_prices.length;
+  if(_pn>=4){
+    var _mv1=Math.abs(_prices[_pn-1]-_prices[_pn-2]);
+    var _mv2=Math.abs(_prices[_pn-2]-_prices[_pn-3]);
+    var _mv3=Math.abs(_prices[_pn-3]-_prices[_pn-4]);
+    var _minMove=0.03; // minimum movement per tick to confirm non-flat market
+    _antiFlat=(_mv1>=_minMove||_mv2>=_minMove||_mv3>=_minMove);
+    if(!_antiFlat){
+      var rs7=document.getElementById('gm-round-status');
+      if(rs7)rs7.textContent='FLAT MARKET — waiting';
+      console.log('[GM ANTI-FLAT] Skipping: mv1='+_mv1.toFixed(3)+' mv2='+_mv2.toFixed(3)+' mv3='+_mv3.toFixed(3));
+      GM.interval=setTimeout(gmLoop,1000);return;
+    }
+  }
+  // ── END ANTI-FLAT FILTER ──────────────────────────────────────
+
   gmFetchProposals();
   GM.interval=setTimeout(gmLoop,3000); // wait 3s for probe to resolve before next loop
 }
@@ -4981,6 +5030,9 @@ function gmSettle(rid){
   _gmActiveBarrier={active:false,higher:0,lower:0};
   gmDrawChart();
   gmUpdateSignalBadge([],0);
+  // Save GM trades to localStorage so journal persists across refreshes
+  localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
+  localStorage.setItem('kevoai_gm_history',JSON.stringify(GM.history.slice(0,200)));
   updateStats();renderTrades();renderActive();
 }
 
