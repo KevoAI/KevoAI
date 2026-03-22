@@ -4238,8 +4238,9 @@ function gmScan(){
     var prices=getInd(sym).prices;
     var n=prices.length;
     var look=Math.min(GM.scanWindow,n-1);
-    if(look<5){results[sym]={score:0,upAvg:0,dnAvg:0,barrier:0.12,ready:false};return;}
+    if(look<5){results[sym]={score:0,upAvg:0,dnAvg:0,upPct:0,dnPct:0,barrier:0.12,barrierPct:0,ready:false};return;}
 
+    var curPrice=prices[n-1]||1;
     var upMoves=[],dnMoves=[];
     for(var i=n-look;i<n;i++){
       var d=prices[i]-prices[i-1];
@@ -4250,18 +4251,34 @@ function gmScan(){
     var upAvg=upMoves.length?upMoves.reduce(function(s,v){return s+v;},0)/upMoves.length:0;
     var dnAvg=dnMoves.length?dnMoves.reduce(function(s,v){return s+v;},0)/dnMoves.length:0;
     var maxAvg=Math.max(upAvg,dnAvg);
-    // Barrier = 25% of avg move, minimum 0.01
+
+    // ── Normalise by price so all assets are comparable ──
+    // upPct/dnPct = move size as % of current price
+    var upPct=curPrice>0?upAvg/curPrice*100:0;
+    var dnPct=curPrice>0?dnAvg/curPrice*100:0;
+    var maxPct=Math.max(upPct,dnPct);
+
+    // Barrier = 25% of avg move in absolute terms (for API)
+    // But SCORE uses % so assets are compared fairly
     var barrier=maxAvg>0?Math.max(0.01,parseFloat((maxAvg*0.25).toFixed(2))):0.12;
+    var barrierPct=maxPct*0.25; // barrier as % of price
+
     var diff=parseFloat((upAvg-dnAvg).toFixed(4));
     var dominantDir=upAvg>=dnAvg?'UP':'DN';
-    var score=maxAvg; // bigger moves = better
+
+    // ── Score = normalised % move — fair comparison across all assets ──
+    var score=maxPct;
 
     results[sym]={
-      score:score,upAvg:parseFloat(upAvg.toFixed(4)),
+      score:score,
+      upAvg:parseFloat(upAvg.toFixed(4)),
       dnAvg:parseFloat(dnAvg.toFixed(4)),
-      diff:diff,barrier:barrier,
+      upPct:parseFloat(upPct.toFixed(4)),
+      dnPct:parseFloat(dnPct.toFixed(4)),
+      diff:diff,barrier:barrier,barrierPct:parseFloat(barrierPct.toFixed(4)),
       dominantDir:dominantDir,ready:true,
-      upCount:upMoves.length,dnCount:dnMoves.length
+      upCount:upMoves.length,dnCount:dnMoves.length,
+      curPrice:parseFloat(curPrice.toFixed(curPrice>100?2:5))
     };
 
     if(score>bestScore){bestScore=score;best=sym;}
@@ -4293,12 +4310,14 @@ function gmRenderScanner(){
       +'<div style="width:6px;height:6px;border-radius:50%;background:'+(isBest?'var(--ac)':'var(--bg4)')+';flex-shrink:0"></div>'
       +'<div style="font-weight:700;color:'+(isBest?'var(--ac)':'var(--t2)')+';font-family:var(--mo);width:50px">'+sym+'</div>'
       +'<div style="flex:1">'
-        +'<div style="display:flex;gap:6px;font-family:var(--mo);font-size:10px">'
-          +'<span style="color:var(--ac)">↑'+r.upAvg.toFixed(3)+'</span>'
-          +'<span style="color:var(--re)">↓'+r.dnAvg.toFixed(3)+'</span>'
-          +'<span style="color:var(--go)">barrier:±'+r.barrier.toFixed(2)+'</span>'
+        +'<div style="display:flex;gap:6px;font-family:var(--mo);font-size:10px;flex-wrap:wrap">'
+          +'<span style="color:var(--ac)">↑'+r.upAvg.toFixed(3)+' ('+r.upPct.toFixed(3)+'%)</span>'
+          +'<span style="color:var(--re)">↓'+r.dnAvg.toFixed(3)+' ('+r.dnPct.toFixed(3)+'%)</span>'
         +'</div>'
-        +'<div style="font-size:9px;color:var(--t3);margin-top:2px">'+r.dominantDir+' dominant | score:'+r.score.toFixed(3)+'</div>'
+        +'<div style="display:flex;gap:6px;font-family:var(--mo);font-size:10px;margin-top:2px">'
+          +'<span style="color:var(--go)">barrier:±'+r.barrier.toFixed(2)+' ('+r.barrierPct.toFixed(3)+'% of price)</span>'
+        +'</div>'
+        +'<div style="font-size:9px;color:var(--t3);margin-top:2px">'+r.dominantDir+' dominant | score:'+r.score.toFixed(4)+'%</div>'
       +'</div>'
       +(isBest?'<span style="font-size:9px;font-weight:700;padding:1px 6px;background:var(--ad);color:var(--ac);border-radius:4px">BEST</span>':'')
       +'</div>';
@@ -4312,7 +4331,6 @@ function gmRenderScanner(){
   if(bestBarEl&&r)bestBarEl.textContent='±'+r.barrier.toFixed(2)+' ('+r.dominantDir+' dominant)';
 }
 
-// ── Gate: combined payout must exceed 2× total stake ──
 // ── Gate: combined payout must exceed 2× total stake ──
 function gmGatePasses(callPay, putPay, stake){
   // Each individual payout must exceed the total risk (stake x2)
