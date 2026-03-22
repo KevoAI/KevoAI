@@ -909,15 +909,15 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div class="il">Asset</div>
                   <div class="aswrap"><div class="assel" onclick="toggleDD('gm-dd')"><div><div style="font-size:13px;font-weight:700" id="gm-asset-n">R_100</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="gm-asset-i">Volatility 100 Index</div></div><span style="color:var(--t3);font-size:11px">v</span></div><div class="asdd" id="gm-dd"></div></div>
                 </div>
-                <!-- Stake each side -->
+                <!-- Budget Per Round -->
                 <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Stake Each Side ($)</div>
+                  <div class="il">Budget Per Round ($)</div>
                   <div class="ir">
-                    <div class="ia" onclick="var e=document.getElementById('gm-stake');e.value=Math.max(0.35,(parseFloat(e.value)-0.35)).toFixed(2);gmCalc()">-</div>
-                    <input type="number" class="iif" id="gm-stake" value="1.50" min="0.35" step="0.35" oninput="gmCalc()">
-                    <div class="ia" onclick="var e=document.getElementById('gm-stake');e.value=(parseFloat(e.value)+0.35).toFixed(2);gmCalc()">+</div>
+                    <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=Math.max(0.70,(parseFloat(e.value)-0.70)).toFixed(2);gmCalc()">-</div>
+                    <input type="number" class="iif" id="gm-budget" value="3.00" min="0.70" step="0.70" oninput="gmCalc()">
+                    <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.70).toFixed(2);gmCalc()">+</div>
                   </div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Total risk per round = stake × 2</div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Split equally — $<span id="gm-stake-display">1.50</span> each side</div>
                 </div>
                 <!-- Barrier Offset -->
                 <div class="ig" style="margin-bottom:11px">
@@ -1679,11 +1679,23 @@ function onContract(c) {
   if(isNaN(profit)) profit=0;
   if(profit===0){
     var sp=parseFloat(c.sell_price||c.sell_spot||0);
-    // For GM trades use t.stake (solved stake) not buy_price (proposal ask)
-    // buy_price reflects original proposal amount, not the solved stake amount
     var bp=t.isGM?parseFloat(t.stake||0):parseFloat(c.buy_price||t.stake||0);
-    if(sp===0&&bp>0) profit=-bp;
-    else if(sp>0&&sp<bp) profit=sp-bp;
+    if(sp>0&&bp>0){
+      // sell_price > buy_price = win, sell_price < buy_price = loss
+      profit=parseFloat((sp-bp).toFixed(2));
+    } else if(sp===0&&bp>0){
+      // No sell price available
+      // For GM: check exit price vs barrier to determine win/loss
+      if(t.isGM&&exitPrice&&t.price){
+        var isHigher=t.dir==='HIGHER'||t.direction==='HIGHER';
+        var barrierOffset=t.stake>0?0.12:0.12; // fallback
+        if(isHigher&&exitPrice>parseFloat(t.price)+barrierOffset) profit=parseFloat((t.stake*0.97).toFixed(2)); // approx win
+        else if(!isHigher&&exitPrice<parseFloat(t.price)-barrierOffset) profit=parseFloat((t.stake*0.97).toFixed(2));
+        else profit=-bp;
+      } else {
+        profit=-bp;
+      }
+    }
     if(profit===0&&t.stake) profit=-t.stake;
   }
 
@@ -1720,7 +1732,7 @@ function onContract(c) {
     S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
     return;
   }
-  if(t.isGM&&t.gmRound){onGMResult(t.gmRound,t.gmSide,profit);return;}
+  if(t.isGM&&t.gmRound){onGMResult(t.gmRound,t.gmSide,profit,exitPrice);return;}
   if(t.isHB&&t.hbRound!==null){
     onHBResult(t.hbRound,t.hbIdx,profit,t.direction,t.exitPrice);
     localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
@@ -4173,6 +4185,12 @@ function gmGetConfidence(){
   return{upPct:upPct,dnPct:dnPct,bias:bias,passes:passes};
 }
 
+// ── Helper: get stake per side from budget ──
+function gmStake(){
+  var budget=Math.max(0.70,parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value)||3.00);
+  return parseFloat((budget/2).toFixed(2));
+}
+
 // ── Gate: combined payout must exceed 2× total stake ──
 function gmGatePasses(callPay, putPay, stake){
   // Each individual payout must exceed the total risk (stake x2)
@@ -4306,7 +4324,7 @@ function gmSnapshot(entry, offset, stake, callPay, putPay){
 function gmExportData(){
   if(!GM.history.length){notify('!','No trade data to export','loss');return;}
   var cols=[
-    'rid','date','time','hour','minute','dayOfWeek','session',
+    'rid','date','time','hour','minute','dayOfWeek','session','settleTime',
     'asset','duration','offset','stake',
     'entry','higherBarrier','lowerBarrier',
     'atr5','atr14','atr20','atrRatio','atrLabel',
@@ -4315,7 +4333,8 @@ function gmExportData(){
     'momentum','momentumStrength','trend','slope',
     'bbWidth','bbSqueeze','lastTickMove',
     'callPay','putPay','combinedPay','higherMult','lowerMult','expectedNet','payoutEdge',
-    'exitPrice','priceMove','moveDirection','brokeBarrier','gapLoss',
+    'exitPrice','higherExitPrice','lowerExitPrice',
+    'priceMove','moveDirection','moveVsOffset','brokeBarrier','gapLoss',
     'winnerSide','winnerPnl','loserPnl','netPnl','result'
   ];
   var rows=[cols.join(',')];
@@ -4342,7 +4361,7 @@ function gmExportData(){
 
 
 function gmCalc(){
-  var stake=parseFloat(document.getElementById('gm-stake').value)||1.50;
+  var stake=gmStake();
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
   var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
@@ -4355,8 +4374,13 @@ function gmCalc(){
   var bestProfit=combined>0?parseFloat((Math.max(cPay,pPay)-totalRisk).toFixed(2)):null;
   var worstProfit=combined>0?parseFloat((Math.min(cPay,pPay)-totalRisk).toFixed(2)):null;
   var el=document.getElementById('gm-calc-display');
+  var budget=stake*2;
+  // Update stake display
+  var stakeDisp=document.getElementById('gm-stake-display');
+  if(stakeDisp)stakeDisp.textContent=stake.toFixed(2);
   if(el)el.textContent=
-    'Stake each side:  $'+stake.toFixed(2)+'\n'
+    'Budget per round: $'+budget.toFixed(2)+'\n'
+   +'Each side stake:  $'+stake.toFixed(2)+'\n'
    +'Barrier offset:   ±'+offset.toFixed(2)+'\n'
    +'Total risk:       $'+totalRisk.toFixed(2)+'\n\n'
    +'HIGHER payout:    $'+(cPay?cPay.toFixed(2):'--')+'\n'
@@ -4429,7 +4453,7 @@ function gmFetchProposals(){
   if(!S.connected)return;
   var entry=S.prices[GM.asset]||0;
   if(entry<=0)return;
-  var stake=Math.max(0.35,parseFloat(document.getElementById('gm-stake').value)||1.50);
+  var stake=gmStake();
   var offset=Math.max(0.01,parseFloat(document.getElementById('gm-offset').value)||0.12);
 
   // HIGHER barrier = entry + offset (price must close ABOVE this)
@@ -4538,6 +4562,7 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   GM.lastRoundTime=Date.now();
 
   var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+  var stake=gmStake();
   // ── Capture full market snapshot silently at entry ──
   var _snap=gmSnapshot(entry,offset,stake,callPay,putPay);
   GM.pending[rid]={
@@ -4601,11 +4626,16 @@ function onGMBuy(cid,side,rid){
   console.log('[GM BUY CONFIRMED] cid:'+cid+' side:'+side+' rid:'+rid);
 }
 
-function onGMResult(rid,side,profit){
+function onGMResult(rid,side,profit,exitPrice){
   var round=GM.pending[rid];
   if(!round)return;
   var pnl=parseFloat(profit||0);
-  round.results[side]={profit:pnl,win:pnl>0};
+  // Store real exit price from Deriv on the side that just settled
+  if(exitPrice&&exitPrice>0){
+    if(!round._exitPrices)round._exitPrices={};
+    round._exitPrices[side]=exitPrice;
+  }
+  round.results[side]={profit:pnl,win:pnl>0,exitPrice:exitPrice||0};
   round.settled=(round.settled||0)+1;
 
   // Remove from active CIDs
@@ -4664,13 +4694,43 @@ function gmSettle(rid){
 
   // ── Enrich snapshot with exit data ──
   var snap=r.snap||{};
-  var exitPrice=S.prices[r.asset]||0;
+  // Use real Deriv exit prices — winner's exit is most reliable
+  var _cExit=(r.results.call&&r.results.call.exitPrice)||0;
+  var _pExit=(r.results.put&&r.results.put.exitPrice)||0;
+  var exitPrice=_cExit>0?_cExit:(_pExit>0?_pExit:(S.prices[r.asset]||0));
   var priceMove=exitPrice>0&&r.entry>0?parseFloat((exitPrice-r.entry).toFixed(exitPrice>100?2:5)):0;
   var moveDir=priceMove>0?'UP':priceMove<0?'DN':'FLAT';
   var brokeHigher=exitPrice>0&&r.snap?exitPrice>r.snap.higherBarrier:false;
   var brokeLower=exitPrice>0&&r.snap?exitPrice<r.snap.lowerBarrier:false;
   var brokeBarrier=brokeHigher||brokeLower;
-  var gapLoss=!callWon&&!putWon;
+  // True gap loss: both sides lost AND exit price confirms price stayed in gap
+  // Fake gap loss: profit=0 data issue but price actually breached barrier
+  var _trulyBothLost=!callWon&&!putWon;
+  var _exitConfirmed=exitPrice>0&&r.entry>0;
+  var _priceStayedInGap=_exitConfirmed?(exitPrice<=(r.snap&&r.snap.higherBarrier||r.entry+0.12)&&exitPrice>=(r.snap&&r.snap.lowerBarrier||r.entry-0.12)):true;
+  var gapLoss=_trulyBothLost&&(!_exitConfirmed||_priceStayedInGap);
+  // If price clearly broke a barrier but we got no winner — data issue, treat as win
+  // Re-check: if exit > higherBarrier, call should have won
+  if(_trulyBothLost&&_exitConfirmed&&!_priceStayedInGap){
+    var _hBar=r.snap&&r.snap.higherBarrier||r.entry+0.12;
+    var _lBar=r.snap&&r.snap.lowerBarrier||r.entry-0.12;
+    if(exitPrice>_hBar){
+      // HIGHER should have won — recover it
+      console.warn('[GM FIX] Round '+rid+' HIGHER should have won. exit:'+exitPrice+' barrier:'+_hBar);
+      cPnl=parseFloat((r.callPay-stake).toFixed(2)); // net profit = payout - stake
+      pPnl=-stake;
+      callWon=true;
+    } else if(exitPrice<_lBar){
+      // LOWER should have won
+      console.warn('[GM FIX] Round '+rid+' LOWER should have won. exit:'+exitPrice+' barrier:'+_lBar);
+      pPnl=parseFloat((r.putPay-stake).toFixed(2));
+      cPnl=-stake;
+      putWon=true;
+    }
+    var total=parseFloat((cPnl+pPnl).toFixed(2));
+    var isWin=total>0;
+    gapLoss=false;
+  }
   // Merge exit data into snap
   snap.exitPrice=parseFloat((exitPrice||(r.entry||0)).toFixed(exitPrice>100?2:5));
   snap.priceMove=priceMove;
@@ -4682,6 +4742,13 @@ function gmSettle(rid){
   snap.loserPnl=parseFloat(Math.min(cPnl,pPnl).toFixed(2));
   snap.netPnl=total;
   snap.result=isWin?'WIN':gapLoss?'GAP_LOSS':'LOSS';
+  // Per-side exit prices
+  snap.higherExitPrice=(r.results.call&&r.results.call.exitPrice)||0;
+  snap.lowerExitPrice=(r.results.put&&r.results.put.exitPrice)||0;
+  // How far price moved vs barrier distance
+  snap.moveVsOffset=r.offset>0?parseFloat((Math.abs(priceMove)/r.offset).toFixed(3)):0;
+  // Time of settlement
+  snap.settleTime=new Date().toLocaleTimeString();
 
   GM.history.unshift({
     rid:rid,total:total,win:isWin,
@@ -4971,7 +5038,7 @@ function gmUpdateSignalBadge(prices, curP){
     // No active round — show gate status
     var cPay=GM.lastCallPay||0;
     var pPay=GM.lastPutPay||0;
-    var stake=Math.max(0.35,parseFloat((document.getElementById('gm-stake')||{value:'1.50'}).value)||1.50);
+    var stake=gmStake();
     var passes=cPay>0&&pPay>0&&gmGatePasses(cPay,pPay,stake);
     badge.style.background=passes?'rgba(0,229,160,0.15)':'rgba(59,130,246,0.15)';
     badge.style.borderColor=passes?'rgba(0,229,160,0.5)':'rgba(59,130,246,0.5)';
