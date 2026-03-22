@@ -4188,9 +4188,9 @@ var GM = {
   batchLevels:[
     {dist:0.05, stake:2.00},
     {dist:0.08, stake:0.75},
-    {dist:0.11, stake:0.25}
+    {dist:0.11, stake:0.35}
   ],
-  // total risk per side = sum of all stakes = $3.00
+  // total risk per side = sum of all stakes = $3.10 (min stake per level: $0.35)
   // Scanner state
   scanAssets:['R_100'],
   scanResults:{},
@@ -4715,6 +4715,16 @@ function gmFetchProposals(){
     return;
   }
   if(_gmProbe._waiting)return;
+
+  // ── Stake sanity check — Deriv minimum is $0.35 ──
+  var DERIV_MIN_STAKE=0.35;
+  var badLevels=GM.batchLevels.filter(function(l){return l.stake<DERIV_MIN_STAKE;});
+  if(badLevels.length>0){
+    var rs=document.getElementById('gm-round-status');
+    if(rs){rs.textContent='CONFIG ERROR: stake $'+badLevels[0].stake+' below Deriv minimum $'+DERIV_MIN_STAKE;rs.style.color='var(--re)';}
+    console.error('[GM] Stake below Deriv minimum ($'+DERIV_MIN_STAKE+'): ',badLevels);
+    return;
+  }
   _gmProbe._waiting=true;
   _gmProbe._responses={};  // key: 'call_0', 'put_0', 'call_1', etc.
   _gmProbe._entry=entry;
@@ -4761,8 +4771,20 @@ var _gmProbe={_waiting:false,_responses:{},_entry:0,_levels:[],_expected:0,_rese
 
 function onGMProbe(proposal,pendInfo){
   if(!proposal||!proposal.id){
-    console.warn('[GM PROBE] No proposal id — probe failed');
-    // Don't abort — wait for the rest; reset timer will clean up if needed
+    // Proposal was rejected (e.g. stake below Deriv minimum) — count it so we don't hang
+    var _idx=pendInfo.gmLevelIdx||0;
+    var _key=pendInfo.gmSide+'_'+_idx;
+    console.warn('[GM PROBE] Proposal rejected for key:'+_key+' (stake $'+pendInfo.probeStake+' may be below Deriv minimum $0.35)');
+    _gmProbe._responses[_key]=null; // mark slot as failed
+    var _got=Object.keys(_gmProbe._responses).length;
+    if(_got>=_gmProbe._expected){
+      // All slots filled (some failed) — abort probe cleanly
+      if(_gmProbe._resetTimer){clearTimeout(_gmProbe._resetTimer);_gmProbe._resetTimer=null;}
+      console.warn('[GM PROBE] Aborting — one or more levels rejected by Deriv. Check stake amounts (min $0.35).');
+      var _rs=document.getElementById('gm-round-status');
+      if(_rs){_rs.textContent='PROBE FAILED — check stake levels (min $0.35)';_rs.style.color='var(--re)';}
+      _gmProbe._waiting=false;_gmProbe._responses={};
+    }
     return;
   }
   var payout=parseFloat(proposal.payout||0);
