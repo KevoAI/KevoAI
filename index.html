@@ -4284,15 +4284,16 @@ var GM = {
   cooldownMs:60000, cooldownEnd:0,
   // Multi-barrier batch config
   // Each level: {dist, stake} — dist is barrier distance, stake is per-side amount
-  batchLevels:[
-    {dist:0.14, stake:0.80},
-    {dist:0.16, stake:0.35},
-    {dist:0.18, stake:0.35}
-  ],
-  // 3 contracts at DIFFERENT distances above Deriv minimum (±0.14)
-  // Genuinely unique barriers = Deriv accepts all 3
-  // Biggest stake on tightest barrier (hits most often)
-  // Per side: $1.50 total = $3.00 total risk
+  // CALL+NOTOUCH STRATEGY:
+  // Each round places 4 contracts:
+  //   CALL at +barrier    (wins if price ends above)
+  //   NOTOUCH at +barrier (wins if price never touches)
+  //   PUT at -barrier     (wins if price ends below)
+  //   NOTOUCH at -barrier (wins if price never touches)
+  // One of CALL or NOTOUCH always wins — gap loss = impossible
+  // Net per $0.35 stake = +$0.93 on $0.70 risked (133% return)
+  cnBarrier: 0.08,   // barrier distance — min 0.07 for NOTOUCH on R_100
+  cnStake:   0.35,   // stake per contract — 4 contracts = $1.40 total risk
   // Scanner state
   scanAssets:['R_100'],
   scanResults:{},
@@ -5156,63 +5157,52 @@ function gmFetchProposals(){
   }
   if(_gmProbe._waiting)return;
 
-  // ── Stake sanity check — Deriv minimum is $0.35 ──
-  var DERIV_MIN_STAKE=0.35;
-  var badLevels=GM.batchLevels.filter(function(l){return l.stake<DERIV_MIN_STAKE;});
-  if(badLevels.length>0){
-    var rs=document.getElementById('gm-round-status');
-    if(rs){rs.textContent='CONFIG ERROR: stake $'+badLevels[0].stake+' below Deriv minimum $'+DERIV_MIN_STAKE;rs.style.color='var(--re)';}
-    console.error('[GM] Stake below Deriv minimum ($'+DERIV_MIN_STAKE+'): ',badLevels);
-    return;
-  }
-  // ── Barrier sanity check — R_100 max safe barrier ~±0.20 ──
-  var DERIV_MIN_BARRIER=0.14;
-  var dist=GM.batchLevels[0]?GM.batchLevels[0].dist:0.14;
-  if(dist<DERIV_MIN_BARRIER){
-    var rs=document.getElementById('gm-round-status');
-    if(rs){rs.textContent='CONFIG ERROR: barrier ±'+dist+' below Deriv minimum ±'+DERIV_MIN_BARRIER;rs.style.color='var(--re)';}
-    console.error('[GM] Barrier below Deriv minimum for R_100: ±'+dist+' (min ±'+DERIV_MIN_BARRIER+')');
-    return;
-  }
+  var barrier=GM.cnBarrier||0.08;
+  var stake=GM.cnStake||0.35;
+  var callB='+'+barrier.toFixed(2);
+  var putB ='-'+barrier.toFixed(2);
+
   _gmProbe._waiting=true;
-  _gmProbe._responses={};  // key: 'call_0', 'put_0', 'call_1', etc.
+  _gmProbe._responses={};
   _gmProbe._entry=entry;
-  _gmProbe._levels=GM.batchLevels.slice(); // snapshot current levels
+  _gmProbe._barrier=barrier;
+  _gmProbe._stake=stake;
+  _gmProbe._expected=4; // CALL + NOTOUCH_H + PUT + NOTOUCH_L
 
-  var totalExpected=_gmProbe._levels.length*2;
-  _gmProbe._expected=totalExpected;
-
-  // Auto-reset after 8s if not all probes return
   _gmProbe._resetTimer=setTimeout(function(){
-    console.warn('[GM PROBE] Timeout — only got '+Object.keys(_gmProbe._responses).length+'/'+totalExpected);
+    console.warn('[GM PROBE] Timeout — only got '+Object.keys(_gmProbe._responses).length+'/4');
     _gmProbe._waiting=false;_gmProbe._responses={};
   },8000);
 
   var rs=document.getElementById('gm-round-status');
-  if(rs)rs.textContent='PROBING '+_gmProbe._levels.length+' LEVELS...';
+  if(rs)rs.textContent='PROBING CALL+NOTOUCH @ ±'+barrier.toFixed(2)+'...';
 
-  // Send one proposal per level per side
-  // IMPORTANT: each proposal uses its actual stake amount so Deriv
-  // treats them as unique requests even when barrier/duration are identical
-  for(var i=0;i<_gmProbe._levels.length;i++){
-    var lvl=_gmProbe._levels[i];
-    var dist=lvl.dist;
-    var stake=lvl.stake;
-    var callB='+'+dist.toFixed(2);
-    var putB ='-'+dist.toFixed(2);
+  // 4 proposals: CALL + NOTOUCH HIGHER + PUT + NOTOUCH LOWER
+  var r1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
+    currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
+    symbol:GM.asset,barrier:callB});
+  if(r1)S.pending[r1]={type:'gm_probe',gmSide:'call_h',gmLevelIdx:0,
+    probeEntry:entry,probeStake:stake,probeOffset:barrier,probeBarrier:callB};
 
-    var r1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
-      currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
-      symbol:GM.asset,barrier:callB});
-    if(r1)S.pending[r1]={type:'gm_probe',gmSide:'call',gmLevelIdx:i,
-      probeEntry:entry,probeStake:stake,probeOffset:dist,probeBarrier:callB};
+  var r2=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'NOTOUCH',
+    currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
+    symbol:GM.asset,barrier:callB});
+  if(r2)S.pending[r2]={type:'gm_probe',gmSide:'notouch_h',gmLevelIdx:1,
+    probeEntry:entry,probeStake:stake,probeOffset:barrier,probeBarrier:callB};
 
-    var r2=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'PUT',
-      currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
-      symbol:GM.asset,barrier:putB});
-    if(r2)S.pending[r2]={type:'gm_probe',gmSide:'put',gmLevelIdx:i,
-      probeEntry:entry,probeStake:stake,probeOffset:dist,probeBarrier:putB};
-  }
+  var r3=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'PUT',
+    currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
+    symbol:GM.asset,barrier:putB});
+  if(r3)S.pending[r3]={type:'gm_probe',gmSide:'put_l',gmLevelIdx:2,
+    probeEntry:entry,probeStake:stake,probeOffset:barrier,probeBarrier:putB};
+
+  var r4=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'NOTOUCH',
+    currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
+    symbol:GM.asset,barrier:putB});
+  if(r4)S.pending[r4]={type:'gm_probe',gmSide:'notouch_l',gmLevelIdx:3,
+    probeEntry:entry,probeStake:stake,probeOffset:barrier,probeBarrier:putB};
+
+  console.log('[GM CN] Probing CALL+NOTOUCH @ ±'+barrier+' stake:$'+stake);
 }
 
 // ── Multi-barrier probe state ──────────────────────────────────────
@@ -5259,86 +5249,220 @@ function onGMProbe(proposal,pendInfo){
   // All probes received — clear reset timer
   if(_gmProbe._resetTimer){clearTimeout(_gmProbe._resetTimer);_gmProbe._resetTimer=null;}
 
-  // ── BATCH GATE ──────────────────────────────────────────────────
-  // HOW THE STRATEGY WORKS:
-  //   When price breaks HIGHER: ALL CALL contracts win, ALL PUT contracts lose
-  //   When price breaks LOWER:  ALL PUT contracts win, ALL CALL contracts lose
-  //   Price stays in gap: ALL contracts lose (worst case — we avoid flat markets)
+  // ── CALL + NOTOUCH GATE ─────────────────────────────────────────
+  // Strategy: CALL + NOTOUCH HIGHER at +barrier, PUT + NOTOUCH LOWER at -barrier
   //
-  // GATE FORMULA:
-  //   Total CALL payout (sum all levels) must exceed total PUT stake (sum all levels)
-  //   AND / OR vice versa — whichever direction wins, we profit
+  // Price goes UP:   CALL wins + NOTOUCH LOWER wins → profit
+  // Price goes DOWN: PUT wins + NOTOUCH HIGHER wins → profit
+  // Gap loss:        IMPOSSIBLE — one of CALL/NOTOUCH always wins each side
   //
-  // i.e. totalCallPayout > totalPutStake  →  profitable if price goes HIGHER
-  //      totalPutPayout  > totalCallStake →  profitable if price goes LOWER
-  //      Either condition passing = TRADE (one direction always wins)
+  // GATE: combined payout of all 4 contracts must exceed total stake ($1.40)
 
-  var levels=_gmProbe._levels;
-  var allLevelsOk=true;
-  var totalCallPayout=0, totalPutPayout=0;
-  var totalCallStake=0, totalPutStake=0;
+  var r_call_h  = _gmProbe._responses['call_h_0'];
+  var r_notouch_h = _gmProbe._responses['notouch_h_1'];
+  var r_put_l   = _gmProbe._responses['put_l_2'];
+  var r_notouch_l = _gmProbe._responses['notouch_l_3'];
 
-  for(var i=0;i<levels.length;i++){
-    var cKey='call_'+i, pKey='put_'+i;
-    var cr=_gmProbe._responses[cKey], pr=_gmProbe._responses[pKey];
-    if(!cr||!pr){allLevelsOk=false;break;}
-    totalCallPayout+=cr.payout; totalCallStake+=cr.stake;
-    totalPutPayout+=pr.payout;  totalPutStake+=pr.stake;
-  }
+  var allOk = r_call_h && r_notouch_h && r_put_l && r_notouch_l;
+  var stake = _gmProbe._stake || GM.cnStake || 0.35;
+  var totalRisk = stake * 4;
 
-  // Net profit for each scenario
-  var callWinNet = totalCallPayout - totalCallStake - totalPutStake;  // price goes HIGHER
-  var putWinNet  = totalPutPayout  - totalPutStake  - totalCallStake; // price goes LOWER
-  var passes = allLevelsOk && (callWinNet > 0 || putWinNet > 0);
-  var bestNet = Math.max(callWinNet, putWinNet);
-  var totalStakePerSide = totalCallStake; // same both sides
+  // When price goes UP: CALL + NOTOUCH LOWER win
+  var upNet = allOk ? (r_call_h.payout + r_notouch_l.payout - totalRisk) : -999;
+  // When price goes DOWN: PUT + NOTOUCH HIGHER win
+  var dnNet = allOk ? (r_put_l.payout + r_notouch_h.payout - totalRisk) : -999;
+  // Both should be profitable
+  var passes = allOk && upNet > 0 && dnNet > 0;
+  var netPerTrade = passes ? Math.min(upNet, dnNet) : 0;
 
-  // ── Save last probe totals so gmCalc() can always display them ──
-  GM.lastCallPay = totalCallPayout;
-  GM.lastPutPay  = totalPutPayout;
-  GM.lastCallWinNet = callWinNet;
-  GM.lastPutWinNet  = putWinNet;
-  GM.lastCombinedPay = totalCallPayout + totalPutPayout;
-  gmCalc(); // refresh Round Math panel with real numbers
+  // Save for gmCalc display
+  GM.lastCallWinNet = upNet;
+  GM.lastPutWinNet  = dnNet;
+  GM.lastCombinedPay = allOk?(r_call_h.payout+r_notouch_h.payout+r_put_l.payout+r_notouch_l.payout):0;
+  gmCalc();
 
-  // Update gate display
+  // Update displays
   var gEl=document.getElementById('gm-gate-status');
   var epEl=document.getElementById('gm-expected-profit');
   if(gEl){gEl.textContent=passes?'✅ PASS':'❌ SKIP';gEl.style.color=passes?'var(--ac)':'var(--re)';}
-
-  // Show breakdown in expected profit field
   if(epEl){
-    if(passes){
-      epEl.textContent='If HIGHER: +$'+callWinNet.toFixed(2)+' | If LOWER: +$'+putWinNet.toFixed(2)+' | Risk: $'+(totalCallStake+totalPutStake).toFixed(2);
-    } else {
-      epEl.textContent='Gate fail — callNet:$'+callWinNet.toFixed(2)+' putNet:$'+putWinNet.toFixed(2)+' (need >$0)';
-    }
+    epEl.textContent=passes
+      ?'UP: +$'+upNet.toFixed(2)+' | DN: +$'+dnNet.toFixed(2)+' | Risk: $'+totalRisk.toFixed(2)+' | NO GAP LOSS ✅'
+      :'Gate fail — UP:$'+upNet.toFixed(2)+' DN:$'+dnNet.toFixed(2);
     epEl.style.color=passes?'var(--ac)':'var(--re)';
   }
-
-  // Keep tightCall/tightPut refs for display below
-  var tightCall=_gmProbe._responses['call_0'];
-  var tightPut=_gmProbe._responses['put_0'];
-
-  // Update payout display with level breakdown
   var cEl=document.getElementById('gm-call-pay');
   var pEl=document.getElementById('gm-put-pay');
-  if(cEl&&tightCall)cEl.textContent='L1: $'+tightCall.payout.toFixed(2)+' ('+( tightCall.payout/tightCall.stake).toFixed(2)+'x)';
-  if(pEl&&tightPut)pEl.textContent='L1: $'+tightPut.payout.toFixed(2)+' ('+(tightPut.payout/tightPut.stake).toFixed(2)+'x)';
+  if(cEl&&r_call_h)cEl.textContent='CALL $'+r_call_h.payout.toFixed(2)+' + NT $'+(r_notouch_h?r_notouch_h.payout.toFixed(2):'--');
+  if(pEl&&r_put_l) pEl.textContent='PUT $'+r_put_l.payout.toFixed(2)+' + NT $'+(r_notouch_l?r_notouch_l.payout.toFixed(2):'--');
 
   if(!passes){
-    console.log('[GM GATE] SKIP — callWinNet:'+callWinNet.toFixed(2)+' putWinNet:'+putWinNet.toFixed(2));
-    if(rs)rs.textContent='SKIP (best net: $'+bestNet.toFixed(2)+' — need >$0)';
+    if(rs)rs.textContent='SKIP — payout insufficient';
     GM._skipped=(GM._skipped||0)+1;
     var skEl=document.getElementById('gm-skipped');if(skEl)skEl.textContent=GM._skipped;
     _gmProbe._waiting=false;_gmProbe._responses={};
     return;
   }
 
-  // ── GATE PASSED — place entire batch ──
-  console.log('[GM GATE] PASS — placing '+levels.length+' levels ('+levels.length*2+' contracts)');
-  gmPlaceBatch(_gmProbe._responses,_gmProbe._levels,_gmProbe._entry);
+  // ── GATE PASSED — place 4 contracts ──
+  console.log('[GM CN] PASS — UP net:$'+upNet.toFixed(2)+' DN net:$'+dnNet.toFixed(2)+' placing 4 contracts');
+  gmPlaceCN(_gmProbe._responses, _gmProbe._entry, _gmProbe._barrier, stake);
   _gmProbe._waiting=false;_gmProbe._responses={};
+}
+
+// ── CALL+NOTOUCH PLACEMENT ────────────────────────────────────────
+function gmPlaceCN(responses, entry, barrier, stake){
+  if(!S.connected)return;
+  GM.roundId++;
+  var rid=GM.roundId;
+  GM.rounds++;
+  GM.lastRoundTime=Date.now();
+
+  var r_ch  = responses['call_h_0'];
+  var r_nth = responses['notouch_h_1'];
+  var r_pl  = responses['put_l_2'];
+  var r_ntl = responses['notouch_l_3'];
+
+  var totalRisk=stake*4;
+  var dp=entry>100?2:5;
+
+  // Build round record
+  GM.pending[rid]={
+    isCN:true,
+    entry:entry, barrier:barrier, stake:stake,
+    totalRisk:totalRisk,
+    contracts:{
+      call_h:{id:r_ch.id, ask:r_ch.ask, payout:r_ch.payout, cid:null, result:null},
+      notouch_h:{id:r_nth.id, ask:r_nth.ask, payout:r_nth.payout, cid:null, result:null},
+      put_l:{id:r_pl.id, ask:r_pl.ask, payout:r_pl.payout, cid:null, result:null},
+      notouch_l:{id:r_ntl.id, ask:r_ntl.ask, payout:r_ntl.payout, cid:null, result:null}
+    },
+    totalContracts:4, settled:0,
+    results:{call_h:null,notouch_h:null,put_l:null,notouch_l:null},
+    time:new Date().toLocaleTimeString(),
+    asset:GM.asset,
+    snap:gmSnapshot(entry,barrier,stake*2,r_ch.payout+r_nth.payout,r_pl.payout+r_ntl.payout)
+  };
+
+  // Set chart barriers
+  _gmActiveBarrier={
+    active:true,
+    higher:parseFloat((entry+barrier).toFixed(dp)),
+    lower:parseFloat((entry-barrier).toFixed(dp))
+  };
+  gmDrawChart();
+
+  var set=function(id,val){var e=document.getElementById(id);if(e)e.textContent=val;};
+  set('gm-round-status','BUYING 4 CONTRACTS (CALL+NOTOUCH)...');
+  set('gm-round-net','...');
+
+  var SLIP=1.05;
+  // Buy CALL HIGHER
+  var b1=wsSend({buy:r_ch.id, price:parseFloat((r_ch.ask*SLIP).toFixed(2))});
+  if(b1)S.pending[b1]={dir:'HIGHER',stake:stake,asset:GM.asset,isBot:true,isGM:true,
+    gmRound:rid,gmSide:'call_h',gmLevelIdx:0,gmDist:barrier,
+    entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit};
+
+  // Buy NOTOUCH HIGHER
+  var b2=wsSend({buy:r_nth.id, price:parseFloat((r_nth.ask*SLIP).toFixed(2))});
+  if(b2)S.pending[b2]={dir:'HIGHER',stake:stake,asset:GM.asset,isBot:true,isGM:true,
+    gmRound:rid,gmSide:'notouch_h',gmLevelIdx:1,gmDist:barrier,
+    entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit};
+
+  // Buy PUT LOWER
+  var b3=wsSend({buy:r_pl.id, price:parseFloat((r_pl.ask*SLIP).toFixed(2))});
+  if(b3)S.pending[b3]={dir:'LOWER',stake:stake,asset:GM.asset,isBot:true,isGM:true,
+    gmRound:rid,gmSide:'put_l',gmLevelIdx:2,gmDist:barrier,
+    entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit};
+
+  // Buy NOTOUCH LOWER
+  var b4=wsSend({buy:r_ntl.id, price:parseFloat((r_ntl.ask*SLIP).toFixed(2))});
+  if(b4)S.pending[b4]={dir:'LOWER',stake:stake,asset:GM.asset,isBot:true,isGM:true,
+    gmRound:rid,gmSide:'notouch_l',gmLevelIdx:3,gmDist:barrier,
+    entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit};
+
+  // Force settle timeout
+  var timeoutMs=GM.durUnit==='t'?60000:180000;
+  GM.pending[rid]._timeout=setTimeout(function(){
+    var r=GM.pending[rid];
+    if(r&&r.settled<r.totalContracts){
+      console.warn('[GM CN] R'+rid+' timed out ('+r.settled+'/4 settled)');
+      gmCNForceSettle(rid);
+    }
+  },timeoutMs);
+
+  console.log('[GM CN] R'+rid+' entry:'+entry+' barrier:±'+barrier+' stake:$'+stake+' totalRisk:$'+totalRisk);
+}
+
+function gmCNForceSettle(rid){
+  var r=GM.pending[rid];
+  if(!r)return;
+  var keys=['call_h','notouch_h','put_l','notouch_l'];
+  keys.forEach(function(k){
+    if(!r.results[k])r.results[k]={profit:-(r.stake||0.35),win:false};
+  });
+  r.settled=4;
+  gmCNSettle(rid);
+}
+
+function gmCNSettle(rid){
+  var r=GM.pending[rid];
+  if(!r||r._settled)return;
+  r._settled=true;
+  clearTimeout(r._timeout);
+
+  var res=r.results;
+  var stake=r.stake||0.35;
+
+  // Calculate total PnL
+  var total=0;
+  ['call_h','notouch_h','put_l','notouch_l'].forEach(function(k){
+    total+=(res[k]?res[k].profit:-(stake));
+  });
+  total=parseFloat(total.toFixed(2));
+
+  var isWin=total>0;
+  GM.pnl=parseFloat((GM.pnl+total).toFixed(2));
+  if(isWin)GM.won++;else GM.lost++;
+
+  S.activeTrades=S.activeTrades.filter(function(t){return !(t.isGM&&t.gmRound===rid);});
+
+  // Build history entry
+  var snap=r.snap||{};
+  snap.netPnl=total;
+  snap.result=isWin?'WIN':'LOSS';
+  snap.settleTime=new Date().toLocaleTimeString();
+  snap.winnerSide=total>0?'BOTH':'NONE';
+
+  GM.history.unshift({
+    rid:rid, total:total, win:isWin,
+    callWon:res.call_h&&res.call_h.win,
+    ntHWon:res.notouch_h&&res.notouch_h.win,
+    putWon:res.put_l&&res.put_l.win,
+    ntLWon:res.notouch_l&&res.notouch_l.win,
+    time:r.time, asset:r.asset,
+    stake:stake, totalRisk:r.totalRisk,
+    barrier:r.barrier, entry:r.entry,
+    isCN:true, snap:snap
+  });
+
+  gmUpdateStats();
+  gmRenderHistory();
+
+  var net=document.getElementById('gm-round-net');
+  if(net){net.textContent=(total>=0?'+':'')+'$'+Math.abs(total).toFixed(2);net.style.color=total>0?'var(--ac)':'var(--re)';}
+  var rs=document.getElementById('gm-round-status');
+  if(rs){rs.textContent=isWin?'WIN ✅':'LOSS ❌';rs.style.color=isWin?'var(--ac)':'var(--re)';}
+
+  notify('GM '+(isWin?'WIN ✅':'LOSS ❌'),'Net:'+(total>=0?'+':'')+total.toFixed(2),isWin?'win':'loss');
+
+  // Cooldown
+  GM.cooldownEnd=Date.now()+GM.cooldownMs;
+  delete GM.pending[rid];
+  _gmActiveBarrier={active:false,higher:0,lower:0};
+  gmDrawChart();
+  localStorage.setItem('kevoai_gm_history',JSON.stringify(GM.history.slice(0,200)));
+  updateStats();renderTrades();renderActive();
 }
 
 // ── Keep old gmPlace as thin wrapper (used by force-settle edge cases) ──
@@ -5516,7 +5640,25 @@ function onGMResult(rid,side,profit,exitPrice,levelIdx){
   var pnl=parseFloat(profit||0);
   var idx=levelIdx||0;
 
-  if(round.isBatch){
+  if(round.isCN){
+    // CALL+NOTOUCH settlement
+    var cnKey=pendInfo&&pendInfo.gmSide||side;
+    // Map side to result key
+    var cnKeys=['call_h','notouch_h','put_l','notouch_l'];
+    var cnSideMap={'call_h':'call_h','notouch_h':'notouch_h','put_l':'put_l','notouch_l':'notouch_l',
+      'call':'call_h','put':'put_l'};
+    var cnResultKey=cnSideMap[cnKey]||cnKey;
+    if(cnKeys.indexOf(cnResultKey)>=0){
+      round.results[cnResultKey]={profit:pnl,win:pnl>0,exitPrice:exitPrice||0};
+    }
+    round.settled=(round.settled||0)+1;
+    var netEl2=document.getElementById('gm-round-net');
+    var runPnl2=0;
+    Object.values(round.results).forEach(function(r){if(r)runPnl2+=r.profit;});
+    if(netEl2){netEl2.textContent=(runPnl2>=0?'+':'')+'$'+Math.abs(runPnl2).toFixed(2);netEl2.style.color=runPnl2>0?'var(--ac)':'var(--re)';}
+    if(round.settled>=round.totalContracts)gmCNSettle(rid);
+    return;
+  } else if(round.isBatch){
     // Store result on the specific contract level
     var ct=round.contracts&&round.contracts[idx];
     if(ct){
