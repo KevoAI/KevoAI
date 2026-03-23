@@ -941,7 +941,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <input type="number" class="iif" id="gm-budget" value="3.00" min="0.70" step="0.70" oninput="gmCalc()">
                     <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.70).toFixed(2);gmCalc()">+</div>
                   </div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Fixed levels: L1 $2.00 · L2 $0.75 · L3 $0.35 — <span id="gm-stake-display">$3.10</span> per side</div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">3× same barrier ±0.05 — $2.00 + $0.75 + $0.35 = <span id="gm-stake-display">$3.10</span> per side</div>
                 </div>
                 <!-- Barrier Offset -->
                 <div class="ig" style="margin-bottom:11px">
@@ -4187,10 +4187,12 @@ var GM = {
   // Each level: {dist, stake} — dist is barrier distance, stake is per-side amount
   batchLevels:[
     {dist:0.05, stake:2.00},
-    {dist:0.08, stake:0.75},
-    {dist:0.11, stake:0.35}
+    {dist:0.05, stake:0.75},
+    {dist:0.05, stake:0.35}
   ],
-  // total risk per side = sum of all stakes = $3.10 (min stake per level: $0.35)
+  // All 3 levels at SAME barrier — when price breaks, ALL 3 win simultaneously
+  // Per side: $3.10 total stake, $6.77 total payout (~2.18x) → net ~+$3.67 per win
+  // Total risk per round: $6.20
   // Scanner state
   scanAssets:['R_100'],
   scanResults:{},
