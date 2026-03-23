@@ -1271,6 +1271,16 @@ const DG = {
 };
 
 // ══════════════════════════════════════
+// DIFFERS BOT STATE
+// ══════════════════════════════════════
+const DD = {
+  running:false, interval:null,
+  asset:'R_100', digit:5, ticks:5,
+  rounds:0, wins:0, losses:0, pnl:0,
+  winStreak:0, lossStreak:0
+};
+
+// ══════════════════════════════════════
 // HYBRID BOT STATE
 // ══════════════════════════════════════
 // HB state defined in WinWin Smart Bot section
@@ -4294,6 +4304,7 @@ var GM = {
   // Net per $0.35 stake = +$0.93 on $0.70 risked (133% return)
   cnBarrier: 0.08,   // barrier distance — min 0.07 for NOTOUCH on R_100
   cnStake:   0.35,   // stake per contract — 4 contracts = $1.40 total risk
+  batchLevels:[{dist:0.08,stake:0.35}],  // used by gmDrawChart & gmUpdateSignalBadge
   // Scanner state
   scanAssets:['R_100'],
   scanResults:{},
