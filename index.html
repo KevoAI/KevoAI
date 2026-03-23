@@ -1077,7 +1077,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;border:1px solid var(--bo);font-size:11px;font-family:var(--mo);line-height:1.9;white-space:pre-line" id="gm-calc-display">Calculating...</div>
                 <!-- Barrier Test Probe -->
                 <div style="margin-top:10px;padding:10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
-                  <div style="font-size:10px;color:var(--t2);font-weight:600;margin-bottom:7px">🔍 TEST BARRIER PAYOUT</div>
+                  <div style="font-size:10px;color:var(--t2);font-weight:600;margin-bottom:7px">🔍 CONTRACT TYPE SCANNER — CALL + PUT + NOTOUCH + ONETOUCH</div>
                   <div style="display:flex;gap:6px;align-items:center;margin-bottom:7px">
                     <span style="font-size:10px;color:var(--t3)">Barrier ±</span>
                     <input type="number" id="test-barrier-input" value="0.06" step="0.01" min="0.01" style="width:65px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:var(--mo);font-size:12px;outline:none">
@@ -4862,72 +4862,116 @@ function btReset(){
 
 function gmTestProbe(){
   if(!S.connected){
-    document.getElementById('test-probe-result').textContent='Not connected — connect to Deriv first';
-    document.getElementById('test-probe-result').style.color='var(--re)';
+    document.getElementById('test-probe-result').innerHTML='Not connected';
     return;
   }
   var barrier=parseFloat(document.getElementById('test-barrier-input').value)||0.06;
   var stake=parseFloat(document.getElementById('test-stake-input').value)||0.35;
-  var entry=S.prices[GM.asset]||S.prices['R_100']||0;
-  if(entry<=0){
-    document.getElementById('test-probe-result').textContent='No price — subscribe to R_100 first';
-    document.getElementById('test-probe-result').style.color='var(--re)';
-    return;
-  }
+  var entry=S.prices[GM.asset]||0;
+  if(entry<=0){document.getElementById('test-probe-result').innerHTML='No price';return;}
+
   var el=document.getElementById('test-probe-result');
-  el.textContent='Probing ±'+barrier+' @ $'+stake+' stake...';
-  el.style.color='var(--go)';
+  el.innerHTML='<span style="color:var(--go)">Scanning CALL + PUT + NOTOUCH + ONETOUCH at ±'+barrier.toFixed(2)+'...</span>';
 
-  var callB='+'+barrier.toFixed(2);
-  var putB ='-'+barrier.toFixed(2);
-  var _results={call:null,put:null};
+  // Test 4 contract types at same barrier
+  var types=[
+    {ct:'CALL',    barrier:'+'+barrier.toFixed(2), label:'CALL (ends above)'},
+    {ct:'PUT',     barrier:'-'+barrier.toFixed(2), label:'PUT (ends below)'},
+    {ct:'NOTOUCH', barrier:'+'+barrier.toFixed(2), label:'NOTOUCH HIGHER (never touches)'},
+    {ct:'NOTOUCH', barrier:'-'+barrier.toFixed(2), label:'NOTOUCH LOWER (never touches)'},
+    {ct:'ONETOUCH',barrier:'+'+barrier.toFixed(2), label:'ONETOUCH HIGHER (touches once)'},
+    {ct:'ONETOUCH',barrier:'-'+barrier.toFixed(2), label:'ONETOUCH LOWER (touches once)'}
+  ];
 
-  var r1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
-    currency:S.currency||'USD',duration:GM.dur,duration_unit:GM.durUnit,
-    symbol:GM.asset,barrier:callB});
-  if(r1)S.pending[r1]={type:'test_probe',side:'call',barrier:barrier,stake:stake};
+  GM._testProbe={results:{},stake:stake,barrier:barrier,types:types,expected:types.length};
 
-  var r2=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'PUT',
-    currency:S.currency||'USD',duration:GM.dur,duration_unit:GM.durUnit,
-    symbol:GM.asset,barrier:putB});
-  if(r2)S.pending[r2]={type:'test_probe',side:'put',barrier:barrier,stake:stake};
-
-  // Store for result handler
-  GM._testProbe={results:{},stake:stake,barrier:barrier,expected:2};
+  types.forEach(function(t,i){
+    var r=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:t.ct,
+      currency:S.currency||'USD',duration:GM.dur,duration_unit:GM.durUnit,
+      symbol:GM.asset,barrier:t.barrier});
+    if(r)S.pending[r]={type:'test_probe',key:t.ct+'_'+t.barrier,label:t.label,
+      barrier:barrier,stake:stake,ct:t.ct,barrierStr:t.barrier};
+  });
 }
 
 function onTestProbe(proposal,pendInfo){
   if(!GM._testProbe)return;
-  var side=pendInfo.side;
-  var payout=parseFloat(proposal.payout||0);
-  var ask=parseFloat(proposal.ask_price||0);
-  GM._testProbe.results[side]={payout:payout,ask:ask};
+  var key=pendInfo.key;
+  var payout=parseFloat(proposal&&proposal.payout||0);
+  var stake=GM._testProbe.stake;
+  GM._testProbe.results[key]={
+    payout:payout, valid:payout>0,
+    mult:stake>0?(payout/stake):0,
+    label:pendInfo.label,
+    ct:pendInfo.ct,
+    barrierStr:pendInfo.barrierStr
+  };
 
   var got=Object.keys(GM._testProbe.results).length;
   if(got<GM._testProbe.expected)return;
 
-  // Both back — show results
+  var el=document.getElementById('test-probe-result');
   var stake=GM._testProbe.stake;
   var barrier=GM._testProbe.barrier;
-  var cPay=GM._testProbe.results.call?GM._testProbe.results.call.payout:0;
-  var pPay=GM._testProbe.results.put?GM._testProbe.results.put.payout:0;
-  var mult=stake>0?parseFloat((cPay/stake).toFixed(2)):0;
-  var netWin=parseFloat((cPay-stake).toFixed(2));
-  var totalRisk=stake*2;
-  var netRound=parseFloat((cPay-totalRisk).toFixed(2));
 
-  var el=document.getElementById('test-probe-result');
-  if(cPay>0){
-    el.style.color=netRound>0?'var(--ac)':'var(--re)';
-    el.innerHTML=
-      '±'+barrier+' @ $'+stake+' stake<br>'
-      +'CALL payout: <b>$'+cPay.toFixed(2)+'</b> ('+mult+'x) | PUT: <b>$'+pPay.toFixed(2)+'</b><br>'
-      +'Win = +$'+netWin.toFixed(2)+' | Loss = -$'+stake+' | Round net = '+(netRound>=0?'+':'')+netRound.toFixed(2)
-      +(netRound>0?'  ✅ PROFITABLE':'  ❌ NOT PROFITABLE');
-  } else {
-    el.style.color='var(--re)';
-    el.textContent='Invalid barrier — Deriv rejected ±'+barrier+' (try a wider barrier)';
+  var rows='<div style="font-size:10px;color:var(--go);font-weight:700;margin-bottom:6px">BARRIER ±'+barrier.toFixed(2)+' @ $'+stake+' stake | 5 ticks R_100</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-family:var(--mo);font-size:10px">'
+    +'<tr style="color:var(--t3)">'
+    +'<td style="padding:3px 5px">CONTRACT</td>'
+    +'<td style="padding:3px 5px">PAYOUT</td>'
+    +'<td style="padding:3px 5px">MULT</td>'
+    +'<td style="padding:3px 5px">NET</td>'
+    +'<td style="padding:3px 5px">VALID</td>'
+    +'</tr>';
+
+  // Key combos to check
+  var callPay=0,putPay=0,ntHighPay=0,ntLowPay=0,otHighPay=0,otLowPay=0;
+  var types=GM._testProbe.types;
+  types.forEach(function(t){
+    var k=t.ct+'_'+t.barrier;
+    var r=GM._testProbe.results[k];
+    var pay=r?r.payout:0;
+    var valid=r&&r.valid;
+    var net=pay-stake;
+    if(t.ct==='CALL')callPay=pay;
+    if(t.ct==='PUT')putPay=pay;
+    if(t.ct==='NOTOUCH'&&t.barrier[0]==='+')ntHighPay=pay;
+    if(t.ct==='NOTOUCH'&&t.barrier[0]==='-')ntLowPay=pay;
+    if(t.ct==='ONETOUCH'&&t.barrier[0]==='+')otHighPay=pay;
+    if(t.ct==='ONETOUCH'&&t.barrier[0]==='-')otLowPay=pay;
+    rows+='<tr style="border-top:1px solid var(--bo);color:'+(valid?net>0?'var(--ac)':'var(--t2)':'var(--re)')+'">'
+      +'<td style="padding:3px 5px">'+t.label+'</td>'
+      +'<td style="padding:3px 5px">'+(valid?'$'+pay.toFixed(2):'❌')+'</td>'
+      +'<td style="padding:3px 5px">'+(valid?(pay/stake).toFixed(2)+'x':'--')+'</td>'
+      +'<td style="padding:3px 5px">'+(valid?(net>=0?'+':'')+net.toFixed(2):'--')+'</td>'
+      +'<td style="padding:3px 5px">'+(valid?'✅':'❌')+'</td>'
+      +'</tr>';
+  });
+
+  rows+='</table>';
+
+  // Show key combos
+  rows+='<div style="margin-top:8px;font-family:var(--mo);font-size:10px">';
+  rows+='<div style="color:var(--go);font-weight:700;margin-bottom:4px">KEY COMBINATIONS:</div>';
+
+  // Combo 1: CALL + NOTOUCH HIGHER (bet same barrier, opposing outcomes)
+  if(callPay>0&&ntHighPay>0){
+    var combo1Net=(callPay+ntHighPay)-(stake*2);
+    rows+='<div style="padding:4px 0;border-bottom:1px solid var(--bo);color:'+(combo1Net>0?'var(--ac)':'var(--re)')+'">CALL + NOTOUCH HIGHER: pay $'+(callPay+ntHighPay).toFixed(2)+' risk $'+(stake*2).toFixed(2)+' net '+(combo1Net>=0?'+':'')+combo1Net.toFixed(2)+(combo1Net>0?' ✅ GAP=0':' ❌')+'</div>';
   }
+  // Combo 2: PUT + NOTOUCH LOWER
+  if(putPay>0&&ntLowPay>0){
+    var combo2Net=(putPay+ntLowPay)-(stake*2);
+    rows+='<div style="padding:4px 0;border-bottom:1px solid var(--bo);color:'+(combo2Net>0?'var(--ac)':'var(--re)')+'">PUT + NOTOUCH LOWER: pay $'+(putPay+ntLowPay).toFixed(2)+' risk $'+(stake*2).toFixed(2)+' net '+(combo2Net>=0?'+':'')+combo2Net.toFixed(2)+(combo2Net>0?' ✅ GAP=0':' ❌')+'</div>';
+  }
+  // Combo 3: CALL + PUT (standard)
+  if(callPay>0&&putPay>0){
+    var combo3Net=(callPay+putPay)-(stake*2);
+    rows+='<div style="padding:4px 0;color:'+(combo3Net>0?'var(--ac)':'var(--re)')+'">CALL + PUT (standard): pay $'+(callPay+putPay).toFixed(2)+' risk $'+(stake*2).toFixed(2)+' net '+(combo3Net>=0?'+':'')+combo3Net.toFixed(2)+(combo3Net>0?' ✅':' ❌ has gap')+'</div>';
+  }
+
+  rows+='</div>';
+  el.innerHTML=rows;
   GM._testProbe=null;
 }
 
