@@ -1352,7 +1352,17 @@ function handleMsg(d) {
   if(code==='PriceMoved'&&pend&&pend.isGM){
     var _gmRid=pend.gmRound;
     var _gmRound=GM.pending[_gmRid];
-    if(_gmRound&&_gmRound.isBatch){
+    if(_gmRound&&_gmRound.isCN){
+      // CN round: count the failed contract as a loss
+      var _cnSide=pend.gmSide;
+      var _cnKeys=['call_h','notouch_h','put_l','notouch_l'];
+      if(_cnKeys.indexOf(_cnSide)>=0&&!_gmRound.results[_cnSide]){
+        _gmRound.results[_cnSide]={profit:-(pend.stake||0.35),win:false,exitPrice:0};
+        _gmRound.settled=(_gmRound.settled||0)+1;
+        console.log('[GM CN] PriceMoved on '+_cnSide+' — counted as loss');
+        if(_gmRound.settled>=_gmRound.totalContracts)gmCNSettle(_gmRid);
+      }
+    } else if(_gmRound&&_gmRound.isBatch){
       // Batch: count this contract as a loss and increment settled
       var _idx=pend.gmLevelIdx!=null?pend.gmLevelIdx:0;
       var _ct=_gmRound.contracts&&_gmRound.contracts[_idx];
@@ -1492,6 +1502,17 @@ function onAuth(a) {
   notify('Connected!',a.loginid+(isVirtual?' (DEMO)':' (REAL)'),'win');
   // Query valid contract durations for EXPIRYRANGE on HB asset
   setTimeout(function(){ queryContractsFor(HB.asset); }, 2000);
+  // Re-subscribe to any active open contracts that were interrupted by the disconnect
+  setTimeout(function(){
+    var resubCount=0;
+    S.activeTrades.forEach(function(t){
+      if(t.contractId&&!t._settled){
+        wsSend({proposal_open_contract:1,contract_id:t.contractId,subscribe:1});
+        resubCount++;
+      }
+    });
+    if(resubCount>0) console.log('[WS RECONNECT] Re-subscribed to '+resubCount+' active contract(s)');
+  }, 1000);
 }
 
 function onBalance(b) {
@@ -1934,6 +1955,9 @@ function fmtDur(ms){if(!ms||ms<0)return '--';var s=Math.floor(ms/1000);if(s<60)r
 // Only lose if price is FLAT. Any move = profit.
 // Display: WIN side + LOSS side + BOTH MISS (if flat)
 // ══════════════════════════════════════════════════════════════════
+
+// WinWin active barrier state (used by _drawWWBarriersOnChart and showPage)
+var wwActiveBarrier = null;
 
 const HB = {
   running:false, interval:null,
@@ -5392,12 +5416,13 @@ function gmPlaceCN(responses, entry, barrier, stake){
     gmRound:rid,gmSide:'notouch_l',gmLevelIdx:3,gmDist:barrier,
     entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit};
 
-  // Force settle timeout
-  var timeoutMs=GM.durUnit==='t'?60000:180000;
+  // Force settle timeout — capture the round object now to avoid hitting a future round with the same rid
+  var timeoutMs=GM.durUnit==='t'?90000:240000;
+  var _roundRef=GM.pending[rid];
   GM.pending[rid]._timeout=setTimeout(function(){
-    var r=GM.pending[rid];
-    if(r&&r.settled<r.totalContracts){
-      console.warn('[GM CN] R'+rid+' timed out ('+r.settled+'/4 settled)');
+    // Only fire if this specific round object is still pending and not yet settled
+    if(_roundRef&&!_roundRef._settled&&GM.pending[rid]===_roundRef){
+      console.warn('[GM CN] R'+rid+' timed out ('+(_roundRef.settled||0)+'/4 settled)');
       gmCNForceSettle(rid);
     }
   },timeoutMs);
@@ -5657,7 +5682,7 @@ function onGMResult(rid,side,profit,exitPrice,levelIdx){
 
   if(round.isCN){
     // CALL+NOTOUCH settlement
-    var cnKey=pendInfo&&pendInfo.gmSide||side;
+    var cnKey=side; // side is already the gmSide key e.g. 'call_h', 'notouch_h', 'put_l', 'notouch_l'
     // Map side to result key
     var cnKeys=['call_h','notouch_h','put_l','notouch_l'];
     var cnSideMap={'call_h':'call_h','notouch_h':'notouch_h','put_l':'put_l','notouch_l':'notouch_l',
