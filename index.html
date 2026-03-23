@@ -4203,14 +4203,14 @@ var GM = {
   // Multi-barrier batch config
   // Each level: {dist, stake} — dist is barrier distance, stake is per-side amount
   batchLevels:[
-    {dist:0.05, stake:0.80},
-    {dist:0.08, stake:0.35},
-    {dist:0.11, stake:0.35}
+    {dist:0.14, stake:0.80},
+    {dist:0.16, stake:0.35},
+    {dist:0.18, stake:0.35}
   ],
-  // 3 contracts at DIFFERENT distances — genuinely unique barriers = Deriv accepts all
+  // 3 contracts at DIFFERENT distances above Deriv minimum (±0.14)
+  // Genuinely unique barriers = Deriv accepts all 3
   // Biggest stake on tightest barrier (hits most often)
   // Per side: $1.50 total = $3.00 total risk
-  // When price breaks ALL 3 on winning side pay out simultaneously
   // Scanner state
   scanAssets:['R_100'],
   scanResults:{},
@@ -4578,10 +4578,13 @@ function gmExportData(){
 
 
 function gmSetBarrier(dist){
-  dist=parseFloat(Math.max(0.01,dist).toFixed(2));
-  // Update ALL batch levels to the same distance
-  GM.batchLevels.forEach(function(l){l.dist=dist;});
-  // Sync the input display
+  dist=parseFloat(Math.max(0.14,dist).toFixed(2));
+  // Update levels proportionally — L1 sets the base, L2/L3 stay +0.02/+0.04 above
+  // This keeps them genuinely different so Deriv accepts all 3
+  if(GM.batchLevels[0])GM.batchLevels[0].dist=dist;
+  if(GM.batchLevels[1])GM.batchLevels[1].dist=parseFloat((dist+0.02).toFixed(2));
+  if(GM.batchLevels[2])GM.batchLevels[2].dist=parseFloat((dist+0.04).toFixed(2));
+  // Sync the input display to L1 dist
   var el=document.getElementById('gm-offset');
   if(el)el.value=dist.toFixed(2);
   gmCalc();
@@ -4765,12 +4768,12 @@ function gmFetchProposals(){
     return;
   }
   // ── Barrier sanity check — R_100 max safe barrier ~±0.20 ──
-  var DERIV_MAX_BARRIER=0.20;
+  var DERIV_MIN_BARRIER=0.14;
   var dist=GM.batchLevels[0]?GM.batchLevels[0].dist:0.14;
-  if(dist>DERIV_MAX_BARRIER){
+  if(dist<DERIV_MIN_BARRIER){
     var rs=document.getElementById('gm-round-status');
-    if(rs){rs.textContent='CONFIG ERROR: barrier ±'+dist+' too wide for R_100 (max ±'+DERIV_MAX_BARRIER+')';rs.style.color='var(--re)';}
-    console.error('[GM] Barrier too wide for R_100: ±'+dist+' (max ±'+DERIV_MAX_BARRIER+')');
+    if(rs){rs.textContent='CONFIG ERROR: barrier ±'+dist+' below Deriv minimum ±'+DERIV_MIN_BARRIER;rs.style.color='var(--re)';}
+    console.error('[GM] Barrier below Deriv minimum for R_100: ±'+dist+' (min ±'+DERIV_MIN_BARRIER+')');
     return;
   }
   _gmProbe._waiting=true;
