@@ -941,14 +941,14 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <input type="number" class="iif" id="gm-budget" value="3.00" min="0.70" step="0.70" oninput="gmCalc()">
                     <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.70).toFixed(2);gmCalc()">+</div>
                   </div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">3× barrier ±0.35 — $0.80 + $0.35 + $0.35 = <span id="gm-stake-display">$1.50</span> per side · $3.00 total</div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">2× barrier ±0.14 — $0.75 + $0.75 = <span id="gm-stake-display">$1.50</span> per side · $3.00 total</div>
                 </div>
                 <!-- Barrier Offset -->
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Barrier Offset (± price)</div>
                   <div class="ir">
                     <div class="ia" onclick="gmSetBarrier(Math.max(0.01,parseFloat(document.getElementById('gm-offset').value)-0.01))">-</div>
-                    <input type="number" class="iif" id="gm-offset" value="0.35" min="0.01" step="0.01" oninput="gmSetBarrier(parseFloat(this.value)||0.35)">
+                    <input type="number" class="iif" id="gm-offset" value="0.14" min="0.01" step="0.01" oninput="gmSetBarrier(parseFloat(this.value)||0.35)">
                     <div class="ia" onclick="gmSetBarrier(parseFloat(document.getElementById('gm-offset').value)+0.01)">+</div>
                     <span style="margin-left:8px;font-size:10px;color:var(--ac)">all levels</span>
                   </div>
@@ -1277,11 +1277,24 @@ function handleMsg(d) {
   if(code==='PriceMoved'&&pend&&pend.isGM){
     var _gmRid=pend.gmRound;
     var _gmRound=GM.pending[_gmRid];
-    if(_gmRound){
+    if(_gmRound&&_gmRound.isBatch){
+      // Batch: count this contract as a loss and increment settled
+      var _idx=pend.gmLevelIdx||0;
+      var _ct=_gmRound.contracts&&_gmRound.contracts[_idx];
+      if(_ct){
+        var _lossAmt=-(pend.stake||_ct.stake||0);
+        if(pend.gmSide==='call'&&!_ct.callResult)
+          _ct.callResult={profit:_lossAmt,win:false,exitPrice:0};
+        else if(pend.gmSide==='put'&&!_ct.putResult)
+          _ct.putResult={profit:_lossAmt,win:false,exitPrice:0};
+      }
+      _gmRound.settled=(_gmRound.settled||0)+1;
+      console.log('[GM] PriceMoved on batch '+pend.gmSide+' L'+((_idx)+1)+' — counted as loss ($'+Math.abs(pend.stake||0).toFixed(2)+')');
+      if(_gmRound.settled>=_gmRound.totalContracts)gmSettle(_gmRid);
+    } else if(_gmRound){
       console.log('[GM] PriceMoved on '+pend.gmSide+' - marking as not placed');
       if(pend.gmSide==='call')_gmRound.callPlaced=false;
       else _gmRound.putPlaced=false;
-      // Check if other side already settled - if so settle now
       var _otherSettled=pend.gmSide==='call'?
         _gmRound.results.put!==null:_gmRound.results.call!==null;
       if(_otherSettled)gmSettle(_gmRid);
@@ -4190,13 +4203,12 @@ var GM = {
   // Multi-barrier batch config
   // Each level: {dist, stake} — dist is barrier distance, stake is per-side amount
   batchLevels:[
-    {dist:0.35, stake:0.80},
-    {dist:0.35, stake:0.35},
-    {dist:0.35, stake:0.35}
+    {dist:0.14, stake:0.75},
+    {dist:0.14, stake:0.75}
   ],
-  // All 3 contracts at SAME barrier ±0.35 — all win together when price breaks
+  // 2 contracts at SAME barrier ±0.14 — both win together when price breaks
   // Per side: $1.50 total stake = $3.00 total risk per round
-  // At ±0.35 Deriv pays ~3x-4x multiplier vs ~2.2x at ±0.05
+  // 2 contracts = faster execution, less timing lag than 3
   // Scanner state
   scanAssets:['R_100'],
   scanResults:{},
@@ -4750,6 +4762,15 @@ function gmFetchProposals(){
     console.error('[GM] Stake below Deriv minimum ($'+DERIV_MIN_STAKE+'): ',badLevels);
     return;
   }
+  // ── Barrier sanity check — R_100 max safe barrier ~±0.20 ──
+  var DERIV_MAX_BARRIER=0.20;
+  var dist=GM.batchLevels[0]?GM.batchLevels[0].dist:0.14;
+  if(dist>DERIV_MAX_BARRIER){
+    var rs=document.getElementById('gm-round-status');
+    if(rs){rs.textContent='CONFIG ERROR: barrier ±'+dist+' too wide for R_100 (max ±'+DERIV_MAX_BARRIER+')';rs.style.color='var(--re)';}
+    console.error('[GM] Barrier too wide for R_100: ±'+dist+' (max ±'+DERIV_MAX_BARRIER+')');
+    return;
+  }
   _gmProbe._waiting=true;
   _gmProbe._responses={};  // key: 'call_0', 'put_0', 'call_1', etc.
   _gmProbe._entry=entry;
@@ -5007,17 +5028,21 @@ function gmPlaceBatch(responses,levels,entry){
   };
   gmDrawChart();
 
-  // ── Buy all contracts ──
+  // ── Buy all contracts — send ALL at once with slippage buffer ──
+  // Slippage buffer: accept up to 5% above ask price so late fills don't fail
+  var SLIP=1.05;
   for(var j=0;j<contracts.length;j++){
     (function(ct,idx){
-      var b1=wsSend({buy:ct.callId,price:ct.callAsk});
+      var callMax=parseFloat((ct.callAsk*SLIP).toFixed(2));
+      var putMax=parseFloat((ct.putAsk*SLIP).toFixed(2));
+      var b1=wsSend({buy:ct.callId,price:callMax});
       if(b1)S.pending[b1]={
         dir:'HIGHER',stake:ct.stake,asset:GM.asset,
         isBot:true,isGM:true,gmRound:rid,gmSide:'call',
         gmLevelIdx:idx,gmDist:ct.dist,
         entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit
       };
-      var b2=wsSend({buy:ct.putId,price:ct.putAsk});
+      var b2=wsSend({buy:ct.putId,price:putMax});
       if(b2)S.pending[b2]={
         dir:'LOWER',stake:ct.stake,asset:GM.asset,
         isBot:true,isGM:true,gmRound:rid,gmSide:'put',
