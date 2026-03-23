@@ -4990,7 +4990,7 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
     'put_0':{id:putId,ask:putAsk,payout:putPay,stake:stake,dist:parseFloat(barrier)||0.14,side:'put',levelIdx:0}
   };
   var fakeLevels=[{dist:parseFloat(barrier)||0.14,stake:stake}];
-  gmPlaceBatch(fakeResponses,fakeLevels,entry);
+  gmPlaceBatch(fakeResponses,fakeLevels,fakeLevels,entry);
 }
 
 function gmPlaceBatch(responses,callLevels,putLevels,entry){
