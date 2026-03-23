@@ -5451,6 +5451,10 @@ function gmCNSettle(rid){
     ntHWon:res.notouch_h&&res.notouch_h.win,
     putWon:res.put_l&&res.put_l.win,
     ntLWon:res.notouch_l&&res.notouch_l.win,
+    callProfit:res.call_h?res.call_h.profit:-stake,
+    ntHProfit:res.notouch_h?res.notouch_h.profit:-stake,
+    putProfit:res.put_l?res.put_l.profit:-stake,
+    ntLProfit:res.notouch_l?res.notouch_l.profit:-stake,
     time:r.time, asset:r.asset,
     stake:stake, totalRisk:r.totalRisk,
     barrier:r.barrier, entry:r.entry,
@@ -5918,14 +5922,67 @@ function gmRenderHistory(){
   }
   el.innerHTML=GM.history.slice(0,20).map(function(r){
     var s=r.snap||{};
-    var gapLoss=s.gapLoss||(!r.callWon&&!r.putWon);
-    var resultColor=gapLoss?'var(--go)':r.win?'var(--ac)':'var(--re)';
-    var resultLabel=gapLoss?'⚠ GAP LOSS':r.win?'WIN ✅':'LOSS ❌';
-    var resultBorder=gapLoss?'rgba(245,166,35,0.3)':r.win?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.3)';
-    var resultBg=gapLoss?'rgba(245,166,35,0.06)':r.win?'rgba(0,229,160,0.06)':'rgba(255,77,106,0.06)';
-    var dp=r.entry>100?2:5;
+    var resultColor=r.win?'var(--ac)':'var(--re)';
+    var resultLabel=r.win?'WIN ✅':'LOSS ❌';
+    var resultBorder=r.win?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.3)';
+    var resultBg=r.win?'rgba(0,229,160,0.06)':'rgba(255,77,106,0.06)';
+    var dp=(r.entry||0)>100?2:5;
+    var stake=r.stake||0.35;
+    var barrier=r.barrier||0.08;
+    var total=(r.total||0);
 
-    // Build per-level contract rows for each side
+    // ── CALL+NOTOUCH (CN) entry ──────────────────────────────────
+    if(r.isCN){
+      function cnRow(label,won,pnl){
+        return '<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'
+          +'<span style="font-size:10px;color:var(--t2);font-family:var(--mo);flex:1">'+label+'</span>'
+          +'<span style="font-size:10px;font-weight:700;font-family:var(--mo);color:'+(won?'var(--ac)':'var(--re)')+'">'+(pnl>=0?'+':'')+pnl.toFixed(2)+'</span>'
+          +'<span style="font-size:10px">'+(won?'✓':'✗')+'</span>'
+          +'</div>';
+      }
+      var callWon=!!r.callWon, ntHWon=!!r.ntHWon, putWon=!!r.putWon, ntLWon=!!r.ntLWon;
+      // Use stored profits if available, otherwise fall back to stake-based estimate
+      var callPnl = (r.callProfit !== undefined) ? r.callProfit : (callWon ? parseFloat((stake*1.286).toFixed(2)) : -stake);
+      var ntHPnl  = (r.ntHProfit  !== undefined) ? r.ntHProfit  : (ntHWon  ? parseFloat((stake*1.429).toFixed(2)) : -stake);
+      var putPnl  = (r.putProfit  !== undefined) ? r.putProfit  : (putWon  ? parseFloat((stake*1.286).toFixed(2)) : -stake);
+      var ntLPnl  = (r.ntLProfit  !== undefined) ? r.ntLProfit  : (ntLWon  ? parseFloat((stake*1.429).toFixed(2)) : -stake);
+      var higherTotal=callPnl+ntHPnl, lowerTotal=putPnl+ntLPnl;
+      return '<div style="margin-bottom:10px;border:1px solid '+resultBorder+';border-radius:10px;background:'+resultBg+';overflow:hidden">'
+        +'<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05)">'
+          +'<span style="font-size:11px;font-weight:700;color:'+resultColor+'">'+resultLabel+'</span>'
+          +'<span style="font-size:10px;color:var(--t2);font-weight:600">'+r.asset+'</span>'
+          +'<span style="font-size:10px;color:var(--t3)">R#'+r.rid+' • '+r.time+'</span>'
+          +'<span style="font-size:10px;color:var(--t3)">entry:'+(r.entry||0).toFixed(dp)+' ±'+barrier.toFixed(2)+'</span>'
+          +'<span style="margin-left:auto;font-size:13px;font-weight:700;font-family:var(--mo);color:'+(total>=0?'var(--ac)':'var(--re)')+'">'+
+            (total>=0?'+':'')+total.toFixed(2)+'</span>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'
+          +'<div style="padding:8px 12px;border-right:1px solid rgba(255,255,255,0.05)">'
+            +'<div style="font-size:11px;font-weight:700;color:'+(higherTotal>=0?'var(--ac)':'var(--re)');margin-bottom:5px">↑ HIGHER '+(higherTotal>=0?'WON':'LOST')+'</div>'
+            +cnRow('CALL @ +'+barrier.toFixed(2),callWon,callPnl)
+            +cnRow('NOTOUCH @ +'+barrier.toFixed(2),ntHWon,ntHPnl)
+          +'</div>'
+          +'<div style="padding:8px 12px">'
+            +'<div style="font-size:11px;font-weight:700;color:'+(lowerTotal>=0?'var(--ac)':'var(--re)');margin-bottom:5px">↓ LOWER '+(lowerTotal>=0?'WON':'LOST')+'</div>'
+            +cnRow('PUT @ -'+barrier.toFixed(2),putWon,putPnl)
+            +cnRow('NOTOUCH @ -'+barrier.toFixed(2),ntLWon,ntLPnl)
+          +'</div>'
+        +'</div>'
+        +(s.atr5!==undefined?
+          '<div style="display:flex;gap:8px;font-size:9px;color:var(--t3);font-family:var(--mo);flex-wrap:wrap;padding:5px 12px;border-top:1px solid rgba(255,255,255,0.05)">'
+            +'<span>ATR:'+s.atr5+'</span><span>'+s.upPct+'%↑ '+s.dnPct+'%↓</span>'
+            +'<span>'+s.confLabel+'</span>'
+          +'</div>':'')
+        +'</div>';
+    }
+
+    // ── Legacy CALL+PUT entry ────────────────────────────────────
+    var gapLoss=s.gapLoss||(!r.callWon&&!r.putWon);
+    resultColor=gapLoss?'var(--go)':r.win?'var(--ac)':'var(--re)';
+    resultLabel=gapLoss?'⚠ GAP LOSS':r.win?'WIN ✅':'LOSS ❌';
+    resultBorder=gapLoss?'rgba(245,166,35,0.3)':r.win?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.3)';
+    resultBg=gapLoss?'rgba(245,166,35,0.06)':r.win?'rgba(0,229,160,0.06)':'rgba(255,77,106,0.06)';
+
     function buildSideRows(side){
       var rows='';
       if(r.contracts&&r.contracts.length){
@@ -5933,23 +5990,21 @@ function gmRenderHistory(){
           var res=side==='call'?ct.callResult:ct.putResult;
           var won=res&&res.win;
           var pnl=res?res.profit:-(ct.stake||0);
-          var pnlStr=(pnl>=0?'+':'')+pnl.toFixed(2);
-          var pay=side==='call'?ct.callPay:ct.putPay;
+          var pay=(side==='call'?ct.callPay:ct.putPay)||0;
           rows+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'
             +'<span style="font-size:9px;color:var(--t3);font-family:var(--mo);width:28px;flex-shrink:0">L'+(i+1)+'</span>'
-            +'<span style="font-size:10px;color:var(--t2);font-family:var(--mo);flex:1">±'+ct.dist.toFixed(2)+' @ $'+ct.stake.toFixed(2)+'</span>'
+            +'<span style="font-size:10px;color:var(--t2);font-family:var(--mo);flex:1">±'+(ct.dist||0).toFixed(2)+' @ $'+(ct.stake||0).toFixed(2)+'</span>'
             +'<span style="font-size:10px;color:var(--t3);font-family:var(--mo)">pay $'+pay.toFixed(2)+'</span>'
-            +'<span style="font-size:10px;font-weight:700;font-family:var(--mo);color:'+(won?'var(--ac)':'var(--re)')+'">'+pnlStr+'</span>'
+            +'<span style="font-size:10px;font-weight:700;font-family:var(--mo);color:'+(won?'var(--ac)':'var(--re)')+'">'+(pnl>=0?'+':'')+pnl.toFixed(2)+'</span>'
             +'<span style="font-size:10px">'+(won?'✓':'✗')+'</span>'
             +'</div>';
         });
       } else {
-        // Legacy single-level
         var won=side==='call'?r.callWon:r.putWon;
-        var pay=side==='call'?r.callPay:r.putPay;
-        var pnl=won?(pay-r.stake):-(r.stake);
+        var pay=(side==='call'?r.callPay:r.putPay)||0;
+        var pnl=won?(pay-stake):-stake;
         rows+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0">'
-          +'<span style="font-size:10px;color:var(--t2);font-family:var(--mo);flex:1">±'+(r.offset||0.05).toFixed(2)+' @ $'+(r.stake).toFixed(2)+'</span>'
+          +'<span style="font-size:10px;color:var(--t2);font-family:var(--mo);flex:1">±'+(r.offset||0.05).toFixed(2)+' @ $'+stake.toFixed(2)+'</span>'
           +'<span style="font-size:10px;color:var(--t3);font-family:var(--mo)">pay $'+pay.toFixed(2)+'</span>'
           +'<span style="font-size:10px;font-weight:700;font-family:var(--mo);color:'+(won?'var(--ac)':'var(--re)')+'">'+(pnl>=0?'+':'')+pnl.toFixed(2)+'</span>'
           +'<span style="font-size:10px">'+(won?'✓':'✗')+'</span>'
@@ -5965,24 +6020,21 @@ function gmRenderHistory(){
         if(ct.putResult)putTotal+=ct.putResult.profit;  else putTotal-=(ct.stake||0);
       });
     } else {
-      callTotal=r.callWon?(r.callPay-r.stake):-(r.stake);
-      putTotal=r.putWon?(r.putPay-r.stake):-(r.stake);
+      callTotal=r.callWon?((r.callPay||0)-stake):-stake;
+      putTotal=r.putWon?((r.putPay||0)-stake):-stake;
     }
     var callSideWon=callTotal>0, putSideWon=putTotal>0;
 
     return '<div style="margin-bottom:10px;border:1px solid '+resultBorder+';border-radius:10px;background:'+resultBg+';overflow:hidden">'
-      // ── Round header ──
       +'<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05)">'
         +'<span style="font-size:11px;font-weight:700;color:'+resultColor+'">'+resultLabel+'</span>'
         +'<span style="font-size:11px;font-weight:600;color:var(--t2)">'+r.asset+'</span>'
         +'<span style="font-size:10px;color:var(--t3)">R#'+r.rid+' • '+r.time+(s.session?' • '+s.session:'')+'</span>'
         +'<span style="font-size:10px;color:var(--t3)">entry: '+(r.entry||0).toFixed(dp)+'</span>'
-        +'<span style="margin-left:auto;font-size:13px;font-weight:700;font-family:var(--mo);color:'+(r.total>=0?'var(--ac)':'var(--re)')+'">'+
-          (r.total>=0?'+':'')+r.total.toFixed(2)+'</span>'
+        +'<span style="margin-left:auto;font-size:13px;font-weight:700;font-family:var(--mo);color:'+(total>=0?'var(--ac)':'var(--re)')+'">'+
+          (total>=0?'+':'')+total.toFixed(2)+'</span>'
       +'</div>'
-      // ── Two column sides ──
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'
-        // HIGHER side
         +'<div style="padding:8px 12px;border-right:1px solid rgba(255,255,255,0.05)">'
           +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
             +'<span style="font-size:12px">↑</span>'
@@ -5991,7 +6043,6 @@ function gmRenderHistory(){
           +'</div>'
           +buildSideRows('call')
         +'</div>'
-        // LOWER side
         +'<div style="padding:8px 12px">'
           +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
             +'<span style="font-size:12px">↓</span>'
@@ -6001,7 +6052,6 @@ function gmRenderHistory(){
           +buildSideRows('put')
         +'</div>'
       +'</div>'
-      // ── Footer stats row ──
       +(s.atr5!==undefined?
         '<div style="display:flex;gap:8px;font-size:9px;color:var(--t3);font-family:var(--mo);flex-wrap:wrap;padding:5px 12px;border-top:1px solid rgba(255,255,255,0.05)">'
           +'<span>ATR:'+s.atr5+'</span>'
