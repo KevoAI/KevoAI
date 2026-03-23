@@ -5226,6 +5226,11 @@ function gmSettle(rid){
     entry:r.entry,
     offset:r.tightestDist||r.offset||0.05,
     isBatch:!!r.isBatch,
+    contracts:r.contracts?r.contracts.map(function(ct){return{
+      dist:ct.dist,stake:ct.stake,
+      callPay:ct.callPay,putPay:ct.putPay,
+      callResult:ct.callResult,putResult:ct.putResult
+    };}):null,
     snap:snap
   });
 
@@ -5296,41 +5301,98 @@ function gmRenderHistory(){
   el.innerHTML=GM.history.slice(0,20).map(function(r){
     var s=r.snap||{};
     var gapLoss=s.gapLoss||(!r.callWon&&!r.putWon);
-    var winSide=r.callWon?'↑ HIGHER':'↓ LOWER';
-    var loseSide=r.callWon?'↓ LOWER':'↑ HIGHER';
-    var resultBg=gapLoss?'rgba(245,166,35,0.2)':r.win?'var(--ad)':'var(--rd)';
     var resultColor=gapLoss?'var(--go)':r.win?'var(--ac)':'var(--re)';
-    var resultLabel=gapLoss?'GAP':r.win?'WIN':'LOSS';
-    var snapRow='';
-    if(s.atr5!==undefined){
-      snapRow='<div style="display:flex;gap:8px;font-size:9px;color:var(--t3);font-family:var(--mo);flex-wrap:wrap;padding:4px 6px;background:var(--bg3);border-radius:4px;margin-top:3px">'
-        +'<span>ATR:'+s.atr5+' ['+s.atrLabel+']</span>'
-        +'<span>Vol:±'+s.range20+'</span>'
-        +'<span>'+s.upPct+'%↑ '+s.dnPct+'%↓</span>'
-        +'<span>Conf:'+s.confLabel+'</span>'
-        +'<span>Mom:'+s.momentum+'</span>'
-        +'<span>Trend:'+s.trend+'</span>'
-        +'<span>BB:'+(s.bbSqueeze?'SQUEEZE':parseFloat(s.bbWidth||0).toFixed(2)+'%')+'</span>'
-        +'<span>Move:'+(s.priceMove!==undefined?(s.priceMove>=0?'+':'')+s.priceMove:'--')+'</span>'
-        +'<span>'+s.session+'</span>'
-        +'</div>';
+    var resultLabel=gapLoss?'⚠ GAP LOSS':r.win?'WIN ✅':'LOSS ❌';
+    var resultBorder=gapLoss?'rgba(245,166,35,0.3)':r.win?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.3)';
+    var resultBg=gapLoss?'rgba(245,166,35,0.06)':r.win?'rgba(0,229,160,0.06)':'rgba(255,77,106,0.06)';
+    var dp=r.entry>100?2:5;
+
+    // Build per-level contract rows for each side
+    function buildSideRows(side){
+      var rows='';
+      if(r.contracts&&r.contracts.length){
+        r.contracts.forEach(function(ct,i){
+          var res=side==='call'?ct.callResult:ct.putResult;
+          var won=res&&res.win;
+          var pnl=res?res.profit:-(ct.stake||0);
+          var pnlStr=(pnl>=0?'+':'')+pnl.toFixed(2);
+          var pay=side==='call'?ct.callPay:ct.putPay;
+          rows+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'
+            +'<span style="font-size:9px;color:var(--t3);font-family:var(--mo);width:28px;flex-shrink:0">L'+(i+1)+'</span>'
+            +'<span style="font-size:10px;color:var(--t2);font-family:var(--mo);flex:1">±'+ct.dist.toFixed(2)+' @ $'+ct.stake.toFixed(2)+'</span>'
+            +'<span style="font-size:10px;color:var(--t3);font-family:var(--mo)">pay $'+pay.toFixed(2)+'</span>'
+            +'<span style="font-size:10px;font-weight:700;font-family:var(--mo);color:'+(won?'var(--ac)':'var(--re)')+'">'+pnlStr+'</span>'
+            +'<span style="font-size:10px">'+(won?'✓':'✗')+'</span>'
+            +'</div>';
+        });
+      } else {
+        // Legacy single-level
+        var won=side==='call'?r.callWon:r.putWon;
+        var pay=side==='call'?r.callPay:r.putPay;
+        var pnl=won?(pay-r.stake):-(r.stake);
+        rows+='<div style="display:flex;align-items:center;gap:6px;padding:3px 0">'
+          +'<span style="font-size:10px;color:var(--t2);font-family:var(--mo);flex:1">±'+(r.offset||0.05).toFixed(2)+' @ $'+(r.stake).toFixed(2)+'</span>'
+          +'<span style="font-size:10px;color:var(--t3);font-family:var(--mo)">pay $'+pay.toFixed(2)+'</span>'
+          +'<span style="font-size:10px;font-weight:700;font-family:var(--mo);color:'+(won?'var(--ac)':'var(--re)')+'">'+(pnl>=0?'+':'')+pnl.toFixed(2)+'</span>'
+          +'<span style="font-size:10px">'+(won?'✓':'✗')+'</span>'
+          +'</div>';
+      }
+      return rows;
     }
-    return '<div style="padding:9px 0;border-bottom:1px solid var(--bo);font-size:12px">'
-      +'<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">'
-      +'<span style="padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;background:'+resultBg+';color:'+resultColor+'">'+resultLabel+'</span>'
-      +'<span style="color:var(--t2);font-weight:600">'+r.asset+'</span>'
-      +'<span style="color:var(--t3);font-size:10px">'+r.time+(s.session?' • '+s.session:'')+'</span>'
-      +'<span style="margin-left:auto;font-weight:700;font-family:var(--mo);color:'+(r.total>=0?'var(--ac)':'var(--re)')+'">'+( r.total>=0?'+':'')+r.total.toFixed(2)+'</span>'
+
+    var callTotal=0,putTotal=0;
+    if(r.contracts&&r.contracts.length){
+      r.contracts.forEach(function(ct){
+        if(ct.callResult)callTotal+=ct.callResult.profit; else callTotal-=(ct.stake||0);
+        if(ct.putResult)putTotal+=ct.putResult.profit;  else putTotal-=(ct.stake||0);
+      });
+    } else {
+      callTotal=r.callWon?(r.callPay-r.stake):-(r.stake);
+      putTotal=r.putWon?(r.putPay-r.stake):-(r.stake);
+    }
+    var callSideWon=callTotal>0, putSideWon=putTotal>0;
+
+    return '<div style="margin-bottom:10px;border:1px solid '+resultBorder+';border-radius:10px;background:'+resultBg+';overflow:hidden">'
+      // ── Round header ──
+      +'<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05)">'
+        +'<span style="font-size:11px;font-weight:700;color:'+resultColor+'">'+resultLabel+'</span>'
+        +'<span style="font-size:11px;font-weight:600;color:var(--t2)">'+r.asset+'</span>'
+        +'<span style="font-size:10px;color:var(--t3)">R#'+r.rid+' • '+r.time+(s.session?' • '+s.session:'')+'</span>'
+        +'<span style="font-size:10px;color:var(--t3)">entry: '+(r.entry||0).toFixed(dp)+'</span>'
+        +'<span style="margin-left:auto;font-size:13px;font-weight:700;font-family:var(--mo);color:'+(r.total>=0?'var(--ac)':'var(--re)')+'">'+
+          (r.total>=0?'+':'')+r.total.toFixed(2)+'</span>'
       +'</div>'
-      +'<div style="display:flex;gap:8px;font-size:10px;font-family:var(--mo);flex-wrap:wrap;margin-bottom:2px">'
-      +(gapLoss
-        ?'<span style="color:var(--go)">⚠ GAP — price inside ±'+parseFloat(r.offset||0.12).toFixed(2)+'</span>'
-        :'<span style="color:'+(r.callWon?'var(--ac)':'var(--re)')+'">'+winSide+' WON +$'+(r.callWon?r.callPnl:r.putPnl).toFixed(2)+'</span>'
-         +'<span style="color:var(--t3)">'+loseSide+' -$'+r.stake.toFixed(2)+'</span>'
-      )
-      +'<span style="color:var(--t3)">pay:$'+r.combinedPay.toFixed(2)+'</span>'
+      // ── Two column sides ──
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'
+        // HIGHER side
+        +'<div style="padding:8px 12px;border-right:1px solid rgba(255,255,255,0.05)">'
+          +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
+            +'<span style="font-size:12px">↑</span>'
+            +'<span style="font-size:11px;font-weight:700;color:'+(callSideWon?'var(--ac)':'var(--re)')+'">HIGHER '+(callSideWon?'WON':'LOST')+'</span>'
+            +'<span style="margin-left:auto;font-size:11px;font-weight:700;font-family:var(--mo);color:'+(callSideWon?'var(--ac)':'var(--re)')+'">'+(callTotal>=0?'+':'')+callTotal.toFixed(2)+'</span>'
+          +'</div>'
+          +buildSideRows('call')
+        +'</div>'
+        // LOWER side
+        +'<div style="padding:8px 12px">'
+          +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
+            +'<span style="font-size:12px">↓</span>'
+            +'<span style="font-size:11px;font-weight:700;color:'+(putSideWon?'var(--ac)':'var(--re)')+'">LOWER '+(putSideWon?'WON':'LOST')+'</span>'
+            +'<span style="margin-left:auto;font-size:11px;font-weight:700;font-family:var(--mo);color:'+(putSideWon?'var(--ac)':'var(--re)')+'">'+(putTotal>=0?'+':'')+putTotal.toFixed(2)+'</span>'
+          +'</div>'
+          +buildSideRows('put')
+        +'</div>'
       +'</div>'
-      +snapRow
+      // ── Footer stats row ──
+      +(s.atr5!==undefined?
+        '<div style="display:flex;gap:8px;font-size:9px;color:var(--t3);font-family:var(--mo);flex-wrap:wrap;padding:5px 12px;border-top:1px solid rgba(255,255,255,0.05)">'
+          +'<span>ATR:'+s.atr5+'</span>'
+          +'<span>'+s.upPct+'%↑ '+s.dnPct+'%↓</span>'
+          +'<span>'+s.confLabel+'</span>'
+          +'<span>'+s.momentum+'</span>'
+          +'<span>'+s.trend+'</span>'
+          +'<span>Move:'+(s.priceMove!==undefined?(s.priceMove>=0?'+':'')+s.priceMove:'--')+'</span>'
+        +'</div>':'')
       +'</div>';
   }).join('');
 }
