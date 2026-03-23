@@ -941,7 +941,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <input type="number" class="iif" id="gm-budget" value="3.00" min="0.70" step="0.70" oninput="gmCalc()">
                     <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.70).toFixed(2);gmCalc()">+</div>
                   </div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">3× same barrier ±0.05 — $2.00 + $0.75 + $0.35 = <span id="gm-stake-display">$3.10</span> per side</div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">3× barrier ±0.35 — $0.80 + $0.35 + $0.35 = <span id="gm-stake-display">$1.50</span> per side · $3.00 total</div>
                 </div>
                 <!-- Barrier Offset -->
                 <div class="ig" style="margin-bottom:11px">
@@ -4186,13 +4186,13 @@ var GM = {
   // Multi-barrier batch config
   // Each level: {dist, stake} — dist is barrier distance, stake is per-side amount
   batchLevels:[
-    {dist:0.05, stake:2.00},
-    {dist:0.05, stake:0.75},
-    {dist:0.05, stake:0.35}
+    {dist:0.35, stake:0.80},
+    {dist:0.35, stake:0.35},
+    {dist:0.35, stake:0.35}
   ],
-  // All 3 levels at SAME barrier — when price breaks, ALL 3 win simultaneously
-  // Per side: $3.10 total stake, $6.77 total payout (~2.18x) → net ~+$3.67 per win
-  // Total risk per round: $6.20
+  // All 3 contracts at SAME barrier ±0.35 — all win together when price breaks
+  // Per side: $1.50 total stake = $3.00 total risk per round
+  // At ±0.35 Deriv pays ~3x-4x multiplier vs ~2.2x at ±0.05
   // Scanner state
   scanAssets:['R_100'],
   scanResults:{},
@@ -4577,50 +4577,25 @@ function gmCalc(){
   // Level breakdown string
   var levelBreakdown=levels.map(function(l,i){return 'L'+(i+1)+' ±'+l.dist.toFixed(2)+' $'+l.stake.toFixed(2);}).join(' | ');
 
-  // Use last probe data for payout display if available
-  // GM.lastCallPay / GM.lastPutPay are tight-level payouts (L1)
-  // For full batch: estimate total call/put payout from probe responses if saved
-  var tightCallPay=GM.lastCallPay||0;
-  var tightPutPay=GM.lastPutPay||0;
-  var combined=tightCallPay+tightPutPay;
+  // Use saved probe totals from last gate evaluation
+  var callWinNet = (GM.lastCallWinNet !== undefined) ? GM.lastCallWinNet : -999;
+  var putWinNet  = (GM.lastPutWinNet  !== undefined) ? GM.lastPutWinNet  : -999;
+  var combined   = GM.lastCombinedPay || 0;
+  var passes     = callWinNet > 0 || putWinNet > 0;
+  var hasData    = combined > 0;
 
-  // Gate: estimate net using tight level only as representative
-  // Real gate uses all levels, this is the display approximation
-  var callWinNet=tightCallPay>0?(tightCallPay-totalStakePerSide-totalStakePerSide):-999;
-  var putWinNet=tightPutPay>0?(tightPutPay-totalStakePerSide-totalStakePerSide):-999;
-
-  // Better estimate: if probe responses available use them
-  if(_gmProbe&&_gmProbe._responses&&Object.keys(_gmProbe._responses).length>0){
-    var _tc=0,_tp=0,_ok=true;
-    levels.forEach(function(l,i){
-      var cr=_gmProbe._responses['call_'+i];
-      var pr=_gmProbe._responses['put_'+i];
-      if(cr&&cr.payout)_tc+=cr.payout; else _ok=false;
-      if(pr&&pr.payout)_tp+=pr.payout; else _ok=false;
-    });
-    if(_ok&&_tc>0){
-      callWinNet=parseFloat((_tc-totalStakePerSide*2).toFixed(2));
-      putWinNet=parseFloat((_tp-totalStakePerSide*2).toFixed(2));
-      combined=_tc+_tp;
-      tightCallPay=_tc; tightPutPay=_tp;
-    }
-  }
-
-  var passes=callWinNet>0||putWinNet>0;
-  var bestNet=Math.max(callWinNet,putWinNet);
-  var worstNet=Math.min(callWinNet,putWinNet);
-
+  var fmtNet=function(n){return n>-999?(n>=0?'+$':'-$')+Math.abs(n).toFixed(2):'--';};
   if(el)el.textContent=
     '═══ RISK PER ROUND ════════════════════\n'
    +'Levels:       '+levelBreakdown+'\n'
-   +'Per side:     $'+totalStakePerSide.toFixed(2)+'  (3 levels combined)\n'
+   +'Per side:     $'+totalStakePerSide.toFixed(2)+'  ('+levels.length+' contracts same barrier)\n'
    +'Total risk:   $'+totalRisk.toFixed(2)+'  (both sides)\n'
-   +'Barrier L1:   ±'+offset.toFixed(2)+' (tightest)\n'
+   +'Barrier:      ±'+offset.toFixed(2)+'\n'
    +'\n'
    +'═══ EXPECTED PROFIT ═══════════════════\n'
-   +'If HIGHER wins: '+(callWinNet>-999?(callWinNet>=0?'+$':'-$')+Math.abs(callWinNet).toFixed(2):'fetching...')+'\n'
-   +'If LOWER wins:  '+(putWinNet>-999?(putWinNet>=0?'+$':'-$')+Math.abs(putWinNet).toFixed(2):'fetching...')+'\n'
-   +'Gate status:  '+(combined>0?(passes?'✅ PASS':'❌ SKIP — net negative'):'Waiting for probe...')+'\n'
+   +'If HIGHER wins: '+fmtNet(callWinNet)+'\n'
+   +'If LOWER wins:  '+fmtNet(putWinNet)+'\n'
+   +'Gate status:  '+(hasData?(passes?'✅ PASS':'❌ SKIP — net negative'):'Waiting for first probe...')+'\n'
    +'\n'
    +'═══ SESSION LIMITS ════════════════════\n'
    +'Confidence:   '+(GM.confThresh===0?'OFF (always trade)':GM.confThresh+'%+ in one direction')+'\n'
@@ -4877,6 +4852,14 @@ function onGMProbe(proposal,pendInfo){
   var passes = allLevelsOk && (callWinNet > 0 || putWinNet > 0);
   var bestNet = Math.max(callWinNet, putWinNet);
   var totalStakePerSide = totalCallStake; // same both sides
+
+  // ── Save last probe totals so gmCalc() can always display them ──
+  GM.lastCallPay = totalCallPayout;
+  GM.lastPutPay  = totalPutPayout;
+  GM.lastCallWinNet = callWinNet;
+  GM.lastPutWinNet  = putWinNet;
+  GM.lastCombinedPay = totalCallPayout + totalPutPayout;
+  gmCalc(); // refresh Round Math panel with real numbers
 
   // Update gate display
   var gEl=document.getElementById('gm-gate-status');
@@ -5436,7 +5419,7 @@ function gmReset(){
   GM.pnl=0;GM.rounds=0;GM.won=0;GM.lost=0;
   GM.history=[];GM.activeCids={};GM.pending={};GM.lastRoundTime=0;
   GM.cooldownEnd=0;
-  GM.lastCallPay=0;GM.lastPutPay=0;GM.lastCombinedPay=0;GM._skipped=0;
+  GM.lastCallPay=0;GM.lastPutPay=0;GM.lastCombinedPay=0;GM.lastCallWinNet=undefined;GM.lastPutWinNet=undefined;GM._skipped=0;
   _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:'',_waiting:false};
   gmUpdateStats();gmRenderHistory();
   var net=document.getElementById('gm-round-net');if(net)net.textContent='$0.00';var skEl2=document.getElementById('gm-skipped');if(skEl2)skEl2.textContent='0';
