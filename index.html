@@ -4388,12 +4388,13 @@ function gmRenderScanner(){
   if(bestBarEl&&r)bestBarEl.textContent='±'+r.barrier.toFixed(2)+' ('+r.dominantDir+' dominant)';
 }
 
-// ── Gate: combined payout must exceed 2× total stake ──
+// ── Gate: total winning side payout must exceed total losing side stake ──
 function gmGatePasses(callPay, putPay, stake){
-  // Each individual payout must exceed the total risk (stake x2)
-  // because whichever side wins, it must return more than both stakes combined
+  // Single-level shorthand used by signal badge
+  // callPay/putPay here are the tight-level payouts; stake = per-side total
+  // Net if HIGHER wins: callPay - totalRisk; Net if LOWER wins: putPay - totalRisk
   var totalRisk = stake * 2;
-  return callPay > totalRisk && putPay > totalRisk;
+  return callPay > totalRisk || putPay > totalRisk;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -4809,29 +4810,38 @@ function onGMProbe(proposal,pendInfo){
   if(_gmProbe._resetTimer){clearTimeout(_gmProbe._resetTimer);_gmProbe._resetTimer=null;}
 
   // ── BATCH GATE ──────────────────────────────────────────────────
-  // Sum of (payout - stake) across ALL 6 contracts must be > 0
-  // i.e. if one side sweeps all barriers, we profit
-  var totalNet=0;
+  // HOW THE STRATEGY WORKS:
+  //   When price breaks HIGHER: ALL CALL contracts win, ALL PUT contracts lose
+  //   When price breaks LOWER:  ALL PUT contracts win, ALL CALL contracts lose
+  //   Price stays in gap: ALL contracts lose (worst case — we avoid flat markets)
+  //
+  // GATE FORMULA:
+  //   Total CALL payout (sum all levels) must exceed total PUT stake (sum all levels)
+  //   AND / OR vice versa — whichever direction wins, we profit
+  //
+  // i.e. totalCallPayout > totalPutStake  →  profitable if price goes HIGHER
+  //      totalPutPayout  > totalCallStake →  profitable if price goes LOWER
+  //      Either condition passing = TRADE (one direction always wins)
+
   var levels=_gmProbe._levels;
   var allLevelsOk=true;
+  var totalCallPayout=0, totalPutPayout=0;
+  var totalCallStake=0, totalPutStake=0;
+
   for(var i=0;i<levels.length;i++){
     var cKey='call_'+i, pKey='put_'+i;
     var cr=_gmProbe._responses[cKey], pr=_gmProbe._responses[pKey];
     if(!cr||!pr){allLevelsOk=false;break;}
-    // Net if CALL side wins this level: payout - stake (this level) - stake (opposite level)
-    // Gate: for the tightest level, payout must cover at least the total opposite-side stake
-    totalNet+=(cr.payout-cr.stake)+(pr.payout-pr.stake);
+    totalCallPayout+=cr.payout; totalCallStake+=cr.stake;
+    totalPutPayout+=pr.payout;  totalPutStake+=pr.stake;
   }
 
-  // Calculate: if tightest barrier wins, does it cover total loss on opposite side?
-  var tightCall=_gmProbe._responses['call_0'];
-  var tightPut=_gmProbe._responses['put_0'];
-  var totalStakePerSide=levels.reduce(function(s,l){return s+l.stake;},0);
-  // Best case: tight barrier wins + all other barriers on SAME side win
-  // Worst case: tight barrier alone covers entire opposite side
-  var tightCallNet=tightCall?(tightCall.payout-tightCall.stake-totalStakePerSide):(-999);
-  var tightPutNet=tightPut?(tightPut.payout-tightPut.stake-totalStakePerSide):(-999);
-  var passes=allLevelsOk&&(tightCallNet>0||tightPutNet>0);
+  // Net profit for each scenario
+  var callWinNet = totalCallPayout - totalCallStake - totalPutStake;  // price goes HIGHER
+  var putWinNet  = totalPutPayout  - totalPutStake  - totalCallStake; // price goes LOWER
+  var passes = allLevelsOk && (callWinNet > 0 || putWinNet > 0);
+  var bestNet = Math.max(callWinNet, putWinNet);
+  var totalStakePerSide = totalCallStake; // same both sides
 
   // Update gate display
   var gEl=document.getElementById('gm-gate-status');
@@ -4841,13 +4851,16 @@ function onGMProbe(proposal,pendInfo){
   // Show breakdown in expected profit field
   if(epEl){
     if(passes){
-      var minNet=Math.max(tightCallNet,tightPutNet);
-      epEl.textContent='Min profit if tight hits: +$'+minNet.toFixed(2)+' | Total stake: $'+(totalStakePerSide*2).toFixed(2);
+      epEl.textContent='If HIGHER: +$'+callWinNet.toFixed(2)+' | If LOWER: +$'+putWinNet.toFixed(2)+' | Total: $'+(totalCallStake+totalPutStake).toFixed(2);
     } else {
-      epEl.textContent='Gate fail — tight payout too low';
+      epEl.textContent='Gate fail — callNet:$'+callWinNet.toFixed(2)+' putNet:$'+putWinNet.toFixed(2)+' (need >$0)';
     }
     epEl.style.color=passes?'var(--ac)':'var(--re)';
   }
+
+  // Keep tightCall/tightPut refs for display below
+  var tightCall=_gmProbe._responses['call_0'];
+  var tightPut=_gmProbe._responses['put_0'];
 
   // Update payout display with level breakdown
   var cEl=document.getElementById('gm-call-pay');
@@ -4856,8 +4869,8 @@ function onGMProbe(proposal,pendInfo){
   if(pEl&&tightPut)pEl.textContent='L1: $'+tightPut.payout.toFixed(2)+' ('+(tightPut.payout/tightPut.stake).toFixed(2)+'x)';
 
   if(!passes){
-    console.log('[GM GATE] SKIP — tightCallNet:'+tightCallNet.toFixed(2)+' tightPutNet:'+tightPutNet.toFixed(2));
-    if(rs)rs.textContent='SKIP (tight barrier net: $'+Math.max(tightCallNet,tightPutNet).toFixed(2)+')';
+    console.log('[GM GATE] SKIP — callWinNet:'+callWinNet.toFixed(2)+' putWinNet:'+putWinNet.toFixed(2));
+    if(rs)rs.textContent='SKIP (best net: $'+bestNet.toFixed(2)+' — need >$0)';
     GM._skipped=(GM._skipped||0)+1;
     var skEl=document.getElementById('gm-skipped');if(skEl)skEl.textContent=GM._skipped;
     _gmProbe._waiting=false;_gmProbe._responses={};
