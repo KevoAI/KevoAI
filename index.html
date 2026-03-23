@@ -1279,7 +1279,7 @@ function handleMsg(d) {
     var _gmRound=GM.pending[_gmRid];
     if(_gmRound&&_gmRound.isBatch){
       // Batch: count this contract as a loss and increment settled
-      var _idx=pend.gmLevelIdx||0;
+      var _idx=pend.gmLevelIdx!=null?pend.gmLevelIdx:0;
       var _ct=_gmRound.contracts&&_gmRound.contracts[_idx];
       if(_ct){
         var _lossAmt=-(pend.stake||_ct.stake||0);
@@ -1663,7 +1663,7 @@ function onBuy(buy, reqId) {
         parseFloat((t.price+_off).toFixed(t.price>100?2:5)):
         parseFloat((t.price-_off).toFixed(t.price>100?2:5));
     }
-    onGMBuy(buy.contract_id+'',p.gmSide,p.gmRound,p.gmLevelIdx||0);
+    onGMBuy(buy.contract_id+'',p.gmSide,p.gmRound,p.gmLevelIdx!=null?p.gmLevelIdx:0);
     // Keep GM trades in S.trades for settlement routing
     // They are filtered from display in renderTrades/renderActive
     // but DO appear in Journal with GM label
@@ -1797,7 +1797,7 @@ function onContract(c) {
     S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
     return;
   }
-  if(t.isGM&&t.gmRound){onGMResult(t.gmRound,t.gmSide,profit,exitPrice,t.gmLevelIdx||0);return;}
+  if(t.isGM&&t.gmRound){onGMResult(t.gmRound,t.gmSide,profit,exitPrice,t.gmLevelIdx!=null?t.gmLevelIdx:0);return;}
   if(t.isHB&&t.hbRound!==null){
     onHBResult(t.hbRound,t.hbIdx,profit,t.direction,t.exitPrice);
     localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
@@ -4207,10 +4207,16 @@ var GM = {
     {dist:0.16, stake:0.35},
     {dist:0.18, stake:0.35}
   ],
-  // 3 contracts at DIFFERENT distances above Deriv minimum (±0.14)
-  // Genuinely unique barriers = Deriv accepts all 3
-  // Biggest stake on tightest barrier (hits most often)
-  // Per side: $1.50 total = $3.00 total risk
+  // ASYMMETRIC MODE:
+  // Big side (predicted direction): $2.20 total stake
+  // Hedge side (opposite):          $0.80 total stake (auto-sized to break even)
+  // Total risk: $3.00
+  // If RIGHT:  big side pays ~$6.05, minus $0.80 hedge = +$5.25
+  // If WRONG:  hedge pays ~$2.20, covers big side loss  = $0.00 break even
+  // Gap loss:  -$3.00 ONLY real risk
+  asymmetric: true,
+  bigStake:   2.20,
+  hedgeStake: 0.80
   // Scanner state
   scanAssets:['R_100'],
   scanResults:{},
@@ -4615,21 +4621,35 @@ function gmCalc(){
   var passes     = callWinNet > 0 || putWinNet > 0;
   var hasData    = combined > 0;
 
+  var dir=GM._tradeDirection||'--';
+  var bigS=GM.bigStake||2.20;
+  var hedgeS=GM.hedgeStake||0.80;
   var fmtNet=function(n){return n>-999?(n>=0?'+$':'-$')+Math.abs(n).toFixed(2):'--';};
+
+  // Estimated profits from last probe
+  var _cNet=GM.lastCallWinNet!==undefined?GM.lastCallWinNet:-999;
+  var _pNet=GM.lastPutWinNet!==undefined?GM.lastPutWinNet:-999;
+  var _bigNet=dir==='UP'?_cNet:_pNet;
+  var _hedgeNet=dir==='UP'?_pNet:_cNet;
+
   if(el)el.textContent=
-    '═══ RISK PER ROUND ════════════════════\n'
-   +'Levels:       '+levelBreakdown+'\n'
-   +'Per side:     $'+totalStakePerSide.toFixed(2)+'  ('+levels.length+' contracts same barrier)\n'
-   +'Total risk:   $'+totalRisk.toFixed(2)+'  (both sides)\n'
-   +'Barrier:      ±'+offset.toFixed(2)+'\n'
+    '═══ ASYMMETRIC STRATEGY ════════════════\n'
+   +'Direction:    '+(dir==='UP'?'↑ HIGHER (BIG)':dir==='DN'?'↓ LOWER (BIG)':'waiting...')+'\n'
+   +'\n'
+   +'═══ RISK PER ROUND ════════════════════\n'
+   +'Big side:     $'+bigS.toFixed(2)+'  (predicted direction)\n'
+   +'Hedge side:   $'+hedgeS.toFixed(2)+'  (opposite — break even cover)\n'
+   +'Total risk:   $'+(bigS+hedgeS).toFixed(2)+'\n'
+   +'Barrier L1:   ±'+offset.toFixed(2)+'\n'
    +'\n'
    +'═══ EXPECTED PROFIT ═══════════════════\n'
-   +'If HIGHER wins: '+fmtNet(callWinNet)+'\n'
-   +'If LOWER wins:  '+fmtNet(putWinNet)+'\n'
-   +'Gate status:  '+(hasData?(passes?'✅ PASS':'❌ SKIP — net negative'):'Waiting for first probe...')+'\n'
+   +'If RIGHT ('+dir+'):   '+fmtNet(_bigNet)+'  🔥\n'
+   +'If WRONG:     '+fmtNet(_hedgeNet)+'  (should be ~$0)\n'
+   +'Gap loss:     -$'+(bigS+hedgeS).toFixed(2)+'  (only real risk)\n'
+   +'Gate status:  '+(hasData?(passes?'✅ PASS':'❌ SKIP'):'Waiting for probe...')+'\n'
    +'\n'
    +'═══ SESSION LIMITS ════════════════════\n'
-   +'Confidence:   '+(GM.confThresh===0?'OFF (always trade)':GM.confThresh+'%+ in one direction')+'\n'
+   +'Confidence:   '+(GM.confThresh===0?'OFF':GM.confThresh+'%+ in one direction')+'\n'
    +'Daily SL:     $'+sl+'   Daily TP: $'+tp;
 }
 
@@ -4758,62 +4778,74 @@ function gmFetchProposals(){
   }
   if(_gmProbe._waiting)return;
 
-  // ── Stake sanity check — Deriv minimum is $0.35 ──
-  var DERIV_MIN_STAKE=0.35;
-  var badLevels=GM.batchLevels.filter(function(l){return l.stake<DERIV_MIN_STAKE;});
-  if(badLevels.length>0){
-    var rs=document.getElementById('gm-round-status');
-    if(rs){rs.textContent='CONFIG ERROR: stake $'+badLevels[0].stake+' below Deriv minimum $'+DERIV_MIN_STAKE;rs.style.color='var(--re)';}
-    console.error('[GM] Stake below Deriv minimum ($'+DERIV_MIN_STAKE+'): ',badLevels);
-    return;
-  }
-  // ── Barrier sanity check — R_100 max safe barrier ~±0.20 ──
-  var DERIV_MIN_BARRIER=0.14;
-  var dist=GM.batchLevels[0]?GM.batchLevels[0].dist:0.14;
-  if(dist<DERIV_MIN_BARRIER){
-    var rs=document.getElementById('gm-round-status');
-    if(rs){rs.textContent='CONFIG ERROR: barrier ±'+dist+' below Deriv minimum ±'+DERIV_MIN_BARRIER;rs.style.color='var(--re)';}
-    console.error('[GM] Barrier below Deriv minimum for R_100: ±'+dist+' (min ±'+DERIV_MIN_BARRIER+')');
-    return;
-  }
-  _gmProbe._waiting=true;
-  _gmProbe._responses={};  // key: 'call_0', 'put_0', 'call_1', etc.
-  _gmProbe._entry=entry;
-  _gmProbe._levels=GM.batchLevels.slice(); // snapshot current levels
+  // ── Get direction from confidence ──
+  var conf=gmGetConfidence();
+  GM._tradeDirection=conf.bias; // 'UP' or 'DN'
 
-  var totalExpected=_gmProbe._levels.length*2;
+  // ── Build asymmetric levels ──
+  // Big side = predicted direction = $2.20 split across 3 levels
+  // Hedge side = opposite = $0.80 split across 3 levels
+  // Splits: L1 gets biggest chunk, L2/L3 smaller
+  var bigTotal=GM.bigStake||2.20;
+  var hedgeTotal=GM.hedgeStake||0.80;
+  // Split: 55% / 25% / 20% of each side
+  GM._bigLevels=[
+    {dist:0.14, stake:parseFloat((bigTotal*0.55).toFixed(2))},
+    {dist:0.16, stake:parseFloat((bigTotal*0.25).toFixed(2))},
+    {dist:0.18, stake:Math.max(0.35,parseFloat((bigTotal*0.20).toFixed(2)))}
+  ];
+  GM._hedgeLevels=[
+    {dist:0.14, stake:parseFloat((hedgeTotal*0.55).toFixed(2))},
+    {dist:0.16, stake:parseFloat((hedgeTotal*0.25).toFixed(2))},
+    {dist:0.18, stake:Math.max(0.35,parseFloat((hedgeTotal*0.20).toFixed(2)))}
+  ];
+  // Ensure all stakes >= $0.35 minimum
+  var DERIV_MIN_STAKE=0.35;
+  GM._bigLevels.forEach(function(l){l.stake=Math.max(DERIV_MIN_STAKE,l.stake);});
+  GM._hedgeLevels.forEach(function(l){l.stake=Math.max(DERIV_MIN_STAKE,l.stake);});
+
+  console.log('[GM ASYMMETRIC] Direction:'+GM._tradeDirection+' Big:$'+bigTotal+' Hedge:$'+hedgeTotal);
+  _gmProbe._waiting=true;
+  _gmProbe._responses={};
+  _gmProbe._entry=entry;
+
+  // ── Use asymmetric levels: CALL=big if UP, PUT=big if DN ──
+  var isUp=GM._tradeDirection==='UP';
+  var callLevels=isUp?GM._bigLevels:GM._hedgeLevels;   // CALL = HIGHER
+  var putLevels =isUp?GM._hedgeLevels:GM._bigLevels;   // PUT  = LOWER
+  _gmProbe._callLevels=callLevels;
+  _gmProbe._putLevels=putLevels;
+  _gmProbe._levels=callLevels; // for compatibility
+
+  var totalExpected=callLevels.length*2;
   _gmProbe._expected=totalExpected;
 
-  // Auto-reset after 8s if not all probes return
   _gmProbe._resetTimer=setTimeout(function(){
     console.warn('[GM PROBE] Timeout — only got '+Object.keys(_gmProbe._responses).length+'/'+totalExpected);
     _gmProbe._waiting=false;_gmProbe._responses={};
   },8000);
 
   var rs=document.getElementById('gm-round-status');
-  if(rs)rs.textContent='PROBING '+_gmProbe._levels.length+' LEVELS...';
+  if(rs)rs.textContent='PROBING '+(isUp?'↑BIG/↓HEDGE':'↓BIG/↑HEDGE')+'...';
 
-  // Send one proposal per level per side
-  // IMPORTANT: each proposal uses its actual stake amount so Deriv
-  // treats them as unique requests even when barrier/duration are identical
-  for(var i=0;i<_gmProbe._levels.length;i++){
-    var lvl=_gmProbe._levels[i];
-    var dist=lvl.dist;
-    var stake=lvl.stake;
-    var callB='+'+dist.toFixed(2);
-    var putB ='-'+dist.toFixed(2);
+  // Send proposals — each level uses its own stake so proposals are unique
+  for(var i=0;i<callLevels.length;i++){
+    var cLvl=callLevels[i];
+    var pLvl=putLevels[i];
 
-    var r1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
+    var callB='+'+cLvl.dist.toFixed(2);
+    var r1=wsSend({proposal:1,amount:cLvl.stake,basis:'stake',contract_type:'CALL',
       currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
       symbol:GM.asset,barrier:callB});
     if(r1)S.pending[r1]={type:'gm_probe',gmSide:'call',gmLevelIdx:i,
-      probeEntry:entry,probeStake:stake,probeOffset:dist,probeBarrier:callB};
+      probeEntry:entry,probeStake:cLvl.stake,probeOffset:cLvl.dist,probeBarrier:callB};
 
-    var r2=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'PUT',
+    var putB ='-'+pLvl.dist.toFixed(2);
+    var r2=wsSend({proposal:1,amount:pLvl.stake,basis:'stake',contract_type:'PUT',
       currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
       symbol:GM.asset,barrier:putB});
     if(r2)S.pending[r2]={type:'gm_probe',gmSide:'put',gmLevelIdx:i,
-      probeEntry:entry,probeStake:stake,probeOffset:dist,probeBarrier:putB};
+      probeEntry:entry,probeStake:pLvl.stake,probeOffset:pLvl.dist,probeBarrier:putB};
   }
 }
 
@@ -4861,26 +4893,21 @@ function onGMProbe(proposal,pendInfo){
   // All probes received — clear reset timer
   if(_gmProbe._resetTimer){clearTimeout(_gmProbe._resetTimer);_gmProbe._resetTimer=null;}
 
-  // ── BATCH GATE ──────────────────────────────────────────────────
-  // HOW THE STRATEGY WORKS:
-  //   When price breaks HIGHER: ALL CALL contracts win, ALL PUT contracts lose
-  //   When price breaks LOWER:  ALL PUT contracts win, ALL CALL contracts lose
-  //   Price stays in gap: ALL contracts lose (worst case — we avoid flat markets)
+  // ── ASYMMETRIC GATE ─────────────────────────────────────────────
+  // BIG side = predicted direction (more stake = more profit if right)
+  // HEDGE side = opposite (less stake = breaks even if wrong)
   //
-  // GATE FORMULA:
-  //   Total CALL payout (sum all levels) must exceed total PUT stake (sum all levels)
-  //   AND / OR vice versa — whichever direction wins, we profit
-  //
-  // i.e. totalCallPayout > totalPutStake  →  profitable if price goes HIGHER
-  //      totalPutPayout  > totalCallStake →  profitable if price goes LOWER
-  //      Either condition passing = TRADE (one direction always wins)
+  // GATE: hedge payout must cover big side stake (break even if wrong)
+  // i.e. totalHedgePayout >= totalBigStake
 
-  var levels=_gmProbe._levels;
+  var isUp=GM._tradeDirection==='UP';
+  var callLevels=_gmProbe._callLevels||_gmProbe._levels;
+  var putLevels=_gmProbe._putLevels||_gmProbe._levels;
   var allLevelsOk=true;
   var totalCallPayout=0, totalPutPayout=0;
   var totalCallStake=0, totalPutStake=0;
 
-  for(var i=0;i<levels.length;i++){
+  for(var i=0;i<callLevels.length;i++){
     var cKey='call_'+i, pKey='put_'+i;
     var cr=_gmProbe._responses[cKey], pr=_gmProbe._responses[pKey];
     if(!cr||!pr){allLevelsOk=false;break;}
@@ -4888,12 +4915,23 @@ function onGMProbe(proposal,pendInfo){
     totalPutPayout+=pr.payout;  totalPutStake+=pr.stake;
   }
 
-  // Net profit for each scenario
-  var callWinNet = totalCallPayout - totalCallStake - totalPutStake;  // price goes HIGHER
-  var putWinNet  = totalPutPayout  - totalPutStake  - totalCallStake; // price goes LOWER
-  var passes = allLevelsOk && (callWinNet > 0 || putWinNet > 0);
-  var bestNet = Math.max(callWinNet, putWinNet);
-  var totalStakePerSide = totalCallStake; // same both sides
+  // Big/hedge assignment based on direction
+  var bigPayout  = isUp ? totalCallPayout : totalPutPayout;
+  var bigStake   = isUp ? totalCallStake  : totalPutStake;
+  var hedgePayout= isUp ? totalPutPayout  : totalCallPayout;
+  var hedgeStake = isUp ? totalPutStake   : totalCallStake;
+  var totalRiskAll = bigStake + hedgeStake;
+
+  // Net calculations
+  var callWinNet = totalCallPayout - totalCallStake - totalPutStake;
+  var putWinNet  = totalPutPayout  - totalPutStake  - totalCallStake;
+  var bigWinNet  = bigPayout  - bigStake - hedgeStake;  // profit if predicted right
+  var hedgeWinNet= hedgePayout - hedgeStake - bigStake; // result if predicted wrong
+
+  // GATE: big side must be profitable AND hedge must cover big stake if wrong
+  var passes = allLevelsOk && bigWinNet > 0 && hedgePayout >= bigStake;
+  var bestNet = bigWinNet;
+  var totalStakePerSide = bigStake;
 
   // ── Save last probe totals so gmCalc() can always display them ──
   GM.lastCallPay = totalCallPayout;
@@ -4908,12 +4946,13 @@ function onGMProbe(proposal,pendInfo){
   var epEl=document.getElementById('gm-expected-profit');
   if(gEl){gEl.textContent=passes?'✅ PASS':'❌ SKIP';gEl.style.color=passes?'var(--ac)':'var(--re)';}
 
-  // Show breakdown in expected profit field
   if(epEl){
+    var dirLabel=isUp?'↑ HIGHER':'↓ LOWER';
+    var hedgeLabel=isUp?'↓ LOWER':'↑ HIGHER';
     if(passes){
-      epEl.textContent='If HIGHER: +$'+callWinNet.toFixed(2)+' | If LOWER: +$'+putWinNet.toFixed(2)+' | Risk: $'+(totalCallStake+totalPutStake).toFixed(2);
+      epEl.textContent=dirLabel+' wins: +$'+bigWinNet.toFixed(2)+' | '+hedgeLabel+' wins: $'+hedgeWinNet.toFixed(2)+' | Risk: $'+totalRiskAll.toFixed(2);
     } else {
-      epEl.textContent='Gate fail — callNet:$'+callWinNet.toFixed(2)+' putNet:$'+putWinNet.toFixed(2)+' (need >$0)';
+      epEl.textContent='Gate fail — big net:$'+bigWinNet.toFixed(2)+' hedge covers:$'+hedgePayout.toFixed(2)+'/'+bigStake.toFixed(2);
     }
     epEl.style.color=passes?'var(--ac)':'var(--re)';
   }
@@ -4939,7 +4978,7 @@ function onGMProbe(proposal,pendInfo){
 
   // ── GATE PASSED — place entire batch ──
   console.log('[GM GATE] PASS — placing '+levels.length+' levels ('+levels.length*2+' contracts)');
-  gmPlaceBatch(_gmProbe._responses,_gmProbe._levels,_gmProbe._entry);
+  gmPlaceBatch(_gmProbe._responses,_gmProbe._callLevels||_gmProbe._levels,_gmProbe._putLevels||_gmProbe._levels,_gmProbe._entry);
   _gmProbe._waiting=false;_gmProbe._responses={};
 }
 
@@ -4954,41 +4993,53 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   gmPlaceBatch(fakeResponses,fakeLevels,entry);
 }
 
-function gmPlaceBatch(responses,levels,entry){
+function gmPlaceBatch(responses,callLevels,putLevels,entry){
   if(!S.connected)return;
+  // Support old single-levels call signature
+  if(entry===undefined){entry=putLevels;putLevels=callLevels;}
+  if(!putLevels)putLevels=callLevels;
+
   GM.roundId++;
   var rid=GM.roundId;
   GM.rounds++;
   GM.lastRoundTime=Date.now();
 
   var dp=entry>100?2:5;
-  var tightestDist=levels[0]?levels[0].dist:0.05;
-  var totalStakePerSide=levels.reduce(function(s,l){return s+l.stake;},0);
-  var totalRisk=totalStakePerSide*2;
+  var tightestDist=callLevels[0]?callLevels[0].dist:0.14;
+  var totalCallStake=callLevels.reduce(function(s,l){return s+l.stake;},0);
+  var totalPutStake=putLevels.reduce(function(s,l){return s+l.stake;},0);
+  var totalRisk=parseFloat((totalCallStake+totalPutStake).toFixed(2));
 
-  // Snapshot using tightest barrier for chart/display
+  // Direction labels for display
+  var isUp=GM._tradeDirection==='UP';
+  var bigSide=isUp?'HIGHER':'LOWER';
+  var hedgeSide=isUp?'LOWER':'HIGHER';
+
+  // Snapshot
   var tightCall=responses['call_0'];
   var callPay=tightCall?tightCall.payout:0;
   var putPay=responses['put_0']?responses['put_0'].payout:0;
-  var _snap=gmSnapshot(entry,tightestDist,totalStakePerSide,callPay,putPay);
+  var _snap=gmSnapshot(entry,tightestDist,totalCallStake,callPay,putPay);
 
-  // Build contracts array for this batch
-  // contracts[i] = {callId, putId, callAsk, putAsk, stake, dist, callPay, putPay, callCid, putCid, callResult, putResult}
+  // Build contracts — each level has its own call/put stake
   var contracts=[];
-  for(var i=0;i<levels.length;i++){
+  for(var i=0;i<callLevels.length;i++){
     var cr=responses['call_'+i];
     var pr=responses['put_'+i];
     if(!cr||!pr)continue;
     contracts.push({
       levelIdx:i,
-      dist:levels[i].dist,
-      stake:levels[i].stake,
+      dist:callLevels[i].dist,
+      callStake:callLevels[i].stake,
+      putStake:putLevels[i].stake,
+      stake:callLevels[i].stake, // legacy compat
       callId:cr.id,   putId:pr.id,
       callAsk:cr.ask, putAsk:pr.ask,
       callPay:cr.payout, putPay:pr.payout,
       callCid:null,   putCid:null,
       callResult:null, putResult:null,
-      callPlaced:false, putPlaced:false
+      callPlaced:false, putPlaced:false,
+      isBig:isUp  // CALL is big side if UP
     });
   }
 
@@ -5017,13 +5068,14 @@ function gmPlaceBatch(responses,levels,entry){
   var set=function(id,val){var e=document.getElementById(id);if(e)e.textContent=val;};
   set('gm-call-pnl','...');
   set('gm-put-pnl','...');
-  set('gm-round-status','BUYING '+contracts.length+' LEVELS...');
+  set('gm-round-status','BUYING '+contracts.length+' LEVELS ('+bigSide+' BIG)...');
   set('gm-round-net','...');
 
-  // Show level stakes on UI
-  var stakeInfo=contracts.map(function(ct){return ct.dist.toFixed(2)+'→$'+ct.stake.toFixed(2);}).join(' | ');
-  set('gm-call-stake','HIGHER: '+stakeInfo);
-  set('gm-put-stake','LOWER:  '+stakeInfo);
+  // Show asymmetric stakes on UI
+  var callInfo=contracts.map(function(ct){return ct.dist.toFixed(2)+'→$'+ct.callStake.toFixed(2);}).join(' | ');
+  var putInfo=contracts.map(function(ct){return ct.dist.toFixed(2)+'→$'+ct.putStake.toFixed(2);}).join(' | ');
+  set('gm-call-stake','HIGHER '+(isUp?'[BIG]':'[HEDGE]')+': '+callInfo);
+  set('gm-put-stake','LOWER  '+(isUp?'[HEDGE]':'[BIG]')+': '+putInfo);
 
   console.log('[GM BATCH] R'+rid+' entry:'+entry+' levels:'+contracts.length+' totalRisk:$'+totalRisk.toFixed(2)+' dur:'+GM.dur+GM.durUnit);
 
@@ -5035,30 +5087,26 @@ function gmPlaceBatch(responses,levels,entry){
   };
   gmDrawChart();
 
-  // ── Buy all contracts — fire in H1,L1,H2,L2,H3,L3 order ──
-  // Alternating CALL/PUT avoids Deriv duplicate-contract rejection
-  // Slippage buffer: accept up to 5% above ask so late fills don't fail
+  // ── Buy all contracts — H1,L1,H2,L2,H3,L3 order ──
   var SLIP=1.05;
   for(var j=0;j<contracts.length;j++){
     (function(ct,idx){
       var callMax=parseFloat((ct.callAsk*SLIP).toFixed(2));
       var putMax=parseFloat((ct.putAsk*SLIP).toFixed(2));
-      // Send HIGHER then immediately LOWER before moving to next level
       var b1=wsSend({buy:ct.callId,price:callMax});
       if(b1)S.pending[b1]={
-        dir:'HIGHER',stake:ct.stake,asset:GM.asset,
+        dir:'HIGHER',stake:ct.callStake,asset:GM.asset,
         isBot:true,isGM:true,gmRound:rid,gmSide:'call',
         gmLevelIdx:idx,gmDist:ct.dist,
         entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit
       };
       var b2=wsSend({buy:ct.putId,price:putMax});
       if(b2)S.pending[b2]={
-        dir:'LOWER',stake:ct.stake,asset:GM.asset,
+        dir:'LOWER',stake:ct.putStake,asset:GM.asset,
         isBot:true,isGM:true,gmRound:rid,gmSide:'put',
         gmLevelIdx:idx,gmDist:ct.dist,
         entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit
       };
-      // H1→L1 then H2→L2 etc — CALL/PUT pairs per level
     })(contracts[j],j);
   }
 
@@ -5080,7 +5128,7 @@ function onGMBuy(cid,side,rid,levelIdx){
 
   if(round.isBatch){
     // Multi-level: find the contract at this level and mark placed
-    var idx=levelIdx||0;
+    var idx=levelIdx!=null?levelIdx:0;
     var ct=round.contracts&&round.contracts[idx];
     if(ct){
       if(side==='call'){ct.callCid=cid;ct.callPlaced=true;}
