@@ -941,7 +941,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <input type="number" class="iif" id="gm-budget" value="3.00" min="0.70" step="0.70" oninput="gmCalc()">
                     <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.70).toFixed(2);gmCalc()">+</div>
                   </div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">2× barrier ±0.14 — $0.75 + $0.75 = <span id="gm-stake-display">$1.50</span> per side · $3.00 total</div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">1 contract ±0.14 — $1.50 per side · $3.00 total risk</div>
                 </div>
                 <!-- Barrier Offset -->
                 <div class="ig" style="margin-bottom:11px">
@@ -4203,12 +4203,14 @@ var GM = {
   // Multi-barrier batch config
   // Each level: {dist, stake} — dist is barrier distance, stake is per-side amount
   batchLevels:[
-    {dist:0.14, stake:0.75},
-    {dist:0.14, stake:0.75}
+    {dist:0.14, stake:0.80},
+    {dist:0.14, stake:0.36},
+    {dist:0.14, stake:0.35}
   ],
-  // 2 contracts at SAME barrier ±0.14 — both win together when price breaks
-  // Per side: $1.50 total stake = $3.00 total risk per round
-  // 2 contracts = faster execution, less timing lag than 3
+  // 3 contracts per side at same barrier ±0.14
+  // Stakes are INTENTIONALLY different ($0.80, $0.36, $0.35) so Deriv
+  // treats each proposal as unique — avoids InvalidContractProposal rejection
+  // Per side: $1.51 total ≈ $3.00 total risk
   // Scanner state
   scanAssets:['R_100'],
   scanResults:{},
@@ -4788,7 +4790,9 @@ function gmFetchProposals(){
   var rs=document.getElementById('gm-round-status');
   if(rs)rs.textContent='PROBING '+_gmProbe._levels.length+' LEVELS...';
 
-  // Send one proposal per level per side (6 total for 3 levels)
+  // Send one proposal per level per side
+  // IMPORTANT: each proposal uses its actual stake amount so Deriv
+  // treats them as unique requests even when barrier/duration are identical
   for(var i=0;i<_gmProbe._levels.length;i++){
     var lvl=_gmProbe._levels[i];
     var dist=lvl.dist;
@@ -5028,13 +5032,15 @@ function gmPlaceBatch(responses,levels,entry){
   };
   gmDrawChart();
 
-  // ── Buy all contracts — send ALL at once with slippage buffer ──
-  // Slippage buffer: accept up to 5% above ask price so late fills don't fail
+  // ── Buy all contracts — fire in H1,L1,H2,L2,H3,L3 order ──
+  // Alternating CALL/PUT avoids Deriv duplicate-contract rejection
+  // Slippage buffer: accept up to 5% above ask so late fills don't fail
   var SLIP=1.05;
   for(var j=0;j<contracts.length;j++){
     (function(ct,idx){
       var callMax=parseFloat((ct.callAsk*SLIP).toFixed(2));
       var putMax=parseFloat((ct.putAsk*SLIP).toFixed(2));
+      // Send HIGHER then immediately LOWER before moving to next level
       var b1=wsSend({buy:ct.callId,price:callMax});
       if(b1)S.pending[b1]={
         dir:'HIGHER',stake:ct.stake,asset:GM.asset,
@@ -5049,6 +5055,7 @@ function gmPlaceBatch(responses,levels,entry){
         gmLevelIdx:idx,gmDist:ct.dist,
         entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit
       };
+      // H1→L1 then H2→L2 etc — CALL/PUT pairs per level
     })(contracts[j],j);
   }
 
