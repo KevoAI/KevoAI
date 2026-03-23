@@ -947,10 +947,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Barrier Offset (± price)</div>
                   <div class="ir">
-                    <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=Math.max(0.01,(parseFloat(e.value)-0.01)).toFixed(2);gmCalc()">-</div>
-                    <input type="number" class="iif" id="gm-offset" value="0.05" min="0.01" step="0.01" oninput="gmCalc()">
-                    <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=(parseFloat(e.value)+0.01).toFixed(2);gmCalc()">+</div>
-                    <span style="margin-left:8px;font-size:10px;color:var(--fg3)">(L1 only)</span>
+                    <div class="ia" onclick="gmSetBarrier(Math.max(0.01,parseFloat(document.getElementById('gm-offset').value)-0.01))">-</div>
+                    <input type="number" class="iif" id="gm-offset" value="0.35" min="0.01" step="0.01" oninput="gmSetBarrier(parseFloat(this.value)||0.35)">
+                    <div class="ia" onclick="gmSetBarrier(parseFloat(document.getElementById('gm-offset').value)+0.01)">+</div>
+                    <span style="margin-left:8px;font-size:10px;color:var(--ac)">all levels</span>
                   </div>
                   <div style="font-size:10px;color:var(--t3);margin-top:3px">HIGHER barrier = entry+offset | LOWER = entry-offset</div>
                 </div>
@@ -4117,7 +4117,11 @@ function initCharts(){
 
 window.addEventListener('load',function(){
   S.botMultiplier=100; S.maxBotTrades=1;
-  buildAllDDs(); buildTicker(); initCharts(); gmCalc(); setTimeout(gmInitChart,500);
+  buildAllDDs(); buildTicker(); initCharts();
+  // Sync offset input to actual batchLevels dist
+  var _offEl=document.getElementById('gm-offset');
+  if(_offEl&&GM.batchLevels[0])_offEl.value=GM.batchLevels[0].dist.toFixed(2);
+  gmCalc(); setTimeout(gmInitChart,500);
   // Restore GM history from localStorage
   try{
     var _gh=localStorage.getItem('kevoai_gm_history');
@@ -4559,10 +4563,20 @@ function gmExportData(){
 // ════════════════════════════════════════════════════════════════
 
 
+function gmSetBarrier(dist){
+  dist=parseFloat(Math.max(0.01,dist).toFixed(2));
+  // Update ALL batch levels to the same distance
+  GM.batchLevels.forEach(function(l){l.dist=dist;});
+  // Sync the input display
+  var el=document.getElementById('gm-offset');
+  if(el)el.value=dist.toFixed(2);
+  gmCalc();
+}
+
 function gmCalc(){
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
-  var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.05'}).value)||0.05);
+  var offset=GM.batchLevels[0]?GM.batchLevels[0].dist:0.35; // always read from actual batch levels
   var el=document.getElementById('gm-calc-display');
 
   // ── Actual batch level stakes (fixed) ──────────────────────────
@@ -5538,7 +5552,7 @@ function gmDrawChart(){
 
   // Update entry preview panel
   var curP=S.prices[GM.asset]||0;
-  var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+  var offset=GM.batchLevels[0]?GM.batchLevels[0].dist:0.35;
   if(curP>0){
     var dp=curP>100?2:5;
     var hBar=parseFloat((curP+offset).toFixed(dp));
@@ -5564,7 +5578,7 @@ function gmUpdateSignalBadge(prices, curP){
   var text=document.getElementById('gm-signal-text');
   if(!badge||!icon||!text)return;
 
-  var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+  var offset=GM.batchLevels[0]?GM.batchLevels[0].dist:0.35;
 
   // Show badge only on Gmilli page
   var gmPage=document.getElementById('page-gmilli');
