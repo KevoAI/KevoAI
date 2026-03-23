@@ -4203,14 +4203,14 @@ var GM = {
   // Multi-barrier batch config
   // Each level: {dist, stake} — dist is barrier distance, stake is per-side amount
   batchLevels:[
-    {dist:0.14,  stake:0.80},
-    {dist:0.141, stake:0.35},
-    {dist:0.142, stake:0.35}
+    {dist:0.05, stake:0.80},
+    {dist:0.08, stake:0.35},
+    {dist:0.11, stake:0.35}
   ],
-  // 3 contracts per side — barriers are ABSOLUTE prices at buy time
-  // Tiny dist differences (0.14, 0.141, 0.142) → different absolute barrier values
-  // so Deriv treats each as a unique contract
+  // 3 contracts at DIFFERENT distances — genuinely unique barriers = Deriv accepts all
+  // Biggest stake on tightest barrier (hits most often)
   // Per side: $1.50 total = $3.00 total risk
+  // When price breaks ALL 3 on winning side pay out simultaneously
   // Scanner state
   scanAssets:['R_100'],
   scanResults:{},
@@ -4797,23 +4797,20 @@ function gmFetchProposals(){
     var lvl=_gmProbe._levels[i];
     var dist=lvl.dist;
     var stake=lvl.stake;
-    // Use ABSOLUTE barrier prices — each level has a unique barrier value
-    // so Deriv treats them as distinct contracts (not duplicates)
-    var dp=entry>100?2:5;
-    var callBarrier=parseFloat((entry+dist).toFixed(dp)).toString();
-    var putBarrier =parseFloat((entry-dist).toFixed(dp)).toString();
+    var callB='+'+dist.toFixed(2);
+    var putB ='-'+dist.toFixed(2);
 
     var r1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
       currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
-      symbol:GM.asset,barrier:callBarrier});
+      symbol:GM.asset,barrier:callB});
     if(r1)S.pending[r1]={type:'gm_probe',gmSide:'call',gmLevelIdx:i,
-      probeEntry:entry,probeStake:stake,probeOffset:dist,probeBarrier:callBarrier};
+      probeEntry:entry,probeStake:stake,probeOffset:dist,probeBarrier:callB};
 
     var r2=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'PUT',
       currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
-      symbol:GM.asset,barrier:putBarrier});
+      symbol:GM.asset,barrier:putB});
     if(r2)S.pending[r2]={type:'gm_probe',gmSide:'put',gmLevelIdx:i,
-      probeEntry:entry,probeStake:stake,probeOffset:dist,probeBarrier:putBarrier};
+      probeEntry:entry,probeStake:stake,probeOffset:dist,probeBarrier:putB};
   }
 }
 
