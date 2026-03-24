@@ -986,6 +986,22 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <span style="font-size:10px;padding:2px 8px;background:var(--ad);color:var(--ac);border-radius:4px;font-weight:700">LOCKED</span>
                   </div>
                 </div>
+                <!-- Mode Selector -->
+                <div style="background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:11px;margin-bottom:11px">
+                  <div style="font-size:11px;font-weight:700;color:var(--ac);margin-bottom:8px">Strategy Mode</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                    <div id="gm-mode-cn" onclick="gmSetMode('cn')" style="padding:8px;border-radius:var(--rs);border:1px solid var(--ac);background:var(--ad);cursor:pointer;text-align:center">
+                      <div style="font-size:11px;font-weight:700;color:var(--ac)">CN MODE</div>
+                      <div style="font-size:9px;color:var(--t3);margin-top:2px">CALL+NOTOUCH+PUT+NOTOUCH</div>
+                    </div>
+                    <div id="gm-mode-ps" onclick="gmSetMode('ps')" style="padding:8px;border-radius:var(--rs);border:1px solid var(--bo);background:var(--bg3);cursor:pointer;text-align:center">
+                      <div style="font-size:11px;font-weight:700;color:var(--t2)">PERFECT SETUP ★</div>
+                      <div style="font-size:9px;color:var(--t3);margin-top:2px">5-contract + ER dual-zone</div>
+                    </div>
+                  </div>
+                </div>
+                <!-- CN Mode config -->
+                <div id="gm-config-cn">
                 <!-- Budget Per Round -->
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Budget Per Round ($)</div>
@@ -1007,6 +1023,38 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   </div>
                   <div style="font-size:10px;color:var(--t3);margin-top:3px">HIGHER barrier = entry+offset | LOWER = entry-offset</div>
                 </div>
+                </div><!-- end gm-config-cn -->
+                <!-- PS Mode config -->
+                <div id="gm-config-ps" style="display:none">
+                  <div class="ig" style="margin-bottom:11px">
+                    <div class="il">Stake per contract ($)</div>
+                    <div class="ir">
+                      <div class="ia" onclick="var e=document.getElementById('gm-ps-stake');e.value=Math.max(0.35,(parseFloat(e.value)-0.05)).toFixed(2);gmPsCalc()">-</div>
+                      <input type="number" class="iif" id="gm-ps-stake" value="0.35" min="0.35" step="0.05" oninput="gmPsCalc()">
+                      <div class="ia" onclick="var e=document.getElementById('gm-ps-stake');e.value=(parseFloat(e.value)+0.05).toFixed(2);gmPsCalc()">+</div>
+                    </div>
+                    <div style="font-size:10px;color:var(--t3);margin-top:3px">5 contracts at this stake = 5-contract set cost</div>
+                  </div>
+                  <div class="ig" style="margin-bottom:11px">
+                    <div class="il">ER Budget ($)</div>
+                    <div class="ir">
+                      <div class="ia" onclick="var e=document.getElementById('gm-ps-er-budget');e.value=Math.max(0.50,(parseFloat(e.value)-0.10)).toFixed(2);gmPsCalc()">-</div>
+                      <input type="number" class="iif" id="gm-ps-er-budget" value="1.40" min="0.50" step="0.10" oninput="gmPsCalc()">
+                      <div class="ia" onclick="var e=document.getElementById('gm-ps-er-budget');e.value=(parseFloat(e.value)+0.10).toFixed(2);gmPsCalc()">+</div>
+                    </div>
+                    <div style="font-size:10px;color:var(--t3);margin-top:3px">Split by solver into S_up + S_down automatically</div>
+                  </div>
+                  <div class="ig" style="margin-bottom:11px">
+                    <div class="il">Barrier Offset (±)</div>
+                    <div class="ir">
+                      <div class="ia" onclick="var e=document.getElementById('gm-ps-barrier');e.value=Math.max(0.08,(parseFloat(e.value)-0.01)).toFixed(2);gmPsCalc()">-</div>
+                      <input type="number" class="iif" id="gm-ps-barrier" value="0.14" min="0.08" step="0.01" oninput="gmPsCalc()">
+                      <div class="ia" onclick="var e=document.getElementById('gm-ps-barrier');e.value=(parseFloat(e.value)+0.01).toFixed(2);gmPsCalc()">+</div>
+                    </div>
+                    <div style="font-size:10px;color:var(--t3);margin-top:3px">ER zones start exactly where RANGE ends — zero dead zone</div>
+                  </div>
+                  <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;border:1px solid var(--bo);font-size:11px;font-family:var(--mo);line-height:1.9;white-space:pre-line" id="gm-ps-calc-display">Calculating...</div>
+                </div><!-- end gm-config-ps -->
                 <!-- Duration -->
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Duration (Ticks recommended)</div>
@@ -1352,7 +1400,18 @@ function handleMsg(d) {
   if(code==='PriceMoved'&&pend&&pend.isGM){
     var _gmRid=pend.gmRound;
     var _gmRound=GM.pending[_gmRid];
-    if(_gmRound&&_gmRound.isCN){
+    if(_gmRound&&_gmRound.isPS){
+      // Perfect Setup PriceMoved
+      var _psSide=pend.gmSide;
+      var _psKeys=['call_h','notouch_h','put_l','notouch_l','range','er_up','er_dn'];
+      if(_psKeys.indexOf(_psSide)>=0&&!_gmRound.results[_psSide]){
+        var _psStk=(_psSide==='er_up')?_gmRound.erSu:(_psSide==='er_dn')?_gmRound.erSd:_gmRound.stake;
+        _gmRound.results[_psSide]={profit:-_psStk,win:false,exitPrice:0};
+        _gmRound.settled=(_gmRound.settled||0)+1;
+        console.log('[GM PS] PriceMoved on '+_psSide+' — counted as loss');
+        if(_gmRound.settled>=_gmRound.totalContracts) gmPsSettle(pend.gmRound);
+      }
+    } else if(_gmRound&&_gmRound.isCN){
       // CN round: count the failed contract as a loss
       var _cnSide=pend.gmSide;
       var _cnKeys=['call_h','notouch_h','put_l','notouch_l'];
@@ -4329,6 +4388,8 @@ var GM = {
   cnBarrier: 0.08,   // barrier distance — min 0.07 for NOTOUCH on R_100
   cnStake:   0.35,   // stake per contract — 4 contracts = $1.40 total risk
   batchLevels:[{dist:0.08,stake:0.35}],  // used by gmDrawChart & gmUpdateSignalBadge
+  // PERFECT SETUP MODE (PS) - 7 contracts, zero dead zone, zero gap
+  psMode:false, psBudgetER:1.40, psBarrier:0.14, psCnStake:0.35,
   // Scanner state
   scanAssets:['R_100'],
   scanResults:{},
@@ -5184,6 +5245,7 @@ function gmLoop(){
 
 function gmFetchProposals(){
   if(!S.connected)return;
+  if(GM.psMode){ gmPsFetchProposals(); return; }
   var entry=S.prices[GM.asset]||0;
   if(entry<=0){
     var rs=document.getElementById('gm-round-status');
@@ -5431,6 +5493,8 @@ function gmPlaceCN(responses, entry, barrier, stake){
 }
 
 function gmCNForceSettle(rid){
+  var r=GM.pending[rid];
+  if(r&&r.isPS){ gmPsForceSettle(rid); return; }
   var r=GM.pending[rid];
   if(!r)return;
   var keys=['call_h','notouch_h','put_l','notouch_l'];
@@ -5680,7 +5744,23 @@ function onGMResult(rid,side,profit,exitPrice,levelIdx){
   var pnl=parseFloat(profit||0);
   var idx=levelIdx||0;
 
-  if(round.isCN){
+  if(round.isPS){
+    // Perfect Setup settlement — 7 contracts
+    var psKeys=['call_h','notouch_h','put_l','notouch_l','range','er_up','er_dn'];
+    if(psKeys.indexOf(side)>=0 && !round.results[side]){
+      var pStk=(side==='er_up')?round.erSu:(side==='er_dn')?round.erSd:round.stake;
+      round.results[side]={profit:pnl,win:pnl>0,exitPrice:exitPrice||0};
+      round.settled=(round.settled||0)+1;
+      var runPnl3=0;
+      Object.keys(round.results).forEach(function(k){if(round.results[k])runPnl3+=round.results[k].profit;});
+      var netEl3=document.getElementById('gm-round-net');
+      if(netEl3){netEl3.textContent=(runPnl3>=0?'+':'')+'$'+Math.abs(runPnl3).toFixed(2);netEl3.style.color=runPnl3>0?'var(--ac)':'var(--re)';}
+      var rs4=document.getElementById('gm-round-status');
+      if(rs4)rs4.textContent='PS '+(7-round.settled)+' REMAINING...';
+      if(round.settled>=round.totalContracts) gmPsSettle(rid);
+    }
+    return;
+  } else if(round.isCN){
     // CALL+NOTOUCH settlement
     var cnKey=side; // side is already the gmSide key e.g. 'call_h', 'notouch_h', 'put_l', 'notouch_l'
     // Map side to result key
@@ -5956,6 +6036,50 @@ function gmRenderHistory(){
     var barrier=r.barrier||0.08;
     var total=(r.total||0);
 
+    // ── PERFECT SETUP (PS) entry ──────────────────────────────────
+    if(r.isPS){
+      function psRow(label,won,pnl){
+        return '<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'
+          +'<span style="font-size:10px;color:var(--t2);font-family:var(--mo);flex:1">'+label+'</span>'
+          +'<span style="font-size:10px;font-weight:700;font-family:var(--mo);color:'+(won?'var(--ac)':'var(--re)')+'">'+(pnl>=0?'+':'')+pnl.toFixed(2)+'</span>'
+          +'<span style="font-size:10px">'+(won?'✓':'✗')+'</span>'
+          +'</div>';
+      }
+      var barrier=r.barrier||0.14;
+      var higherTotal=(r.callProfit||0)+(r.ntLProfit||0)+(r.erUpProfit||0);
+      var lowerTotal =(r.putProfit||0)+(r.ntHProfit||0)+(r.erDnProfit||0);
+      var flatTotal  =(r.ntHProfit||0)+(r.ntLProfit||0)+(r.rangeProfit||0);
+      return '<div style="margin-bottom:10px;border:1px solid '+resultBorder+';border-radius:10px;background:'+resultBg+';overflow:hidden">'
+        +'<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05)">'
+          +'<span style="font-size:10px;font-weight:700;padding:2px 7px;background:var(--ad);color:var(--ac);border-radius:4px">PS</span>'
+          +'<span style="font-size:11px;font-weight:700;color:'+resultColor+'">'+resultLabel+'</span>'
+          +'<span style="font-size:10px;color:var(--t2)">'+r.asset+'</span>'
+          +'<span style="font-size:10px;color:var(--t3)">R#'+r.rid+' • '+r.time+'</span>'
+          +'<span style="font-size:10px;color:var(--t3)">entry:'+(r.entry||0).toFixed(dp)+' ±'+barrier.toFixed(2)+'</span>'
+          +'<span style="margin-left:auto;font-size:13px;font-weight:700;font-family:var(--mo);color:'+(total>=0?'var(--ac)':'var(--re)')+'">'+( total>=0?'+':'')+total.toFixed(2)+'</span>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">'
+          +'<div style="padding:8px 10px;border-right:1px solid rgba(255,255,255,0.05)">'
+            +'<div style="font-size:11px;font-weight:700;margin-bottom:5px;color:'+(higherTotal>=0?'var(--ac)':'var(--re)')+'">↑ HIGHER '+(higherTotal>=0?'WON':'LOST')+'</div>'
+            +psRow('CALL @ +'+barrier.toFixed(2),!!r.callWon,r.callProfit||0)
+            +psRow('NOTOUCH_L @ -'+barrier.toFixed(2),!!r.ntLWon,r.ntLProfit||0)
+            +psRow('ER UP (above)',!!r.erUpWon,r.erUpProfit||0)
+          +'</div>'
+          +'<div style="padding:8px 10px;border-right:1px solid rgba(255,255,255,0.05)">'
+            +'<div style="font-size:11px;font-weight:700;margin-bottom:5px;color:'+(lowerTotal>=0?'var(--ac)':'var(--re)')+'">↓ LOWER '+(lowerTotal>=0?'WON':'LOST')+'</div>'
+            +psRow('PUT @ -'+barrier.toFixed(2),!!r.putWon,r.putProfit||0)
+            +psRow('NOTOUCH_H @ +'+barrier.toFixed(2),!!r.ntHWon,r.ntHProfit||0)
+            +psRow('ER DOWN (below)',!!r.erDnWon,r.erDnProfit||0)
+          +'</div>'
+          +'<div style="padding:8px 10px">'
+            +'<div style="font-size:11px;font-weight:700;margin-bottom:5px;color:'+(flatTotal>=0?'var(--ac)':'var(--re)')+'">→ FLAT '+(flatTotal>=0?'WON':'LOST')+'</div>'
+            +psRow('NOTOUCH_H @ +'+barrier.toFixed(2),!!r.ntHWon,r.ntHProfit||0)
+            +psRow('NOTOUCH_L @ -'+barrier.toFixed(2),!!r.ntLWon,r.ntLProfit||0)
+            +psRow('RANGE (inside)',!!r.rangeWon,r.rangeProfit||0)
+          +'</div>'
+        +'</div>'
+        +'</div>';
+    }
     // ── CALL+NOTOUCH (CN) entry ──────────────────────────────────
     if(r.isCN){
       function cnRow(label,won,pnl){
@@ -6289,6 +6413,395 @@ function gmUpdateSignalBadge(prices, curP){
     text.textContent='GMILLI STOPPED';
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// PERFECT SETUP MODE — gmSetMode, gmPsCalc, gmPsProbe, gmPsPlace, gmPsSettle
+// 7 contracts: CALL + NOTOUCH_H + PUT + NOTOUCH_L + RANGE + ER_UP + ER_DOWN
+// Zero dead zone — ER zones start exactly where RANGE ends at barrier
+// ═══════════════════════════════════════════════════════════════════
+
+function gmSetMode(mode){
+  GM.psMode = (mode === 'ps');
+  var cnBtn = document.getElementById('gm-mode-cn');
+  var psBtn = document.getElementById('gm-mode-ps');
+  var cnCfg = document.getElementById('gm-config-cn');
+  var psCfg = document.getElementById('gm-config-ps');
+  if(cnBtn){cnBtn.style.background=GM.psMode?'var(--bg3)':'var(--ad)';cnBtn.style.borderColor=GM.psMode?'var(--bo)':'var(--ac)';cnBtn.querySelector('div').style.color=GM.psMode?'var(--t2)':'var(--ac)';}
+  if(psBtn){psBtn.style.background=GM.psMode?'var(--ad)':'var(--bg3)';psBtn.style.borderColor=GM.psMode?'var(--ac)':'var(--bo)';psBtn.querySelector('div').style.color=GM.psMode?'var(--ac)':'var(--t2)';}
+  if(cnCfg)cnCfg.style.display=GM.psMode?'none':'block';
+  if(psCfg)psCfg.style.display=GM.psMode?'block':'none';
+  gmPsCalc();
+}
+
+// ── Stake solver: find S_up, S_down so both scenarios profit ──
+function gmPsSolve(Pup, Pdn, budget){
+  // Need: S_up*Pup - S_down > 0  AND  S_down*Pdn - S_up > 0
+  // With: S_up + S_down = budget
+  // S_up > budget/(Pup+1)  →  minimum S_up
+  if(!Pup||!Pdn||Pup*Pdn<=1) return null;
+  var Su_min = budget / (Pup + 1);
+  var Sd_min = budget / (Pdn + 1);
+  if(Su_min + Sd_min > budget * 1.001) return null;
+  // Set S_up just above minimum, S_down gets the rest
+  var Su = parseFloat((Su_min * 1.03).toFixed(4));
+  var Sd = parseFloat((budget - Su).toFixed(4));
+  if(Sd <= 0) return null;
+  var netUp   = parseFloat((Su * Pup - Sd).toFixed(4));
+  var netDown = parseFloat((Sd * Pdn - Su).toFixed(4));
+  if(netUp <= 0 || netDown <= 0) return null;
+  return {Su:Su, Sd:Sd, netUp:netUp, netDown:netDown};
+}
+
+function gmPsCalc(){
+  if(!GM.psMode) return;
+  var s       = parseFloat(document.getElementById('gm-ps-stake').value)||0.35;
+  var budget  = parseFloat(document.getElementById('gm-ps-er-budget').value)||1.40;
+  var barrier = parseFloat(document.getElementById('gm-ps-barrier').value)||0.14;
+  GM.psCnStake  = s;
+  GM.psBudgetER = budget;
+  GM.psBarrier  = barrier;
+  GM.batchLevels[0].dist = barrier;
+
+  var totalRisk = (5 * s + budget).toFixed(2);
+  var el = document.getElementById('gm-ps-calc-display');
+  if(!el) return;
+
+  // Estimate payouts from barrier (live probing replaces these)
+  var callNet  = Math.min((0.45+(barrier-0.08)*2.8)*s, s*4);
+  var ntNet    = Math.min((0.48+(barrier-0.08)*5.5)*s, s*7);
+  var rangeNet = Math.min((0.38+(barrier-0.08)*3.2)*s, s*5);
+  // For ER use placeholder 1.85x until live probe
+  var Pup = GM._psLastPup || 1.85;
+  var Pdn = GM._psLastPdn || 1.85;
+  var sol = gmPsSolve(Pup, Pdn, budget);
+
+  var netUp   = sol ? parseFloat((callNet + ntNet + sol.netUp - 3*s).toFixed(2)) : null;
+  var netDown = sol ? parseFloat((callNet + ntNet + sol.netDown - 3*s).toFixed(2)) : null;
+  var netFlat = parseFloat((rangeNet + 2*ntNet - 2*s - budget).toFixed(2));
+
+  var psLine=function(a){return a+'\n';};
+  el.textContent =
+    psLine('=== PERFECT SETUP =========================')
+   +psLine('Barrier:      ±'+barrier.toFixed(2))
+   +psLine('5-contract:   $'+(5*s).toFixed(2)+' ('+s.toFixed(2)+' x 5)')
+   +psLine('ER dual-zone: $'+budget.toFixed(2)+' (S_up $'+(sol?sol.Su.toFixed(2):'--')+' / S_dn $'+(sol?sol.Sd.toFixed(2):'--')+')')
+   +psLine('Total risk:   $'+totalRisk)
+   +psLine('')
+   +psLine('=== ESTIMATED PROFIT ======================')
+   +psLine('Price ends UP:   '+(netUp!==null?(netUp>=0?'+$':'-$')+Math.abs(netUp).toFixed(2):'--'))
+   +psLine('Price ends DOWN: '+(netDown!==null?(netDown>=0?'+$':'-$')+Math.abs(netDown).toFixed(2):'--'))
+   +psLine('Price stays FLAT:'+(netFlat>=0?' +$':' -$')+Math.abs(netFlat).toFixed(2))
+   +(netFlat<0?psLine('! FLAT: widen barrier or reduce ER budget'):'')
+   +psLine('')
+   +psLine('=== ZERO DEAD ZONE ========================')
+   +psLine('ER UP starts at: +'+barrier.toFixed(2)+' (above RANGE top)')
+   +psLine('ER DOWN starts: -'+barrier.toFixed(2)+' (below RANGE bottom)')
+   +'No gap — zones are contiguous';
+}
+
+// ── PS probe: fetch 7 proposals before placing ──
+var _gmPsProbe = {waiting:false, responses:{}, entry:0, barrier:0, cnStake:0, budget:0};
+
+function gmPsFetchProposals(){
+  if(!S.connected) return;
+  var entry = S.prices[GM.asset]||0;
+  if(entry<=0) return;
+  if(_gmPsProbe.waiting) return;
+
+  var barrier = GM.psBarrier||0.14;
+  var s       = GM.psCnStake||0.35;
+  var budget  = GM.psBudgetER||1.40;
+  var upHigh  = parseFloat((entry+barrier).toFixed(2));
+  var dnLow   = parseFloat((entry-barrier).toFixed(2));
+  var callB   = '+'+barrier.toFixed(2);
+  var putB    = '-'+barrier.toFixed(2);
+
+  _gmPsProbe.waiting   = true;
+  _gmPsProbe.responses = {};
+  _gmPsProbe.entry     = entry;
+  _gmPsProbe.barrier   = barrier;
+  _gmPsProbe.cnStake   = s;
+  _gmPsProbe.budget    = budget;
+  _gmPsProbe.expected  = 7;
+
+  _gmPsProbe.resetTimer = setTimeout(function(){
+    console.warn('[GM PS] Probe timeout — got '+Object.keys(_gmPsProbe.responses).length+'/7');
+    _gmPsProbe.waiting=false; _gmPsProbe.responses={};
+  }, 10000);
+
+  var rs = document.getElementById('gm-round-status');
+  if(rs) rs.textContent='PS PROBING 7 CONTRACTS @ ±'+barrier.toFixed(2)+'...';
+
+  // 5-contract set proposals
+  var r1=wsSend({proposal:1,amount:s,basis:'stake',contract_type:'CALL',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,symbol:GM.asset,barrier:callB});
+  if(r1)S.pending[r1]={type:'gm_ps_probe',psKey:'call_h'};
+
+  var r2=wsSend({proposal:1,amount:s,basis:'stake',contract_type:'NOTOUCH',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,symbol:GM.asset,barrier:callB});
+  if(r2)S.pending[r2]={type:'gm_ps_probe',psKey:'notouch_h'};
+
+  var r3=wsSend({proposal:1,amount:s,basis:'stake',contract_type:'PUT',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,symbol:GM.asset,barrier:putB});
+  if(r3)S.pending[r3]={type:'gm_ps_probe',psKey:'put_l'};
+
+  var r4=wsSend({proposal:1,amount:s,basis:'stake',contract_type:'NOTOUCH',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,symbol:GM.asset,barrier:putB});
+  if(r4)S.pending[r4]={type:'gm_ps_probe',psKey:'notouch_l'};
+
+  var r5=wsSend({proposal:1,amount:s,basis:'stake',contract_type:'RANGE',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,symbol:GM.asset,barrier:callB,barrier2:putB});
+  if(r5)S.pending[r5]={type:'gm_ps_probe',psKey:'range'};
+
+  // ER proposals: UP zone = above upHigh, DOWN zone = below dnLow
+  // EXPIRYRANGE: barrier = low end, barrier2 = high end
+  var erUpStake  = parseFloat((budget/2).toFixed(2)); // placeholder — solver sets final
+  var erDnStake  = parseFloat((budget/2).toFixed(2));
+
+  var r6=wsSend({proposal:1,amount:erUpStake,basis:'stake',contract_type:'EXPIRYRANGEE',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,symbol:GM.asset,barrier:callB,barrier2:'+9999'});
+  if(r6)S.pending[r6]={type:'gm_ps_probe',psKey:'er_up',erStake:erUpStake};
+
+  var r7=wsSend({proposal:1,amount:erDnStake,basis:'stake',contract_type:'EXPIRYRANGEE',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,symbol:GM.asset,barrier:'-9999',barrier2:putB});
+  if(r7)S.pending[r7]={type:'gm_ps_probe',psKey:'er_dn',erStake:erDnStake};
+}
+
+function onGmPsProbe(proposal, pendInfo){
+  if(!_gmPsProbe.waiting) return;
+  var key  = pendInfo.psKey;
+  var pay  = parseFloat((proposal&&proposal.payout)||0);
+  var ask  = parseFloat((proposal&&proposal.ask_price)||0)||parseFloat((proposal&&proposal.display_value)||0);
+  _gmPsProbe.responses[key] = {id:proposal&&proposal.id, payout:pay, ask:ask, valid:pay>0};
+  console.log('[GM PS PROBE] key:'+key+' payout:$'+pay.toFixed(2)+' ask:$'+ask.toFixed(2));
+
+  var got = Object.keys(_gmPsProbe.responses).length;
+  if(got < _gmPsProbe.expected) return;
+
+  clearTimeout(_gmPsProbe.resetTimer);
+  _gmPsProbe.waiting = false;
+  gmPsEvaluate();
+}
+
+function gmPsEvaluate(){
+  var res  = _gmPsProbe.responses;
+  var s    = _gmPsProbe.cnStake;
+  var budget = _gmPsProbe.budget;
+  var entry  = _gmPsProbe.entry;
+  var barrier= _gmPsProbe.barrier;
+
+  var callPay  = res.call_h    ? res.call_h.payout    : 0;
+  var ntHPay   = res.notouch_h ? res.notouch_h.payout : 0;
+  var putPay   = res.put_l     ? res.put_l.payout      : 0;
+  var ntLPay   = res.notouch_l ? res.notouch_l.payout : 0;
+  var rangePay = res.range     ? res.range.payout      : 0;
+  var erUpPay  = res.er_up     ? res.er_up.payout      : 0;
+  var erDnPay  = res.er_dn     ? res.er_dn.payout      : 0;
+
+  // Check all are valid
+  var allValid = callPay>0 && ntHPay>0 && putPay>0 && ntLPay>0 && rangePay>0;
+  if(!allValid){
+    console.warn('[GM PS] Some proposals invalid — skipping round');
+    var rs=document.getElementById('gm-round-status');
+    if(rs)rs.textContent='PS PROBE INVALID — SKIP';
+    return;
+  }
+
+  // ER payout multipliers (from $0.70 placeholder stake)
+  var erUpStake = res.er_up.ask || (budget/2);
+  var erDnStake = res.er_dn.ask || (budget/2);
+  var Pup = erUpStake>0 ? erUpPay/erUpStake : 1.85;
+  var Pdn = erDnStake>0 ? erDnPay/erDnStake : 1.85;
+
+  // Store for gmPsCalc display
+  GM._psLastPup = Pup; GM._psLastPdn = Pdn;
+
+  // Run solver with live payouts
+  var sol = gmPsSolve(Pup, Pdn, budget);
+  if(!sol){
+    console.warn('[GM PS] Solver failed — P_up×P_dn='+( Pup*Pdn).toFixed(3)+' — skipping');
+    var rs2=document.getElementById('gm-round-status');
+    if(rs2)rs2.textContent='PS SOLVER FAIL — SKIP';
+    return;
+  }
+
+  // Calculate all 3 normal scenario nets
+  var callNet  = callPay  - s;
+  var ntHNet   = ntHPay   - s;
+  var putNet   = putPay   - s;
+  var ntLNet   = ntLPay   - s;
+  var rangeNet = rangePay - s;
+  var erUpNet  = sol.netUp;
+  var erDnNet  = sol.netDown;
+
+  // Scenario nets
+  var netUp   = callNet + ntLNet + erUpNet;   // CALL + NOTOUCH_LOW + ER_UP win
+  var netDown = putNet  + ntHNet + erDnNet;   // PUT  + NOTOUCH_HIGH + ER_DOWN win
+  var netFlat = ntHNet  + ntLNet + rangeNet - budget; // both NOTOUCHes + RANGE win, ER both lose
+
+  console.log('[GM PS] UP:'+netUp.toFixed(2)+' DN:'+netDown.toFixed(2)+' FLAT:'+netFlat.toFixed(2)+' Pup:'+Pup.toFixed(2)+' Pdn:'+Pdn.toFixed(2));
+
+  // Gate: all 3 normal scenarios must be positive
+  if(netUp <= 0 || netDown <= 0 || netFlat <= 0){
+    console.warn('[GM PS] Gate fail — not all scenarios positive');
+    var rs3=document.getElementById('gm-round-status');
+    if(rs3)rs3.textContent='PS GATE FAIL — UP:'+netUp.toFixed(2)+' DN:'+netDown.toFixed(2)+' FLAT:'+netFlat.toFixed(2);
+    return;
+  }
+
+  // All good — place 7 contracts
+  gmPsPlace(res, sol, entry, barrier, s, budget, {netUp:netUp, netDown:netDown, netFlat:netFlat, Pup:Pup, Pdn:Pdn});
+  gmPsCalc(); // refresh display with live data
+}
+
+function gmPsPlace(res, sol, entry, barrier, s, budget, nets){
+  if(!S.connected) return;
+  GM.roundId++;
+  var rid   = GM.roundId;
+  GM.rounds++;
+  GM.lastRoundTime = Date.now();
+
+  var totalRisk = parseFloat((5*s + budget).toFixed(2));
+  var SLIP = 1.05;
+
+  // Build pending round record
+  GM.pending[rid] = {
+    isPS:true, isCN:false,
+    entry:entry, barrier:barrier, stake:s, budget:budget,
+    totalContracts:7, settled:0,
+    results:{call_h:null, notouch_h:null, put_l:null, notouch_l:null, range:null, er_up:null, er_dn:null},
+    erSu:sol.Su, erSd:sol.Sd,
+    nets:nets, totalRisk:totalRisk,
+    time:new Date().toLocaleTimeString(),
+    asset:GM.asset,
+    snap:gmSnapshot(entry, barrier, s, res.call_h?res.call_h.payout:0, res.put_l?res.put_l.payout:0)
+  };
+
+  _gmActiveBarrier = {active:true, higher:parseFloat((entry+barrier).toFixed(2)), lower:parseFloat((entry-barrier).toFixed(2))};
+  gmDrawChart();
+
+  var set=function(id,val){var e=document.getElementById(id);if(e)e.textContent=val;};
+  set('gm-round-status','PS ACTIVE — 7 CONTRACTS...');
+  set('gm-round-net','...');
+
+  // Place 5-contract set
+  function buy(propRes, gmSide, idx){
+    var b=wsSend({buy:propRes.id, price:parseFloat((propRes.ask*SLIP).toFixed(2))});
+    if(b)S.pending[b]={dir:gmSide.indexOf('put')>=0||gmSide==='notouch_l'?'LOWER':'HIGHER',
+      stake:s,asset:GM.asset,isBot:true,isGM:true,
+      gmRound:rid,gmSide:gmSide,gmLevelIdx:idx,gmDist:barrier,
+      entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit};
+  }
+  buy(res.call_h,    'call_h',    0);
+  buy(res.notouch_h, 'notouch_h', 1);
+  buy(res.put_l,     'put_l',     2);
+  buy(res.notouch_l, 'notouch_l', 3);
+  buy(res.range,     'range',     4);
+
+  // Place ER dual-zone (re-probe at solved stakes)
+  var b6=wsSend({buy:1,price:sol.Su,parameters:{amount:sol.Su,basis:'stake',
+    contract_type:'EXPIRYRANGEE',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
+    symbol:GM.asset,barrier:'+'+(barrier).toFixed(2),barrier2:'+9999'}});
+  if(b6)S.pending[b6]={dir:'HIGHER',stake:sol.Su,asset:GM.asset,isBot:true,isGM:true,
+    gmRound:rid,gmSide:'er_up',gmLevelIdx:5,gmDist:barrier,
+    entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit};
+
+  var b7=wsSend({buy:1,price:sol.Sd,parameters:{amount:sol.Sd,basis:'stake',
+    contract_type:'EXPIRYRANGEE',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
+    symbol:GM.asset,barrier:'-9999',barrier2:'-'+(barrier).toFixed(2)}});
+  if(b7)S.pending[b7]={dir:'LOWER',stake:sol.Sd,asset:GM.asset,isBot:true,isGM:true,
+    gmRound:rid,gmSide:'er_dn',gmLevelIdx:6,gmDist:barrier,
+    entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit};
+
+  // Timeout guard
+  var timeoutMs = GM.durUnit==='t' ? 90000 : 240000;
+  var _roundRef = GM.pending[rid];
+  GM.pending[rid]._timeout = setTimeout(function(){
+    if(_roundRef && !_roundRef._settled && GM.pending[rid]===_roundRef){
+      console.warn('[GM PS] R'+rid+' timed out ('+(_roundRef.settled||0)+'/7 settled)');
+      gmPsForceSettle(rid);
+    }
+  }, timeoutMs);
+
+  console.log('[GM PS] R'+rid+' entry:'+entry+' barrier:±'+barrier+' risk:$'+totalRisk+' UP:+$'+nets.netUp.toFixed(2)+' DN:+$'+nets.netDown.toFixed(2)+' FLAT:+$'+nets.netFlat.toFixed(2));
+}
+
+function gmPsForceSettle(rid){
+  var r=GM.pending[rid];
+  if(!r) return;
+  var keys=['call_h','notouch_h','put_l','notouch_l','range','er_up','er_dn'];
+  keys.forEach(function(k){
+    var stk = (k==='er_up')?r.erSu:(k==='er_dn')?r.erSd:r.stake;
+    if(!r.results[k]) r.results[k]={profit:-stk, win:false};
+  });
+  r.settled=7;
+  gmPsSettle(rid);
+}
+
+function gmPsSettle(rid){
+  var r=GM.pending[rid];
+  if(!r||r._settled) return;
+  r._settled=true;
+  clearTimeout(r._timeout);
+
+  var res=r.results;
+  var stake=r.stake;
+
+  var total=0;
+  ['call_h','notouch_h','put_l','notouch_l','range'].forEach(function(k){
+    total += res[k] ? res[k].profit : -stake;
+  });
+  total += res.er_up ? res.er_up.profit : -r.erSu;
+  total += res.er_dn ? res.er_dn.profit : -r.erSd;
+  total = parseFloat(total.toFixed(2));
+
+  var isWin = total > 0;
+  GM.pnl = parseFloat((GM.pnl+total).toFixed(2));
+  if(isWin) GM.won++; else GM.lost++;
+
+  S.activeTrades = S.activeTrades.filter(function(t){return !(t.isGM&&t.gmRound===rid);});
+
+  // Build history entry
+  var snap = r.snap||{};
+  snap.netPnl=total; snap.result=isWin?'WIN':'LOSS';
+  snap.settleTime=new Date().toLocaleTimeString();
+
+  GM.history.unshift({
+    rid:rid, total:total, win:isWin, isPS:true,
+    callWon:  res.call_h    && res.call_h.win,
+    ntHWon:   res.notouch_h && res.notouch_h.win,
+    putWon:   res.put_l     && res.put_l.win,
+    ntLWon:   res.notouch_l && res.notouch_l.win,
+    rangeWon: res.range     && res.range.win,
+    erUpWon:  res.er_up     && res.er_up.win,
+    erDnWon:  res.er_dn     && res.er_dn.win,
+    callProfit:  res.call_h    ? res.call_h.profit    : -stake,
+    ntHProfit:   res.notouch_h ? res.notouch_h.profit : -stake,
+    putProfit:   res.put_l     ? res.put_l.profit     : -stake,
+    ntLProfit:   res.notouch_l ? res.notouch_l.profit : -stake,
+    rangeProfit: res.range     ? res.range.profit     : -stake,
+    erUpProfit:  res.er_up     ? res.er_up.profit     : -r.erSu,
+    erDnProfit:  res.er_dn     ? res.er_dn.profit     : -r.erSd,
+    time:r.time, asset:r.asset,
+    stake:stake, erSu:r.erSu, erSd:r.erSd,
+    barrier:r.barrier, entry:r.entry,
+    snap:snap
+  });
+
+  gmUpdateStats();
+  gmRenderHistory();
+
+  var net=document.getElementById('gm-round-net');
+  if(net){net.textContent=(total>=0?'+':'')+'$'+Math.abs(total).toFixed(2);net.style.color=total>0?'var(--ac)':'var(--re)';}
+  var rs=document.getElementById('gm-round-status');
+  if(rs){rs.textContent=isWin?'PS WIN ✅':'PS LOSS ❌';rs.style.color=isWin?'var(--ac)':'var(--re)';}
+
+  notify('PS '+(isWin?'WIN ✅':'LOSS ❌'),'Net:'+(total>=0?'+':'')+total.toFixed(2),isWin?'win':'loss');
+
+  GM.cooldownEnd = Date.now()+GM.cooldownMs;
+  delete GM.pending[rid];
+  _gmActiveBarrier={active:false,higher:0,lower:0};
+  gmDrawChart();
+  localStorage.setItem('kevoai_gm_history',JSON.stringify(GM.history.slice(0,200)));
+  updateStats(); renderTrades(); renderActive();
+}
+// ═══════════════════════════════════════════════════════════════════
+// END PERFECT SETUP MODE
+// ═══════════════════════════════════════════════════════════════════
+
 // ── END GMILLI CHART ────────────────────────────────────────────
 
 // END GMILLI BOT
