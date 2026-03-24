@@ -5162,6 +5162,13 @@ function gmLoop(){
 
   // Wait for active round to finish
   if(gmActiveCount()>0){
+    // Safety: if activeCids reference a round that no longer exists in pending, clear them
+    var stale=false;
+    Object.keys(GM.activeCids).forEach(function(cid){
+      var a=GM.activeCids[cid];
+      if(a&&!GM.pending[a.rid]){delete GM.activeCids[cid];stale=true;}
+    });
+    if(stale){console.warn('[GM] Cleared stale activeCids — unblocking loop');GM.interval=setTimeout(gmLoop,100);return;}
     var rs=document.getElementById('gm-round-status');
     if(rs)rs.textContent='ACTIVE';
     GM.interval=setTimeout(gmLoop,500);return;
@@ -5562,6 +5569,10 @@ function gmCNSettle(rid){
 
   // Cooldown
   GM.cooldownEnd=Date.now()+GM.cooldownMs;
+  // Clear activeCids for this round — unblocks gmLoop
+  Object.keys(GM.activeCids).forEach(function(cid){
+    if(GM.activeCids[cid].rid===rid)delete GM.activeCids[cid];
+  });
   delete GM.pending[rid];
   _gmActiveBarrier={active:false,higher:0,lower:0};
   gmDrawChart();
@@ -5980,6 +5991,10 @@ function gmSettle(rid){
   if(cdEl3){cdEl3.textContent='Cooldown: 60s';cdEl3.style.color='var(--go)';}
   notify('GM COOLDOWN','1-min cooldown started after trade','info');
 
+  // Clear all activeCids for this round — catch any missed by batch/legacy paths
+  Object.keys(GM.activeCids).forEach(function(cid){
+    if(GM.activeCids[cid].rid===rid)delete GM.activeCids[cid];
+  });
   delete GM.pending[rid];
   _gmActiveBarrier={active:false,higher:0,lower:0};
   gmDrawChart();
@@ -6545,18 +6560,33 @@ function gmPsFetchProposals(){
   var r4=wsSend({proposal:1,amount:s,basis:'stake',contract_type:'NOTOUCH',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,symbol:GM.asset,barrier:putB});
   if(r4)S.pending[r4]={type:'gm_ps_probe',psKey:'notouch_l'};
 
+  // RANGE: price ends between barriers (flat/middle scenario)
   var r5=wsSend({proposal:1,amount:s,basis:'stake',contract_type:'RANGE',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,symbol:GM.asset,barrier:callB,barrier2:putB});
   if(r5)S.pending[r5]={type:'gm_ps_probe',psKey:'range'};
 
-  // ER proposals: UP zone = above upHigh, DOWN zone = below dnLow
-  // EXPIRYRANGE: barrier = low end, barrier2 = high end
-  var erUpStake  = parseFloat((budget/2).toFixed(2)); // placeholder — solver sets final
-  var erDnStake  = parseFloat((budget/2).toFixed(2));
+  // ER proposals: bounded zones using EXPIRYRANGE with seconds duration
+  // UP zone: entry+barrier → entry+barrier+width (width = barrier distance)
+  // DOWN zone: entry-barrier-width → entry-barrier
+  // Use 15s duration — EXPIRYRANGE not available for ticks
+  var erDur = 15; // seconds — minimum for EXPIRYRANGE on R_100
+  var erWidth = barrier; // zone width = same as barrier distance
+  var upHigh  = parseFloat((entry + barrier + erWidth).toFixed(2));
+  var upLow   = parseFloat((entry + barrier).toFixed(2));
+  var dnHigh  = parseFloat((entry - barrier).toFixed(2));
+  var dnLow   = parseFloat((entry - barrier - erWidth).toFixed(2));
 
-  var r6=wsSend({proposal:1,amount:erUpStake,basis:'stake',contract_type:'EXPIRYRANGEE',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,symbol:GM.asset,barrier:callB,barrier2:'+9999'});
+  var erUpStake = parseFloat((budget/2).toFixed(2));
+  var erDnStake = parseFloat((budget/2).toFixed(2));
+
+  // EXPIRYRANGE barrier = high end, barrier2 = low end (as per WinWin format)
+  var r6=wsSend({proposal:1,amount:erUpStake,basis:'stake',contract_type:'EXPIRYRANGE',
+    currency:S.currency,duration:erDur,duration_unit:'s',symbol:GM.asset,
+    barrier:'+'+upHigh.toFixed(2),barrier2:'+'+upLow.toFixed(2)});
   if(r6)S.pending[r6]={type:'gm_ps_probe',psKey:'er_up',erStake:erUpStake};
 
-  var r7=wsSend({proposal:1,amount:erDnStake,basis:'stake',contract_type:'EXPIRYRANGEE',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,symbol:GM.asset,barrier:'-9999',barrier2:putB});
+  var r7=wsSend({proposal:1,amount:erDnStake,basis:'stake',contract_type:'EXPIRYRANGE',
+    currency:S.currency,duration:erDur,duration_unit:'s',symbol:GM.asset,
+    barrier:'+'+dnHigh.toFixed(2),barrier2:'-'+Math.abs(dnLow).toFixed(2)});
   if(r7)S.pending[r7]={type:'gm_ps_probe',psKey:'er_dn',erStake:erDnStake};
 }
 
@@ -6692,19 +6722,34 @@ function gmPsPlace(res, sol, entry, barrier, s, budget, nets){
   buy(res.range,     'range',     4);
 
   // Place ER dual-zone (re-probe at solved stakes)
-  var b6=wsSend({buy:1,price:sol.Su,parameters:{amount:sol.Su,basis:'stake',
-    contract_type:'EXPIRYRANGEE',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
-    symbol:GM.asset,barrier:'+'+(barrier).toFixed(2),barrier2:'+9999'}});
+  // ER placement — use same bounded zone format as probe
+  var erDurP=15; // seconds
+  var erWidthP=barrier;
+  var upHighP=parseFloat((entry+barrier+erWidthP).toFixed(2));
+  var upLowP =parseFloat((entry+barrier).toFixed(2));
+  var dnHighP=parseFloat((entry-barrier).toFixed(2));
+  var dnLowP =parseFloat((entry-barrier-erWidthP).toFixed(2));
+
+  var b6=wsSend({buy:res.er_up&&res.er_up.id||1,price:sol.Su});
+  if(!res.er_up||!res.er_up.id){
+    // Re-buy with fresh proposal if id not stored
+    b6=wsSend({buy:1,price:sol.Su,parameters:{amount:sol.Su,basis:'stake',
+      contract_type:'EXPIRYRANGE',currency:S.currency,duration:erDurP,duration_unit:'s',
+      symbol:GM.asset,barrier:'+'+upHighP.toFixed(2),barrier2:'+'+upLowP.toFixed(2)}});
+  }
   if(b6)S.pending[b6]={dir:'HIGHER',stake:sol.Su,asset:GM.asset,isBot:true,isGM:true,
     gmRound:rid,gmSide:'er_up',gmLevelIdx:5,gmDist:barrier,
-    entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit};
+    entryPrice:entry,durVal:erDurP,durUnit:'s'};
 
-  var b7=wsSend({buy:1,price:sol.Sd,parameters:{amount:sol.Sd,basis:'stake',
-    contract_type:'EXPIRYRANGEE',currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit,
-    symbol:GM.asset,barrier:'-9999',barrier2:'-'+(barrier).toFixed(2)}});
+  var b7=wsSend({buy:res.er_dn&&res.er_dn.id||1,price:sol.Sd});
+  if(!res.er_dn||!res.er_dn.id){
+    b7=wsSend({buy:1,price:sol.Sd,parameters:{amount:sol.Sd,basis:'stake',
+      contract_type:'EXPIRYRANGE',currency:S.currency,duration:erDurP,duration_unit:'s',
+      symbol:GM.asset,barrier:'+'+dnHighP.toFixed(2),barrier2:'-'+Math.abs(dnLowP).toFixed(2)}});
+  }
   if(b7)S.pending[b7]={dir:'LOWER',stake:sol.Sd,asset:GM.asset,isBot:true,isGM:true,
     gmRound:rid,gmSide:'er_dn',gmLevelIdx:6,gmDist:barrier,
-    entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit};
+    entryPrice:entry,durVal:erDurP,durUnit:'s'};
 
   // Timeout guard
   var timeoutMs = GM.durUnit==='t' ? 90000 : 240000;
@@ -6792,6 +6837,10 @@ function gmPsSettle(rid){
   notify('PS '+(isWin?'WIN ✅':'LOSS ❌'),'Net:'+(total>=0?'+':'')+total.toFixed(2),isWin?'win':'loss');
 
   GM.cooldownEnd = Date.now()+GM.cooldownMs;
+  // Clear activeCids for this round — unblocks gmLoop
+  Object.keys(GM.activeCids).forEach(function(cid){
+    if(GM.activeCids[cid].rid===rid)delete GM.activeCids[cid];
+  });
   delete GM.pending[rid];
   _gmActiveBarrier={active:false,higher:0,lower:0};
   gmDrawChart();
