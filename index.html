@@ -934,8 +934,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div class="il">Duration</div>
                   <div class="dr">
                     <div class="db" onclick="GM.dur=5;gmSetActive(this)">5S</div>
-                    <div class="db active" onclick="GM.dur=15;gmSetActive(this)">15S</div>
-                    <div class="db" onclick="GM.dur=30;gmSetActive(this)">30S</div>
+                    <div class="db" onclick="GM.dur=15;gmSetActive(this)">15S</div>
+                    <div class="db active" onclick="GM.dur=30;gmSetActive(this)">30S</div>
                     <div class="db" onclick="GM.dur=60;gmSetActive(this)">60S</div>
                     <div class="db" onclick="GM.dur=120;gmSetActive(this)">2M</div>
                   </div>
@@ -946,12 +946,12 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <div style="font-size:11px;font-weight:700;color:var(--bl)">60/40 Confidence Rule</div>
                     <div style="font-size:10px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--bg4)" id="gm-conf-display">--</div>
                   </div>
-                  <div style="font-size:10px;color:var(--t2);margin-bottom:8px">Only trades when ≥ threshold% of recent ticks go in one direction</div>
+                  <div style="font-size:10px;color:var(--t2);margin-bottom:8px">Only fires when recent ticks show ≥ threshold% in one direction</div>
                   <div class="dr" style="grid-template-columns:repeat(5,1fr)">
                     <div class="db" onclick="GM.confThresh=0;gmSetActive(this)" title="Off — always trade">OFF</div>
                     <div class="db" onclick="GM.confThresh=55;gmSetActive(this)">55%</div>
-                    <div class="db" onclick="GM.confThresh=60;gmSetActive(this)">60%</div>
-                    <div class="db active" onclick="GM.confThresh=65;gmSetActive(this)">65%</div>
+                    <div class="db active" onclick="GM.confThresh=60;gmSetActive(this)">60%</div>
+                    <div class="db" onclick="GM.confThresh=65;gmSetActive(this)">65%</div>
                     <div class="db" onclick="GM.confThresh=75;gmSetActive(this)">75%</div>
                   </div>
                   <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:10px;font-family:var(--mo)">
@@ -983,25 +983,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <div class="ch"><div class="ct">Round Math</div></div>
               <div class="cb">
                 <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;border:1px solid var(--bo);font-size:11px;font-family:var(--mo);line-height:1.9;white-space:pre-line" id="gm-calc-display">Calculating...</div>
-                <div style="margin-top:10px;padding:10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
-                  <div style="font-size:10px;color:var(--t2);font-weight:700;margin-bottom:8px">FULL CONTRACT SCANNER</div>
-                  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
-                    <span style="font-size:10px;color:var(--t3)">Barrier +-</span>
-                    <input type="number" id="sc-barrier" value="0.12" step="0.01" min="0.01" style="width:60px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:var(--mo);font-size:12px;outline:none">
-                    <span style="font-size:10px;color:var(--t3)">Stake $</span>
-                    <input type="number" id="sc-stake" value="0.35" step="0.05" min="0.35" style="width:60px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:var(--mo);font-size:12px;outline:none">
-                  </div>
-                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-                    <button onclick="fullScan(5,'t')" class="btn btnp" style="font-size:11px;padding:5px 10px">5 TICKS</button>
-                    <button onclick="fullScan(10,'t')" class="btn btng" style="font-size:11px;padding:5px 10px">10 TICKS</button>
-                    <button onclick="fullScan(30,'s')" class="btn btng" style="font-size:11px;padding:5px 10px">30s</button>
-                    <button onclick="fullScan(60,'s')" class="btn btng" style="font-size:11px;padding:5px 10px">60s</button>
-                    <button onclick="fullScan(120,'s')" class="btn btng" style="font-size:11px;padding:5px 10px">2m</button>
-                    <button onclick="fullScan(300,'s')" class="btn btng" style="font-size:11px;padding:5px 10px">5m</button>
-                  </div>
-                  <div id="sc-status" style="font-size:10px;color:var(--go);margin-bottom:5px"></div>
-                  <div id="sc-result" style="font-size:11px;font-family:var(--mo);color:var(--t3)">Click a duration button to test all contract types.</div>
-                </div>
               </div>
             </div>
 
@@ -1248,16 +1229,11 @@ function handleMsg(d) {
     if(code==='InvalidToken'||code==='AuthorizationRequired') {
       notify('X','Invalid token: '+msg,'loss'); updateConnUI(false);
     } else {
-      // Silently swallow scan probe errors
-      var pend = d.req_id ? S.pending[d.req_id] : null;
-      if(pend && pend.type==='scan_probe'){
-        onScanProbe(null, msg, pend);
-        delete S.pending[d.req_id];
-        return;
-      }
-      // Show ALL other errors
+      // Show ALL errors
       notify('Err:'+code, msg.substring(0,80), 'loss');
       console.warn('Deriv error:', code, msg, 'req_id:', d.req_id);
+      // Check if this error belongs to an HB proposal or buy
+      var pend = d.req_id ? S.pending[d.req_id] : null;
       // Handle PriceMoved error for GM contracts
   if(code==='PriceMoved'&&pend&&pend.isGM){
     var _gmRid=pend.gmRound;
@@ -1357,8 +1333,6 @@ function onProposal(proposal, reqId){
   // Route HB proposals to dual-trade handler
   if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
   if(p.type==='gm_probe'){onGMProbe(proposal,p);delete S.pending[reqId];return;}
-  if(p.type==='gm_fresh_buy'){onGMFreshBuy(proposal,p);delete S.pending[reqId];return;}
-  if(p.type==='scan_probe'){onScanProbe(proposal,null,p);delete S.pending[reqId];return;}
 }
 
 function onAuth(a) {
@@ -4134,11 +4108,11 @@ connectWS(); switchAcc(S.accType);
 //   - Winner covers loser stake + delivers profit
 // ================================================================
 var GM = {
-  running:false, interval:null, asset:'R_100', dur:15, minGap:30,
+  running:false, interval:null, asset:'R_100', dur:30, minGap:30,
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
-  confThresh:65  // Min confidence threshold
+  confThresh:65  // Min confidence threshold — matches default 65% button
 };
 
 function gmSetActive(el){
@@ -4485,7 +4459,7 @@ function gmFetchProposals(){
   // HIGHER barrier = entry + offset (price must close ABOVE this)
   // LOWER barrier  = entry - offset (price must close BELOW this)
   // Gap zone = entry-offset to entry+offset (both lose if price stays inside)
-  // On R_100 at 15s, price almost always moves more than 0.12
+  // On R_100 at 30s, price almost always moves more than 0.12
   var dp=entry>100?2:5;
   var callBarrier='+'+offset.toFixed(2);   // relative offset format for Deriv API
   var putBarrier ='-'+offset.toFixed(2);
@@ -4582,27 +4556,6 @@ function onGMProbe(proposal,pendInfo){
 
 function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay){
   if(!S.connected)return;
-  // Re-fetch fresh proposals right before buying to avoid PriceMoved errors
-  // The probe IDs from gmFetchProposals can expire if price moved
-  var _freshOffset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
-  var _freshStake=gmStake();
-  var _freshCallB='+'+_freshOffset.toFixed(2);
-  var _freshPutB='-'+_freshOffset.toFixed(2);
-  var _freshEntry=S.prices[GM.asset]||entry;
-
-  // Send fresh buy proposals — use current market price
-  var _r1=wsSend({proposal:1,amount:_freshStake,basis:'stake',contract_type:'CALL',
-    currency:S.currency,duration:GM.dur,duration_unit:'s',
-    symbol:GM.asset,barrier:_freshCallB});
-  var _r2=wsSend({proposal:1,amount:_freshStake,basis:'stake',contract_type:'PUT',
-    currency:S.currency,duration:GM.dur,duration_unit:'s',
-    symbol:GM.asset,barrier:_freshPutB});
-  if(_r1)S.pending[_r1]={type:'gm_fresh_buy',side:'call',entry:_freshEntry,offset:_freshOffset,stake:_freshStake,callPay:callPay,putPay:putPay};
-  if(_r2)S.pending[_r2]={type:'gm_fresh_buy',side:'put',entry:_freshEntry,offset:_freshOffset,stake:_freshStake,callPay:callPay,putPay:putPay};
-  // Original placement continues async via onGMFreshBuy
-  return;
-
-  // (legacy path — no longer reached but kept for reference)
   GM.roundId++;
   var rid=GM.roundId;
   GM.rounds++;
@@ -4721,13 +4674,24 @@ function gmSettle(rid){
   var stake=r.stake||1.50;
   var cRes=r.results.call;
   var pRes=r.results.put;
-  // Deriv profit field = net profit on win (payout - stake), negative on loss
-  // We need total net = winner profit - loser stake
-  var cPnl=cRes?(cRes.win?cRes.profit:-stake):-stake;
-  var pPnl=pRes?(pRes.win?pRes.profit:-stake):-stake;
+
+  // Deriv `profit` field: on WIN = payout - stake (net gain, positive)
+  //                        on LOSS = -(stake) (what you paid, negative)
+  // We use it directly — don't recompute from stake, trust Deriv's value.
+  // Fallback to -stake if result missing (force-settle case).
+  var cPnl = cRes ? parseFloat(cRes.profit||0) : -stake;
+  var pPnl = pRes ? parseFloat(pRes.profit||0) : -stake;
+
+  // Sanity-cap: a winner's profit can't exceed the payout, loser can't lose more than stake
+  // (guards against bad data from Deriv)
+  if(cRes&&cRes.win  && cPnl<=0) cPnl=parseFloat((r.callPay-stake).toFixed(2));
+  if(cRes&&!cRes.win && cPnl>0)  cPnl=-stake;
+  if(pRes&&pRes.win  && pPnl<=0) pPnl=parseFloat((r.putPay-stake).toFixed(2));
+  if(pRes&&!pRes.win && pPnl>0)  pPnl=-stake;
+
   var total=parseFloat((cPnl+pPnl).toFixed(2));
 
-  console.log('[GM SETTLE] cPnl:'+cPnl+' pPnl:'+pPnl+' total:'+total);
+  console.log('[GM SETTLE] R'+rid+' cPnl:'+cPnl+' pPnl:'+pPnl+' total:'+total+' stake:'+stake);
 
   var isWin=total>0;
   var callWon=cRes&&cRes.win;
@@ -4855,20 +4819,25 @@ function gmUpdateStats(){
   set('gm-wl',GM.won+'W / '+GM.lost+'L');
 }
 
-var _gmHistPage = 0;
-var _gmHistPageSize = 20;
-
-function gmRenderHistory(page){
+function gmRenderHistory(){
   var el=document.getElementById('gm-history-list');
   if(!el)return;
   if(!GM.history.length){
     el.innerHTML='<div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No rounds yet.</div>';
     return;
   }
-  if(page!==undefined) _gmHistPage=page;
-  var start=_gmHistPage*_gmHistPageSize;
-  var slice=GM.history.slice(start, start+_gmHistPageSize);
-  el.innerHTML=slice.map(function(r){
+
+  // Pagination state
+  var PAGE_SIZE=30;
+  var page=GM._histPage||0;
+  var total=GM.history.length;
+  var totalPages=Math.ceil(total/PAGE_SIZE);
+  if(page>=totalPages)page=totalPages-1;
+  GM._histPage=page;
+
+  var slice=GM.history.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE);
+
+  var rows=slice.map(function(r){
     var s=r.snap||{};
     var gapLoss=s.gapLoss||(!r.callWon&&!r.putWon);
     var winSide=r.callWon?'↑ HIGHER':'↓ LOWER';
@@ -4876,6 +4845,9 @@ function gmRenderHistory(page){
     var resultBg=gapLoss?'rgba(245,166,35,0.2)':r.win?'var(--ad)':'var(--rd)';
     var resultColor=gapLoss?'var(--go)':r.win?'var(--ac)':'var(--re)';
     var resultLabel=gapLoss?'GAP':r.win?'WIN':'LOSS';
+    // Winner net = winnerPnl (already net profit from Deriv). Loser = -stake.
+    var winnerNet=r.callWon?r.callPnl:r.putPnl;  // net profit on winning side
+    var loserLoss=r.stake;  // stake lost on losing side
     var snapRow='';
     if(s.atr5!==undefined){
       snapRow='<div style="display:flex;gap:8px;font-size:9px;color:var(--t3);font-family:var(--mo);flex-wrap:wrap;padding:4px 6px;background:var(--bg3);border-radius:4px;margin-top:3px">'
@@ -4895,38 +4867,48 @@ function gmRenderHistory(page){
       +'<span style="padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;background:'+resultBg+';color:'+resultColor+'">'+resultLabel+'</span>'
       +'<span style="color:var(--t2);font-weight:600">'+r.asset+'</span>'
       +'<span style="color:var(--t3);font-size:10px">'+r.time+(s.session?' • '+s.session:'')+'</span>'
-      +'<span style="margin-left:auto;font-weight:700;font-family:var(--mo);color:'+(r.total>=0?'var(--ac)':'var(--re)')+'">'+( r.total>=0?'+':'')+r.total.toFixed(2)+'</span>'
+      +'<span style="margin-left:auto;font-weight:700;font-family:var(--mo);color:'+(r.total>=0?'var(--ac)':'var(--re)')+'">Round: '+(r.total>=0?'+':'')+r.total.toFixed(2)+'</span>'
       +'</div>'
       +'<div style="display:flex;gap:8px;font-size:10px;font-family:var(--mo);flex-wrap:wrap;margin-bottom:2px">'
       +(gapLoss
         ?'<span style="color:var(--go)">⚠ GAP — price inside ±'+parseFloat(r.offset||0.12).toFixed(2)+'</span>'
-        :'<span style="color:'+(r.callWon?'var(--ac)':'var(--re)')+'">'+winSide+' WON +$'+(r.callWon?r.callPnl:r.putPnl).toFixed(2)+'</span>'
-         +'<span style="color:var(--t3)">'+loseSide+' -$'+r.stake.toFixed(2)+'</span>'
+        :'<span style="color:'+(r.callWon?'var(--ac)':'var(--re)')+'">'+winSide+' WON +$'+parseFloat(winnerNet||0).toFixed(2)+'</span>'
+         +'<span style="color:var(--re)">'+loseSide+' -$'+parseFloat(loserLoss||0).toFixed(2)+'</span>'
       )
-      +'<span style="color:var(--t3)">pay:$'+r.combinedPay.toFixed(2)+'</span>'
+      +'<span style="color:var(--t3)">stake:$'+parseFloat(r.stake||0).toFixed(2)+' each</span>'
+      +'<span style="color:var(--t3)">pay:$'+parseFloat(r.combinedPay||0).toFixed(2)+'</span>'
       +'</div>'
       +snapRow
       +'</div>';
   }).join('');
 
   // Pagination controls
-  var total=GM.history.length;
-  var totalPages=Math.ceil(total/_gmHistPageSize);
+  var paginationHtml='';
   if(totalPages>1){
-    var pag='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--bo);margin-top:4px">';
-    pag+='<span style="font-size:10px;color:var(--t3)">'+total+' rounds total | Page '+(_gmHistPage+1)+'/'+totalPages+'</span>';
-    pag+='<div style="display:flex;gap:6px">';
-    if(_gmHistPage>0) pag+='<button onclick="gmRenderHistory('+(_gmHistPage-1)+')" class="btn btng" style="font-size:10px;padding:3px 9px">← Prev</button>';
-    if(_gmHistPage<totalPages-1) pag+='<button onclick="gmRenderHistory('+(_gmHistPage+1)+')" class="btn btng" style="font-size:10px;padding:3px 9px">Next →</button>';
-    pag+='</div></div>';
-    el.innerHTML+=pag;
+    paginationHtml='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;margin-top:6px;border-top:1px solid var(--bo)">'
+      +'<button class="btn btng" style="font-size:11px;padding:4px 10px" onclick="gmHistPage(-1)" '+(page<=0?'disabled style="opacity:0.3"':'')+'>← Prev</button>'
+      +'<span style="font-size:11px;color:var(--t2);font-family:var(--mo)">Page '+(page+1)+' / '+totalPages+' &nbsp;('+total+' rounds)</span>'
+      +'<button class="btn btng" style="font-size:11px;padding:4px 10px" onclick="gmHistPage(1)" '+(page>=totalPages-1?'disabled style="opacity:0.3"':'')+'>Next →</button>'
+      +'</div>';
+  } else {
+    paginationHtml='<div style="padding:6px 0;font-size:10px;color:var(--t3);font-family:var(--mo);text-align:right">'+total+' rounds total</div>';
   }
+
+  el.innerHTML=rows+paginationHtml;
+}
+
+function gmHistPage(dir){
+  var total=GM.history.length;
+  var PAGE_SIZE=30;
+  var totalPages=Math.ceil(total/PAGE_SIZE);
+  GM._histPage=Math.max(0,Math.min(totalPages-1,(GM._histPage||0)+dir));
+  gmRenderHistory();
 }
 
 function gmReset(){
   GM.pnl=0;GM.rounds=0;GM.won=0;GM.lost=0;
   GM.history=[];GM.activeCids={};GM.pending={};GM.lastRoundTime=0;
-  GM.lastCallPay=0;GM.lastPutPay=0;GM.lastCombinedPay=0;GM._skipped=0;
+  GM.lastCallPay=0;GM.lastPutPay=0;GM.lastCombinedPay=0;GM._skipped=0;GM._histPage=0;
   _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:''};
   gmUpdateStats();gmRenderHistory();
   var net=document.getElementById('gm-round-net');if(net)net.textContent='$0.00';var skEl2=document.getElementById('gm-skipped');if(skEl2)skEl2.textContent='0';
@@ -5125,237 +5107,6 @@ function gmUpdateSignalBadge(prices, curP){
 
 
 
-
-// ════════════════════════════════════════════════════════════════
-// FULL CONTRACT SCANNER — tests every contract type at any duration
-// ════════════════════════════════════════════════════════════════
-var _scan = null;
-
-function fullScan(dur, unit) {
-  if(!S.connected) {
-    document.getElementById('sc-result').innerHTML = '<span style="color:var(--re)">Not connected</span>';
-    return;
-  }
-  var barrier = parseFloat(document.getElementById('sc-barrier').value) || 0.12;
-  var stake   = parseFloat(document.getElementById('sc-stake').value)   || 0.35;
-
-  // Every contract type Deriv offers — single barrier and dual barrier variants
-  var types = [
-    {ct:'CALL',         b1:'+'+barrier.toFixed(2), b2:null,                        label:'CALL (ends above +barrier)'},
-    {ct:'PUT',          b1:'-'+barrier.toFixed(2), b2:null,                        label:'PUT (ends below -barrier)'},
-    {ct:'NOTOUCH',      b1:'+'+barrier.toFixed(2), b2:null,                        label:'NOTOUCH HIGH (never touches +barrier)'},
-    {ct:'NOTOUCH',      b1:'-'+barrier.toFixed(2), b2:null,                        label:'NOTOUCH LOW (never touches -barrier)'},
-    {ct:'ONETOUCH',     b1:'+'+barrier.toFixed(2), b2:null,                        label:'ONETOUCH HIGH (touches +barrier)'},
-    {ct:'ONETOUCH',     b1:'-'+barrier.toFixed(2), b2:null,                        label:'ONETOUCH LOW (touches -barrier)'},
-    {ct:'EXPIRYRANGE',  b1:'+'+barrier.toFixed(2), b2:'-'+barrier.toFixed(2),     label:'EXPIRYRANGE / Ends Between (ends inside gap)'},
-    {ct:'EXPIRYMISS',   b1:'+'+barrier.toFixed(2), b2:'-'+barrier.toFixed(2),     label:'EXPIRYMISS / Ends Outside (ends outside gap)'},
-    {ct:'RANGE',        b1:'+'+barrier.toFixed(2), b2:'-'+barrier.toFixed(2),     label:'RANGE / Stays Between (stays inside all duration)'},
-    {ct:'UPORDOWN',     b1:'+'+barrier.toFixed(2), b2:'-'+barrier.toFixed(2),     label:'UPORDOWN / Goes Outside (touches either barrier)'},
-    {ct:'DIGITEVEN',    b1:null,                    b2:null,                        label:'DIGIT EVEN'},
-    {ct:'DIGITODD',     b1:null,                    b2:null,                        label:'DIGIT ODD'},
-    {ct:'DIGITOVER',    b1:'5',                     b2:null,                        label:'DIGIT OVER 5'},
-    {ct:'DIGITUNDER',   b1:'4',                     b2:null,                        label:'DIGIT UNDER 4'},
-  ];
-
-  // Filter out digit types for seconds
-  if(unit === 's') {
-    types = types.filter(function(t){ return t.ct.indexOf('DIGIT') === -1; });
-  }
-  // For ticks, filter out dual-barrier types if they fail (we probe them anyway)
-
-  _scan = { results:{}, expected: types.length, barrier: barrier, stake: stake, dur: dur, unit: unit };
-
-  var statusEl = document.getElementById('sc-status');
-  var resultEl = document.getElementById('sc-result');
-  if(statusEl) statusEl.textContent = 'Scanning ' + types.length + ' contract types at ' + dur + unit + '...';
-  if(resultEl) resultEl.innerHTML = '';
-
-  types.forEach(function(t) {
-    var key = t.ct + '_' + (t.b1||'') + (t.b2||'');
-    var req = {
-      proposal: 1, amount: stake, basis: 'stake',
-      contract_type: t.ct,
-      currency: S.currency || 'USD',
-      duration: dur, duration_unit: unit,
-      symbol: GM.asset || 'R_100'
-    };
-    if(t.b1) req.barrier  = t.b1;
-    if(t.b2) req.barrier2 = t.b2;
-    var rid = wsSend(req);
-    if(rid) S.pending[rid] = { type:'scan_probe', key:key, label:t.label, ct:t.ct, barrier:barrier, stake:stake };
-  });
-}
-
-function onScanProbe(proposal, error, pendInfo) {
-  if(!_scan) return;
-  var key = pendInfo.key;
-  var stake = _scan.stake;
-
-  if(error || !proposal || !proposal.id) {
-    _scan.results[key] = { label:pendInfo.label, ct:pendInfo.ct, valid:false, payout:0, mult:0, net:0 };
-  } else {
-    var payout = parseFloat(proposal.payout || 0);
-    _scan.results[key] = {
-      label: pendInfo.label, ct: pendInfo.ct,
-      valid: payout > 0,
-      payout: payout,
-      mult: stake > 0 ? payout/stake : 0,
-      net: payout - stake
-    };
-  }
-
-  var got = Object.keys(_scan.results).length;
-  var statusEl = document.getElementById('sc-status');
-  if(statusEl) statusEl.textContent = 'Received ' + got + ' / ' + _scan.expected + '...';
-  if(got < _scan.expected) return;
-
-  // All results in — render
-  var barrier = _scan.barrier;
-  var stake   = _scan.stake;
-  var dur     = _scan.dur;
-  var unit    = _scan.unit;
-
-  var valid   = [], invalid = [];
-  Object.values(_scan.results).forEach(function(r){ r.valid ? valid.push(r) : invalid.push(r); });
-  valid.sort(function(a,b){ return b.mult - a.mult; });
-
-  var html = '<div style="font-size:10px;color:var(--go);font-weight:700;margin-bottom:6px">';
-  html += 'RESULTS @ ±'+barrier.toFixed(2)+' $'+stake+' '+dur+unit+' on '+( GM.asset||'R_100')+' — ';
-  html += valid.length + ' VALID, ' + invalid.length + ' REJECTED</div>';
-
-  if(valid.length === 0) {
-    html += '<div style="color:var(--re);padding:8px;background:rgba(255,77,106,0.08);border-radius:6px">No contracts available at this duration. Try a different duration button.</div>';
-  } else {
-    html += '<table style="width:100%;border-collapse:collapse;font-family:var(--mo);font-size:10px">';
-    html += '<tr style="color:var(--t3)"><td style="padding:3px 4px">CONTRACT</td><td style="padding:3px 4px">PAYOUT</td><td style="padding:3px 4px">MULT</td><td style="padding:3px 4px">NET</td></tr>';
-    valid.forEach(function(r) {
-      var isGap = r.ct==='EXPIRYRANGE'||r.ct==='RANGE'||r.ct==='UPORDOWN'||r.ct==='EXPIRYMISS';
-      var bg = isGap ? 'background:rgba(59,130,246,0.12);' : '';
-      var col = r.net > 0 ? 'var(--ac)' : 'var(--t2)';
-      html += '<tr style="border-top:1px solid var(--bo);color:'+col+';'+bg+'">';
-      html += '<td style="padding:3px 4px">'+(isGap?'⭐ ':'')+r.label+'</td>';
-      html += '<td style="padding:3px 4px">$'+r.payout.toFixed(2)+'</td>';
-      html += '<td style="padding:3px 4px">'+r.mult.toFixed(2)+'x</td>';
-      html += '<td style="padding:3px 4px">'+(r.net>=0?'+':'')+r.net.toFixed(2)+'</td>';
-      html += '</tr>';
-    });
-    html += '</table>';
-
-    // Gap coverage analysis — show any contract that could cover gap loss
-    var gapContracts = valid.filter(function(r){
-      return r.ct==='EXPIRYRANGE'||r.ct==='RANGE'||r.ct==='UPORDOWN';
-    });
-    if(gapContracts.length > 0) {
-      html += '<div style="margin-top:8px;padding:8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:6px">';
-      html += '<div style="color:var(--bl);font-weight:700;margin-bottom:5px">GAP COVERAGE CONTRACTS FOUND ✅</div>';
-      gapContracts.forEach(function(r) {
-        var totalBudget = stake * 2;
-        var insSt = parseFloat((totalBudget * 0.1).toFixed(2));
-        var mainSt = parseFloat(((totalBudget - insSt)/2).toFixed(2));
-        var winNet = mainSt * (r.mult > 0 ? (r.mult - 1) : 0) - mainSt - insSt;
-        // Approximate: gap coverage needs ins payout > main*2
-        // ins * mult > main*2  =>  ins > main*2/mult
-        var insNeeded = parseFloat((mainSt * 2 / r.mult).toFixed(2));
-        var winAtBreak = (totalBudget - insNeeded)/2 * (r.mult-1) - (totalBudget-insNeeded)/2 - insNeeded;
-        html += '<div style="margin-bottom:6px;padding:6px;background:var(--bg3);border-radius:5px">';
-        html += '<div style="color:var(--ac);font-weight:700">'+r.ct+' — '+r.mult.toFixed(1)+'x multiplier</div>';
-        html += '<div style="color:var(--t2);margin-top:2px">'+r.label+'</div>';
-        html += '<div style="color:var(--t3);margin-top:4px">To break even on gap: stake $'+insNeeded.toFixed(2)+' ('+((insNeeded/totalBudget)*100).toFixed(0)+'% of budget)</div>';
-        html += '<div style="color:'+(winAtBreak>0?'var(--ac)':'var(--re)')+'">WIN net at that split: '+(winAtBreak>=0?'+':'')+winAtBreak.toFixed(2)+'</div>';
-        html += '</div>';
-      });
-      html += '</div>';
-    } else {
-      html += '<div style="margin-top:8px;padding:8px;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.25);border-radius:6px;color:var(--go);font-size:10px">';
-      html += '⚠ No gap-coverage contracts available at '+dur+unit+'. Try a different duration.';
-      html += '</div>';
-    }
-  }
-
-  if(statusEl) statusEl.textContent = '';
-  document.getElementById('sc-result').innerHTML = html;
-  _scan = null;
-}
-// ════════════════════════════════════════════════════════════════
-
-// ── Fresh re-probe before buy — eliminates PriceMoved errors ──
-var _gmFreshBuy = {call:null, put:null, callId:null, putId:null, callAsk:0, putAsk:0, stake:0, entry:0, offset:0};
-
-function onGMFreshBuy(proposal, pendInfo) {
-  if(!proposal || !proposal.id) {
-    // Fresh probe failed — skip this round
-    var rs=document.getElementById('gm-round-status');
-    if(rs) rs.textContent='SKIP (fresh probe failed)';
-    _gmFreshBuy={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,offset:0};
-    return;
-  }
-  var payout = parseFloat(proposal.payout||0);
-  var ask    = parseFloat(proposal.ask_price||0);
-  if(pendInfo.side==='call'){
-    _gmFreshBuy.call=payout; _gmFreshBuy.callId=proposal.id; _gmFreshBuy.callAsk=ask;
-  } else {
-    _gmFreshBuy.put=payout; _gmFreshBuy.putId=proposal.id; _gmFreshBuy.putAsk=ask;
-  }
-  _gmFreshBuy.stake  = pendInfo.stake;
-  _gmFreshBuy.entry  = pendInfo.entry;
-  _gmFreshBuy.offset = pendInfo.offset;
-
-  if(!_gmFreshBuy.call || !_gmFreshBuy.put) return; // wait for both
-
-  // Both fresh proposals in — place immediately
-  var stake  = _gmFreshBuy.stake;
-  var entry  = _gmFreshBuy.entry;
-  var offset = _gmFreshBuy.offset;
-  var callPay= _gmFreshBuy.call;
-  var putPay = _gmFreshBuy.put;
-
-  // Re-check gate with fresh payouts
-  if(!gmGatePasses(callPay, putPay, stake)){
-    var rs2=document.getElementById('gm-round-status');
-    if(rs2) rs2.textContent='SKIP (gate fail on fresh probe)';
-    _gmFreshBuy={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,offset:0};
-    return;
-  }
-
-  GM.roundId++;
-  var rid=GM.roundId;
-  GM.rounds++;
-  GM.lastRoundTime=Date.now();
-
-  var _snap=gmSnapshot(entry,offset,stake,callPay,putPay);
-  GM.pending[rid]={
-    results:{call:null,put:null},settled:0,
-    entry:entry,barrier:'+'+offset.toFixed(2),stake:stake,offset:offset,
-    callPay:callPay,putPay:putPay,combinedPay:callPay+putPay,
-    bias:_snap.dominantDir||'--',
-    callPlaced:false,putPlaced:false,callCid:null,putCid:null,
-    time:_snap.time,asset:GM.asset,snap:_snap
-  };
-
-  var set=function(id,val){var e=document.getElementById(id);if(e)e.textContent=val;};
-  set('gm-call-stake','stake: $'+stake.toFixed(2)+' | pays: $'+callPay.toFixed(2)+' | barrier: +'+offset.toFixed(2));
-  set('gm-put-stake', 'stake: $'+stake.toFixed(2)+' | pays: $'+putPay.toFixed(2)+' | barrier: -'+offset.toFixed(2));
-  set('gm-call-pnl','...');set('gm-put-pnl','...');
-  set('gm-round-status','BUYING...');set('gm-round-net','...');
-
-  var dp2=entry>100?2:5;
-  _gmActiveBarrier={active:true,higher:parseFloat((entry+offset).toFixed(dp2)),lower:parseFloat((entry-offset).toFixed(dp2))};
-  gmDrawChart();
-
-  var b1=wsSend({buy:_gmFreshBuy.callId, price:_gmFreshBuy.callAsk});
-  if(b1)S.pending[b1]={dir:'HIGHER',stake:stake,asset:GM.asset,isBot:true,isGM:true,gmRound:rid,gmSide:'call',entryPrice:entry,durVal:GM.dur,durUnit:'s'};
-
-  var b2=wsSend({buy:_gmFreshBuy.putId, price:_gmFreshBuy.putAsk});
-  if(b2)S.pending[b2]={dir:'LOWER',stake:stake,asset:GM.asset,isBot:true,isGM:true,gmRound:rid,gmSide:'put',entryPrice:entry,durVal:GM.dur,durUnit:'s'};
-
-  GM.pending[rid]._timeout=setTimeout(function(){
-    if(GM.pending[rid]&&GM.pending[rid].settled<2) gmForceSettle(rid);
-  },120000);
-
-  _gmFreshBuy={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,offset:0};
-  console.log('[GM FRESH BUY] R'+rid+' entry:'+entry+' offset:±'+offset+' stake:$'+stake);
-}
-// ── End fresh re-probe ──
 </script>
 </body>
 </html>
