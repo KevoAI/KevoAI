@@ -105,6 +105,9 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
 .tsw.on{background:var(--ac);border-color:var(--ac)}
 .tsw::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s}
 .tsw.on::after{transform:translateX(20px)}
+/* small variant — inline width/height override, knob scales automatically */
+.tsw[style*="width:34px"]::after{width:12px;height:12px;top:2px;left:2px}
+.tsw[style*="width:34px"].on::after{transform:translateX(14px)}
 .bss{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:9px}
 .bst{background:var(--bg3);border-radius:var(--rs);padding:8px 9px;border:1px solid var(--bo)}
 .bsl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em}
@@ -965,6 +968,98 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div class="ig"><div class="il">Daily SL ($)</div><input type="number" class="iif" id="gm-daily-sl" value="30" min="1" oninput="gmCalc()"></div>
                   <div class="ig"><div class="il">Daily TP ($)</div><input type="number" class="iif" id="gm-daily-tp" value="60" min="1" oninput="gmCalc()"></div>
                 </div>
+                <!-- ── Momentum Filters ── -->
+                <div style="background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.22);border-radius:var(--rs);padding:11px;margin-bottom:11px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                    <div style="font-size:11px;font-weight:700;color:var(--go)">⚡ Momentum Filters</div>
+                    <div id="gm-mf-status" style="font-size:10px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--t3)">--</div>
+                  </div>
+
+                  <!-- Slope -->
+                  <div style="margin-bottom:8px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                      <div style="display:flex;align-items:center;gap:7px">
+                        <div class="tsw" id="mf-slope-sw" onclick="gmMFToggle('slope')" style="width:34px;height:18px"></div>
+                        <span style="font-size:10px;font-weight:600;color:var(--t1)">Slope</span>
+                        <span style="font-size:10px;color:var(--t3)">min/tick</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:4px">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('slopeMin',-0.005)">-</div>
+                        <input type="number" id="mf-slope-val" value="0.02" step="0.005" min="0.005" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('slopeMin',this.value)">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('slopeMin',0.005)">+</div>
+                      </div>
+                    </div>
+                    <div id="mf-slope-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">slope: --</div>
+                  </div>
+
+                  <!-- Range Width -->
+                  <div style="margin-bottom:8px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                      <div style="display:flex;align-items:center;gap:7px">
+                        <div class="tsw" id="mf-range-sw" onclick="gmMFToggle('range')" style="width:34px;height:18px"></div>
+                        <span style="font-size:10px;font-weight:600;color:var(--t1)">Range</span>
+                        <span style="font-size:10px;color:var(--t3)">min 20-tick H-L</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:4px">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('rangeMin',-0.05)">-</div>
+                        <input type="number" id="mf-range-val" value="0.20" step="0.05" min="0.05" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('rangeMin',this.value)">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('rangeMin',0.05)">+</div>
+                      </div>
+                    </div>
+                    <div id="mf-range-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">range: --</div>
+                  </div>
+
+                  <!-- Consecutive -->
+                  <div style="margin-bottom:8px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                      <div style="display:flex;align-items:center;gap:7px">
+                        <div class="tsw" id="mf-cons-sw" onclick="gmMFToggle('cons')" style="width:34px;height:18px"></div>
+                        <span style="font-size:10px;font-weight:600;color:var(--t1)">Consec</span>
+                        <span style="font-size:10px;color:var(--t3)">of last 5 same dir</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:4px">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('consMin',-1)">-</div>
+                        <input type="number" id="mf-cons-val" value="4" step="1" min="2" max="5" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('consMin',this.value)">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('consMin',1)">+</div>
+                      </div>
+                    </div>
+                    <div id="mf-cons-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">consec: --</div>
+                  </div>
+
+                  <!-- ATR -->
+                  <div style="margin-bottom:8px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                      <div style="display:flex;align-items:center;gap:7px">
+                        <div class="tsw" id="mf-atr-sw" onclick="gmMFToggle('atr')" style="width:34px;height:18px"></div>
+                        <span style="font-size:10px;font-weight:600;color:var(--t1)">ATR</span>
+                        <span style="font-size:10px;color:var(--t3)">min 5-tick avg range</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:4px">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('atrMin',-0.01)">-</div>
+                        <input type="number" id="mf-atr-val" value="0.05" step="0.01" min="0.01" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('atrMin',this.value)">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('atrMin',0.01)">+</div>
+                      </div>
+                    </div>
+                    <div id="mf-atr-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">atr: --</div>
+                  </div>
+
+                  <!-- Wall Distance -->
+                  <div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                      <div style="display:flex;align-items:center;gap:7px">
+                        <div class="tsw" id="mf-wall-sw" onclick="gmMFToggle('wall')" style="width:34px;height:18px"></div>
+                        <span style="font-size:10px;font-weight:600;color:var(--t1)">Wall Guard</span>
+                        <span style="font-size:10px;color:var(--t3)">skip near integers</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:4px">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('wallDist',-0.01)">-</div>
+                        <input type="number" id="mf-wall-val" value="0.05" step="0.01" min="0.01" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('wallDist',this.value)">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('wallDist',0.01)">+</div>
+                      </div>
+                    </div>
+                    <div id="mf-wall-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">dist to wall: --</div>
+                  </div>
+                </div>
                 <!-- Gap between rounds -->
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Min Gap Between Rounds</div>
@@ -983,25 +1078,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <div class="ch"><div class="ct">Round Math</div></div>
               <div class="cb">
                 <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;border:1px solid var(--bo);font-size:11px;font-family:var(--mo);line-height:1.9;white-space:pre-line" id="gm-calc-display">Calculating...</div>
-                <div style="margin-top:10px;padding:10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
-                  <div style="font-size:10px;color:var(--t2);font-weight:700;margin-bottom:8px">FULL CONTRACT SCANNER</div>
-                  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
-                    <span style="font-size:10px;color:var(--t3)">Barrier +-</span>
-                    <input type="number" id="sc-barrier" value="0.12" step="0.01" min="0.01" style="width:60px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:var(--mo);font-size:12px;outline:none">
-                    <span style="font-size:10px;color:var(--t3)">Stake $</span>
-                    <input type="number" id="sc-stake" value="0.35" step="0.05" min="0.35" style="width:60px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 7px;color:var(--t1);font-family:var(--mo);font-size:12px;outline:none">
-                  </div>
-                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-                    <button onclick="fullScan(5,'t')" class="btn btnp" style="font-size:11px;padding:5px 10px">5 TICKS</button>
-                    <button onclick="fullScan(10,'t')" class="btn btng" style="font-size:11px;padding:5px 10px">10 TICKS</button>
-                    <button onclick="fullScan(30,'s')" class="btn btng" style="font-size:11px;padding:5px 10px">30s</button>
-                    <button onclick="fullScan(60,'s')" class="btn btng" style="font-size:11px;padding:5px 10px">60s</button>
-                    <button onclick="fullScan(120,'s')" class="btn btng" style="font-size:11px;padding:5px 10px">2m</button>
-                    <button onclick="fullScan(300,'s')" class="btn btng" style="font-size:11px;padding:5px 10px">5m</button>
-                  </div>
-                  <div id="sc-status" style="font-size:10px;color:var(--go);margin-bottom:5px"></div>
-                  <div id="sc-result" style="font-size:11px;font-family:var(--mo);color:var(--t3)">Click a duration button to test all contract types.</div>
-                </div>
               </div>
             </div>
 
@@ -1248,16 +1324,11 @@ function handleMsg(d) {
     if(code==='InvalidToken'||code==='AuthorizationRequired') {
       notify('X','Invalid token: '+msg,'loss'); updateConnUI(false);
     } else {
-      // Silently swallow scan probe errors
-      var pend = d.req_id ? S.pending[d.req_id] : null;
-      if(pend && pend.type==='scan_probe'){
-        onScanProbe(null, msg, pend);
-        delete S.pending[d.req_id];
-        return;
-      }
-      // Show ALL other errors
+      // Show ALL errors
       notify('Err:'+code, msg.substring(0,80), 'loss');
       console.warn('Deriv error:', code, msg, 'req_id:', d.req_id);
+      // Check if this error belongs to an HB proposal or buy
+      var pend = d.req_id ? S.pending[d.req_id] : null;
       // Handle PriceMoved error for GM contracts
   if(code==='PriceMoved'&&pend&&pend.isGM){
     var _gmRid=pend.gmRound;
@@ -1357,7 +1428,6 @@ function onProposal(proposal, reqId){
   // Route HB proposals to dual-trade handler
   if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
   if(p.type==='gm_probe'){onGMProbe(proposal,p);delete S.pending[reqId];return;}
-  if(p.type==='scan_probe'){onScanProbe(proposal,null,p);delete S.pending[reqId];return;}
 }
 
 function onAuth(a) {
@@ -4087,7 +4157,7 @@ function initCharts(){
 
 window.addEventListener('load',function(){
   S.botMultiplier=100; S.maxBotTrades=1;
-  buildAllDDs(); buildTicker(); initCharts(); gmCalc(); setTimeout(gmInitChart,500);
+  buildAllDDs(); buildTicker(); initCharts(); gmCalc(); setTimeout(gmInitChart,500); setTimeout(gmMFInit,600);
   buildDigitGrid(); buildMultInputs(); calcWWDaily(); initWWChart();
   updateStats(); renderTrades();
   updDG();
@@ -4137,7 +4207,15 @@ var GM = {
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
-  confThresh:65  // Min confidence threshold — matches default 65% button
+  confThresh:65,  // Min confidence threshold
+  // ── Momentum filters ──
+  mf:{
+    slopeOn:true,  slopeMin:0.02,  slopeLook:10,
+    rangeOn:true,  rangeMin:0.20,  rangeLook:20,
+    consOn:true,   consMin:4,      consLook:5,
+    atrOn:false,   atrMin:0.05,    atrLook:5,
+    wallOn:true,   wallDist:0.05
+  }
 };
 
 function gmSetActive(el){
@@ -4466,6 +4544,16 @@ function gmLoop(){
     var rs5=document.getElementById('gm-round-status');
     if(rs5)rs5.textContent='CONF '+Math.max(conf.upPct,conf.dnPct)+'% < '+GM.confThresh+'%';
     GM.interval=setTimeout(gmLoop,2000);return;
+  }
+
+  // ── Momentum filter checks ──
+  var _mfPrices=getInd(GM.asset).prices;
+  var mfr=gmMFCheck(_mfPrices);
+  gmMFUpdateLive(mfr);
+  if(!mfr.pass){
+    var rs6=document.getElementById('gm-round-status');
+    if(rs6)rs6.textContent='SKIP: '+mfr.reason;
+    GM.interval=setTimeout(gmLoop,1000);return;
   }
 
   // Fire a payout check — fetch proposals at current stake
@@ -4936,7 +5024,15 @@ function gmInitChart(){
       // LOWER barrier line
       {label:'LOWER',data:[],borderColor:'rgba(255,77,106,0.9)',
        borderWidth:2,borderDash:[6,4],fill:false,
-       pointRadius:0,tension:0,order:3}
+       pointRadius:0,tension:0,order:3},
+      // Wall UPPER (integer ceiling)
+      {label:'WallU',data:[],borderColor:'rgba(245,166,35,0.45)',
+       borderWidth:1,borderDash:[3,6],fill:false,
+       pointRadius:0,tension:0,order:4},
+      // Wall LOWER (integer floor)
+      {label:'WallL',data:[],borderColor:'rgba(245,166,35,0.45)',
+       borderWidth:1,borderDash:[3,6],fill:false,
+       pointRadius:0,tension:0,order:5}
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,
@@ -4981,6 +5077,17 @@ function gmDrawChart(){
     if(leg)leg.innerHTML='';
   }
 
+  // ── Draw integer wall lines (always track price) ──
+  var curPriceForWall=prices[len-1]||0;
+  gmUpdateWalls(curPriceForWall);
+  if(GM.mf.wallOn&&_gmWalls.upper>0){
+    gmChart.data.datasets[3].data=Array(len).fill(_gmWalls.upper);
+    gmChart.data.datasets[4].data=Array(len).fill(_gmWalls.lower);
+  } else {
+    gmChart.data.datasets[3].data=[];
+    gmChart.data.datasets[4].data=[];
+  }
+
   gmChart.update('none');
 
   // Price display
@@ -5000,6 +5107,13 @@ function gmDrawChart(){
   }
   // Update confidence display live
   gmGetConfidence();
+
+  // Update momentum filters live
+  var _mfLivePrices=getInd(GM.asset).prices;
+  if(_mfLivePrices.length>10){
+    var _mfLiveResult=gmMFCheck(_mfLivePrices);
+    gmMFUpdateLive(_mfLiveResult);
+  }
 
   // Update entry preview panel
   var curP=S.prices[GM.asset]||0;
@@ -5080,162 +5194,175 @@ function gmUpdateSignalBadge(prices, curP){
 }
 // ── END GMILLI CHART ────────────────────────────────────────────
 
+// ══════════════════════════════════════════════════════════════
+// MOMENTUM FILTERS
+// ══════════════════════════════════════════════════════════════
+
+function gmMFInit(){
+  var mf=GM.mf;
+  var pairs=[
+    ['slope','slopeOn','slopeMin','mf-slope-sw','mf-slope-val'],
+    ['range','rangeOn','rangeMin','mf-range-sw','mf-range-val'],
+    ['cons','consOn','consMin','mf-cons-sw','mf-cons-val'],
+    ['atr','atrOn','atrMin','mf-atr-sw','mf-atr-val'],
+    ['wall','wallOn','wallDist','mf-wall-sw','mf-wall-val']
+  ];
+  pairs.forEach(function(p){
+    var sw=document.getElementById(p[3]);
+    var inp=document.getElementById(p[4]);
+    if(sw)sw.classList.toggle('on',mf[p[1]]);
+    if(inp)inp.value=mf[p[2]];
+  });
+}
+
+function gmMFToggle(key){
+  var onKey=key+'On';
+  GM.mf[onKey]=!GM.mf[onKey];
+  var sw=document.getElementById('mf-'+key+'-sw');
+  if(sw)sw.classList.toggle('on',GM.mf[onKey]);
+}
+
+function gmMFAdj(key,delta){
+  var inp=document.getElementById('mf-'+key.replace(/Min|Dist/,'').replace('slope','slope').toLowerCase()+'-val');
+  // Build id from key: slopeMin→mf-slope-val, rangeMin→mf-range-val, wallDist→mf-wall-val
+  var keyMap={slopeMin:'mf-slope-val',rangeMin:'mf-range-val',consMin:'mf-cons-val',atrMin:'mf-atr-val',wallDist:'mf-wall-val'};
+  inp=document.getElementById(keyMap[key]);
+  if(!inp)return;
+  var v=parseFloat(inp.value)+delta;
+  var mins={slopeMin:0.005,rangeMin:0.05,consMin:2,atrMin:0.01,wallDist:0.01};
+  var maxs={consMin:5};
+  v=Math.max(mins[key]||0.001,v);
+  if(maxs[key])v=Math.min(maxs[key],v);
+  inp.value=v.toFixed(key==='consMin'?0:3);
+  GM.mf[key]=parseFloat(inp.value);
+}
+
+function gmMFInput(key,val){
+  var v=parseFloat(val);
+  if(!isNaN(v))GM.mf[key]=v;
+}
+
+// Returns {pass:bool, reason:string, slope, range, cons, atr, wallDist, dir}
+function gmMFCheck(prices){
+  var mf=GM.mf;
+  var n=prices.length;
+  if(n<21)return{pass:true,reason:'not enough data'};
+
+  var result={pass:true,reason:'OK',slope:0,range:0,cons:0,atr:0,wallDist:0,dir:'--'};
+
+  // ── 1. Slope (linear regression over last slopeLook ticks) ──
+  var look=mf.slopeLook||10;
+  var sl=Math.min(look,n-1);
+  var pts=prices.slice(n-sl-1);
+  var sumX=0,sumY=0,sumXY=0,sumX2=0,cnt=pts.length;
+  for(var i=0;i<cnt;i++){sumX+=i;sumY+=pts[i];sumXY+=i*pts[i];sumX2+=i*i;}
+  var slope=cnt>1?(cnt*sumXY-sumX*sumY)/(cnt*sumX2-sumX*sumX):0;
+  result.slope=slope;
+  result.dir=slope>0?'UP':'DN';
+
+  if(mf.slopeOn&&Math.abs(slope)<mf.slopeMin){
+    result.pass=false;
+    result.reason='SLOPE '+Math.abs(slope).toFixed(4)+' < '+mf.slopeMin;
+  }
+
+  // ── 2. Range width (high-low over rangeLook ticks) ──
+  var rl=Math.min(mf.rangeLook||20,n);
+  var slice=prices.slice(n-rl);
+  var hi=Math.max.apply(null,slice);
+  var lo=Math.min.apply(null,slice);
+  var range=parseFloat((hi-lo).toFixed(5));
+  result.range=range;
+
+  if(result.pass&&mf.rangeOn&&range<mf.rangeMin){
+    result.pass=false;
+    result.reason='RANGE '+range.toFixed(3)+' < '+mf.rangeMin;
+  }
+
+  // ── 3. Consecutive moves ──
+  var cl=Math.min(mf.consLook||5,n-1);
+  var consDir=slope>=0?1:-1;
+  var cons=0;
+  for(var j=n-1;j>=n-cl;j--){
+    var d=prices[j]-prices[j-1];
+    if(consDir>0&&d>0)cons++;
+    else if(consDir<0&&d<0)cons++;
+    else break;
+  }
+  result.cons=cons;
+
+  if(result.pass&&mf.consOn&&cons<mf.consMin){
+    result.pass=false;
+    result.reason='CONSEC '+cons+' < '+mf.consMin;
+  }
+
+  // ── 4. ATR (average |move| over atrLook ticks) ──
+  var al=Math.min(mf.atrLook||5,n-1);
+  var atrSum=0;
+  for(var k=n-al;k<n;k++)atrSum+=Math.abs(prices[k]-prices[k-1]);
+  var atr=parseFloat((atrSum/al).toFixed(5));
+  result.atr=atr;
+
+  if(result.pass&&mf.atrOn&&atr<mf.atrMin){
+    result.pass=false;
+    result.reason='ATR '+atr.toFixed(4)+' < '+mf.atrMin;
+  }
+
+  // ── 5. Wall Guard ──
+  var curP=prices[n-1];
+  var wallDist=parseFloat((Math.abs(curP-Math.round(curP))).toFixed(5));
+  result.wallDist=wallDist;
+
+  if(result.pass&&mf.wallOn&&wallDist<mf.wallDist){
+    result.pass=false;
+    result.reason='WALL dist='+wallDist.toFixed(3)+' < '+mf.wallDist;
+  }
+
+  return result;
+}
+
+// Update the live readings under each filter row + status badge
+function gmMFUpdateLive(mfr){
+  var s=function(id,txt,col){var e=document.getElementById(id);if(e){e.textContent=txt;if(col)e.style.color=col;}};
+  var ok='var(--ac)',bad='var(--re)',dim='var(--t3)';
+  var mf=GM.mf;
+
+  s('mf-slope-live','slope: '+(mfr.slope!==undefined?mfr.slope.toFixed(4):'--'),
+    mf.slopeOn?(Math.abs(mfr.slope||0)>=mf.slopeMin?ok:bad):dim);
+  s('mf-range-live','range: '+(mfr.range!==undefined?mfr.range.toFixed(3):'--')+' ('+mfr.dir+')',
+    mf.rangeOn?((mfr.range||0)>=mf.rangeMin?ok:bad):dim);
+  s('mf-cons-live','consec: '+(mfr.cons!==undefined?mfr.cons:'--')+' ticks',
+    mf.consOn?((mfr.cons||0)>=mf.consMin?ok:bad):dim);
+  s('mf-atr-live','atr: '+(mfr.atr!==undefined?mfr.atr.toFixed(4):'--'),
+    mf.atrOn?((mfr.atr||0)>=mf.atrMin?ok:bad):dim);
+  s('mf-wall-live','dist to wall: '+(mfr.wallDist!==undefined?mfr.wallDist.toFixed(3):'--'),
+    mf.wallOn?((mfr.wallDist||0)>=mf.wallDist?ok:bad):dim);
+
+  var badge=document.getElementById('gm-mf-status');
+  if(badge){
+    badge.textContent=mfr.pass?'✅ PASS':'⛔ '+mfr.reason;
+    badge.style.color=mfr.pass?'var(--ac)':'var(--re)';
+    badge.style.background=mfr.pass?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.1)';
+  }
+}
+
+// ── Wall detection: track the 2 nearest integer walls to price ──
+var _gmWalls={upper:0,lower:0};
+
+function gmUpdateWalls(price){
+  if(!price||price<=0)return;
+  var floor=Math.floor(price);
+  var ceil=floor+1;
+  _gmWalls.lower=floor;
+  _gmWalls.upper=ceil;
+}
+
+// END MOMENTUM FILTERS
+// ══════════════════════════════════════════════════════════════
+
 // END GMILLI BOT
 
 
 
-
-// ════════════════════════════════════════════════════════════════
-// FULL CONTRACT SCANNER — tests every contract type at any duration
-// ════════════════════════════════════════════════════════════════
-var _scan = null;
-
-function fullScan(dur, unit) {
-  if(!S.connected) {
-    document.getElementById('sc-result').innerHTML = '<span style="color:var(--re)">Not connected</span>';
-    return;
-  }
-  var barrier = parseFloat(document.getElementById('sc-barrier').value) || 0.12;
-  var stake   = parseFloat(document.getElementById('sc-stake').value)   || 0.35;
-
-  // Every contract type Deriv offers — single barrier and dual barrier variants
-  var types = [
-    {ct:'CALL',         b1:'+'+barrier.toFixed(2), b2:null,                        label:'CALL (ends above +barrier)'},
-    {ct:'PUT',          b1:'-'+barrier.toFixed(2), b2:null,                        label:'PUT (ends below -barrier)'},
-    {ct:'NOTOUCH',      b1:'+'+barrier.toFixed(2), b2:null,                        label:'NOTOUCH HIGH (never touches +barrier)'},
-    {ct:'NOTOUCH',      b1:'-'+barrier.toFixed(2), b2:null,                        label:'NOTOUCH LOW (never touches -barrier)'},
-    {ct:'ONETOUCH',     b1:'+'+barrier.toFixed(2), b2:null,                        label:'ONETOUCH HIGH (touches +barrier)'},
-    {ct:'ONETOUCH',     b1:'-'+barrier.toFixed(2), b2:null,                        label:'ONETOUCH LOW (touches -barrier)'},
-    {ct:'EXPIRYRANGE',  b1:'+'+barrier.toFixed(2), b2:'-'+barrier.toFixed(2),     label:'EXPIRYRANGE / Ends Between (ends inside gap)'},
-    {ct:'EXPIRYMISS',   b1:'+'+barrier.toFixed(2), b2:'-'+barrier.toFixed(2),     label:'EXPIRYMISS / Ends Outside (ends outside gap)'},
-    {ct:'RANGE',        b1:'+'+barrier.toFixed(2), b2:'-'+barrier.toFixed(2),     label:'RANGE / Stays Between (stays inside all duration)'},
-    {ct:'UPORDOWN',     b1:'+'+barrier.toFixed(2), b2:'-'+barrier.toFixed(2),     label:'UPORDOWN / Goes Outside (touches either barrier)'},
-    {ct:'DIGITEVEN',    b1:null,                    b2:null,                        label:'DIGIT EVEN'},
-    {ct:'DIGITODD',     b1:null,                    b2:null,                        label:'DIGIT ODD'},
-    {ct:'DIGITOVER',    b1:'5',                     b2:null,                        label:'DIGIT OVER 5'},
-    {ct:'DIGITUNDER',   b1:'4',                     b2:null,                        label:'DIGIT UNDER 4'},
-  ];
-
-  // Filter out digit types for seconds
-  if(unit === 's') {
-    types = types.filter(function(t){ return t.ct.indexOf('DIGIT') === -1; });
-  }
-  // For ticks, filter out dual-barrier types if they fail (we probe them anyway)
-
-  _scan = { results:{}, expected: types.length, barrier: barrier, stake: stake, dur: dur, unit: unit };
-
-  var statusEl = document.getElementById('sc-status');
-  var resultEl = document.getElementById('sc-result');
-  if(statusEl) statusEl.textContent = 'Scanning ' + types.length + ' contract types at ' + dur + unit + '...';
-  if(resultEl) resultEl.innerHTML = '';
-
-  types.forEach(function(t) {
-    var key = t.ct + '_' + (t.b1||'') + (t.b2||'');
-    var req = {
-      proposal: 1, amount: stake, basis: 'stake',
-      contract_type: t.ct,
-      currency: S.currency || 'USD',
-      duration: dur, duration_unit: unit,
-      symbol: GM.asset || 'R_100'
-    };
-    if(t.b1) req.barrier  = t.b1;
-    if(t.b2) req.barrier2 = t.b2;
-    var rid = wsSend(req);
-    if(rid) S.pending[rid] = { type:'scan_probe', key:key, label:t.label, ct:t.ct, barrier:barrier, stake:stake };
-  });
-}
-
-function onScanProbe(proposal, error, pendInfo) {
-  if(!_scan) return;
-  var key = pendInfo.key;
-  var stake = _scan.stake;
-
-  if(error || !proposal || !proposal.id) {
-    _scan.results[key] = { label:pendInfo.label, ct:pendInfo.ct, valid:false, payout:0, mult:0, net:0 };
-  } else {
-    var payout = parseFloat(proposal.payout || 0);
-    _scan.results[key] = {
-      label: pendInfo.label, ct: pendInfo.ct,
-      valid: payout > 0,
-      payout: payout,
-      mult: stake > 0 ? payout/stake : 0,
-      net: payout - stake
-    };
-  }
-
-  var got = Object.keys(_scan.results).length;
-  var statusEl = document.getElementById('sc-status');
-  if(statusEl) statusEl.textContent = 'Received ' + got + ' / ' + _scan.expected + '...';
-  if(got < _scan.expected) return;
-
-  // All results in — render
-  var barrier = _scan.barrier;
-  var stake   = _scan.stake;
-  var dur     = _scan.dur;
-  var unit    = _scan.unit;
-
-  var valid   = [], invalid = [];
-  Object.values(_scan.results).forEach(function(r){ r.valid ? valid.push(r) : invalid.push(r); });
-  valid.sort(function(a,b){ return b.mult - a.mult; });
-
-  var html = '<div style="font-size:10px;color:var(--go);font-weight:700;margin-bottom:6px">';
-  html += 'RESULTS @ ±'+barrier.toFixed(2)+' $'+stake+' '+dur+unit+' on '+( GM.asset||'R_100')+' — ';
-  html += valid.length + ' VALID, ' + invalid.length + ' REJECTED</div>';
-
-  if(valid.length === 0) {
-    html += '<div style="color:var(--re);padding:8px;background:rgba(255,77,106,0.08);border-radius:6px">No contracts available at this duration. Try a different duration button.</div>';
-  } else {
-    html += '<table style="width:100%;border-collapse:collapse;font-family:var(--mo);font-size:10px">';
-    html += '<tr style="color:var(--t3)"><td style="padding:3px 4px">CONTRACT</td><td style="padding:3px 4px">PAYOUT</td><td style="padding:3px 4px">MULT</td><td style="padding:3px 4px">NET</td></tr>';
-    valid.forEach(function(r) {
-      var isGap = r.ct==='EXPIRYRANGE'||r.ct==='RANGE'||r.ct==='UPORDOWN'||r.ct==='EXPIRYMISS';
-      var bg = isGap ? 'background:rgba(59,130,246,0.12);' : '';
-      var col = r.net > 0 ? 'var(--ac)' : 'var(--t2)';
-      html += '<tr style="border-top:1px solid var(--bo);color:'+col+';'+bg+'">';
-      html += '<td style="padding:3px 4px">'+(isGap?'⭐ ':'')+r.label+'</td>';
-      html += '<td style="padding:3px 4px">$'+r.payout.toFixed(2)+'</td>';
-      html += '<td style="padding:3px 4px">'+r.mult.toFixed(2)+'x</td>';
-      html += '<td style="padding:3px 4px">'+(r.net>=0?'+':'')+r.net.toFixed(2)+'</td>';
-      html += '</tr>';
-    });
-    html += '</table>';
-
-    // Gap coverage analysis — show any contract that could cover gap loss
-    var gapContracts = valid.filter(function(r){
-      return r.ct==='EXPIRYRANGE'||r.ct==='RANGE'||r.ct==='UPORDOWN';
-    });
-    if(gapContracts.length > 0) {
-      html += '<div style="margin-top:8px;padding:8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:6px">';
-      html += '<div style="color:var(--bl);font-weight:700;margin-bottom:5px">GAP COVERAGE CONTRACTS FOUND ✅</div>';
-      gapContracts.forEach(function(r) {
-        var totalBudget = stake * 2;
-        var insSt = parseFloat((totalBudget * 0.1).toFixed(2));
-        var mainSt = parseFloat(((totalBudget - insSt)/2).toFixed(2));
-        var winNet = mainSt * (r.mult > 0 ? (r.mult - 1) : 0) - mainSt - insSt;
-        // Approximate: gap coverage needs ins payout > main*2
-        // ins * mult > main*2  =>  ins > main*2/mult
-        var insNeeded = parseFloat((mainSt * 2 / r.mult).toFixed(2));
-        var winAtBreak = (totalBudget - insNeeded)/2 * (r.mult-1) - (totalBudget-insNeeded)/2 - insNeeded;
-        html += '<div style="margin-bottom:6px;padding:6px;background:var(--bg3);border-radius:5px">';
-        html += '<div style="color:var(--ac);font-weight:700">'+r.ct+' — '+r.mult.toFixed(1)+'x multiplier</div>';
-        html += '<div style="color:var(--t2);margin-top:2px">'+r.label+'</div>';
-        html += '<div style="color:var(--t3);margin-top:4px">To break even on gap: stake $'+insNeeded.toFixed(2)+' ('+((insNeeded/totalBudget)*100).toFixed(0)+'% of budget)</div>';
-        html += '<div style="color:'+(winAtBreak>0?'var(--ac)':'var(--re)')+'">WIN net at that split: '+(winAtBreak>=0?'+':'')+winAtBreak.toFixed(2)+'</div>';
-        html += '</div>';
-      });
-      html += '</div>';
-    } else {
-      html += '<div style="margin-top:8px;padding:8px;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.25);border-radius:6px;color:var(--go);font-size:10px">';
-      html += '⚠ No gap-coverage contracts available at '+dur+unit+'. Try a different duration.';
-      html += '</div>';
-    }
-  }
-
-  if(statusEl) statusEl.textContent = '';
-  document.getElementById('sc-result').innerHTML = html;
-  _scan = null;
-}
-// ════════════════════════════════════════════════════════════════
 </script>
 </body>
 </html>
