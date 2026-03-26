@@ -1375,12 +1375,48 @@ function handleMsg(d) {
       console.log('[GM] PriceMoved on '+pend.gmSide+' - marking as not placed');
       if(pend.gmSide==='call')_gmRound.callPlaced=false;
       else _gmRound.putPlaced=false;
-      // Check if other side already settled - if so settle now
+      // If the other side was already settled (won/lost), settle the round now
       var _otherSettled=pend.gmSide==='call'?
         _gmRound.results.put!==null:_gmRound.results.call!==null;
-      if(_otherSettled)gmSettle(_gmRid);
+      if(_otherSettled){gmSettle(_gmRid);return;}
+      // If NEITHER side was placed (both got PriceMoved), cancel the round entirely
+      // so the force-settle timeout does NOT fire a -$3 ghost loss
+      var _neitherPlaced=!_gmRound.callPlaced&&!_gmRound.putPlaced;
+      var _noBuysConfirmed=!_gmRound.callCid&&!_gmRound.putCid;
+      if(_neitherPlaced&&_noBuysConfirmed){
+        console.log('[GM] Both sides PriceMoved on R'+_gmRid+' — cancelling round (no real trade placed)');
+        clearTimeout(_gmRound._timeout);
+        GM.rounds=Math.max(0,GM.rounds-1); // don't count this as a real round
+        GM._placing=false; // release placing lock if held
+        delete GM.pending[_gmRid];
+        GM.lastRoundTime=0; // allow immediate retry
+        var rs=document.getElementById('gm-round-status');
+        if(rs)rs.textContent='PRICE MOVED — retrying';
+        notify('PM','Price moved — round cancelled, retrying','info');
+      }
     }
     return;
+  }
+  // Handle InvalidContractProposal for GM buy requests
+  // This happens when duplicate rounds fire (e.g. R39/R40/R41 after R38)
+  // Without this fix, the round sits in GM.pending and force-settles as -$3 ghost loss
+  if(code==='InvalidContractProposal'&&pend&&pend.isGM){
+    var _icpRid=pend.gmRound;
+    var _icpRound=GM.pending[_icpRid];
+    if(_icpRound&&!_icpRound.callCid&&!_icpRound.putCid){
+      // No buys were confirmed at all — this round never reached Deriv, cancel it
+      console.log('[GM] InvalidContractProposal on R'+_icpRid+' with no confirmed buys — cancelling ghost round');
+      clearTimeout(_icpRound._timeout);
+      GM.rounds=Math.max(0,GM.rounds-1);
+      GM._placing=false;
+      delete GM.pending[_icpRid];
+      GM.lastRoundTime=0;
+      var _rs=document.getElementById('gm-round-status');
+      if(_rs)_rs.textContent='INVALID — skipped';
+      notify('Skip','Duplicate/invalid round cancelled — no real trade','info');
+      if(d.req_id) delete S.pending[d.req_id];
+      return;
+    }
   }
   if(pend && (pend.isHB || pend.type==='hb_proposal')){
         var failedRid = pend.hbRound;
@@ -4248,6 +4284,7 @@ var GM = {
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
+  _placing:false,  // lock: prevents duplicate gmPlace calls firing simultaneously
   confThresh:65,  // Min confidence threshold
   // ── Momentum filters ──
   mf:{
@@ -4737,6 +4774,14 @@ function onGMProbe(proposal,pendInfo){
 
 function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay){
   if(!S.connected)return;
+  // ── DUPLICATE GUARD: prevent multiple gmPlace calls firing simultaneously ──
+  // This fixes the bug where 4 rounds (R38-R41) fired at the same timestamp
+  // because the probe response arrived before the previous round registered in GM.pending
+  if(GM._placing){
+    console.warn('[GM] gmPlace called while already placing — duplicate suppressed');
+    return;
+  }
+  GM._placing=true;
   GM.roundId++;
   var rid=GM.roundId;
   GM.rounds++;
@@ -4783,6 +4828,11 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   if(b2)S.pending[b2]={dir:'LOWER',stake:stake,asset:GM.asset,
     isBot:true,isGM:true,gmRound:rid,gmSide:'put',
     entryPrice:entry,durVal:GM.dur,durUnit:'s'};
+
+  // Clear placing lock — both buy requests are now queued to WS
+  // Use setTimeout(0) so the lock is released after this call stack unwinds,
+  // giving the WS send queue time to process before another gmPlace could fire
+  setTimeout(function(){ GM._placing=false; }, 200);
 
   // Force-settle timeout: duration + 15s buffer (not flat 120s which causes stuck trades)
   var _forceMs=(GM.dur*1000)+15000;
@@ -4950,6 +5000,7 @@ function gmSettle(rid){
     isWin?'win':'loss');
 
   delete GM.pending[rid];
+  GM._placing=false; // always release placing lock when a round fully settles
   _gmActiveBarrier={active:false,higher:0,lower:0};
   gmDrawChart();
   gmUpdateSignalBadge([],0);
@@ -5061,7 +5112,7 @@ function gmHistPage(dir){
 }
 
 function gmReset(){
-  GM.pnl=0;GM.rounds=0;GM.won=0;GM.lost=0;
+  GM.pnl=0;GM.rounds=0;GM.won=0;GM.lost=0;GM._placing=false;
   GM.history=[];GM.activeCids={};GM.pending={};GM.lastRoundTime=0;
   GM.lastCallPay=0;GM.lastPutPay=0;GM.lastCombinedPay=0;GM._skipped=0;GM._histPage=0;
   _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:''};
