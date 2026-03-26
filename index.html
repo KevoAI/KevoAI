@@ -963,6 +963,62 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <span style="color:var(--t3)">Ticks: <span id="gm-conf-ticks">20</span></span>
                   </div>
                 </div>
+                <!-- ── Composite Confidence Score ── -->
+                <div style="background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.25);border-radius:var(--rs);padding:11px;margin-bottom:11px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                    <div style="font-size:11px;font-weight:700;color:var(--ac)">🎯 Composite Confidence Score</div>
+                    <div id="gm-conf-score-badge" style="font-size:11px;font-weight:700;font-family:var(--mo);padding:3px 10px;border-radius:99px;background:rgba(0,229,160,0.12);color:var(--ac)">Score: --/100</div>
+                  </div>
+                  <div style="font-size:10px;color:var(--t2);margin-bottom:9px;line-height:1.6">6-factor scoring: direction strength (30) + volatility (20) + price position (20) + range/slope (15) + flat ticks (15) − dead-zone penalty (30). Trade only when score ≥ threshold.</div>
+                  <!-- Score threshold buttons -->
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:9px;flex-wrap:wrap">
+                    <span style="font-size:10px;color:var(--t3);white-space:nowrap">Min Score:</span>
+                    <div class="dr" style="grid-template-columns:repeat(5,1fr);flex:1">
+                      <div class="db" onclick="GM.minConfidence=0;gmSetActive(this)" title="Off — bypass score check">OFF</div>
+                      <div class="db" onclick="GM.minConfidence=50;gmSetActive(this)">50</div>
+                      <div class="db active" onclick="GM.minConfidence=65;gmSetActive(this)">65</div>
+                      <div class="db" onclick="GM.minConfidence=75;gmSetActive(this)">75</div>
+                      <div class="db" onclick="GM.minConfidence=85;gmSetActive(this)">85</div>
+                    </div>
+                  </div>
+                  <!-- Factor breakdown display -->
+                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;font-size:10px;font-family:var(--mo)">
+                    <div style="background:var(--bg3);border-radius:5px;padding:6px 8px;border:1px solid var(--bo)">
+                      <div style="color:var(--t3);margin-bottom:2px">Direction</div>
+                      <div style="color:var(--t1);font-weight:700" id="gm-cs-dir">--</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:5px;padding:6px 8px;border:1px solid var(--bo)">
+                      <div style="color:var(--t3);margin-bottom:2px">Volatility</div>
+                      <div style="color:var(--t1);font-weight:700" id="gm-cs-vol">--</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:5px;padding:6px 8px;border:1px solid var(--bo)">
+                      <div style="color:var(--t3);margin-bottom:2px">Pos / Range</div>
+                      <div style="color:var(--t1);font-weight:700" id="gm-cs-pos">--</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:5px;padding:6px 8px;border:1px solid var(--bo)">
+                      <div style="color:var(--t3);margin-bottom:2px">Slope align</div>
+                      <div style="color:var(--t1);font-weight:700" id="gm-cs-slope">--</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:5px;padding:6px 8px;border:1px solid var(--bo)">
+                      <div style="color:var(--t3);margin-bottom:2px">Flat ticks</div>
+                      <div style="color:var(--t1);font-weight:700" id="gm-cs-flats">--</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:5px;padding:6px 8px;border:1px solid var(--bo)">
+                      <div style="color:var(--t3);margin-bottom:2px">Dead zone</div>
+                      <div style="color:var(--t1);font-weight:700" id="gm-cs-dead">--</div>
+                    </div>
+                  </div>
+                  <!-- Score bar -->
+                  <div style="margin-top:9px">
+                    <div style="height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;position:relative">
+                      <div id="gm-cs-bar" style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--re),var(--go),var(--ac));width:0%;transition:width 0.4s"></div>
+                      <div id="gm-cs-threshold-line" style="position:absolute;top:0;bottom:0;width:2px;background:rgba(255,255,255,0.5);left:65%"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:3px;font-family:var(--mo)">
+                      <span>0</span><span id="gm-cs-bar-val" style="color:var(--ac)">--</span><span>100</span>
+                    </div>
+                  </div>
+                </div>
                 <!-- Daily limits -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px">
                   <div class="ig"><div class="il">Daily SL ($)</div><input type="number" class="iif" id="gm-daily-sl" value="30" min="1" oninput="gmCalc()"></div>
@@ -1695,6 +1751,10 @@ function onTick(tick) {
   // Update prediction and zone on every HB asset tick
   if(sym===HB.asset){updatePrediction();updateZoneDisplay();}
   if(sym===GM.asset){
+    // Record tick time for dead-zone speed detection
+    if(!GM.tickTimes)GM.tickTimes=[];
+    GM.tickTimes.push(Date.now());
+    if(GM.tickTimes.length>100)GM.tickTimes.shift();
     var _gmPg=document.getElementById('page-gmilli');
     if(_gmPg&&_gmPg.classList.contains('active')){gmDrawChart();gmCalc();}
   }
@@ -4285,7 +4345,9 @@ var GM = {
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
   _placing:false,  // lock: prevents duplicate gmPlace calls firing simultaneously
-  confThresh:65,  // Min confidence threshold
+  confThresh:65,  // Min confidence threshold (old single-pct rule)
+  minConfidence:65, // Multi-factor composite score threshold (0-100)
+  tickTimes:[],   // Timestamps of recent ticks for dead-zone speed detection
   // ── Momentum filters ──
   mf:{
     slopeOn:true,  slopeMin:0.02,  slopeLook:10,
@@ -4564,6 +4626,12 @@ function gmCalc(){
   // Update stake display
   var stakeDisp=document.getElementById('gm-stake-display');
   if(stakeDisp)stakeDisp.textContent=stake.toFixed(2);
+  // Composite confidence score snapshot
+  var _csEntry2=S.prices[GM.asset]||0;
+  var _csSnap2=_csEntry2>0?gmConfSnap(_csEntry2,offset):null;
+  var _csScore2=_csSnap2?gmConfidenceScore(_csSnap2):null;
+  var _csMin=GM.minConfidence||65;
+
   if(el)el.textContent=
     'Budget per round: $'+budget.toFixed(2)+'\n'
    +'Each side stake:  $'+stake.toFixed(2)+'\n'
@@ -4573,6 +4641,7 @@ function gmCalc(){
    +'LOWER payout:     $'+(pPay?pPay.toFixed(2):'--')+'\n'
    +'Combined payout:  $'+(combined?combined.toFixed(2):'--')+'\n\n'
    +'Confidence rule: '+(GM.confThresh===0?'OFF (always trade)':GM.confThresh+'%+ in one direction')+'\n'
+   +'Composite score:  '+(_csScore2!==null?_csScore2+'/100 (min '+_csMin+') '+(_csScore2>=_csMin?'✅':'❌'):'--')+'\n'
    +'Gate: each payout must > $'+totalRisk.toFixed(2)+'\n'
    +'Status: '+(combined?( passes?'✅ PASS — will trade':'❌ SKIP — payout too low'):'Fetching...')+'\n\n'
    +'Best profit (high pays): '+(bestProfit!==null?(bestProfit>=0?'+$'+bestProfit.toFixed(2):'-$'+Math.abs(bestProfit).toFixed(2)):'--')+'\n'
@@ -4659,6 +4728,30 @@ function gmLoop(){
     var rs6=document.getElementById('gm-round-status');
     if(rs6)rs6.textContent='SKIP: '+mfr.reason;
     GM.interval=setTimeout(gmLoop,1000);return;
+  }
+
+  // ── Composite Confidence Score ──
+  // Build a lightweight snapshot and score the current market conditions.
+  // Only proceed when score >= GM.minConfidence (default 65).
+  var _csEntry=S.prices[GM.asset]||0;
+  var _csOffset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+  var _csSnap=gmConfSnap(_csEntry,_csOffset);
+  if(_csSnap){
+    var _csScore=gmConfidenceScore(_csSnap);
+    // Update score display in UI
+    var _csBadge=document.getElementById('gm-conf-score-badge');
+    if(_csBadge){
+      _csBadge.textContent='Score: '+_csScore+'/100';
+      _csBadge.style.color=_csScore>=GM.minConfidence?'var(--ac)':_csScore>=50?'var(--go)':'var(--re)';
+      _csBadge.style.background=_csScore>=GM.minConfidence?'rgba(0,229,160,0.12)':_csScore>=50?'rgba(245,166,35,0.1)':'rgba(255,77,106,0.1)';
+    }
+    if(_csScore<GM.minConfidence){
+      var rs7=document.getElementById('gm-round-status');
+      if(rs7)rs7.textContent='LOW CONF: '+_csScore+'/100 < '+GM.minConfidence;
+      GM._skipped=(GM._skipped||0)+1;
+      var skEl7=document.getElementById('gm-skipped');if(skEl7)skEl7.textContent=GM._skipped;
+      GM.interval=setTimeout(gmLoop,2000);return;
+    }
   }
 
   // Fire a payout check — fetch proposals at current stake
@@ -5114,7 +5207,7 @@ function gmHistPage(dir){
 function gmReset(){
   GM.pnl=0;GM.rounds=0;GM.won=0;GM.lost=0;GM._placing=false;
   GM.history=[];GM.activeCids={};GM.pending={};GM.lastRoundTime=0;
-  GM.lastCallPay=0;GM.lastPutPay=0;GM.lastCombinedPay=0;GM._skipped=0;GM._histPage=0;
+  GM.lastCallPay=0;GM.lastPutPay=0;GM.lastCombinedPay=0;GM._skipped=0;GM._histPage=0;GM.tickTimes=[];
   _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:''};
   gmUpdateStats();gmRenderHistory();
   var net=document.getElementById('gm-round-net');if(net)net.textContent='$0.00';var skEl2=document.getElementById('gm-skipped');if(skEl2)skEl2.textContent='0';
@@ -5256,6 +5349,9 @@ function gmDrawChart(){
     gmMFUpdateLive(_mfLiveResult);
   }
 
+  // Update composite confidence score UI live
+  gmUpdateConfScoreUI();
+
   // Update entry preview panel
   var curP=S.prices[GM.asset]||0;
   var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
@@ -5384,6 +5480,172 @@ function gmMFInput(key,val){
 }
 
 // Returns {pass:bool, reason:string, slope, range, cons, atr, wallDist, dir}
+// ══════════════════════════════════════════════════════════════
+// GMILLI COMPOSITE CONFIDENCE SCORE (replaces simple 60/40 rule)
+// Score 0-100 — only trades with score >= GM.minConfidence proceed
+// ══════════════════════════════════════════════════════════════
+
+function gmTickSpeed(){
+  // Returns number of ticks recorded in the last 1 second
+  if(!GM.tickTimes||!GM.tickTimes.length)return 0;
+  var now=Date.now();
+  return GM.tickTimes.filter(function(t){return now-t<1000;}).length;
+}
+
+function gmRecentRange(ticks){
+  ticks=ticks||10;
+  var prices=getInd(GM.asset).prices;
+  var n=prices.length;
+  if(n<ticks)return 0;
+  var slice=prices.slice(n-ticks);
+  return Math.max.apply(null,slice)-Math.min.apply(null,slice);
+}
+
+function gmConfidenceScore(snap){
+  // snap object must contain: upPct, dnPct, atrLabel, pricePos, range20, slope, flats, priceInsideGap
+  var score=0;
+
+  // 1. Directional strength (max 30)
+  var biasPct=Math.max(snap.upPct||0,snap.dnPct||0);
+  if(biasPct>=70)score+=30;
+  else if(biasPct>=60)score+=20;
+  else if(biasPct>=50)score+=10;
+
+  // 2. Volatility regime (max 20)
+  switch(snap.atrLabel){
+    case 'VERY_HIGH':score+=20;break;
+    case 'HIGH':score+=15;break;
+    case 'NORMAL':score+=10;break;
+    case 'LOW':score+=0;break;
+    case 'DEAD':score-=5;break;
+  }
+
+  // 3. Price position (max 20)
+  var pp=snap.pricePos||50;
+  if(pp>=20&&pp<=80){score+=20;}
+  else if((pp<20||pp>80)&&(snap.range20||0)>1.5){score-=10;}
+  // else 0 (near extreme but range not huge = neutral)
+
+  // 4. Range & slope alignment (max 15)
+  if((snap.range20||0)>1.2&&snap.atrLabel!=='LOW'){score+=10;}
+  else if((snap.range20||0)<0.6&&snap.atrLabel==='LOW'){score-=5;}
+  // Slope direction matches dominant bias?
+  var domDir=(snap.upPct||0)>(snap.dnPct||0)?1:-1;
+  var slope=snap.slope||0;
+  if((domDir===1&&slope>0)||(domDir===-1&&slope<0)){score+=5;}
+
+  // 5. Flat ticks (max 15)
+  var flats=snap.flats||0;
+  if(flats===0){score+=15;}
+  else if(flats<=2){score+=5;}
+  else{score-=5;}
+
+  // 6. Dead-zone penalty (-30)
+  if(snap.priceInsideGap){
+    var speed=gmTickSpeed();
+    var rng10=gmRecentRange(10);
+    if(speed<2||rng10<0.05){score-=30;}
+  }
+
+  return Math.min(100,Math.max(0,score));
+}
+
+// Build a lightweight snap object for the confidence score (no full snapshot needed)
+function gmConfSnap(entry,offset){
+  var ind=getInd(GM.asset);
+  var prices=ind.prices;
+  var n=prices.length;
+  if(n<5)return null;
+
+  // ATR5 / ATR20
+  var atr5=0,atr20=0;
+  if(n>=6){for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;}
+  if(n>=21){for(var i=n-20;i<n;i++)atr20+=Math.abs(prices[i]-prices[i-1]);atr20/=20;}
+  var atrRatio=atr20>0?(atr5/atr20):1;
+  var atrLabel=atrRatio>=1.5?'VERY_HIGH':atrRatio>=1.2?'HIGH':atrRatio>=0.8?'NORMAL':atrRatio>=0.5?'LOW':'DEAD';
+
+  // Range 20
+  var slice20=prices.slice(Math.max(0,n-20));
+  var rH=Math.max.apply(null,slice20);
+  var rL=Math.min.apply(null,slice20);
+  var range20=parseFloat((rH-rL).toFixed(4));
+  var pricePos=(rH>rL)?parseFloat(((prices[n-1]-rL)/(rH-rL)*100).toFixed(1)):50;
+
+  // Tick direction
+  var look=Math.min(20,n-1),ups=0,dns=0,flats=0;
+  for(var i=n-look;i<n;i++){
+    var d=prices[i]-prices[i-1];
+    if(d>0)ups++;else if(d<0)dns++;else flats++;
+  }
+  var total=ups+dns||1;
+  var upPct=Math.round(ups/total*100);
+  var dnPct=100-upPct;
+
+  // Slope
+  var tl=Math.min(30,n-1);
+  var slope=n>tl?parseFloat((prices[n-1]-prices[n-1-tl]).toFixed(4)):0;
+
+  // Inside gap?
+  var curP=prices[n-1];
+  var inside=(entry>0&&offset>0)?(curP>(entry-offset)&&curP<(entry+offset)):false;
+
+  return {upPct:upPct,dnPct:dnPct,atrLabel:atrLabel,pricePos:pricePos,
+          range20:range20,slope:slope,flats:flats,priceInsideGap:inside};
+}
+
+// ── Live update of the Composite Confidence Score breakdown in the UI ──
+function gmUpdateConfScoreUI(){
+  var entry=S.prices[GM.asset]||0;
+  var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+  var snap=gmConfSnap(entry,offset);
+  if(!snap)return;
+  var score=gmConfidenceScore(snap);
+
+  // Factor contributions (mirrors gmConfidenceScore logic, for display)
+  var biasPct=Math.max(snap.upPct||0,snap.dnPct||0);
+  var dirPts=biasPct>=70?30:biasPct>=60?20:biasPct>=50?10:0;
+  var volPts={VERY_HIGH:20,HIGH:15,NORMAL:10,LOW:0,DEAD:-5}[snap.atrLabel]||0;
+  var pp=snap.pricePos||50;
+  var posPts=(pp>=20&&pp<=80)?20:((pp<20||pp>80)&&(snap.range20||0)>1.5)?-10:0;
+  var rangePts=0;
+  if((snap.range20||0)>1.2&&snap.atrLabel!=='LOW')rangePts+=10;
+  else if((snap.range20||0)<0.6&&snap.atrLabel==='LOW')rangePts-=5;
+  var domDir=(snap.upPct||0)>(snap.dnPct||0)?1:-1;
+  var slopeAlign=((domDir===1&&snap.slope>0)||(domDir===-1&&snap.slope<0));
+  var slopePts=slopeAlign?5:0;
+  var flatPts=(snap.flats===0)?15:(snap.flats<=2)?5:-5;
+  var deadPts=0;
+  if(snap.priceInsideGap){var spd=gmTickSpeed(),rng=gmRecentRange(10);if(spd<2||rng<0.05)deadPts=-30;}
+
+  var s=function(id,txt,col){var e=document.getElementById(id);if(e){e.textContent=txt;if(col)e.style.color=col;}};
+  var col=function(v){return v>0?'var(--ac)':v<0?'var(--re)':'var(--t3)';};
+  s('gm-cs-dir',(dirPts>=0?'+':'')+dirPts+' ('+biasPct+'% '+((snap.upPct||0)>(snap.dnPct||0)?'UP':'DN')+')',col(dirPts));
+  s('gm-cs-vol',(volPts>=0?'+':'')+volPts+' ('+snap.atrLabel+')',col(volPts));
+  s('gm-cs-pos',(posPts>=0?'+':'')+posPts+' (pos:'+pp.toFixed(0)+'%)',col(posPts));
+  s('gm-cs-slope',(slopePts>=0?'+':'')+slopePts+(slopeAlign?' ✓':' ✗'),col(slopePts));
+  s('gm-cs-flats',(flatPts>=0?'+':'')+flatPts+' ('+snap.flats+' flat)',col(flatPts));
+  s('gm-cs-dead',(deadPts===0?'OK':'−30 DEAD ZN'),col(deadPts));
+
+  // Score badge
+  var badge=document.getElementById('gm-conf-score-badge');
+  if(badge){
+    badge.textContent='Score: '+score+'/100';
+    badge.style.color=score>=(GM.minConfidence||65)?'var(--ac)':score>=50?'var(--go)':'var(--re)';
+    badge.style.background=score>=(GM.minConfidence||65)?'rgba(0,229,160,0.12)':score>=50?'rgba(245,166,35,0.1)':'rgba(255,77,106,0.1)';
+  }
+
+  // Score bar
+  var bar=document.getElementById('gm-cs-bar');
+  if(bar)bar.style.width=Math.min(100,Math.max(0,score))+'%';
+  var barVal=document.getElementById('gm-cs-bar-val');
+  if(barVal){barVal.textContent=score+'/100';barVal.style.color=score>=(GM.minConfidence||65)?'var(--ac)':'var(--re)';}
+  // Threshold indicator line
+  var line=document.getElementById('gm-cs-threshold-line');
+  if(line)line.style.left=(GM.minConfidence||65)+'%';
+}
+
+// END gmUpdateConfScoreUI
+
 function gmMFCheck(prices){
   var mf=GM.mf;
   var n=prices.length;
