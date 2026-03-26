@@ -1059,6 +1059,44 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     </div>
                     <div id="mf-wall-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">dist to wall: --</div>
                   </div>
+
+                  <!-- Price Position Filter (Rule 1) -->
+                  <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(245,166,35,0.2)">
+                    <div style="font-size:10px;font-weight:700;color:var(--go);margin-bottom:8px">📊 Entry Position Filters</div>
+
+                    <div style="margin-bottom:8px">
+                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                        <div style="display:flex;align-items:center;gap:7px">
+                          <div class="tsw on" id="mf-pos-sw" onclick="GM.mf.posOn=this.classList.toggle('on')" style="width:34px;height:18px"></div>
+                          <span style="font-size:10px;font-weight:600;color:var(--t1)">UP at Top</span>
+                          <span style="font-size:10px;color:var(--t3)">block UP bias if pricePos &gt; %</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:4px">
+                          <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.posMaxUp=Math.max(10,GM.mf.posMaxUp-5);document.getElementById('mf-pos-val').value=GM.mf.posMaxUp">-</div>
+                          <input type="number" id="mf-pos-val" value="30" step="5" min="10" max="90" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM.mf.posMaxUp=parseInt(this.value)||30">
+                          <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.posMaxUp=Math.min(90,GM.mf.posMaxUp+5);document.getElementById('mf-pos-val').value=GM.mf.posMaxUp">+</div>
+                        </div>
+                      </div>
+                      <div id="mf-pos-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">pricePos: --</div>
+                    </div>
+
+                    <!-- Stall Filter (Rule 2) -->
+                    <div>
+                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                        <div style="display:flex;align-items:center;gap:7px">
+                          <div class="tsw on" id="mf-stall-sw" onclick="GM.mf.stallOn=this.classList.toggle('on')" style="width:34px;height:18px"></div>
+                          <span style="font-size:10px;font-weight:600;color:var(--t1)">Stall Guard</span>
+                          <span style="font-size:10px;color:var(--t3)">UP + LOW ATR + flats ≥</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:4px">
+                          <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.stallFlats=Math.max(1,GM.mf.stallFlats-1);document.getElementById('mf-stall-val').value=GM.mf.stallFlats">-</div>
+                          <input type="number" id="mf-stall-val" value="2" step="1" min="1" max="5" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM.mf.stallFlats=parseInt(this.value)||2">
+                          <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.stallFlats=Math.min(5,GM.mf.stallFlats+1);document.getElementById('mf-stall-val').value=GM.mf.stallFlats">+</div>
+                        </div>
+                      </div>
+                      <div id="mf-stall-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">atr: -- | flats: --</div>
+                    </div>
+                  </div>
                 </div>
                 <!-- Gap between rounds -->
                 <div class="ig" style="margin-bottom:11px">
@@ -4217,7 +4255,12 @@ var GM = {
     rangeOn:true,  rangeMin:0.20,  rangeLook:20,
     consOn:true,   consMin:4,      consLook:5,
     atrOn:false,   atrMin:0.05,    atrLook:5,
-    wallOn:true,   wallDist:0.05
+    wallOn:true,   wallDist:0.05,
+    // 25002500 Entry position filters (data-driven, 2026-03-26) 25002500
+    // Rule 1: skip UP-bias trades when price is at top of range
+    posOn:true,    posMaxUp:30,
+    // Rule 2: skip UP-bias when market is stalling (LOW ATR + flat ticks)
+    stallOn:true,  stallFlats:2
   }
 };
 
@@ -5364,6 +5407,50 @@ function gmMFCheck(prices){
     result.reason='WALL dist='+wallDist.toFixed(3)+' < '+mf.wallDist;
   }
 
+  // ── 6. Price Position (UP bias + price at range top) ──
+  // Compute pricePos: 0=at range low, 100=at range high
+  var slice20pos=prices.slice(Math.max(0,n-20));
+  var rHigh=slice20pos.length?Math.max.apply(null,slice20pos):curP;
+  var rLow=slice20pos.length?Math.min.apply(null,slice20pos):curP;
+  var pricePos=(rHigh>rLow)?parseFloat(((curP-rLow)/(rHigh-rLow)*100).toFixed(1)):50;
+  result.pricePos=pricePos;
+
+  // Also need dominantDir and atrLabel for Rules 1 & 2
+  // Re-use the range slice already computed above
+  var upsPos=0,dnsPos=0;
+  var lookPos=Math.min(20,n-1);
+  for(var _i=n-lookPos;_i<n;_i++){var _d=prices[_i]-prices[_i-1];if(_d>0)upsPos++;else if(_d<0)dnsPos++;}
+  var totalPos=upsPos+dnsPos||1;
+  var upPctPos=Math.round(upsPos/totalPos*100);
+  var domDirPos=upPctPos>50?'UP':'DN';
+  result.domDir=domDirPos;
+  result.upPct=upPctPos;
+
+  // atrLabel (same logic as gmSnapshot)
+  var atr5pos=0,atr20pos=0;
+  if(n>=6){for(var _k=n-5;_k<n;_k++)atr5pos+=Math.abs(prices[_k]-prices[_k-1]);atr5pos/=5;}
+  if(n>=21){for(var _k=n-20;_k<n;_k++)atr20pos+=Math.abs(prices[_k]-prices[_k-1]);atr20pos/=20;}
+  var atrRatioPos=atr20pos>0?(atr5pos/atr20pos):1;
+  var atrLabelPos=atrRatioPos>=1.5?'VERY_HIGH':atrRatioPos>=1.2?'HIGH':atrRatioPos>=0.8?'NORMAL':atrRatioPos>=0.5?'LOW':'DEAD';
+  result.atrLabel=atrLabelPos;
+
+  // Flat ticks in last 5
+  var flatsPos=0;
+  for(var _f=n-5;_f<n;_f++){if(prices[_f]-prices[_f-1]===0)flatsPos++;}
+  result.flats=flatsPos;
+
+  // Rule 1: skip if UP bias AND pricePos > posMaxUp (price exhausted at top)
+  if(result.pass&&mf.posOn&&domDirPos==='UP'&&pricePos>mf.posMaxUp){
+    result.pass=false;
+    result.reason='POS BLOCK: UP bias + pricePos='+pricePos.toFixed(0)+'% > '+mf.posMaxUp+'%';
+  }
+
+  // Rule 2: skip if UP bias AND atrLabel=LOW AND flats >= stallFlats (stalling)
+  if(result.pass&&mf.stallOn&&domDirPos==='UP'&&atrLabelPos==='LOW'&&flatsPos>=mf.stallFlats){
+    result.pass=false;
+    result.reason='STALL BLOCK: UP+LOW ATR+'+flatsPos+' flats';
+  }
+
   return result;
 }
 
@@ -5383,6 +5470,21 @@ function gmMFUpdateLive(mfr){
     mf.atrOn?((mfr.atr||0)>=mf.atrMin?ok:bad):dim);
   s('mf-wall-live','dist to wall: '+(mfr.wallDist!==undefined?mfr.wallDist.toFixed(3):'--'),
     mf.wallOn?((mfr.wallDist||0)>=mf.wallDist?ok:bad):dim);
+
+  // Live readings for new entry filters
+  var posBlocked=mf.posOn&&mfr.domDir==='UP'&&(mfr.pricePos||0)>mf.posMaxUp;
+  s('mf-pos-live',
+    'pricePos: '+(mfr.pricePos!==undefined?mfr.pricePos.toFixed(0)+'%':'--')+
+    ' | bias: '+(mfr.domDir||'--')+
+    ' | limit: UP≤'+mf.posMaxUp+'%',
+    mf.posOn?(posBlocked?bad:ok):dim);
+
+  var stallBlocked=mf.stallOn&&mfr.domDir==='UP'&&mfr.atrLabel==='LOW'&&(mfr.flats||0)>=mf.stallFlats;
+  s('mf-stall-live',
+    'atr: '+(mfr.atrLabel||'--')+
+    ' | flats: '+(mfr.flats!==undefined?mfr.flats:'--')+
+    ' | UP+LOW+≥'+mf.stallFlats+' flats = block',
+    mf.stallOn?(stallBlocked?bad:ok):dim);
 
   var badge=document.getElementById('gm-mf-status');
   if(badge){
