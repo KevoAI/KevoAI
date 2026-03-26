@@ -1769,32 +1769,9 @@ function onContract(c) {
   if(!isDone) return;
   t._settled=true;
 
-  // ── PROFIT ──────────────────────────────────────────────────────
-  var profit=parseFloat(c.profit);
-  if(isNaN(profit)) profit=0;
-  if(profit===0){
-    var sp=parseFloat(c.sell_price||c.sell_spot||0);
-    var bp=t.isGM?parseFloat(t.stake||0):parseFloat(c.buy_price||t.stake||0);
-    if(sp>0&&bp>0){
-      // sell_price > buy_price = win, sell_price < buy_price = loss
-      profit=parseFloat((sp-bp).toFixed(2));
-    } else if(sp===0&&bp>0){
-      // No sell price available
-      // For GM: check exit price vs barrier to determine win/loss
-      if(t.isGM&&exitPrice&&t.price){
-        var isHigher=t.dir==='HIGHER'||t.direction==='HIGHER';
-        var barrierOffset=t.stake>0?0.12:0.12; // fallback
-        if(isHigher&&exitPrice>parseFloat(t.price)+barrierOffset) profit=parseFloat((t.stake*0.97).toFixed(2)); // approx win
-        else if(!isHigher&&exitPrice<parseFloat(t.price)-barrierOffset) profit=parseFloat((t.stake*0.97).toFixed(2));
-        else profit=-bp;
-      } else {
-        profit=-bp;
-      }
-    }
-    if(profit===0&&t.stake) profit=-t.stake;
-  }
-
   // ── EXIT PRICE ──────────────────────────────────────────────────
+  // Must be computed BEFORE the profit fallback block so the GM barrier
+  // win/loss check (below) can actually use it.
   // Deriv exit_tick object has {epoch, quote, value} — NOT .tick
   // audit_details.contract_end last entry has .tick but that's a different path
   // Safe priority: exit_tick.quote → exit_tick.value → exit_spot → _liveExit
@@ -1811,6 +1788,32 @@ function onContract(c) {
     if(pctDiff>0.10) exitPrice=null; // >10% away = bad data
   }
   if(exitPrice && isNaN(exitPrice)) exitPrice=null;
+
+  // ── PROFIT ──────────────────────────────────────────────────────
+  var profit=parseFloat(c.profit);
+  if(isNaN(profit)) profit=0;
+  if(profit===0){
+    var sp=parseFloat(c.sell_price||c.sell_spot||0);
+    var bp=t.isGM?parseFloat(t.stake||0):parseFloat(c.buy_price||t.stake||0);
+    if(sp>0&&bp>0){
+      // sell_price > buy_price = win, sell_price < buy_price = loss
+      profit=parseFloat((sp-bp).toFixed(2));
+    } else if(sp===0&&bp>0){
+      // No sell price available
+      // For GM: check exit price vs barrier to determine win/loss
+      // exitPrice is now correctly resolved above before this block runs
+      if(t.isGM&&exitPrice&&t.price){
+        var isHigher=t.dir==='HIGHER'||t.direction==='HIGHER';
+        var barrierOffset=t.stake>0?0.12:0.12; // fallback
+        if(isHigher&&exitPrice>parseFloat(t.price)+barrierOffset) profit=parseFloat((t.stake*0.97).toFixed(2)); // approx win
+        else if(!isHigher&&exitPrice<parseFloat(t.price)-barrierOffset) profit=parseFloat((t.stake*0.97).toFixed(2));
+        else profit=-bp;
+      } else {
+        profit=-bp;
+      }
+    }
+    if(profit===0&&t.stake) profit=-t.stake;
+  }
 
   console.log('[SETTLED] cid:',c.contract_id,'is_sold:',c.is_sold,'profit:',profit,
     'entry:',t.price,'exit_tick:',c.exit_tick,'exit_spot:',c.exit_spot,'→exitPrice:',exitPrice);
@@ -4773,8 +4776,10 @@ function onGMResult(rid,side,profit,exitPrice){
   }
 
   var pnl=parseFloat(profit);
-  // profit=0 with no exitPrice = timeout / missing data = treat as loss
-  if(isNaN(pnl)||pnl===0) pnl=-(round.stake||1.50);
+  // Only default to loss when profit is genuinely missing (NaN).
+  // Do NOT force profit===0 to a loss — Deriv can send 0 for boundary ticks,
+  // and the onContract fallback already computed a signed value before calling here.
+  if(isNaN(pnl)) pnl=-(round.stake||1.50);
 
   if(exitPrice&&exitPrice>0){
     if(!round._exitPrices)round._exitPrices={};
