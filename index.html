@@ -1470,7 +1470,14 @@ function handleMsg(d) {
     case 'tick': onTickWrapper(d.tick); break;
     case 'proposal': onProposal(d.proposal, d.req_id); break;
     case 'buy': onBuy(d.buy, d.req_id); break;
-    case 'proposal_open_contract': console.log('[RAW POC]', JSON.stringify(d.proposal_open_contract).substring(0,400)); onContract(d.proposal_open_contract); break;
+    case 'proposal_open_contract': {
+      var _poc=d.proposal_open_contract;
+      // Only log settled contracts to reduce console flood during active GM rounds
+      var _pocDone=_poc&&(_poc.is_sold==1||_poc.is_expired==1||_poc.status==='won'||_poc.status==='lost'||_poc.status==='sold');
+      if(_pocDone) console.log('[RAW POC settled]', JSON.stringify(_poc).substring(0,300));
+      onContract(_poc);
+      break;
+    }
     case 'balance': onBalance(d.balance); break;
     case 'transaction': setTimeout(function(){ wsSend({balance:1,subscribe:1}); },500); break;
     case 'contracts_for': onContractsFor(d.contracts_for); break;
@@ -1738,7 +1745,17 @@ function onTick(tick) {
     GM.tickTimes.push(Date.now());
     if(GM.tickTimes.length>100)GM.tickTimes.shift();
     var _gmPg=document.getElementById('page-gmilli');
-    if(_gmPg&&_gmPg.classList.contains('active')){gmDrawChart();gmCalc();}
+    if(_gmPg&&_gmPg.classList.contains('active')){
+      // Throttle chart redraws to max 4fps — synthetic indices tick very fast
+      var _now=Date.now();
+      if(!GM._lastDraw||(_now-GM._lastDraw)>250){
+        GM._lastDraw=_now;
+        gmDrawChart();
+      }
+      // gmCalc is expensive (snapshot + score) — run every 5th tick only
+      GM._tickCount=(GM._tickCount||0)+1;
+      if(GM._tickCount%5===0) gmCalc();
+    }
   }
 }
 function dp(q){return q.toFixed(q>100?2:4);}
@@ -1806,7 +1823,9 @@ function onBuy(buy, reqId) {
   };
   S.trades.unshift(t);
   S.activeTrades.push(t);
-  updateStats(); renderTrades(); renderActive();
+
+  // Skip expensive DOM rerenders for GM trades — gmSettle handles its own UI
+  if(!p.isGM){ updateStats(); renderTrades(); renderActive(); }
 
   if(p._vb){t._vb=true;t._vbId=p._vbId;t._vbSide=p._vbSide;t._vbIdx=p._vbIdx;}
   if(p.isGM){
@@ -1815,12 +1834,18 @@ function onBuy(buy, reqId) {
     // Keep GM trades in S.trades for settlement routing
     // They are filtered from display in renderTrades/renderActive
   }
+
+  // WS subscription handles live updates — poll is only a safety net for missed settlements
   wsSend({proposal_open_contract:1,contract_id:buy.contract_id,subscribe:1});
   var _cid=buy.contract_id, _durMs=t.durMs;
-  // pollContract: retry fetching result until settled or max attempts reached
+
+  // pollContract: fires once after expiry+buffer as a safety net ONLY if WS didn't settle it
   function pollContract(cid, attempts){
     attempts=attempts||0;
-    if(attempts>8) {
+    // Check if already settled by WS subscription — bail immediately if so
+    var stillActive=S.trades.some(function(t){return t.contractId===cid&&!t._settled;});
+    if(!stillActive) return;
+    if(attempts>5) {
       // Final timeout — force close as loss
       for(var i=0;i<S.trades.length;i++){
         if(S.trades[i].contractId===cid&&S.trades[i].status==='active'){
@@ -1835,19 +1860,15 @@ function onBuy(buy, reqId) {
       updateStats();renderTrades();renderActive();wsSend({balance:1});
       return;
     }
-    // Check if already settled by WS subscription
-    var stillActive=S.trades.some(function(t){return t.contractId===cid&&!t._settled;});
-    if(!stillActive) return; // WS already handled it
     console.log('[POLL] attempt',attempts+1,'for',cid);
-    // Request with subscribe:0 for a one-shot response that includes exit_tick
     wsSend({proposal_open_contract:1,contract_id:cid});
     setTimeout(function(){
       var stillNeedsResult=S.trades.some(function(t){return t.contractId===cid&&!t._settled;});
       if(stillNeedsResult) pollContract(cid,attempts+1);
-    },1500);
+    },2000);
   }
-  // Start polling after contract duration + small buffer
-  setTimeout(function(){ pollContract(_cid,0); },_durMs+1000);
+  // Start poll 3s after expiry — give WS subscription time to deliver result first
+  setTimeout(function(){ pollContract(_cid,0); },_durMs+3000);
   delete S.pending[reqId];
 }
 
@@ -1869,8 +1890,6 @@ function onContract(c) {
   }
 
   // ── LIVE EXIT: track current_spot on every push ─────────────────
-  // For expired/missed contracts Deriv never sends exit_tick — current_spot
-  // is the only price we get at expiry time, so we keep the latest value.
   if(c.current_spot && parseFloat(c.current_spot)>0){
     t._liveExit=parseFloat(c.current_spot);
   }
@@ -1882,6 +1901,11 @@ function onContract(c) {
     (c.is_expired==1 && expiryTs>0 && nowSec>=expiryTs) ||
     c.status==='sold'||c.status==='won'||c.status==='lost'||
     c.status==='expired'||c.status==='cancelled';
+
+  // For GM trades: only run heavy settlement logic when actually done.
+  // Mid-contract POC pushes just update _liveExit (done above) and return.
+  if(t.isGM && !isDone) return;
+
   if(!isDone) return;
   t._settled=true;
 
@@ -5323,8 +5347,12 @@ function gmDrawChart(){
     gmMFUpdateLive(_mfLiveResult);
   }
 
-  // Update composite confidence score UI live
-  gmUpdateConfScoreUI();
+  // Update composite confidence score UI — throttled to 2/sec (expensive snapshot calc)
+  var _csNow=Date.now();
+  if(!GM._lastScoreUI||(_csNow-GM._lastScoreUI)>500){
+    GM._lastScoreUI=_csNow;
+    gmUpdateConfScoreUI();
+  }
 
   // Update entry preview panel
   var curP=S.prices[GM.asset]||0;
