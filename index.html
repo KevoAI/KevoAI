@@ -1358,15 +1358,15 @@ function connectWS() {
   if(stxtEl) stxtEl.textContent = 'Connecting...';
   S.ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
   S.ws.onopen = function() {
-    subAllPrices();
     if(S.apiToken) authorize();
+    // subAllPrices() is called from onAuth after token is verified
   };
   S.ws.onmessage = function(e) {
     try { handleMsg(JSON.parse(e.data)); } catch(ex){}
   };
   S.ws.onclose = function() {
     S.connected = false; updateConnUI(false);
-    setTimeout(connectWS, 3000);
+    if(S.apiToken) setTimeout(connectWS, 3000); // only reconnect if we have a token
   };
   S.ws.onerror = function() {
     var stxtEl = document.getElementById('stxt');
@@ -1580,6 +1580,7 @@ function onAuth(a) {
   }
   wsSend({balance:1,subscribe:1});
   setTimeout(function(){ wsSend({balance:1}); },1500);
+  subAllPrices(); // subscribe to price ticks only AFTER auth succeeds
   if(a.balance!==undefined) onBalance({balance:a.balance,currency:a.currency});
   notify('Connected!',a.loginid+(isVirtual?' (DEMO)':' (REAL)'),'win');
   // Query valid contract durations for EXPIRYRANGE on HB asset
@@ -1843,7 +1844,8 @@ function onBuy(buy, reqId) {
   }
 
   // WS subscription handles live updates — poll is only a safety net for missed settlements
-  wsSend({proposal_open_contract:1,contract_id:buy.contract_id,subscribe:1});
+  var _pocReqId=wsSend({proposal_open_contract:1,contract_id:buy.contract_id,subscribe:1});
+  if(_pocReqId) t._pocReqId=_pocReqId; // store so we can track the subscription
   var _cid=buy.contract_id, _durMs=t.durMs;
 
   // pollContract: fires once after expiry+buffer as a safety net ONLY if WS didn't settle it
@@ -1972,8 +1974,10 @@ function onContract(c) {
   var ms=now-(t.startTime||now); t.duration=ms; t.durationStr=fmtDur(ms);
   S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
 
-  // Unsubscribe from POC stream — stops Deriv sending further audit_detail pushes
-  if(c.id) wsSend({forget:c.id});
+  // Unsubscribe from POC stream to stop post-settlement audit_detail pushes.
+  // Only send forget if the subscription is still alive (contract not already sold by Deriv).
+  // is_sold==1 means Deriv already closed it server-side; forget on those causes WrongResponse.
+  if(c.id && c.is_sold!==1) wsSend({forget:c.id});
 
   // Volatility Bot route
   if(t&&t._vb&&t._vbId){
@@ -4337,7 +4341,9 @@ if(localStorage.getItem('kevoai_version')!==_wwVersion){
   localStorage.setItem('kevoai_version',_wwVersion);
   console.log('KevoAI v4.2 — cleared stale trade data');
 }
-connectWS(); switchAcc(S.accType);
+// Only initiate WS connection if we have a saved token — avoids unauthenticated connections
+if(S.apiToken) connectWS();
+switchAcc(S.accType);
   document.querySelector('.ni').classList.add('active');
   checkOAuthCallback();
   updHBStats();
