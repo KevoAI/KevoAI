@@ -1691,49 +1691,66 @@ function resetDG(){
 function onTick(tick) {
   var sym=tick.symbol, q=tick.quote, prev=S.prices[sym];
   S.prices[sym]=q;
-  // Ticker bar
-  var tv=document.getElementById('tv-'+sym);
-  var tc=document.getElementById('tc-'+sym);
-  if(tv) tv.textContent=q.toFixed(q>100?2:5);
-  if(tc&&prev!==undefined){
-    var diff=q-prev, pct=(diff/prev*100).toFixed(3);
-    tc.textContent=(diff>=0?'+':'')+pct+'%';
-    tc.className='tc '+(diff>=0?'up':'down');
-    if(sym===HB.asset||sym===S.asset){
-      S.recentMoves.push(diff>=0?'H':'L');
-      if(S.recentMoves.length>40) S.recentMoves.shift();
+  // Ticker bar — throttled to 2fps per symbol (cheap but fires for ALL symbols)
+  var _tkNow=Date.now();
+  if(!S._lastTicker)S._lastTicker={};
+  if(!S._lastTicker[sym]||(_tkNow-S._lastTicker[sym])>500){
+    S._lastTicker[sym]=_tkNow;
+    var tv=document.getElementById('tv-'+sym);
+    var tc=document.getElementById('tc-'+sym);
+    if(tv) tv.textContent=q.toFixed(q>100?2:5);
+    if(tc&&prev!==undefined){
+      var diff=q-prev, pct=(diff/prev*100).toFixed(3);
+      tc.textContent=(diff>=0?'+':'')+pct+'%';
+      tc.className='tc '+(diff>=0?'up':'down');
+    }
+  }
+  var diff=q-(prev||q);
+  if(sym===HB.asset||sym===S.asset){
+    S.recentMoves.push(diff>=0?'H':'L');
+    if(S.recentMoves.length>40) S.recentMoves.shift();
+    // Throttle these — they run heavy DOM updates
+    var _pmNow=Date.now();
+    if(!S._lastMoveDraw||(_pmNow-S._lastMoveDraw)>500){
+      S._lastMoveDraw=_pmNow;
       if(typeof updatePrediction==='function')updatePrediction();
       if(typeof updateMovesGrid==='function')updateMovesGrid();
     }
   }
-  // ── DASHBOARD chart (priceChart) — always live ──────────────────
+  // ── DASHBOARD chart (priceChart) — throttled to 4fps ───────────
   if(sym===S.asset){
     document.getElementById('livePrice').textContent=q.toFixed(q>100?2:5);
     document.getElementById('mktP').textContent=dp(q);
     if(priceChart){
-      var d1=getInd(sym).prices.slice(-120);
-      priceChart.data.labels=d1.map(function(){return '';});
-      priceChart.data.datasets[0].data=d1.slice();
-      // Sync WW barrier line lengths
-      priceChart.data.datasets.forEach(function(ds){
-        if(ds._isWWBarrier)ds.data=Array(d1.length).fill(ds.data[0]||0);
-      });
-      priceChart.update('none');
+      var _pcNow=Date.now();
+      if(!S._lastPcDraw||(_pcNow-S._lastPcDraw)>250){
+        S._lastPcDraw=_pcNow;
+        var d1=getInd(sym).prices.slice(-120);
+        priceChart.data.labels=d1.map(function(){return '';});
+        priceChart.data.datasets[0].data=d1.slice();
+        priceChart.data.datasets.forEach(function(ds){
+          if(ds._isWWBarrier)ds.data=Array(d1.length).fill(ds.data[0]||0);
+        });
+        priceChart.update('none');
+      }
     }
   }
-  // ── WINWIN chart (wwChart) — always live for HB asset ───────────
+  // ── WINWIN chart (wwChart) — throttled to 4fps for HB asset ────
   if(sym===HB.asset&&wwChart){
-    var d2=getInd(sym).prices.slice(-100);
-    if(d2.length>0){
-      wwChart.data.labels=d2.map(function(){return '';});
-      wwChart.data.datasets[0].data=d2.slice();
-      // Sync WW barrier lines on ww chart too
-      wwChart.data.datasets.forEach(function(ds){
-        if(ds._isWWBarrier)ds.data=Array(d2.length).fill(ds.data[0]||0);
-      });
-      wwChart.update('none');
+    var _wwNow=Date.now();
+    if(!S._lastWwDraw||(_wwNow-S._lastWwDraw)>250){
+      S._lastWwDraw=_wwNow;
+      var d2=getInd(sym).prices.slice(-100);
+      if(d2.length>0){
+        wwChart.data.labels=d2.map(function(){return '';});
+        wwChart.data.datasets[0].data=d2.slice();
+        wwChart.data.datasets.forEach(function(ds){
+          if(ds._isWWBarrier)ds.data=Array(d2.length).fill(ds.data[0]||0);
+        });
+        wwChart.update('none');
+      }
     }
-    // Update price display in WinWin header
+    // Price display still updates every tick (cheap DOM op)
     var ep=document.getElementById('ww-chart-price');
     if(ep)ep.textContent=dp(q);
   }
@@ -1745,8 +1762,14 @@ function onTick(tick) {
       t._exitConfirmed=false; // locally captured — not API-confirmed
     }
   });
-  // Update prediction and zone on every HB asset tick
-  if(sym===HB.asset){updatePrediction();updateZoneDisplay();}
+  // Update prediction and zone on every HB asset tick — throttled to 2fps
+  if(sym===HB.asset){
+    var _predNow=Date.now();
+    if(!S._lastPredDraw||(_predNow-S._lastPredDraw)>500){
+      S._lastPredDraw=_predNow;
+      updatePrediction();updateZoneDisplay();
+    }
+  }
   if(sym===GM.asset){
     // Record tick time for dead-zone speed detection
     if(!GM.tickTimes)GM.tickTimes=[];
@@ -5460,7 +5483,7 @@ function gmUpdateSignalBadge(prices, curP){
   var text=document.getElementById('gm-signal-text');
   if(!badge||!icon||!text)return;
 
-  var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+  var offset=gmAdaptiveOffset();
 
   // Show badge only on Gmilli page
   var gmPage=document.getElementById('page-gmilli');
