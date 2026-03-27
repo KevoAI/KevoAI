@@ -804,6 +804,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           </div>
           <div style="font-size:11px;color:var(--t2)">Barrier set at entry spot — one side ALWAYS wins. Only trades when combined payout > 2× stake.</div>
         </div>
+        <!-- STALE FEED WARNING — shown by watchdog when ticks stop arriving -->
+        <div id="gm-stale-warn" style="display:none;align-items:center;gap:9px;background:rgba(255,77,106,0.12);border:1px solid rgba(255,77,106,0.4);border-radius:var(--rs);padding:9px 13px;margin-bottom:10px;font-size:12px;font-weight:600;color:var(--re)">⚠ Price feed stalled — resubscribing...</div>
         <div class="sr" style="margin-bottom:12px">
           <div class="sc g"><div class="sl">Net P&amp;L</div><div class="sv g" id="gm-pnl">+$0.00</div><div class="ss">Session</div></div>
           <div class="sc b"><div class="sl">Rounds</div><div class="sv b" id="gm-rounds">0</div><div class="ss">This session</div></div>
@@ -1387,6 +1389,41 @@ function subAllPrices() { for(var g in INSTR) INSTR[g].forEach(function(i){ subP
 function subPrice(sym) { wsSend({ticks:sym, subscribe:1}); }
 setInterval(function(){ if(S.ws&&S.ws.readyState===1) wsSend({ping:1}); }, 30000);
 
+// ── STALE TICK WATCHDOG ──────────────────────────────────────────
+// Detects when the GM asset feed freezes (no ticks for >8s) and auto-resubscribes.
+// This fixes the "price frozen + trades skipping" bug caused by Deriv tick stalls.
+setInterval(function(){
+  if(!S.connected) return;
+  var now = Date.now();
+  var sym = GM.asset;
+  // Use the per-symbol timestamp map updated on every onTick call
+  var lastTick = (S._lastTickTime && S._lastTickTime[sym]) || 0;
+  // Fallback: also check GM.tickTimes array
+  if(!lastTick && GM.tickTimes && GM.tickTimes.length) lastTick = GM.tickTimes[GM.tickTimes.length-1];
+  if(!lastTick) return; // no ticks yet since page load — nothing to check
+  var elapsed = now - lastTick;
+  var warnEl = document.getElementById('gm-stale-warn');
+  // If GM asset hasn't ticked in 8 seconds, the feed is stalled — resubscribe
+  if(elapsed > 8000) {
+    console.warn('[WATCHDOG] '+sym+' feed stalled '+Math.round(elapsed/1000)+'s — resubscribing');
+    // Show warning in UI
+    var rs = document.getElementById('gm-round-status');
+    if(rs && !GM._placing && !Object.keys(GM.pending).length) rs.textContent = 'FEED STALLED — reconnecting...';
+    if(warnEl) { warnEl.style.display='flex'; warnEl.textContent='⚠ Price feed stalled '+Math.round(elapsed/1000)+'s — resubscribing to '+sym+'...'; }
+    // Resubscribe to this symbol's tick stream
+    wsSend({ticks: sym, subscribe: 1});
+    // Also resubscribe HB asset if different
+    if(HB.asset !== sym) wsSend({ticks: HB.asset, subscribe: 1});
+    // Stamp now so we don't spam resubscribe every 3s — wait for a real tick to clear
+    if(S._lastTickTime) S._lastTickTime[sym] = now - 5000; // allow recheck in 5s if still stuck
+    GM.tickTimes = [now - 5000];
+  } else {
+    // Feed is alive — hide warning if showing
+    if(warnEl && warnEl.style.display !== 'none') warnEl.style.display = 'none';
+  }
+}, 3000);
+// ── END STALE TICK WATCHDOG ──────────────────────────────────────
+
 // Poll active trades
 setInterval(function(){
   if(!S.activeTrades.length) return;
@@ -1691,6 +1728,9 @@ function resetDG(){
 function onTick(tick) {
   var sym=tick.symbol, q=tick.quote, prev=S.prices[sym];
   S.prices[sym]=q;
+  // Track last tick arrival time per symbol (used by stale-feed watchdog)
+  if(!S._lastTickTime) S._lastTickTime={};
+  S._lastTickTime[sym]=Date.now();
   // Ticker bar — throttled to 2fps per symbol (cheap but fires for ALL symbols)
   var _tkNow=Date.now();
   if(!S._lastTicker)S._lastTicker={};
