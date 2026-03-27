@@ -923,14 +923,21 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div style="font-size:10px;color:var(--t3);margin-top:3px">Split equally — $<span id="gm-stake-display">1.50</span> each side</div>
                 </div>
                 <!-- Barrier Offset -->
-                <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Barrier Offset (± price)</div>
-                  <div class="ir">
+                <div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;margin-bottom:11px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                    <div style="font-size:11px;font-weight:700">Barrier Offset</div>
+                    <div style="display:flex;align-items:center;gap:7px">
+                      <span style="font-size:10px;color:var(--t3)">Auto (ATR×1.5)</span>
+                      <div class="tsw" id="gm-adaptive-offset-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on');gmCalc()"></div>
+                    </div>
+                  </div>
+                  <div class="ir" style="margin-bottom:5px">
                     <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=Math.max(0.01,(parseFloat(e.value)-0.01)).toFixed(2);gmCalc()">-</div>
                     <input type="number" class="iif" id="gm-offset" value="0.12" min="0.01" step="0.01" oninput="gmCalc()">
                     <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=(parseFloat(e.value)+0.01).toFixed(2);gmCalc()">+</div>
+                    <span style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--ac);margin-left:6px" id="gm-effective-offset">±0.12</span>
                   </div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">HIGHER barrier = entry+offset | LOWER = entry-offset</div>
+                  <div style="font-size:10px;color:var(--t3)">Manual baseline. Auto scales with ATR×duration.</div>
                 </div>
                 <!-- Duration -->
                 <div class="ig" style="margin-bottom:11px">
@@ -1873,9 +1880,10 @@ function onBuy(buy, reqId) {
 }
 
 function onContract(c) {
-  if(!c) return;
+  if(!c||!c.contract_id) return;
   var idx=-1;
   for(var i=0;i<S.trades.length;i++){if(S.trades[i].contractId==c.contract_id){idx=i;break;}}
+  // Fast exit: contract not tracked OR already fully settled — ignore all further pushes
   if(idx===-1) return;
   var t=S.trades[idx];
   if(t._settled) return;
@@ -1963,6 +1971,9 @@ function onContract(c) {
   t.exitPrice=exitPrice; t.endTime=now;
   var ms=now-(t.startTime||now); t.duration=ms; t.durationStr=fmtDur(ms);
   S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
+
+  // Unsubscribe from POC stream — stops Deriv sending further audit_detail pushes
+  if(c.id) wsSend({forget:c.id});
 
   // Volatility Bot route
   if(t&&t._vb&&t._vbId){
@@ -2593,7 +2604,7 @@ function initWWChart(){}
 function forceWWChartUpdate(){}
 function updateWWChart(){}
 function updateWWBarrierLengths(){}
-var wwLastDraw=0,wwChartData=[],wwBarrierLines=[];
+var wwLastDraw=0,wwChartData=[],wwBarrierLines=[],wwActiveBarrier=null;
 
 function toggleHybrid(){
   HB.running=!HB.running;
@@ -4618,7 +4629,7 @@ function gmCalc(){
   var stake=gmStake();
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
-  var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+  var offset=gmAdaptiveOffset(); // uses adaptive if toggle is on, else manual
   var totalRisk=stake*2;
   // Use last known payouts if available
   var cPay=GM.lastCallPay||0;
@@ -4632,6 +4643,14 @@ function gmCalc(){
   // Update stake display
   var stakeDisp=document.getElementById('gm-stake-display');
   if(stakeDisp)stakeDisp.textContent=stake.toFixed(2);
+  // Update effective offset display
+  var effOff=document.getElementById('gm-effective-offset');
+  if(effOff)effOff.textContent='±'+offset.toFixed(2);
+  // Momentum check live display
+  var prices=getInd(GM.asset).prices;
+  var n=prices.length;
+  var momOk=true,momNet=0;
+  if(n>=10){momNet=Math.abs(prices[n-1]-prices[n-11]);momOk=momNet>=(offset*0.6);}
   // Composite confidence score snapshot
   var _csEntry2=S.prices[GM.asset]||0;
   var _csSnap2=_csEntry2>0?gmConfSnap(_csEntry2,offset):null;
@@ -4643,15 +4662,21 @@ function gmCalc(){
    +'Each side stake:  $'+stake.toFixed(2)+'\n'
    +'Barrier offset:   ±'+offset.toFixed(2)+'\n'
    +'Total risk:       $'+totalRisk.toFixed(2)+'\n\n'
+  var _adaptSw=document.getElementById('gm-adaptive-offset-sw');
+  var _isAdapt=_adaptSw&&_adaptSw.classList.contains('on');
+  if(el)el.textContent=
+    'Budget per round: $'+budget.toFixed(2)+'\n'
+   +'Each side stake:  $'+stake.toFixed(2)+'\n'
+   +'Barrier offset:   ±'+offset.toFixed(2)+(_isAdapt?' (AUTO)':' (manual)')+'\n'
+   +'Total risk:       $'+totalRisk.toFixed(2)+'\n\n'
    +'HIGHER payout:    $'+(cPay?cPay.toFixed(2):'--')+'\n'
    +'LOWER payout:     $'+(pPay?pPay.toFixed(2):'--')+'\n'
    +'Combined payout:  $'+(combined?combined.toFixed(2):'--')+'\n\n'
+   +'Momentum check:   net10='+momNet.toFixed(3)+' vs min='+(offset*0.6).toFixed(3)+' '+(n>=10?(momOk?'✅':'❌ STAGNANT'):'--')+'\n'
    +'Composite score:  '+(_csScore2!==null?_csScore2+'/100 (min '+_csMin+') '+(_csScore2>=_csMin?'✅':'❌'):'--')+'\n'
-   +'  Dir(60/40):     '+((_csSnap2)?Math.max(_csSnap2.upPct,_csSnap2.dnPct)+'% bias':'--')+'\n'
-   +'Gate: each payout must > $'+totalRisk.toFixed(2)+'\n'
-   +'Status: '+(combined?( passes?'✅ PASS — will trade':'❌ SKIP — payout too low'):'Fetching...')+'\n\n'
-   +'Best profit (high pays): '+(bestProfit!==null?(bestProfit>=0?'+$'+bestProfit.toFixed(2):'-$'+Math.abs(bestProfit).toFixed(2)):'--')+'\n'
-   +'Worst profit (low pays): '+(worstProfit!==null?(worstProfit>=0?'+$'+worstProfit.toFixed(2):'-$'+Math.abs(worstProfit).toFixed(2)):'--')+'\n\n'
+   +'Gate: each payout > $'+totalRisk.toFixed(2)+'\n'
+   +'Status: '+(combined?(passes?'✅ PASS — will trade':'❌ SKIP — payout too low'):'Fetching...')+'\n\n'
+   +'Best profit: '+(bestProfit!==null?(bestProfit>=0?'+$'+bestProfit.toFixed(2):'-$'+Math.abs(bestProfit).toFixed(2)):'--')+'\n'
    +'Daily SL: $'+sl+' | Daily TP: $'+tp;
 }
 
@@ -4732,7 +4757,7 @@ function gmLoop(){
   // Build a lightweight snapshot and score the current market conditions.
   // Only proceed when score >= GM.minConfidence (default 65).
   var _csEntry=S.prices[GM.asset]||0;
-  var _csOffset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+  var _csOffset=gmAdaptiveOffset();
   var _csSnap=gmConfSnap(_csEntry,_csOffset);
   if(_csSnap){
     var _csScore=gmConfidenceScore(_csSnap);
@@ -4752,10 +4777,56 @@ function gmLoop(){
     }
   }
 
+  // ── Pre-round momentum check ──────────────────────────────────────
+  // Data shows gap losses when |priceMove| ≈ offset — price barely clears barrier.
+  // Check: recent 10-tick net move must be at least 60% of the offset.
+  // This ensures the market is actively moving before we commit.
+  {
+    var _prPrices=getInd(GM.asset).prices;
+    var _prN=_prPrices.length;
+    var _prOffset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+    if(_prN>=10){
+      var _prLook=10;
+      var _prNet=Math.abs(_prPrices[_prN-1]-_prPrices[_prN-1-_prLook]);
+      var _prRequired=_prOffset*0.6; // need at least 60% of offset in recent net move
+      if(_prNet<_prRequired){
+        var rs8=document.getElementById('gm-round-status');
+        if(rs8)rs8.textContent='STAGNANT: move='+_prNet.toFixed(3)+' < '+_prRequired.toFixed(3);
+        GM._skipped=(GM._skipped||0)+1;
+        var skEl8=document.getElementById('gm-skipped');if(skEl8)skEl8.textContent=GM._skipped;
+        GM.interval=setTimeout(gmLoop,1000);return;
+      }
+    }
+  }
+
   // Fire a payout check — fetch proposals at current stake
   // Once we get both payouts back, gate decides whether to buy
   gmFetchProposals();
   GM.interval=setTimeout(gmLoop,500);
+}
+
+// ── Adaptive offset: scales with ATR and duration ──────────────────
+// offset = atr5 × (duration_s / 30) × multiplier, clamped to [min, max]
+// This ensures the barrier is proportional to expected price movement.
+// A 15s contract needs less offset than a 30s one; high ATR needs more.
+function gmAdaptiveOffset(){
+  var manualOffset=parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12;
+  var adaptiveToggle=document.getElementById('gm-adaptive-offset-sw');
+  if(!adaptiveToggle||!adaptiveToggle.classList.contains('on')) return Math.max(0.01,manualOffset);
+
+  var prices=getInd(GM.asset).prices;
+  var n=prices.length;
+  var atr5=0;
+  if(n>=6){for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;}
+  if(atr5<=0) return Math.max(0.01,manualOffset);
+
+  // Scale: for a 15s contract, expected move ≈ atr5 × 7-8 ticks
+  // We want the barrier at ~1.5× a single ATR tick
+  var durFactor=GM.dur/30; // 1.0 at 30s, 0.5 at 15s
+  var adaptive=parseFloat((atr5 * 1.5 * durFactor).toFixed(2));
+  // Clamp: never less than 0.05 or more than 0.30
+  adaptive=Math.min(0.30,Math.max(0.05,adaptive));
+  return adaptive;
 }
 
 function gmFetchProposals(){
@@ -4763,7 +4834,7 @@ function gmFetchProposals(){
   var entry=S.prices[GM.asset]||0;
   if(entry<=0)return;
   var stake=gmStake();
-  var offset=Math.max(0.01,parseFloat(document.getElementById('gm-offset').value)||0.12);
+  var offset=gmAdaptiveOffset();
 
   // HIGHER barrier = entry + offset (price must close ABOVE this)
   // LOWER barrier  = entry - offset (price must close BELOW this)
@@ -4878,7 +4949,7 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   GM.rounds++;
   GM.lastRoundTime=Date.now();
 
-  var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+  var offset=gmAdaptiveOffset();
   var stake=gmStake();
   // ── Capture full market snapshot silently at entry ──
   var _snap=gmSnapshot(entry,offset,stake,callPay,putPay);
@@ -5356,7 +5427,7 @@ function gmDrawChart(){
 
   // Update entry preview panel
   var curP=S.prices[GM.asset]||0;
-  var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+  var offset=gmAdaptiveOffset();
   if(curP>0){
     var dp=curP>100?2:5;
     var hBar=parseFloat((curP+offset).toFixed(dp));
@@ -5365,10 +5436,12 @@ function gmDrawChart(){
     var higherEl=document.getElementById('gm-higher-level');
     var lowerEl=document.getElementById('gm-lower-level');
     var gapEl=document.getElementById('gm-gap-display');
+    var effOff2=document.getElementById('gm-effective-offset');
     if(entryEl)entryEl.textContent='Entry: '+curP.toFixed(dp);
     if(higherEl)higherEl.textContent=hBar;
     if(lowerEl)lowerEl.textContent=lBar;
     if(gapEl)gapEl.textContent='Gap zone: '+lBar+' → '+hBar+' (±'+offset.toFixed(2)+')';
+    if(effOff2)effOff2.textContent='±'+offset.toFixed(2);
   }
 
   // ── Signal badge (top right) ──
@@ -5600,7 +5673,7 @@ function gmConfSnap(entry,offset){
 // ── Live update of the Composite Confidence Score breakdown in the UI ──
 function gmUpdateConfScoreUI(){
   var entry=S.prices[GM.asset]||0;
-  var offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+  var offset=gmAdaptiveOffset();
   var snap=gmConfSnap(entry,offset);
   if(!snap)return;
   var score=gmConfidenceScore(snap);
