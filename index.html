@@ -842,7 +842,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <span style="font-size:10px;font-family:var(--mo);padding:2px 7px;border-radius:4px;background:var(--bg4);color:var(--t3)" id="gm-chart-dir">--</span>
               </div>
               <div style="position:relative;height:200px">
-                <canvas id="gmChart" width="800" height="200" style="width:100%;height:200px"></canvas>
+                <canvas id="gmChart"></canvas>
                 <div id="gm-barrier-legend" style="position:absolute;top:6px;right:8px;font-size:9px;font-family:var(--mo);line-height:1.8;text-align:right"></div>
               </div>
             </div>
@@ -1817,23 +1817,25 @@ function onTick(tick) {
     GM.tickTimes.push(Date.now());
     if(GM.tickTimes.length>100)GM.tickTimes.shift();
 
-    // ── Gmilli chart — always draw, but throttle only when page is visible ──
-    if(gmChart&&gmChart._ctx){
+    // ── Gmilli chart — Chart.js, same pattern as wwChart ──
+    if(gmChart){
       var _gmNow=Date.now();
-      var _gmVisible=document.getElementById('page-gmilli');
-      var _gmIsVisible=_gmVisible&&_gmVisible.classList.contains('active');
-      // When visible: throttle to 4fps. When hidden: draw freely (canvas is offscreen, cheap)
-      if(_gmIsVisible){
-        if(!GM._lastDraw||(_gmNow-GM._lastDraw)>250){
-          GM._lastDraw=_gmNow;
-          gmDrawRaw(getInd(GM.asset).prices.slice(-80), q);
-          var _gmPriceEl=document.getElementById('gm-chart-price');
-          if(_gmPriceEl)_gmPriceEl.textContent=q.toFixed(q>100?2:5);
+      if(!GM._lastDraw||(_gmNow-GM._lastDraw)>250){
+        GM._lastDraw=_gmNow;
+        var _gmD=getInd(GM.asset).prices.slice(-80);
+        if(_gmD.length>0){
+          var _gmLen=_gmD.length;
+          gmChart.data.labels=_gmD.map(function(){return '';});
+          gmChart.data.datasets[0].data=_gmD.slice();
+          gmChart.data.datasets[1].data=(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0)?Array(_gmLen).fill(_gmActiveBarrier.higher):[];
+          gmChart.data.datasets[2].data=(_gmActiveBarrier.active&&_gmActiveBarrier.lower>0)?Array(_gmLen).fill(_gmActiveBarrier.lower):[];
+          gmUpdateWalls(q);
+          gmChart.data.datasets[3].data=(GM.mf.wallOn&&_gmWalls.upper>0)?Array(_gmLen).fill(_gmWalls.upper):[];
+          gmChart.data.datasets[4].data=(GM.mf.wallOn&&_gmWalls.lower>0)?Array(_gmLen).fill(_gmWalls.lower):[];
+          gmChart.update('none');
         }
-      } else {
-        // Page hidden — draw without updating throttle timestamp
-        // so the NEXT tick after switching back draws immediately
-        gmDrawRaw(getInd(GM.asset).prices.slice(-80), q);
+        var _gmPriceEl=document.getElementById('gm-chart-price');
+        if(_gmPriceEl)_gmPriceEl.textContent=q.toFixed(q>100?2:5);
       }
     }
 
@@ -3493,6 +3495,7 @@ function setTF(el){document.querySelectorAll('.ctb').forEach(function(b){b.class
 
 function showPage(id,navEl){if(id==='gmilli'){setTimeout(function(){
   GM._lastDraw=0;
+  if(gmChart&&gmChart.resize)gmChart.resize();
   gmDrawChart();
   var p=getInd(GM.asset).prices;gmUpdateSignalBadge(p,p[p.length-1]||0);
 },50);}
@@ -4423,10 +4426,17 @@ function initCharts(){
   if(wctx){
     wwChart=new Chart(wctx.getContext('2d'),{type:'line',data:{labels:[],datasets:[{data:[],borderColor:'#00e5a0',borderWidth:1.5,fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,180);g.addColorStop(0,'rgba(0,229,160,.15)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},pointRadius:0,tension:.3}]},options:chartOpts(180)});
   }
-  // Gmilli chart — raw canvas, NOT Chart.js (Chart.js fails on display:none canvas)
-  // gmDrawRaw() handles all drawing directly via 2D context
+  // Gmilli chart — Chart.js, same pattern as wwChart
   var gctx=document.getElementById('gmChart');
-  if(gctx){ gmChart=gctx; gmChart._ctx=gctx.getContext('2d'); }
+  if(gctx){
+    gmChart=new Chart(gctx.getContext('2d'),{type:'line',data:{labels:[],datasets:[
+      {label:'Price',data:[],borderColor:'#00e5a0',borderWidth:2,fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,180);g.addColorStop(0,'rgba(0,229,160,.12)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},pointRadius:0,tension:0.3},
+      {label:'HIGHER',data:[],borderColor:'rgba(0,229,160,0.9)',borderWidth:2,borderDash:[6,4],fill:false,pointRadius:0,tension:0},
+      {label:'LOWER', data:[],borderColor:'rgba(255,77,106,0.9)',borderWidth:2,borderDash:[6,4],fill:false,pointRadius:0,tension:0},
+      {label:'WallU', data:[],borderColor:'rgba(245,166,35,0.45)',borderWidth:1,borderDash:[3,6],fill:false,pointRadius:0,tension:0},
+      {label:'WallL', data:[],borderColor:'rgba(245,166,35,0.45)',borderWidth:1,borderDash:[3,6],fill:false,pointRadius:0,tension:0}
+    ]},options:chartOpts(200)});
+  }
   var pctx=document.getElementById('pnlChart').getContext('2d');
   pnlChart=new Chart(pctx,{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4a5568',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#4a5568',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}}}});
 }
@@ -5500,83 +5510,24 @@ function gmInitChart(){
 // Track active barriers for chart
 var _gmActiveBarrier={active:false,higher:0,lower:0};
 
-// ── gmDrawRaw: pure 2D canvas — works hidden, no Chart.js sizing issues ──
-function gmDrawRaw(prices, curPrice){
-  if(!gmChart||!gmChart._ctx)return;
-  var canvas=gmChart;
-  var ctx=gmChart._ctx;
-  var W=canvas.width, H=canvas.height;
-  if(!prices||prices.length<2)return;
-
-  // Sync canvas pixel width to its CSS display width when visible
-  if(canvas.parentElement&&canvas.parentElement.offsetWidth>0){
-    var dw=canvas.parentElement.offsetWidth;
-    if(canvas.width!==dw){canvas.width=dw;W=dw;}
-  }
-
-  ctx.clearRect(0,0,W,H);
-
-  var n=prices.length;
-  var hi=Math.max.apply(null,prices);
-  var lo=Math.min.apply(null,prices);
-  if(_gmActiveBarrier.active){hi=Math.max(hi,_gmActiveBarrier.higher);lo=Math.min(lo,_gmActiveBarrier.lower);}
-  var pad=Math.max((hi-lo)*0.1,0.01);
-  hi+=pad; lo-=pad;
-  var range=hi-lo||1;
-
-  function xOf(i){return (i/(n-1))*W;}
-  function yOf(v){return H-((v-lo)/range)*H;}
-
-  // Grid
-  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
-  for(var t=0;t<=4;t++){var gy=H*(t/4);ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
-
-  // Wall lines
-  gmUpdateWalls(curPrice||prices[n-1]);
-  if(GM.mf.wallOn&&_gmWalls.upper>0){
-    ctx.setLineDash([3,6]);ctx.lineWidth=1;ctx.strokeStyle='rgba(245,166,35,0.45)';
-    ctx.beginPath();ctx.moveTo(0,yOf(_gmWalls.upper));ctx.lineTo(W,yOf(_gmWalls.upper));ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,yOf(_gmWalls.lower));ctx.lineTo(W,yOf(_gmWalls.lower));ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  // Barrier lines
-  var leg=document.getElementById('gm-barrier-legend');
-  if(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0){
-    ctx.setLineDash([6,4]);ctx.lineWidth=2;
-    ctx.strokeStyle='rgba(0,229,160,0.9)';
-    ctx.beginPath();ctx.moveTo(0,yOf(_gmActiveBarrier.higher));ctx.lineTo(W,yOf(_gmActiveBarrier.higher));ctx.stroke();
-    ctx.strokeStyle='rgba(255,77,106,0.9)';
-    ctx.beginPath();ctx.moveTo(0,yOf(_gmActiveBarrier.lower));ctx.lineTo(W,yOf(_gmActiveBarrier.lower));ctx.stroke();
-    ctx.setLineDash([]);
-    if(leg)leg.innerHTML='<span style="color:rgba(0,229,160,0.9);font-weight:700">↑ HIGHER: '+_gmActiveBarrier.higher.toFixed(2)+'</span><br><span style="color:rgba(255,77,106,0.9);font-weight:700">↓ LOWER: '+_gmActiveBarrier.lower.toFixed(2)+'</span>';
-  } else {
-    ctx.setLineDash([]);
-    if(leg)leg.innerHTML='';
-  }
-
-  // Fill gradient under price line
-  ctx.beginPath();
-  ctx.moveTo(xOf(0),yOf(prices[0]));
-  for(var i=1;i<n;i++)ctx.lineTo(xOf(i),yOf(prices[i]));
-  ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();
-  var grad=ctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0,'rgba(0,229,160,0.12)');grad.addColorStop(1,'rgba(0,229,160,0)');
-  ctx.fillStyle=grad;ctx.fill();
-
-  // Price line
-  ctx.beginPath();
-  ctx.moveTo(xOf(0),yOf(prices[0]));
-  for(var i=1;i<n;i++)ctx.lineTo(xOf(i),yOf(prices[i]));
-  ctx.strokeStyle='#00e5a0';ctx.lineWidth=2;ctx.setLineDash([]);ctx.stroke();
-}
-
 function gmDrawChart(){
+  if(!gmChart)return;
   var prices=getInd(GM.asset).prices.slice(-80);
-  var p=S.prices[GM.asset]||0;
-  gmDrawRaw(prices,p);
+  if(!prices.length)return;
+  var len=prices.length;
+  gmChart.data.labels=prices.map(function(){return '';});
+  gmChart.data.datasets[0].data=prices.slice();
+  gmChart.data.datasets[1].data=(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0)?Array(len).fill(_gmActiveBarrier.higher):[];
+  gmChart.data.datasets[2].data=(_gmActiveBarrier.active&&_gmActiveBarrier.lower>0)?Array(len).fill(_gmActiveBarrier.lower):[];
+  gmUpdateWalls(prices[len-1]||0);
+  gmChart.data.datasets[3].data=(GM.mf.wallOn&&_gmWalls.upper>0)?Array(len).fill(_gmWalls.upper):[];
+  gmChart.data.datasets[4].data=(GM.mf.wallOn&&_gmWalls.lower>0)?Array(len).fill(_gmWalls.lower):[];
+  gmChart.update('none');
+  var leg=document.getElementById('gm-barrier-legend');
+  if(leg){leg.innerHTML=(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0)?'<span style="color:rgba(0,229,160,0.9);font-weight:700">↑ HIGHER: '+_gmActiveBarrier.higher.toFixed(2)+'</span><br><span style="color:rgba(255,77,106,0.9);font-weight:700">↓ LOWER: '+_gmActiveBarrier.lower.toFixed(2)+'</span>':'';}
+  var p=prices[len-1];
   var priceEl=document.getElementById('gm-chart-price');
-  if(priceEl&&p)priceEl.textContent=p.toFixed(p>100?2:5);
+  if(priceEl)priceEl.textContent=p?p.toFixed(p>100?2:5):'--';
 }
 
 
