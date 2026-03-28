@@ -1817,14 +1817,23 @@ function onTick(tick) {
     GM.tickTimes.push(Date.now());
     if(GM.tickTimes.length>100)GM.tickTimes.shift();
 
-    // ── Gmilli chart — raw canvas draw, works even when page is hidden ──
+    // ── Gmilli chart — always draw, but throttle only when page is visible ──
     if(gmChart&&gmChart._ctx){
       var _gmNow=Date.now();
-      if(!GM._lastDraw||(_gmNow-GM._lastDraw)>250){
-        GM._lastDraw=_gmNow;
+      var _gmVisible=document.getElementById('page-gmilli');
+      var _gmIsVisible=_gmVisible&&_gmVisible.classList.contains('active');
+      // When visible: throttle to 4fps. When hidden: draw freely (canvas is offscreen, cheap)
+      if(_gmIsVisible){
+        if(!GM._lastDraw||(_gmNow-GM._lastDraw)>250){
+          GM._lastDraw=_gmNow;
+          gmDrawRaw(getInd(GM.asset).prices.slice(-80), q);
+          var _gmPriceEl=document.getElementById('gm-chart-price');
+          if(_gmPriceEl)_gmPriceEl.textContent=q.toFixed(q>100?2:5);
+        }
+      } else {
+        // Page hidden — draw without updating throttle timestamp
+        // so the NEXT tick after switching back draws immediately
         gmDrawRaw(getInd(GM.asset).prices.slice(-80), q);
-        var _gmPriceEl=document.getElementById('gm-chart-price');
-        if(_gmPriceEl)_gmPriceEl.textContent=q.toFixed(q>100?2:5);
       }
     }
 
