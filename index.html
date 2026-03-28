@@ -1815,17 +1815,85 @@ function onTick(tick) {
     if(!GM.tickTimes)GM.tickTimes=[];
     GM.tickTimes.push(Date.now());
     if(GM.tickTimes.length>100)GM.tickTimes.shift();
+
+    // ── Gmilli chart — same lean pattern as WinWin: just data + update('none') ──
+    // Heavy work (confidence, MF filters, signal badge) is decoupled below at 2fps
+    if(gmChart){
+      var _gmNow=Date.now();
+      if(!GM._lastDraw||(_gmNow-GM._lastDraw)>250){
+        GM._lastDraw=_gmNow;
+        var _gmData=getInd(GM.asset).prices.slice(-80);
+        if(_gmData.length>0){
+          var _gmLen=_gmData.length;
+          gmChart.data.labels=_gmData.map(function(){return '';});
+          gmChart.data.datasets[0].data=_gmData.slice();
+          // Barrier lines — just fill if active, else clear
+          if(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0){
+            gmChart.data.datasets[1].data=Array(_gmLen).fill(_gmActiveBarrier.higher);
+            gmChart.data.datasets[2].data=Array(_gmLen).fill(_gmActiveBarrier.lower);
+          } else {
+            gmChart.data.datasets[1].data=[];
+            gmChart.data.datasets[2].data=[];
+          }
+          // Wall lines
+          gmUpdateWalls(q);
+          if(GM.mf.wallOn&&_gmWalls.upper>0){
+            gmChart.data.datasets[3].data=Array(_gmLen).fill(_gmWalls.upper);
+            gmChart.data.datasets[4].data=Array(_gmLen).fill(_gmWalls.lower);
+          } else {
+            gmChart.data.datasets[3].data=[];
+            gmChart.data.datasets[4].data=[];
+          }
+          gmChart.update('none');
+        }
+        // Price display — cheap DOM op, always update
+        var _gmPriceEl=document.getElementById('gm-chart-price');
+        if(_gmPriceEl)_gmPriceEl.textContent=q.toFixed(q>100?2:5);
+        var _gmSymEl=document.getElementById('gm-chart-sym');
+        if(_gmSymEl)_gmSymEl.textContent=GM.asset;
+      }
+    }
+
+    // ── Heavy UI (confidence, filters, entry preview) — throttled to 2fps ──
+    // Only runs when Gmilli page is visible
     var _gmPg=document.getElementById('page-gmilli');
     if(_gmPg&&_gmPg.classList.contains('active')){
-      // Throttle chart redraws to max 4fps — synthetic indices tick very fast
-      var _now=Date.now();
-      if(!GM._lastDraw||(_now-GM._lastDraw)>250){
-        GM._lastDraw=_now;
-        gmDrawChart();
+      var _gmHeavyNow=Date.now();
+      if(!GM._lastHeavy||(_gmHeavyNow-GM._lastHeavy)>500){
+        GM._lastHeavy=_gmHeavyNow;
+        // Update direction %, confidence, momentum filters, score UI, entry preview
+        var _gmDir=document.getElementById('gm-chart-dir');
+        if(_gmDir){
+          var _gmp=getInd(GM.asset).prices,_gmn=_gmp.length,_gmu=0,_gmd=0,_gml=Math.min(20,_gmn-1);
+          for(var _gmi=_gmn-_gml;_gmi<_gmn;_gmi++){var _gmdiff=_gmp[_gmi]-_gmp[_gmi-1];if(_gmdiff>0)_gmu++;else if(_gmdiff<0)_gmd++;}
+          var _gmt=_gmu+_gmd||1;
+          _gmDir.textContent='UP:'+Math.round(_gmu/_gmt*100)+'% DN:'+Math.round(_gmd/_gmt*100)+'%';
+        }
+        gmGetConfidence();
+        var _mfPrices2=getInd(GM.asset).prices;
+        if(_mfPrices2.length>10){gmMFUpdateLive(gmMFCheck(_mfPrices2));}
+        gmUpdateConfScoreUI();
+        // Entry preview
+        var _curP2=S.prices[GM.asset]||0;
+        if(_curP2>0){
+          var _off2=gmAdaptiveOffset();
+          var _dp2=_curP2>100?2:5;
+          var _hB2=parseFloat((_curP2+_off2).toFixed(_dp2));
+          var _lB2=parseFloat((_curP2-_off2).toFixed(_dp2));
+          var _eEl=document.getElementById('gm-entry-display');var _hEl=document.getElementById('gm-higher-level');
+          var _lEl=document.getElementById('gm-lower-level');var _gapEl=document.getElementById('gm-gap-display');
+          var _offEl=document.getElementById('gm-effective-offset');
+          if(_eEl)_eEl.textContent='Entry: '+_curP2.toFixed(_dp2);
+          if(_hEl)_hEl.textContent=_hB2;
+          if(_lEl)_lEl.textContent=_lB2;
+          if(_gapEl)_gapEl.textContent='Gap zone: '+_lB2+' → '+_hB2+' (±'+_off2.toFixed(2)+')';
+          if(_offEl)_offEl.textContent='±'+_off2.toFixed(2);
+        }
+        gmUpdateSignalBadge(getInd(GM.asset).prices.slice(-80),q);
+        // gmCalc — every other heavy update (1fps)
+        GM._tickCount=(GM._tickCount||0)+1;
+        if(GM._tickCount%2===0) gmCalc();
       }
-      // gmCalc is expensive (snapshot + score) — run every 5th tick only
-      GM._tickCount=(GM._tickCount||0)+1;
-      if(GM._tickCount%5===0) gmCalc();
     }
   }
 }
@@ -5487,17 +5555,14 @@ function gmDrawChart(){
   var prices=ind.prices.slice(-80);
   if(!prices.length)return;
   var len=prices.length;
-  var labels=prices.map(function(){return '';});
 
-  // Price dataset
-  gmChart.data.labels=labels;
+  gmChart.data.labels=prices.map(function(){return '';});
   gmChart.data.datasets[0].data=prices.slice();
 
-  // Draw barrier lines if active round
+  // Barrier lines
   if(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0){
     gmChart.data.datasets[1].data=Array(len).fill(_gmActiveBarrier.higher);
     gmChart.data.datasets[2].data=Array(len).fill(_gmActiveBarrier.lower);
-    // Update barrier legend overlay
     var leg=document.getElementById('gm-barrier-legend');
     if(leg)leg.innerHTML=
       '<span style="color:rgba(0,229,160,0.9);font-weight:700">↑ HIGHER: '+_gmActiveBarrier.higher.toFixed(2)+'</span><br>'
@@ -5509,9 +5574,9 @@ function gmDrawChart(){
     if(leg)leg.innerHTML='';
   }
 
-  // ── Draw integer wall lines (always track price) ──
-  var curPriceForWall=prices[len-1]||0;
-  gmUpdateWalls(curPriceForWall);
+  // Wall lines
+  var curP=prices[len-1]||0;
+  gmUpdateWalls(curP);
   if(GM.mf.wallOn&&_gmWalls.upper>0){
     gmChart.data.datasets[3].data=Array(len).fill(_gmWalls.upper);
     gmChart.data.datasets[4].data=Array(len).fill(_gmWalls.lower);
@@ -5526,53 +5591,6 @@ function gmDrawChart(){
   var p=prices[len-1];
   var priceEl=document.getElementById('gm-chart-price');
   if(priceEl)priceEl.textContent=p?p.toFixed(p>100?2:5):'--';
-  var symEl=document.getElementById('gm-chart-sym');
-  if(symEl)symEl.textContent=GM.asset;
-
-  // Direction %
-  var dirEl=document.getElementById('gm-chart-dir');
-  if(dirEl){
-    var n=prices.length,ups=0,dns=0,look=Math.min(20,n-1);
-    for(var i=n-look;i<n;i++){var d=prices[i]-prices[i-1];if(d>0)ups++;else if(d<0)dns++;}
-    var t=ups+dns||1;
-    dirEl.textContent='UP:'+Math.round(ups/t*100)+'% DN:'+Math.round(dns/t*100)+'%';
-  }
-  // Update confidence display live
-  gmGetConfidence();
-
-  // Update momentum filters live — only when page is visible
-  var _gmPgVisible=document.getElementById('page-gmilli');
-  if(_gmPgVisible&&_gmPgVisible.classList.contains('active')){
-    var _mfLivePrices=getInd(GM.asset).prices;
-    if(_mfLivePrices.length>10){
-      var _mfLiveResult=gmMFCheck(_mfLivePrices); // cache hit — nearly free
-      gmMFUpdateLive(_mfLiveResult);
-    }
-    // Composite score UI — throttled inside the function to 500ms + score-change gate
-    gmUpdateConfScoreUI();
-  }
-
-  // Update entry preview panel
-  var curP=S.prices[GM.asset]||0;
-  var offset=gmAdaptiveOffset();
-  if(curP>0){
-    var dp=curP>100?2:5;
-    var hBar=parseFloat((curP+offset).toFixed(dp));
-    var lBar=parseFloat((curP-offset).toFixed(dp));
-    var entryEl=document.getElementById('gm-entry-display');
-    var higherEl=document.getElementById('gm-higher-level');
-    var lowerEl=document.getElementById('gm-lower-level');
-    var gapEl=document.getElementById('gm-gap-display');
-    var effOff2=document.getElementById('gm-effective-offset');
-    if(entryEl)entryEl.textContent='Entry: '+curP.toFixed(dp);
-    if(higherEl)higherEl.textContent=hBar;
-    if(lowerEl)lowerEl.textContent=lBar;
-    if(gapEl)gapEl.textContent='Gap zone: '+lBar+' → '+hBar+' (±'+offset.toFixed(2)+')';
-    if(effOff2)effOff2.textContent='±'+offset.toFixed(2);
-  }
-
-  // ── Signal badge (top right) ──
-  gmUpdateSignalBadge(prices, p);
 }
 
 function gmUpdateSignalBadge(prices, curP){
