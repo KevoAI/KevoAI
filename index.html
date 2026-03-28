@@ -1816,8 +1816,9 @@ function onTick(tick) {
     GM.tickTimes.push(Date.now());
     if(GM.tickTimes.length>100)GM.tickTimes.shift();
 
-    // ── Gmilli chart — same lean pattern as WinWin: just data + update('none') ──
-    // Heavy work (confidence, MF filters, signal badge) is decoupled below at 2fps
+    // ── Gmilli chart — NO page visibility check, same as WinWin ──
+    // Chart.js update('none') is safe to call even when canvas is off-screen.
+    // This keeps the data buffer live so it's instantly correct when you switch back.
     if(gmChart){
       var _gmNow=Date.now();
       if(!GM._lastDraw||(_gmNow-GM._lastDraw)>250){
@@ -1827,7 +1828,7 @@ function onTick(tick) {
           var _gmLen=_gmData.length;
           gmChart.data.labels=_gmData.map(function(){return '';});
           gmChart.data.datasets[0].data=_gmData.slice();
-          // Barrier lines — just fill if active, else clear
+          // Barrier lines
           if(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0){
             gmChart.data.datasets[1].data=Array(_gmLen).fill(_gmActiveBarrier.higher);
             gmChart.data.datasets[2].data=Array(_gmLen).fill(_gmActiveBarrier.lower);
@@ -1846,7 +1847,7 @@ function onTick(tick) {
           }
           gmChart.update('none');
         }
-        // Price display — cheap DOM op, always update
+        // Price display
         var _gmPriceEl=document.getElementById('gm-chart-price');
         if(_gmPriceEl)_gmPriceEl.textContent=q.toFixed(q>100?2:5);
         var _gmSymEl=document.getElementById('gm-chart-sym');
@@ -1854,14 +1855,12 @@ function onTick(tick) {
       }
     }
 
-    // ── Heavy UI (confidence, filters, entry preview) — throttled to 2fps ──
-    // Only runs when Gmilli page is visible
+    // ── Heavy UI (confidence, filters, entry preview) — 2fps, page-visible only ──
     var _gmPg=document.getElementById('page-gmilli');
     if(_gmPg&&_gmPg.classList.contains('active')){
       var _gmHeavyNow=Date.now();
       if(!GM._lastHeavy||(_gmHeavyNow-GM._lastHeavy)>500){
         GM._lastHeavy=_gmHeavyNow;
-        // Update direction %, confidence, momentum filters, score UI, entry preview
         var _gmDir=document.getElementById('gm-chart-dir');
         if(_gmDir){
           var _gmp=getInd(GM.asset).prices,_gmn=_gmp.length,_gmu=0,_gmd=0,_gml=Math.min(20,_gmn-1);
@@ -1873,7 +1872,6 @@ function onTick(tick) {
         var _mfPrices2=getInd(GM.asset).prices;
         if(_mfPrices2.length>10){gmMFUpdateLive(gmMFCheck(_mfPrices2));}
         gmUpdateConfScoreUI();
-        // Entry preview
         var _curP2=S.prices[GM.asset]||0;
         if(_curP2>0){
           var _off2=gmAdaptiveOffset();
@@ -1890,7 +1888,6 @@ function onTick(tick) {
           if(_offEl)_offEl.textContent='±'+_off2.toFixed(2);
         }
         gmUpdateSignalBadge(getInd(GM.asset).prices.slice(-80),q);
-        // gmCalc — every other heavy update (1fps)
         GM._tickCount=(GM._tickCount||0)+1;
         if(GM._tickCount%2===0) gmCalc();
       }
@@ -3512,7 +3509,13 @@ function updP(){document.getElementById('pout').textContent='$'+(parseFloat(docu
 function setDur(el,v,t){el.closest('.dr').querySelectorAll('.db').forEach(function(b){b.classList.remove('active');});el.classList.add('active');S.dur={v:v,t:t};}
 function setTF(el){document.querySelectorAll('.ctb').forEach(function(b){b.classList.remove('active');});el.classList.add('active');}
 
-function showPage(id,navEl){if(id==='gmilli'){setTimeout(function(){gmInitChart();gmDrawChart();var p=getInd(GM.asset).prices;gmUpdateSignalBadge(p,p[p.length-1]||0);},100);}
+function showPage(id,navEl){if(id==='gmilli'){setTimeout(function(){
+  gmInitChart(); // no-op if already initialized
+  // Force Chart.js to re-render on the now-visible canvas
+  if(gmChart){gmChart.resize();gmDrawChart();}
+  GM._lastDraw=0; // reset throttle so next tick draws immediately
+  var p=getInd(GM.asset).prices;gmUpdateSignalBadge(p,p[p.length-1]||0);
+},50);}
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
   document.getElementById('page-'+id).classList.add('active');
