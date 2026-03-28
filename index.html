@@ -1137,7 +1137,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                         </div>
                         <div style="display:flex;align-items:center;gap:4px">
                           <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.stallFlats=Math.max(1,GM.mf.stallFlats-1);document.getElementById('mf-stall-val').value=GM.mf.stallFlats">-</div>
-                          <input type="number" id="mf-stall-val" value="2" step="1" min="1" max="5" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM.mf.stallFlats=parseInt(this.value)||2">
+                          <input type="number" id="mf-stall-val" value="1" step="1" min="1" max="5" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM.mf.stallFlats=parseInt(this.value)||1">
                           <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.stallFlats=Math.min(5,GM.mf.stallFlats+1);document.getElementById('mf-stall-val').value=GM.mf.stallFlats">+</div>
                         </div>
                       </div>
@@ -1489,15 +1489,21 @@ function handleMsg(d) {
       var _neitherPlaced=!_gmRound.callPlaced&&!_gmRound.putPlaced;
       var _noBuysConfirmed=!_gmRound.callCid&&!_gmRound.putCid;
       if(_neitherPlaced&&_noBuysConfirmed){
-        console.log('[GM] Both sides PriceMoved on R'+_gmRid+' — cancelling round (no real trade placed)');
+        console.log('[GM] Both sides PriceMoved on R'+_gmRid+' — cancelling round and re-fetching fresh proposals');
         clearTimeout(_gmRound._timeout);
         GM.rounds=Math.max(0,GM.rounds-1); // don't count this as a real round
         GM._placing=false; // release placing lock if held
         delete GM.pending[_gmRid];
         GM.lastRoundTime=0; // allow immediate retry
         var rs=document.getElementById('gm-round-status');
-        if(rs)rs.textContent='PRICE MOVED — retrying';
-        notify('PM','Price moved — round cancelled, retrying','info');
+        if(rs)rs.textContent='PRICE MOVED — re-fetching...';
+        // Re-fetch proposals immediately with the current live price
+        // Small delay to let the market settle after the move
+        setTimeout(function(){
+          if(GM.running&&S.connected&&gmActiveCount()===0){
+            gmFetchProposals();
+          }
+        }, 300);
       }
     }
     return;
@@ -4539,7 +4545,7 @@ var GM = {
     // Rule 1: skip UP-bias trades when price is at top of range
     posOn:true,    posMaxUp:30,
     // Rule 2: skip UP-bias when market is stalling (LOW ATR + flat ticks)
-    stallOn:true,  stallFlats:2
+    stallOn:true,  stallFlats:1
   }
 };
 
@@ -5003,10 +5009,10 @@ function gmLoop(){
   // ── Pre-round momentum check — use cache slope value ──
   var _prOffset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
   var _prNet=Math.abs(GM._cache.slope); // slope is already the 10-tick net move
-  var _prRequired=_prOffset*0.6;
+  var _prRequired=_prOffset*0.7; // tightened from 0.6 → 0.7 (analysis: blocked 1 gap loss with no clean wins lost)
   if(_prNet<_prRequired){
     var rs8=document.getElementById('gm-round-status');
-    if(rs8)rs8.textContent='STAGNANT: move='+_prNet.toFixed(3)+' < '+_prRequired.toFixed(3);
+    if(rs8)rs8.textContent='STAGNANT: move='+_prNet.toFixed(3)+' < '+_prRequired.toFixed(3)+'(need '+(_prOffset*0.7).toFixed(3)+')';
     GM._skipped=(GM._skipped||0)+1;
     var skEl8=document.getElementById('gm-skipped');if(skEl8)skEl8.textContent=GM._skipped;
     GM.interval=setTimeout(gmLoop,_nextInterval);return;
@@ -5155,6 +5161,21 @@ function onGMProbe(proposal,pendInfo){
 
 function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay){
   if(!S.connected)return;
+
+  // ── STALENESS GUARD: if price has moved too far since proposal was fetched, re-fetch ──
+  // PriceMoved errors happen when this drift exceeds Deriv's tolerance (~0.05% on R_100)
+  var _liveNow=S.prices[GM.asset]||0;
+  var _drift=_liveNow>0&&entry>0?Math.abs(_liveNow-entry):0;
+  var _driftPct=entry>0?(_drift/entry)*100:0;
+  if(_driftPct>0.04){ // 0.04% tolerance — slightly under Deriv's limit
+    console.warn('[GM] Stale proposal: price drifted '+_driftPct.toFixed(4)+'% since fetch (entry='+entry+' live='+_liveNow+') — re-fetching');
+    var rs0=document.getElementById('gm-round-status');
+    if(rs0)rs0.textContent='STALE PROPOSAL — re-fetching...';
+    setTimeout(function(){
+      if(GM.running&&S.connected&&gmActiveCount()===0) gmFetchProposals();
+    }, 150);
+    return;
+  }
   // ── DUPLICATE GUARD: prevent multiple gmPlace calls firing simultaneously ──
   // This fixes the bug where 4 rounds (R38-R41) fired at the same timestamp
   // because the probe response arrived before the previous round registered in GM.pending
@@ -5876,6 +5897,32 @@ function gmMFCheck(prices){
   if(result.pass&&mf.stallOn&&c.upPct>50&&c.atrLabel==='LOW'&&c.flats>=mf.stallFlats){
     result.pass=false;
     result.reason='STALL BLOCK: UP+LOW ATR+'+c.flats+' flats';
+  }
+
+  // ── 8. Range-extreme guard (analysis: all gap losses had pricePos=0 during DN trends) ──
+  // Block DN-bias entries when price is at the bottom of the 20-tick range AND ATR is low
+  // (high-ATR breakouts are exempted — they often genuinely exit the gap)
+  if(result.pass){
+    var _reDn=c.upPct<=50; // downtrend bias
+    var _reUp=c.upPct>50;  // uptrend bias
+    var _atLow=c.pricePos<=5;   // price at or near 20-tick low
+    var _atHigh=c.pricePos>=95; // price at or near 20-tick high
+    var _lowAtr=c.atr5<0.15;    // low volatility — not a breakout
+    if((_reDn&&_atLow&&_lowAtr)||(_reUp&&_atHigh&&_lowAtr)){
+      result.pass=false;
+      result.reason='EXTREME: '+((_reDn&&_atLow)?'DN+atLow':'UP+atHigh')+' pricePos='+c.pricePos.toFixed(0)+'% ATR='+c.atr5.toFixed(4);
+    }
+  }
+
+  // ── 9. Offset/Range ratio guard (analysis: very small gaps relative to range increase gap-loss risk) ──
+  // Skip when the barrier gap is < 8% of the 20-tick range
+  if(result.pass&&c.range20>0){
+    var _offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+    var _orRatio=_offset/c.range20;
+    if(_orRatio<0.08){
+      result.pass=false;
+      result.reason='TINY GAP: offset/range='+(_orRatio*100).toFixed(1)+'% < 8%';
+    }
   }
 
   return result;
