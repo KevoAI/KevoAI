@@ -4434,6 +4434,10 @@ var GM = {
   confThresh:65,  // Min confidence threshold (old single-pct rule)
   minConfidence:65, // Multi-factor composite score threshold (0-100)
   tickTimes:[],   // Timestamps of recent ticks for dead-zone speed detection
+  // ── Shared metric cache (refreshed once per 400ms, reused everywhere) ──
+  _cache:{atr5:0,atr20:0,atrRatio:1,atrLabel:'NORMAL',range20:0,rHigh:0,rLow:0,
+          upPct:50,dnPct:50,slope:0,flats:0,pricePos:50,wallDist:1,
+          lastScore:null,lastUpdate:0},
   // ── Momentum filters ──
   mf:{
     slopeOn:true,  slopeMin:0.02,  slopeLook:10,
@@ -4448,6 +4452,57 @@ var GM = {
     stallOn:true,  stallFlats:2
   }
 };
+
+// ── gmRefreshCache: compute all metrics ONCE per 400ms, share across callers ──
+// Eliminates 3-5x redundant full price-array scans per second.
+function gmRefreshCache(prices, force){
+  var now=Date.now();
+  var c=GM._cache;
+  if(!force && (now-c.lastUpdate)<400) return; // still fresh — reuse
+  c.lastUpdate=now;
+  var n=prices.length;
+  if(n<6) return;
+
+  // ATR5 (last 5 moves)
+  var a5=0;
+  for(var i=n-5;i<n;i++) a5+=Math.abs(prices[i]-prices[i-1]);
+  c.atr5=a5/5;
+
+  // ATR20 (last 20 moves)
+  var a20=0;
+  if(n>=21){ for(var i=n-20;i<n;i++) a20+=Math.abs(prices[i]-prices[i-1]); c.atr20=a20/20; }
+  else c.atr20=c.atr5;
+
+  c.atrRatio=c.atr20>0?(c.atr5/c.atr20):1;
+  c.atrLabel=c.atrRatio>=1.5?'VERY_HIGH':c.atrRatio>=1.2?'HIGH':c.atrRatio>=0.8?'NORMAL':c.atrRatio>=0.5?'LOW':'DEAD';
+
+  // Range20 (high-low of last 20 ticks)
+  var sl20=prices.slice(Math.max(0,n-20));
+  c.rHigh=Math.max.apply(null,sl20);
+  c.rLow=Math.min.apply(null,sl20);
+  c.range20=parseFloat((c.rHigh-c.rLow).toFixed(4));
+  c.pricePos=(c.rHigh>c.rLow)?parseFloat(((prices[n-1]-c.rLow)/(c.rHigh-c.rLow)*100).toFixed(1)):50;
+
+  // Tick direction (last 20 ticks)
+  var ups=0,dns=0,flats=0,look=Math.min(20,n-1);
+  for(var i=n-look;i<n;i++){
+    var d=prices[i]-prices[i-1];
+    if(d>0)ups++;else if(d<0)dns++;else flats++;
+  }
+  var tot=ups+dns||1;
+  c.upPct=Math.round(ups/tot*100);
+  c.dnPct=100-c.upPct;
+  c.flats=flats;
+
+  // Slope: fast O(1) — difference over last 10 ticks (replaces full linear regression)
+  var sl=Math.min(10,n-1);
+  c.slope=parseFloat((prices[n-1]-prices[n-1-sl]).toFixed(4));
+
+  // Wall distance
+  var curP=prices[n-1];
+  c.wallDist=parseFloat((Math.abs(curP-Math.round(curP))).toFixed(5));
+}
+// ── END gmRefreshCache ──
 
 function gmSetActive(el){
   var p=el.parentElement;
@@ -4783,6 +4838,19 @@ function gmLoop(){
   if(GM.pnl<=-sl){gmToggle();notify('STOP','Gmilli daily SL hit','loss');return;}
   if(GM.pnl>=tp){gmToggle();notify('DONE','Gmilli daily target hit!','win');return;}
 
+  // ── Refresh shared metric cache ONCE here — all filters below are cache reads ──
+  var _loopPrices=getInd(GM.asset).prices;
+  gmRefreshCache(_loopPrices, true); // force=true ensures loop always has fresh data
+
+  // ── Adaptive interval: scan faster when market is moving, slower when slow ──
+  var _tickSpeed=0;
+  var _tArr=GM.tickTimes;
+  if(_tArr&&_tArr.length>=3){
+    var _tElapsed=(_tArr[_tArr.length-1]-_tArr[_tArr.length-3])/2||1000;
+    _tickSpeed=Math.round(1000/_tElapsed);
+  }
+  var _nextInterval=_tickSpeed>8?300:_tickSpeed>3?500:800;
+
   // Clean stale activeCids before checking
   gmCleanActiveCids();
 
@@ -4799,7 +4867,7 @@ function gmLoop(){
   if(gmActiveCount()>0){
     var rs=document.getElementById('gm-round-status');
     if(rs)rs.textContent='ACTIVE';
-    GM.interval=setTimeout(gmLoop,500);return;
+    GM.interval=setTimeout(gmLoop,_nextInterval);return;
   }
 
   // Enforce gap between rounds
@@ -4812,25 +4880,21 @@ function gmLoop(){
     GM.interval=setTimeout(gmLoop,1000);return;
   }
 
-  // ── Momentum filter checks ──
-  var _mfPrices=getInd(GM.asset).prices;
-  var mfr=gmMFCheck(_mfPrices);
+  // ── Momentum filter checks — cache hit, no recompute ──
+  var mfr=gmMFCheck(_loopPrices);
   gmMFUpdateLive(mfr);
   if(!mfr.pass){
     var rs6=document.getElementById('gm-round-status');
     if(rs6)rs6.textContent='SKIP: '+mfr.reason;
-    GM.interval=setTimeout(gmLoop,1000);return;
+    GM.interval=setTimeout(gmLoop,_nextInterval);return;
   }
 
-  // ── Composite Confidence Score ──
-  // Build a lightweight snapshot and score the current market conditions.
-  // Only proceed when score >= GM.minConfidence (default 65).
+  // ── Composite Confidence Score — gmConfSnap is now a cache read ──
   var _csEntry=S.prices[GM.asset]||0;
   var _csOffset=gmAdaptiveOffset();
   var _csSnap=gmConfSnap(_csEntry,_csOffset);
   if(_csSnap){
     var _csScore=gmConfidenceScore(_csSnap);
-    // Update score display in UI
     var _csBadge=document.getElementById('gm-conf-score-badge');
     if(_csBadge){
       _csBadge.textContent='Score: '+_csScore+'/100';
@@ -4842,36 +4906,26 @@ function gmLoop(){
       if(rs7)rs7.textContent='LOW CONF: '+_csScore+'/100 < '+GM.minConfidence;
       GM._skipped=(GM._skipped||0)+1;
       var skEl7=document.getElementById('gm-skipped');if(skEl7)skEl7.textContent=GM._skipped;
-      GM.interval=setTimeout(gmLoop,2000);return;
+      GM.interval=setTimeout(gmLoop,_nextInterval);return;
     }
   }
 
-  // ── Pre-round momentum check ──────────────────────────────────────
-  // Data shows gap losses when |priceMove| ≈ offset — price barely clears barrier.
-  // Check: recent 10-tick net move must be at least 60% of the offset.
-  // This ensures the market is actively moving before we commit.
-  {
-    var _prPrices=getInd(GM.asset).prices;
-    var _prN=_prPrices.length;
-    var _prOffset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
-    if(_prN>=10){
-      var _prLook=10;
-      var _prNet=Math.abs(_prPrices[_prN-1]-_prPrices[_prN-1-_prLook]);
-      var _prRequired=_prOffset*0.6; // need at least 60% of offset in recent net move
-      if(_prNet<_prRequired){
-        var rs8=document.getElementById('gm-round-status');
-        if(rs8)rs8.textContent='STAGNANT: move='+_prNet.toFixed(3)+' < '+_prRequired.toFixed(3);
-        GM._skipped=(GM._skipped||0)+1;
-        var skEl8=document.getElementById('gm-skipped');if(skEl8)skEl8.textContent=GM._skipped;
-        GM.interval=setTimeout(gmLoop,1000);return;
-      }
-    }
+  // ── Pre-round momentum check — use cache slope value ──
+  var _prOffset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+  var _prNet=Math.abs(GM._cache.slope); // slope is already the 10-tick net move
+  var _prRequired=_prOffset*0.6;
+  if(_prNet<_prRequired){
+    var rs8=document.getElementById('gm-round-status');
+    if(rs8)rs8.textContent='STAGNANT: move='+_prNet.toFixed(3)+' < '+_prRequired.toFixed(3);
+    GM._skipped=(GM._skipped||0)+1;
+    var skEl8=document.getElementById('gm-skipped');if(skEl8)skEl8.textContent=GM._skipped;
+    GM.interval=setTimeout(gmLoop,_nextInterval);return;
   }
 
   // Fire a payout check — fetch proposals at current stake
   // Once we get both payouts back, gate decides whether to buy
   gmFetchProposals();
-  GM.interval=setTimeout(gmLoop,500);
+  GM.interval=setTimeout(gmLoop,_nextInterval);
 }
 
 // ── Adaptive offset: scales with ATR and duration ──────────────────
@@ -4883,10 +4937,16 @@ function gmAdaptiveOffset(){
   var adaptiveToggle=document.getElementById('gm-adaptive-offset-sw');
   if(!adaptiveToggle||!adaptiveToggle.classList.contains('on')) return Math.max(0.01,manualOffset);
 
-  var prices=getInd(GM.asset).prices;
-  var n=prices.length;
+  // Use cached atr5 if fresh (< 600ms), otherwise recompute
   var atr5=0;
-  if(n>=6){for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;}
+  var c=GM._cache;
+  if(c.lastUpdate>0&&(Date.now()-c.lastUpdate)<600){
+    atr5=c.atr5;
+  } else {
+    var prices=getInd(GM.asset).prices;
+    var n=prices.length;
+    if(n>=6){for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;}
+  }
   if(atr5<=0) return Math.max(0.01,manualOffset);
 
   // Scale: for a 15s contract, expected move ≈ atr5 × 7-8 ticks
@@ -5480,17 +5540,15 @@ function gmDrawChart(){
   // Update confidence display live
   gmGetConfidence();
 
-  // Update momentum filters live
-  var _mfLivePrices=getInd(GM.asset).prices;
-  if(_mfLivePrices.length>10){
-    var _mfLiveResult=gmMFCheck(_mfLivePrices);
-    gmMFUpdateLive(_mfLiveResult);
-  }
-
-  // Update composite confidence score UI — throttled to 2/sec (expensive snapshot calc)
-  var _csNow=Date.now();
-  if(!GM._lastScoreUI||(_csNow-GM._lastScoreUI)>500){
-    GM._lastScoreUI=_csNow;
+  // Update momentum filters live — only when page is visible
+  var _gmPgVisible=document.getElementById('page-gmilli');
+  if(_gmPgVisible&&_gmPgVisible.classList.contains('active')){
+    var _mfLivePrices=getInd(GM.asset).prices;
+    if(_mfLivePrices.length>10){
+      var _mfLiveResult=gmMFCheck(_mfLivePrices); // cache hit — nearly free
+      gmMFUpdateLive(_mfLiveResult);
+    }
+    // Composite score UI — throttled inside the function to 500ms + score-change gate
     gmUpdateConfScoreUI();
   }
 
@@ -5700,54 +5758,54 @@ function gmConfidenceScore(snap){
   return Math.min(100,Math.max(0,score));
 }
 
-// Build a lightweight snap object for the confidence score (no full snapshot needed)
+// Build a lightweight snap object for the confidence score — reads from cache
 function gmConfSnap(entry,offset){
   var ind=getInd(GM.asset);
   var prices=ind.prices;
   var n=prices.length;
   if(n<5)return null;
-
-  // ATR5 / ATR20
-  var atr5=0,atr20=0;
-  if(n>=6){for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;}
-  if(n>=21){for(var i=n-20;i<n;i++)atr20+=Math.abs(prices[i]-prices[i-1]);atr20/=20;}
-  var atrRatio=atr20>0?(atr5/atr20):1;
-  var atrLabel=atrRatio>=1.5?'VERY_HIGH':atrRatio>=1.2?'HIGH':atrRatio>=0.8?'NORMAL':atrRatio>=0.5?'LOW':'DEAD';
-
-  // Range 20
-  var slice20=prices.slice(Math.max(0,n-20));
-  var rH=Math.max.apply(null,slice20);
-  var rL=Math.min.apply(null,slice20);
-  var range20=parseFloat((rH-rL).toFixed(4));
-  var pricePos=(rH>rL)?parseFloat(((prices[n-1]-rL)/(rH-rL)*100).toFixed(1)):50;
-
-  // Tick direction
-  var look=Math.min(20,n-1),ups=0,dns=0,flats=0;
-  for(var i=n-look;i<n;i++){
-    var d=prices[i]-prices[i-1];
-    if(d>0)ups++;else if(d<0)dns++;else flats++;
-  }
-  var total=ups+dns||1;
-  var upPct=Math.round(ups/total*100);
-  var dnPct=100-upPct;
-
-  // Slope
-  var tl=Math.min(30,n-1);
-  var slope=n>tl?parseFloat((prices[n-1]-prices[n-1-tl]).toFixed(4)):0;
-
-  return {upPct:upPct,dnPct:dnPct,atrLabel:atrLabel,pricePos:pricePos,
-          range20:range20,slope:slope,flats:flats};
+  // Refresh cache (no-op if already fresh)
+  gmRefreshCache(prices);
+  var c=GM._cache;
+  return {upPct:c.upPct, dnPct:c.dnPct, atrLabel:c.atrLabel,
+          pricePos:c.pricePos, range20:c.range20, slope:c.slope, flats:c.flats};
 }
 
 // ── Live update of the Composite Confidence Score breakdown in the UI ──
 function gmUpdateConfScoreUI(){
+  // Only run when Gmilli page is visible (saves 4fps of wasted DOM work)
+  var gmPage=document.getElementById('page-gmilli');
+  if(!gmPage||!gmPage.classList.contains('active'))return;
+
   var entry=S.prices[GM.asset]||0;
   var offset=gmAdaptiveOffset();
-  var snap=gmConfSnap(entry,offset);
+  var snap=gmConfSnap(entry,offset); // now reads from cache — essentially free
   if(!snap)return;
   var score=gmConfidenceScore(snap);
 
-  // Factor contributions — must exactly mirror gmConfidenceScore()
+  // Only repaint DOM if score changed by more than 5 points — prevents layout thrash
+  var lastScore=GM._cache.lastScore;
+  var needsRepaint=(lastScore===null||Math.abs(score-lastScore)>5);
+  GM._cache.lastScore=score;
+
+  // Always update the badge (cheap, single element)
+  var badge=document.getElementById('gm-conf-score-badge');
+  if(badge){
+    badge.textContent=score+'/100';
+    badge.style.color=score>=(GM.minConfidence||65)?'var(--ac)':score>=50?'var(--go)':'var(--re)';
+    badge.style.background=score>=(GM.minConfidence||65)?'rgba(0,229,160,0.12)':score>=50?'rgba(245,166,35,0.1)':'rgba(255,77,106,0.1)';
+    badge.style.border='1px solid '+(score>=(GM.minConfidence||65)?'rgba(0,229,160,0.3)':score>=50?'rgba(245,166,35,0.3)':'rgba(255,77,106,0.3)');
+  }
+  var bar=document.getElementById('gm-cs-bar');
+  if(bar)bar.style.width=Math.min(100,Math.max(0,score))+'%';
+  var barVal=document.getElementById('gm-cs-bar-val');
+  if(barVal){barVal.textContent=score+'/100';barVal.style.color=score>=(GM.minConfidence||65)?'var(--ac)':'var(--re)';}
+  var line=document.getElementById('gm-cs-threshold-line');
+  if(line)line.style.left=(GM.minConfidence||65)+'%';
+
+  // Factor breakdown — only repaint when score actually changed meaningfully
+  if(!needsRepaint)return;
+
   var biasPct=Math.max(snap.upPct||0,snap.dnPct||0);
   var dirPts=biasPct>=70?35:biasPct>=60?20:biasPct>=50?5:0;
   var volPts={VERY_HIGH:20,HIGH:15,NORMAL:10,LOW:0,DEAD:-5}[snap.atrLabel]||0;
@@ -5768,24 +5826,6 @@ function gmUpdateConfScoreUI(){
   s('gm-cs-slope',(slopePts>=0?'+':'')+slopePts+(slopeAlign?' ✓':' ✗'),col(slopePts));
   s('gm-cs-flats',(flatPts>=0?'+':'')+flatPts+' ('+snap.flats+'f)',col(flatPts));
   s('gm-cs-dead',(deadPts===0?'OK':'−20 STALL'),col(deadPts));
-
-  // Score badge
-  var badge=document.getElementById('gm-conf-score-badge');
-  if(badge){
-    badge.textContent=score+'/100';
-    badge.style.color=score>=(GM.minConfidence||65)?'var(--ac)':score>=50?'var(--go)':'var(--re)';
-    badge.style.background=score>=(GM.minConfidence||65)?'rgba(0,229,160,0.12)':score>=50?'rgba(245,166,35,0.1)':'rgba(255,77,106,0.1)';
-    badge.style.border='1px solid '+(score>=(GM.minConfidence||65)?'rgba(0,229,160,0.3)':score>=50?'rgba(245,166,35,0.3)':'rgba(255,77,106,0.3)');
-  }
-
-  // Score bar
-  var bar=document.getElementById('gm-cs-bar');
-  if(bar)bar.style.width=Math.min(100,Math.max(0,score))+'%';
-  var barVal=document.getElementById('gm-cs-bar-val');
-  if(barVal){barVal.textContent=score+'/100';barVal.style.color=score>=(GM.minConfidence||65)?'var(--ac)':'var(--re)';}
-  // Threshold indicator line
-  var line=document.getElementById('gm-cs-threshold-line');
-  if(line)line.style.left=(GM.minConfidence||65)+'%';
 }
 
 // END gmUpdateConfScoreUI
@@ -5795,40 +5835,32 @@ function gmMFCheck(prices){
   var n=prices.length;
   if(n<21)return{pass:true,reason:'not enough data'};
 
-  var result={pass:true,reason:'OK',slope:0,range:0,cons:0,atr:0,wallDist:0,dir:'--'};
+  // ── Refresh shared cache (no-op if already fresh this frame) ──
+  gmRefreshCache(prices);
+  var c=GM._cache;
 
-  // ── 1. Slope (linear regression over last slopeLook ticks) ──
-  var look=mf.slopeLook||10;
-  var sl=Math.min(look,n-1);
-  var pts=prices.slice(n-sl-1);
-  var sumX=0,sumY=0,sumXY=0,sumX2=0,cnt=pts.length;
-  for(var i=0;i<cnt;i++){sumX+=i;sumY+=pts[i];sumXY+=i*pts[i];sumX2+=i*i;}
-  var slope=cnt>1?(cnt*sumXY-sumX*sumY)/(cnt*sumX2-sumX*sumX):0;
-  result.slope=slope;
-  result.dir=slope>0?'UP':'DN';
+  var result={pass:true,reason:'OK',
+    slope:c.slope, range:c.range20, cons:0, atr:c.atr5,
+    wallDist:c.wallDist, dir:c.slope>=0?'UP':'DN',
+    pricePos:c.pricePos, domDir:c.upPct>50?'UP':'DN',
+    upPct:c.upPct, atrLabel:c.atrLabel, flats:c.flats};
 
-  if(mf.slopeOn&&Math.abs(slope)<mf.slopeMin){
+  // ── 1. Slope ──
+  if(mf.slopeOn&&Math.abs(c.slope)<mf.slopeMin){
     result.pass=false;
-    result.reason='SLOPE '+Math.abs(slope).toFixed(4)+' < '+mf.slopeMin;
+    result.reason='SLOPE '+Math.abs(c.slope).toFixed(4)+' < '+mf.slopeMin;
   }
 
-  // ── 2. Range width (high-low over rangeLook ticks) ──
-  var rl=Math.min(mf.rangeLook||20,n);
-  var slice=prices.slice(n-rl);
-  var hi=Math.max.apply(null,slice);
-  var lo=Math.min.apply(null,slice);
-  var range=parseFloat((hi-lo).toFixed(5));
-  result.range=range;
-
-  if(result.pass&&mf.rangeOn&&range<mf.rangeMin){
+  // ── 2. Range ──
+  if(result.pass&&mf.rangeOn&&c.range20<mf.rangeMin){
     result.pass=false;
-    result.reason='RANGE '+range.toFixed(3)+' < '+mf.rangeMin;
+    result.reason='RANGE '+c.range20.toFixed(3)+' < '+mf.rangeMin;
   }
 
-  // ── 3. Consecutive moves ──
-  var cl=Math.min(mf.consLook||5,n-1);
-  var consDir=slope>=0?1:-1;
+  // ── 3. Consecutive moves (still needs a tiny loop — only 5 ticks) ──
+  var consDir=c.slope>=0?1:-1;
   var cons=0;
+  var cl=Math.min(mf.consLook||5,n-1);
   for(var j=n-1;j>=n-cl;j--){
     var d=prices[j]-prices[j-1];
     if(consDir>0&&d>0)cons++;
@@ -5836,76 +5868,33 @@ function gmMFCheck(prices){
     else break;
   }
   result.cons=cons;
-
   if(result.pass&&mf.consOn&&cons<mf.consMin){
     result.pass=false;
     result.reason='CONSEC '+cons+' < '+mf.consMin;
   }
 
-  // ── 4. ATR (average |move| over atrLook ticks) ──
-  var al=Math.min(mf.atrLook||5,n-1);
-  var atrSum=0;
-  for(var k=n-al;k<n;k++)atrSum+=Math.abs(prices[k]-prices[k-1]);
-  var atr=parseFloat((atrSum/al).toFixed(5));
-  result.atr=atr;
-
-  if(result.pass&&mf.atrOn&&atr<mf.atrMin){
+  // ── 4. ATR (already in cache) ──
+  if(result.pass&&mf.atrOn&&c.atr5<mf.atrMin){
     result.pass=false;
-    result.reason='ATR '+atr.toFixed(4)+' < '+mf.atrMin;
+    result.reason='ATR '+c.atr5.toFixed(4)+' < '+mf.atrMin;
   }
 
-  // ── 5. Wall Guard ──
-  var curP=prices[n-1];
-  var wallDist=parseFloat((Math.abs(curP-Math.round(curP))).toFixed(5));
-  result.wallDist=wallDist;
-
-  if(result.pass&&mf.wallOn&&wallDist<mf.wallDist){
+  // ── 5. Wall Guard (already in cache) ──
+  if(result.pass&&mf.wallOn&&c.wallDist<mf.wallDist){
     result.pass=false;
-    result.reason='WALL dist='+wallDist.toFixed(3)+' < '+mf.wallDist;
+    result.reason='WALL dist='+c.wallDist.toFixed(3)+' < '+mf.wallDist;
   }
 
-  // ── 6. Price Position (UP bias + price at range top) ──
-  // Compute pricePos: 0=at range low, 100=at range high
-  var slice20pos=prices.slice(Math.max(0,n-20));
-  var rHigh=slice20pos.length?Math.max.apply(null,slice20pos):curP;
-  var rLow=slice20pos.length?Math.min.apply(null,slice20pos):curP;
-  var pricePos=(rHigh>rLow)?parseFloat(((curP-rLow)/(rHigh-rLow)*100).toFixed(1)):50;
-  result.pricePos=pricePos;
-
-  // Also need dominantDir and atrLabel for Rules 1 & 2
-  // Re-use the range slice already computed above
-  var upsPos=0,dnsPos=0;
-  var lookPos=Math.min(20,n-1);
-  for(var _i=n-lookPos;_i<n;_i++){var _d=prices[_i]-prices[_i-1];if(_d>0)upsPos++;else if(_d<0)dnsPos++;}
-  var totalPos=upsPos+dnsPos||1;
-  var upPctPos=Math.round(upsPos/totalPos*100);
-  var domDirPos=upPctPos>50?'UP':'DN';
-  result.domDir=domDirPos;
-  result.upPct=upPctPos;
-
-  // atrLabel (same logic as gmSnapshot)
-  var atr5pos=0,atr20pos=0;
-  if(n>=6){for(var _k=n-5;_k<n;_k++)atr5pos+=Math.abs(prices[_k]-prices[_k-1]);atr5pos/=5;}
-  if(n>=21){for(var _k=n-20;_k<n;_k++)atr20pos+=Math.abs(prices[_k]-prices[_k-1]);atr20pos/=20;}
-  var atrRatioPos=atr20pos>0?(atr5pos/atr20pos):1;
-  var atrLabelPos=atrRatioPos>=1.5?'VERY_HIGH':atrRatioPos>=1.2?'HIGH':atrRatioPos>=0.8?'NORMAL':atrRatioPos>=0.5?'LOW':'DEAD';
-  result.atrLabel=atrLabelPos;
-
-  // Flat ticks in last 5
-  var flatsPos=0;
-  for(var _f=n-5;_f<n;_f++){if(prices[_f]-prices[_f-1]===0)flatsPos++;}
-  result.flats=flatsPos;
-
-  // Rule 1: skip if UP bias AND pricePos > posMaxUp (price exhausted at top)
-  if(result.pass&&mf.posOn&&domDirPos==='UP'&&pricePos>mf.posMaxUp){
+  // ── 6. Price Position (already in cache) ──
+  if(result.pass&&mf.posOn&&c.upPct>50&&c.pricePos>mf.posMaxUp){
     result.pass=false;
-    result.reason='POS BLOCK: UP bias + pricePos='+pricePos.toFixed(0)+'% > '+mf.posMaxUp+'%';
+    result.reason='POS BLOCK: UP bias + pricePos='+c.pricePos.toFixed(0)+'% > '+mf.posMaxUp+'%';
   }
 
-  // Rule 2: skip if UP bias AND atrLabel=LOW AND flats >= stallFlats (stalling)
-  if(result.pass&&mf.stallOn&&domDirPos==='UP'&&atrLabelPos==='LOW'&&flatsPos>=mf.stallFlats){
+  // ── 7. Stall guard (already in cache) ──
+  if(result.pass&&mf.stallOn&&c.upPct>50&&c.atrLabel==='LOW'&&c.flats>=mf.stallFlats){
     result.pass=false;
-    result.reason='STALL BLOCK: UP+LOW ATR+'+flatsPos+' flats';
+    result.reason='STALL BLOCK: UP+LOW ATR+'+c.flats+' flats';
   }
 
   return result;
