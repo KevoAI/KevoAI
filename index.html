@@ -3482,7 +3482,8 @@ function setDur(el,v,t){el.closest('.dr').querySelectorAll('.db').forEach(functi
 function setTF(el){document.querySelectorAll('.ctb').forEach(function(b){b.classList.remove('active');});el.classList.add('active');}
 
 function showPage(id,navEl){if(id==='gmilli'){setTimeout(function(){
-  if(gmChart){gmChart.resize();GM._lastDraw=0;}
+  GM._lastDraw=0;
+  gmDrawChart();
   var p=getInd(GM.asset).prices;gmUpdateSignalBadge(p,p[p.length-1]||0);
 },50);}
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
