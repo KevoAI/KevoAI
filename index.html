@@ -1393,7 +1393,7 @@ setInterval(function(){ if(S.ws&&S.ws.readyState===1) wsSend({ping:1}); }, 30000
 // Detects when the GM asset feed freezes (no ticks for >8s) and auto-resubscribes.
 // This fixes the "price frozen + trades skipping" bug caused by Deriv tick stalls.
 setInterval(function(){
-  if(!S.connected) return;
+  if(!S.connected || !S.authorized) return; // never resubscribe before auth completes
   var now = Date.now();
   var sym = GM.asset;
   // Use the per-symbol timestamp map updated on every onTick call
@@ -1438,7 +1438,7 @@ setInterval(function(){
 function handleMsg(d) {
   if(d.error) {
     var code = d.error.code||'', msg = d.error.message||code;
-    if(code==='AlreadySubscribed'||code==='UnrecognisedRequest') return;
+    if(code==='AlreadySubscribed'||code==='UnrecognisedRequest'||code==='WrongResponse') return;
     if(code==='RateLimit') return;
     if(code==='ProposalOpenContractDoesNotExist') { wsSend({balance:1}); return; }
     if(code==='InvalidToken'||code==='AuthorizationRequired') {
@@ -1595,6 +1595,7 @@ function onProposal(proposal, reqId){
 
 function onAuth(a) {
   S.connected = true;
+  S.authorized = true;
   S.currency = a.currency||'USD';
   S.loginid = a.loginid;
   updateConnUI(true);
@@ -4378,7 +4379,7 @@ function saveDemoToken(){var t=(document.getElementById('demoTok').value||'').tr
 function saveRealToken(){var t=(document.getElementById('realTok').value||'').trim();if(!t)return;S.realToken=t;localStorage.setItem('kevoai_real_token',t);if(S.accType==='real'){S.apiToken=t;if(S.ws&&S.ws.readyState===1)wsSend({authorize:t});else connectWS();}notify('OK','Real token saved','win');}
 function handleTokenPaste(e,id){e.preventDefault();var text='';if(e.clipboardData&&e.clipboardData.getData)text=e.clipboardData.getData('text/plain');text=text.trim().replace(/[\s\n\r\t]/g,'');document.getElementById(id).value=text;if(id==='demoTok'){S.demoToken=text;localStorage.setItem('kevoai_demo_token',text);}if(id==='realTok'){S.realToken=text;localStorage.setItem('kevoai_real_token',text);}}
 function connectFromDiv(){var div=document.getElementById('tokenDisplay');var t=(div.innerText||div.textContent||'').replace(/[\s\n\r\t]/g,'');if(t.length<5||t.indexOf('Paste')===0){alert('Please paste your Deriv API token first');div.focus();return;}S.apiToken=t;S.demoToken=null;S.realToken=null;localStorage.setItem('kevoai_token',t);div.innerText='Click here and paste your token';closeMo();if(S.ws&&S.ws.readyState===1)authorize();else{connectWS();setTimeout(function(){if(S.ws&&S.ws.readyState===1)authorize();},2000);}}
-function updateConnUI(c){S.connected=c;document.getElementById('sdot').className='dot'+(c?' on':'');document.getElementById('stxt').textContent=c?'Connected':'Not connected';document.getElementById('connSt').innerHTML=c?'<div class="dot on"></div> Connected':'<div class="dot"></div> Not connected';if(!c)document.getElementById('balDisp').textContent='-- USD';}
+function updateConnUI(c){S.connected=c;if(!c)S.authorized=false;document.getElementById('sdot').className='dot'+(c?' on':'');document.getElementById('stxt').textContent=c?'Connected':'Not connected';document.getElementById('connSt').innerHTML=c?'<div class="dot on"></div> Connected':'<div class="dot"></div> Not connected';if(!c)document.getElementById('balDisp').textContent='-- USD';}
 function derivOAuthLogin(){var u=window.location.href.split('?')[0].split('#')[0];window.location.href='https://oauth.deriv.com/oauth2/authorize?app_id=1089&l=EN&brand=deriv&redirect_uri='+encodeURIComponent(u);}
 function checkOAuthCallback(){var params=new URLSearchParams(window.location.search),t1=params.get('token1');if(!t1)return;S.apiToken=t1;localStorage.setItem('kevoai_token',t1);var ac1=params.get('acct1');if(ac1&&ac1.toUpperCase().indexOf('VRTC')!==-1){S.demoToken=t1;localStorage.setItem('kevoai_demo_token',t1);}else{S.realToken=t1;localStorage.setItem('kevoai_real_token',t1);}window.history.replaceState({},document.title,window.location.pathname);notify('OK','Deriv connected! Logging in...','win');connectWS();setTimeout(function(){if(S.ws&&S.ws.readyState===1)authorize();},1500);}
 
