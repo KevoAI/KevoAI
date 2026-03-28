@@ -1424,6 +1424,29 @@ setInterval(function(){
 }, 3000);
 // ── END STALE TICK WATCHDOG ──────────────────────────────────────
 
+// ── Gmilli chart redraw fallback ─────────────────────────────────
+// Keeps the chart live even if getInd() buffer is empty or ticks
+// arrive but the length-guard blocks the in-tick update path.
+setInterval(function(){
+  if(!gmChart||!S.connected)return;
+  var prices=getInd(GM.asset).prices.slice(-80);
+  // Seed with live price if buffer still empty
+  if(!prices.length&&S.prices[GM.asset])prices=[S.prices[GM.asset]];
+  if(!prices.length)return;
+  var len=prices.length;
+  gmChart.data.labels=prices.map(function(){return '';});
+  gmChart.data.datasets[0].data=prices.slice();
+  gmChart.data.datasets[1].data=(_gmActiveBarrier&&_gmActiveBarrier.active&&_gmActiveBarrier.higher>0)?Array(len).fill(_gmActiveBarrier.higher):[];
+  gmChart.data.datasets[2].data=(_gmActiveBarrier&&_gmActiveBarrier.active&&_gmActiveBarrier.lower>0)?Array(len).fill(_gmActiveBarrier.lower):[];
+  gmUpdateWalls(prices[len-1]||0);
+  gmChart.data.datasets[3].data=(GM.mf&&GM.mf.wallOn&&_gmWalls.upper>0)?Array(len).fill(_gmWalls.upper):[];
+  gmChart.data.datasets[4].data=(GM.mf&&GM.mf.wallOn&&_gmWalls.lower>0)?Array(len).fill(_gmWalls.lower):[];
+  gmChart.update('none');
+  var priceEl=document.getElementById('gm-chart-price');
+  if(priceEl&&S.prices[GM.asset])priceEl.textContent=S.prices[GM.asset].toFixed(S.prices[GM.asset]>100?2:5);
+}, 500);
+// ── END Gmilli chart redraw fallback ─────────────────────────────
+
 // Poll active trades
 setInterval(function(){
   if(!S.activeTrades.length) return;
@@ -1823,6 +1846,8 @@ function onTick(tick) {
       if(!GM._lastDraw||(_gmNow-GM._lastDraw)>250){
         GM._lastDraw=_gmNow;
         var _gmD=getInd(GM.asset).prices.slice(-80);
+        // Fallback: if indicator buffer is empty, seed with the current price
+        if(!_gmD.length&&S.prices[GM.asset])_gmD=[S.prices[GM.asset]];
         if(_gmD.length>0){
           var _gmLen=_gmD.length;
           gmChart.data.labels=_gmD.map(function(){return '';});
