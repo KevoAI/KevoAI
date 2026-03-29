@@ -4585,7 +4585,7 @@ var GM = {
   minMomentum:3,  // kept for legacy reference — superseded by minScore
   minAtrMult:1.2, // kept for legacy reference — superseded by minScore
   minScore:4,     // Entry Score threshold (0-7): 4=balanced, 5=conservative, 6=strict
-  _skipReasons:{conf:0,mf:0,stagnant:0,mom:0,atr:0,gate:0,score:0} // skip breakdown by filter
+  _skipReasons:{conf:0,mf:0,stagnant:0,mom:0,atr:0,gate:0,score:0}, // skip breakdown by filter
   tickTimes:[],   // Timestamps of recent ticks for dead-zone speed detection
   // ── Shared metric cache (refreshed once per 400ms, reused everywhere) ──
   _cache:{atr5:0,atr20:0,atrRatio:1,atrLabel:'NORMAL',range20:0,rHigh:0,rLow:0,
