@@ -5078,8 +5078,10 @@ function gmEntryScore(){
   var score=0;
   var points={};
 
-  // ── Factor 1: Momentum strength ≥ 4 consecutive ticks ──
+  // ── Factor 1: Momentum strength ≥ 4 consecutive ticks IN trade direction ──
   if(momentumStrength>=4){score++;points.mom=1;}else{points.mom=0;}
+  // Also verify direction aligns with actual momentum direction
+  // (momentumStrength already counts ticks in `direction`, so this is already correct)
 
   // ── Factor 2: ATR5 ≥ offset × 1.2 (enough volatility to exit the gap) ──
   if(atr5>=offset*1.2){score++;points.atr=1;}else{points.atr=0;}
@@ -5090,14 +5092,25 @@ function gmEntryScore(){
     score++;points.pos=1;
   }else{points.pos=0;}
 
-  // ── Factor 4: Slope magnitude > 0.2 (directional net move) ──
-  if(Math.abs(slope)>0.2){score++;points.slope=1;}else{points.slope=0;}
+  // ── Factor 4: Slope aligns with direction AND has meaningful magnitude ──
+  // slope > 0.2 when trading HIGHER, slope < -0.2 when trading LOWER
+  var _slopeAligned=(direction==='HIGHER'&&slope>0.2)||(direction==='LOWER'&&slope<-0.2);
+  if(_slopeAligned){score++;points.slope=1;}else{points.slope=0;}
 
   // ── Factor 5: Few flat ticks (market is actively moving) ──
   if(flats<2){score++;points.flats=1;}else{points.flats=0;}
 
-  // ── Factor 6: Not in Bollinger squeeze (low-volatility compression) ──
-  if(!bbSqueeze){score++;points.squeeze=1;}else{points.squeeze=0;}
+  // ── Factor 6: Not in Bollinger squeeze — compute directly from prices ──
+  var _bbSqueeze=false;
+  if(n>=20){
+    var _sl20=prices.slice(-20);
+    var _mean=_sl20.reduce(function(s,v){return s+v;},0)/20;
+    var _variance=_sl20.reduce(function(s,v){return s+(_v=v-_mean,_v*_v);},0)/20;
+    var _std=Math.sqrt(_variance);
+    var _bbWidth=_mean>0?((_std*4)/_mean*100):0; // band width as % of price
+    _bbSqueeze=_bbWidth<0.10; // squeeze = bands very tight
+  }
+  if(!_bbSqueeze){score++;points.squeeze=1;}else{points.squeeze=0;}
 
   // ── Factor 7: ATR ratio not collapsing (short-term vol ≥ 70% of long-term) ──
   if(atrRatio>0.7){score++;points.atrRatio=1;}else{points.atrRatio=0;}
@@ -6058,10 +6071,18 @@ function gmMFCheck(prices){
     pricePos:c.pricePos, domDir:c.upPct>50?'UP':'DN',
     upPct:c.upPct, atrLabel:c.atrLabel, flats:c.flats};
 
-  // ── 1. Slope ──
-  if(mf.slopeOn&&Math.abs(c.slope)<mf.slopeMin){
-    result.pass=false;
-    result.reason='SLOPE '+Math.abs(c.slope).toFixed(4)+' < '+mf.slopeMin;
+  // ── 1. Slope — block if flat OR if slope direction opposes dominant tick direction ──
+  if(mf.slopeOn){
+    var _slopeMag=Math.abs(c.slope);
+    var _slopeDir=c.slope>=0?'UP':'DN';
+    var _tickDir=c.upPct>50?'UP':'DN';
+    if(_slopeMag<mf.slopeMin){
+      result.pass=false;
+      result.reason='SLOPE flat='+c.slope.toFixed(4)+' < ±'+mf.slopeMin;
+    } else if(_slopeDir!==_tickDir){
+      result.pass=false;
+      result.reason='SLOPE mismatch: slope '+_slopeDir+' vs ticks '+_tickDir+' ('+c.upPct+'%↑)';
+    }
   }
 
   // ── 2. Range ──
