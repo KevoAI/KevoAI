@@ -810,7 +810,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           <div class="sc g"><div class="sl">Net P&amp;L</div><div class="sv g" id="gm-pnl">+$0.00</div><div class="ss">Session</div></div>
           <div class="sc b"><div class="sl">Rounds</div><div class="sv b" id="gm-rounds">0</div><div class="ss">This session</div></div>
           <div class="sc go"><div class="sl">Win Rate</div><div class="sv go" id="gm-wr">0%</div><div class="ss" id="gm-wl">0W / 0L</div></div>
-          <div class="sc r"><div class="sl">Skipped</div><div class="sv r" id="gm-skipped">0</div><div class="ss">Gate failed</div></div>
+          <div class="sc r"><div class="sl">Skipped</div><div class="sv r" id="gm-skipped">0</div><div class="ss" id="gm-skip-detail">Gate failed</div></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 320px;gap:12px">
           <div>
@@ -1015,39 +1015,56 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div class="ig"><div class="il">Daily SL ($)</div><input type="number" class="iif" id="gm-daily-sl" value="30" min="1" oninput="gmCalc()"></div>
                   <div class="ig"><div class="il">Daily TP ($)</div><input type="number" class="iif" id="gm-daily-tp" value="60" min="1" oninput="gmCalc()"></div>
                 </div>
-                <!-- ── Momentum Strength & ATR Filter (data-driven) ── -->
+                <!-- ── Entry Score Filter (multi-factor, data-driven) ── -->
                 <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.25);border-radius:var(--rs);padding:11px;margin-bottom:11px">
                   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
-                    <div style="font-size:11px;font-weight:700;color:var(--bl)">📊 Momentum &amp; ATR Filter</div>
-                    <div style="font-size:9px;color:var(--t3);font-family:var(--mo)">analysis: eliminates gap losses</div>
+                    <div style="font-size:11px;font-weight:700;color:var(--bl)">🎲 Entry Score Filter</div>
+                    <div style="font-size:10px;font-family:var(--mo);font-weight:700;padding:2px 9px;border-radius:99px;background:rgba(59,130,246,0.15);color:var(--bl)" id="gm-entry-score-badge">--/7</div>
                   </div>
-                  <!-- Momentum Strength -->
-                  <div style="margin-bottom:9px">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-                      <div style="font-size:10px;color:var(--t2);font-weight:600">Min Momentum (consec ticks)</div>
-                      <div style="font-size:10px;font-family:var(--mo);color:var(--bl)" id="gm-mom-live">--</div>
+                  <!-- Live factor pills -->
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:8px;font-size:9px;font-family:var(--mo)">
+                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
+                      <div style="color:var(--t3)">Mom</div><div id="gm-sc-mom" style="font-weight:700">--</div>
                     </div>
-                    <div class="dr" style="grid-template-columns:repeat(5,1fr)">
-                      <div class="db" onclick="GM.minMomentum=0;gmSetActive(this)" style="font-size:10px">OFF</div>
-                      <div class="db" onclick="GM.minMomentum=2;gmSetActive(this)" style="font-size:10px">2</div>
-                      <div class="db" onclick="GM.minMomentum=3;gmSetActive(this)" style="font-size:10px">3</div>
-                      <div class="db active" onclick="GM.minMomentum=4;gmSetActive(this)" style="font-size:10px">4</div>
-                      <div class="db" onclick="GM.minMomentum=5;gmSetActive(this)" style="font-size:10px">5</div>
+                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
+                      <div style="color:var(--t3)">ATR5</div><div id="gm-sc-atr" style="font-weight:700">--</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
+                      <div style="color:var(--t3)">PricePos</div><div id="gm-sc-pos" style="font-weight:700">--</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
+                      <div style="color:var(--t3)">Slope</div><div id="gm-sc-slope" style="font-weight:700">--</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
+                      <div style="color:var(--t3)">Flats</div><div id="gm-sc-flats" style="font-weight:700">--</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
+                      <div style="color:var(--t3)">Squeeze</div><div id="gm-sc-squeeze" style="font-weight:700">--</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
+                      <div style="color:var(--t3)">AtrRatio</div><div id="gm-sc-atrratio" style="font-weight:700">--</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
+                      <div style="color:var(--t3)">Dir</div><div id="gm-sc-dir" style="font-weight:700">--</div>
                     </div>
                   </div>
-                  <!-- ATR Multiplier -->
-                  <div>
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-                      <div style="font-size:10px;color:var(--t2);font-weight:600">Min ATR5 (× offset)</div>
-                      <div style="font-size:10px;font-family:var(--mo);color:var(--bl)" id="gm-atr-mult-live">--</div>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:6px">
-                      <div class="ia" onclick="GM.minAtrMult=Math.max(0,parseFloat((GM.minAtrMult-0.25).toFixed(2)));document.getElementById('gm-atr-mult').value=GM.minAtrMult;document.getElementById('gm-atr-mult-live').textContent=GM.minAtrMult+'×'">-</div>
-                      <input type="number" class="iif" id="gm-atr-mult" value="1.5" min="0" max="4" step="0.25" style="text-align:center" oninput="GM.minAtrMult=parseFloat(this.value)||0;document.getElementById('gm-atr-mult-live').textContent=GM.minAtrMult+'×'">
-                      <div class="ia" onclick="GM.minAtrMult=Math.min(4,parseFloat((GM.minAtrMult+0.25).toFixed(2)));document.getElementById('gm-atr-mult').value=GM.minAtrMult;document.getElementById('gm-atr-mult-live').textContent=GM.minAtrMult+'×'">+</div>
-                    </div>
-                    <div style="font-size:9px;color:var(--t3);margin-top:4px;font-family:var(--mo)">0 = OFF &nbsp;|&nbsp; 1.5× offset=0.12 → ATR≥0.18</div>
+                  <!-- Score bar -->
+                  <div style="height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-bottom:7px;position:relative">
+                    <div id="gm-sc-bar" style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--re),var(--go),var(--ac));width:0%;transition:width 0.3s"></div>
+                    <div id="gm-sc-threshold-line" style="position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,0.5);border-radius:1px;left:57%"></div>
                   </div>
+                  <!-- Min score buttons -->
+                  <div style="display:flex;align-items:center;gap:4px">
+                    <span style="font-size:9px;color:var(--t3);white-space:nowrap">Min score:</span>
+                    <div class="dr" style="grid-template-columns:repeat(5,1fr);flex:1;gap:3px">
+                      <div class="db" onclick="GM.minScore=2;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(2/7*100)+'%'" style="font-size:10px;padding:4px 2px">2</div>
+                      <div class="db" onclick="GM.minScore=3;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(3/7*100)+'%'" style="font-size:10px;padding:4px 2px">3</div>
+                      <div class="db active" onclick="GM.minScore=4;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(4/7*100)+'%'" style="font-size:10px;padding:4px 2px">4</div>
+                      <div class="db" onclick="GM.minScore=5;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(5/7*100)+'%'" style="font-size:10px;padding:4px 2px">5</div>
+                      <div class="db" onclick="GM.minScore=6;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(6/7*100)+'%'" style="font-size:10px;padding:4px 2px">6</div>
+                    </div>
+                  </div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:5px">4 = balanced · 5 = conservative · 6 = strict · max 7</div>
                 </div>
                 <!-- ── Momentum Filters ── -->
                 <div style="background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.22);border-radius:var(--rs);padding:11px;margin-bottom:11px">
@@ -1921,20 +1938,8 @@ function onTick(tick) {
         var _mfPrices2=getInd(GM.asset).prices;
         if(_mfPrices2.length>10){gmMFUpdateLive(gmMFCheck(_mfPrices2));}
         gmUpdateConfScoreUI();
-        // ── Update live momentum & ATR filter readings ──
-        var _livePrices=getInd(GM.asset).prices;
-        if(_livePrices.length>=10){
-          var _liveUp=0,_liveDn=0;
-          for(var _li=_livePrices.length-5;_li<_livePrices.length;_li++){var _ld=_livePrices[_li]-_livePrices[_li-1];if(_ld>0)_liveUp++;else if(_ld<0)_liveDn++;}
-          var _liveDir=_liveUp>_liveDn?'HIGHER':'LOWER';
-          var _liveMom=gmGetConsecutive(_livePrices,_liveDir);
-          var _liveAtr=gmGetAtr5(_livePrices);
-          var _liveOff=gmAdaptiveOffset();
-          var _momEl=document.getElementById('gm-mom-live');
-          var _atrEl=document.getElementById('gm-atr-mult-live');
-          if(_momEl){_momEl.textContent=_liveMom+'tk '+(_liveDir==='HIGHER'?'↑':'↓');_momEl.style.color=_liveMom>=(GM.minMomentum||4)?'var(--ac)':'var(--re)';}
-          if(_atrEl){var _atrRatio=_liveOff>0?(_liveAtr/_liveOff):0;_atrEl.textContent=_liveAtr.toFixed(3)+' ('+_atrRatio.toFixed(2)+'×)';_atrEl.style.color=_atrRatio>=(GM.minAtrMult||1.5)?'var(--ac)':'var(--re)';}
-        }
+        // ── Live Entry Score panel update ──
+        gmUpdateEntryScoreUI(gmEntryScore());
         var _curP2=S.prices[GM.asset]||0;
         if(_curP2>0){
           var _off2=gmAdaptiveOffset();
@@ -4577,8 +4582,10 @@ var GM = {
   _placing:false,  // lock: prevents duplicate gmPlace calls firing simultaneously
   confThresh:65,  // Min confidence threshold (old single-pct rule)
   minConfidence:65, // Multi-factor composite score threshold (0-100)
-  minMomentum:4,  // Min consecutive ticks in dominant direction (analysis: eliminates all gap losses)
-  minAtrMult:1.5, // Min ATR5 as multiple of offset (analysis: e.g. offset=0.12 → ATR5 must be ≥ 0.18)
+  minMomentum:3,  // kept for legacy reference — superseded by minScore
+  minAtrMult:1.2, // kept for legacy reference — superseded by minScore
+  minScore:4,     // Entry Score threshold (0-7): 4=balanced, 5=conservative, 6=strict
+  _skipReasons:{conf:0,mf:0,stagnant:0,mom:0,atr:0,gate:0,score:0} // skip breakdown by filter
   tickTimes:[],   // Timestamps of recent ticks for dead-zone speed detection
   // ── Shared metric cache (refreshed once per 400ms, reused everywhere) ──
   _cache:{atr5:0,atr20:0,atrRatio:1,atrLabel:'NORMAL',range20:0,rHigh:0,rLow:0,
@@ -4977,9 +4984,12 @@ function gmCleanActiveCids(){
   });
 }
 
-// ── Momentum Strength: count consecutive ticks in the dominant direction ──
-// Returns how many of the last N ticks moved in the same direction as the dominant bias.
-// Used by the momentumStrength filter (analysis shows ≥4 eliminates all gap losses).
+// ════════════════════════════════════════════════════════════════
+// ENTRY SCORE SYSTEM — multi-factor confluence filter
+// Replaces individual momentum/ATR/stagnant checks.
+// Each of 7 factors contributes 1 point; trade fires when score ≥ GM.minScore.
+// ════════════════════════════════════════════════════════════════
+
 function gmGetConsecutive(prices, direction){
   var n=prices.length;
   if(n<2)return 0;
@@ -4993,8 +5003,6 @@ function gmGetConsecutive(prices, direction){
   return count;
 }
 
-// ── ATR5: average absolute move over last 5 ticks ──
-// Already in GM._cache.atr5 — this helper reads from cache or recomputes.
 function gmGetAtr5(prices){
   var c=GM._cache;
   if(c.lastUpdate>0&&(Date.now()-c.lastUpdate)<600&&c.atr5>0)return c.atr5;
@@ -5005,8 +5013,140 @@ function gmGetAtr5(prices){
   return sum/5;
 }
 
+function gmGetAtr20(prices){
+  var c=GM._cache;
+  if(c.lastUpdate>0&&(Date.now()-c.lastUpdate)<600&&c.atr20>0)return c.atr20;
+  var n=prices.length;
+  if(n<21)return 0.1;
+  var sum=0;
+  for(var i=n-20;i<n;i++)sum+=Math.abs(prices[i]-prices[i-1]);
+  return sum/20;
+}
+
+function gmGetSlope(prices, lookback){
+  lookback=lookback||10;
+  var n=prices.length;
+  if(n<lookback+1)return 0;
+  return prices[n-1]-prices[n-1-lookback];
+}
+
+function gmCountFlats(prices, lastN){
+  lastN=lastN||5;
+  var n=prices.length;
+  if(n<lastN+1)return 0;
+  var flats=0;
+  for(var i=n-lastN;i<n;i++){if(Math.abs(prices[i]-prices[i-1])<1e-8)flats++;}
+  return flats;
+}
+
+function gmGetPricePos(prices){
+  var n=prices.length;
+  var lookback=Math.min(20,n-1);
+  if(lookback<5)return 50;
+  var slice=prices.slice(-lookback);
+  var high=Math.max.apply(null,slice);
+  var low=Math.min.apply(null,slice);
+  if(high===low)return 50;
+  return ((prices[n-1]-low)/(high-low))*100;
+}
+
+// ── Main entry scoring function ──
+// Returns: { score, pass, reasons, points, direction, pricePos, momentumStrength, atr5 }
+function gmEntryScore(){
+  var prices=getInd(GM.asset).prices;
+  var n=prices.length;
+  if(n<20)return{score:0,pass:false,reasons:['warming up'],points:{},direction:'LOWER'};
+
+  // Determine dominant direction from last 5 ticks
+  var upCount=0,downCount=0;
+  for(var i=n-5;i<n;i++){
+    var _d=prices[i]-prices[i-1];
+    if(_d>0)upCount++;else if(_d<0)downCount++;
+  }
+  var direction=upCount>downCount?'HIGHER':'LOWER';
+
+  var atr5=gmGetAtr5(prices);
+  var atr20=gmGetAtr20(prices);
+  var atrRatio=atr20>0?atr5/atr20:1;
+  var offset=gmAdaptiveOffset();
+  var momentumStrength=gmGetConsecutive(prices,direction);
+  var pricePos=gmGetPricePos(prices);
+  var slope=gmGetSlope(prices,10);
+  var flats=gmCountFlats(prices,5);
+  var bbSqueeze=!!(getInd(GM.asset).bbSqueeze);
+
+  var score=0;
+  var points={};
+
+  // ── Factor 1: Momentum strength ≥ 4 consecutive ticks ──
+  if(momentumStrength>=4){score++;points.mom=1;}else{points.mom=0;}
+
+  // ── Factor 2: ATR5 ≥ offset × 1.2 (enough volatility to exit the gap) ──
+  if(atr5>=offset*1.2){score++;points.atr=1;}else{points.atr=0;}
+
+  // ── Factor 3: Price not at range extreme in trade direction ──
+  // (gap losses cluster at pricePos=0 with DN bias, and pricePos=100 with UP bias)
+  if((direction==='HIGHER'&&pricePos<80)||(direction==='LOWER'&&pricePos>20)){
+    score++;points.pos=1;
+  }else{points.pos=0;}
+
+  // ── Factor 4: Slope magnitude > 0.2 (directional net move) ──
+  if(Math.abs(slope)>0.2){score++;points.slope=1;}else{points.slope=0;}
+
+  // ── Factor 5: Few flat ticks (market is actively moving) ──
+  if(flats<2){score++;points.flats=1;}else{points.flats=0;}
+
+  // ── Factor 6: Not in Bollinger squeeze (low-volatility compression) ──
+  if(!bbSqueeze){score++;points.squeeze=1;}else{points.squeeze=0;}
+
+  // ── Factor 7: ATR ratio not collapsing (short-term vol ≥ 70% of long-term) ──
+  if(atrRatio>0.7){score++;points.atrRatio=1;}else{points.atrRatio=0;}
+
+  var minScore=GM.minScore||4;
+  var pass=score>=minScore;
+
+  // Build reasons array (what passed)
+  var reasons=[];
+  if(points.mom)reasons.push('mom≥4');
+  if(points.atr)reasons.push('atr5✓');
+  if(points.pos)reasons.push('posOK');
+  if(points.slope)reasons.push('slope');
+  if(points.flats)reasons.push('active');
+  if(points.squeeze)reasons.push('noSqz');
+  if(points.atrRatio)reasons.push('vol✓');
+
+  return{score:score,pass:pass,reasons:reasons,points:points,
+    direction:direction,pricePos:pricePos,momentumStrength:momentumStrength,
+    atr5:atr5,atrRatio:atrRatio,slope:slope,flats:flats};
+}
+
+// ── Update the Entry Score UI panel (called from tick handler) ──
+function gmUpdateEntryScoreUI(es){
+  if(!es)es=gmEntryScore();
+  var ok='var(--ac)',bad='var(--re)',dim='var(--t3)';
+  var p=es.points||{};
+  var s=function(id,txt,col){var e=document.getElementById(id);if(e){e.textContent=txt;e.style.color=col||dim;}};
+  s('gm-sc-mom', es.momentumStrength+'tk', p.mom?ok:bad);
+  s('gm-sc-atr', es.atr5?es.atr5.toFixed(3):'--', p.atr?ok:bad);
+  s('gm-sc-pos', es.pricePos?es.pricePos.toFixed(0)+'%':'--', p.pos?ok:bad);
+  s('gm-sc-slope', es.slope?es.slope.toFixed(2):'--', p.slope?ok:bad);
+  s('gm-sc-flats', es.flats!==undefined?es.flats+'f':'--', p.flats?ok:bad);
+  s('gm-sc-squeeze', p.squeeze?'NO':'YES', p.squeeze?ok:bad);
+  s('gm-sc-atrratio', es.atrRatio?es.atrRatio.toFixed(2):'--', p.atrRatio?ok:bad);
+  s('gm-sc-dir', es.direction==='HIGHER'?'↑ UP':'↓ DN', es.direction==='HIGHER'?ok:bad);
+  var badge=document.getElementById('gm-entry-score-badge');
+  if(badge){
+    badge.textContent=es.score+'/7';
+    badge.style.color=es.pass?'var(--ac)':es.score>=3?'var(--go)':'var(--re)';
+    badge.style.background=es.pass?'rgba(0,229,160,0.12)':es.score>=3?'rgba(245,166,35,0.1)':'rgba(255,77,106,0.1)';
+  }
+  var bar=document.getElementById('gm-sc-bar');
+  if(bar)bar.style.width=Math.round(es.score/7*100)+'%';
+}
+
 function gmLoop(){
   if(!GM.running)return;
+  gmUpdateStats(); // keep skip breakdown live on every cycle
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
   if(GM.pnl<=-sl){gmToggle();notify('STOP','Gmilli daily SL hit','loss');return;}
@@ -5054,80 +5194,24 @@ function gmLoop(){
     GM.interval=setTimeout(gmLoop,1000);return;
   }
 
-  // ── Momentum filter checks — cache hit, no recompute ──
+  // ── Momentum filter checks — still runs for the MF panel UI display ──
   var mfr=gmMFCheck(_loopPrices);
   gmMFUpdateLive(mfr);
   if(!mfr.pass){
     var rs6=document.getElementById('gm-round-status');
     if(rs6)rs6.textContent='SKIP: '+mfr.reason;
+    GM._skipReasons.mf=(GM._skipReasons.mf||0)+1;
     GM.interval=setTimeout(gmLoop,_nextInterval);return;
   }
 
-  // ── Composite Confidence Score — gmConfSnap is now a cache read ──
-  var _csEntry=S.prices[GM.asset]||0;
-  var _csOffset=gmAdaptiveOffset();
-  var _csSnap=gmConfSnap(_csEntry,_csOffset);
-  if(_csSnap){
-    var _csScore=gmConfidenceScore(_csSnap);
-    var _csBadge=document.getElementById('gm-conf-score-badge');
-    if(_csBadge){
-      _csBadge.textContent='Score: '+_csScore+'/100';
-      _csBadge.style.color=_csScore>=GM.minConfidence?'var(--ac)':_csScore>=50?'var(--go)':'var(--re)';
-      _csBadge.style.background=_csScore>=GM.minConfidence?'rgba(0,229,160,0.12)':_csScore>=50?'rgba(245,166,35,0.1)':'rgba(255,77,106,0.1)';
-    }
-    if(_csScore<GM.minConfidence){
-      var rs7=document.getElementById('gm-round-status');
-      if(rs7)rs7.textContent='LOW CONF: '+_csScore+'/100 < '+GM.minConfidence;
-      GM._skipped=(GM._skipped||0)+1;
-      var skEl7=document.getElementById('gm-skipped');if(skEl7)skEl7.textContent=GM._skipped;
-      GM.interval=setTimeout(gmLoop,_nextInterval);return;
-    }
-  }
-
-  // ── Pre-round momentum check — use cache slope value ──
-  var _prOffset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
-  var _prNet=Math.abs(GM._cache.slope); // slope is already the 10-tick net move
-  var _prRequired=_prOffset*0.7; // tightened from 0.6 → 0.7 (analysis: blocked 1 gap loss with no clean wins lost)
-  if(_prNet<_prRequired){
-    var rs8=document.getElementById('gm-round-status');
-    if(rs8)rs8.textContent='STAGNANT: move='+_prNet.toFixed(3)+' < '+_prRequired.toFixed(3)+'(need '+(_prOffset*0.7).toFixed(3)+')';
-    GM._skipped=(GM._skipped||0)+1;
-    var skEl8=document.getElementById('gm-skipped');if(skEl8)skEl8.textContent=GM._skipped;
+  // ── Entry Score — 7-factor confluence filter (replaces conf/stagnant/mom/atr checks) ──
+  var _es=gmEntryScore();
+  gmUpdateEntryScoreUI(_es);
+  if(!_es.pass){
+    var rs7=document.getElementById('gm-round-status');
+    if(rs7)rs7.textContent='SCORE '+_es.score+'/'+(GM.minScore||4)+': '+(_es.reasons.length?_es.reasons.join(' '):'no confluence');
+    GM._skipReasons.score=(GM._skipReasons.score||0)+1;
     GM.interval=setTimeout(gmLoop,_nextInterval);return;
-  }
-
-  // ── Momentum Strength & ATR5 filters (data-driven, analysis 2026-03-28) ──
-  // Result: eliminates all 5 gap losses while keeping 5 profitable trades ($2.70 net)
-  var _msPrices=getInd(GM.asset).prices;
-  if(_msPrices.length>=10){
-    // Determine dominant direction from last 5 ticks
-    var _msUp=0,_msDn=0;
-    for(var _mi=_msPrices.length-5;_mi<_msPrices.length;_mi++){
-      var _md=_msPrices[_mi]-_msPrices[_mi-1];
-      if(_md>0)_msUp++;else if(_md<0)_msDn++;
-    }
-    var _msDir=_msUp>_msDn?'HIGHER':'LOWER';
-    var _msStrength=gmGetConsecutive(_msPrices,_msDir);
-    var _msAtr5=gmGetAtr5(_msPrices);
-    var _msOffset=gmAdaptiveOffset();
-    var _msMinMom=GM.minMomentum||4;
-    var _msMinAtr=GM.minAtrMult||1.5;
-
-    if(_msStrength<_msMinMom){
-      var rs9=document.getElementById('gm-round-status');
-      if(rs9)rs9.textContent='WEAK MOM: '+_msStrength+' < '+_msMinMom+' ticks';
-      GM._skipped=(GM._skipped||0)+1;
-      var skEl9=document.getElementById('gm-skipped');if(skEl9)skEl9.textContent=GM._skipped;
-      GM.interval=setTimeout(gmLoop,_nextInterval);return;
-    }
-    var _msAtrMin=_msOffset*_msMinAtr;
-    if(_msAtr5<_msAtrMin){
-      var rs10=document.getElementById('gm-round-status');
-      if(rs10)rs10.textContent='LOW ATR: '+_msAtr5.toFixed(3)+' < '+_msAtrMin.toFixed(3)+' ('+_msMinAtr+'× offset)';
-      GM._skipped=(GM._skipped||0)+1;
-      var skEl10=document.getElementById('gm-skipped');if(skEl10)skEl10.textContent=GM._skipped;
-      GM.interval=setTimeout(gmLoop,_nextInterval);return;
-    }
   }
 
   // Fire a payout check — fetch proposals at current stake
@@ -5258,8 +5342,9 @@ function onGMProbe(proposal,pendInfo){
   if(!passes){
     var rs=document.getElementById('gm-round-status');
     if(rs)rs.textContent='SKIP (need each payout>$'+(stake*2).toFixed(2)+')';
-    // Track skips
+    // Gate skip = payout too low — this IS the meaningful "skipped" count
     GM._skipped=(GM._skipped||0)+1;
+    GM._skipReasons.gate=(GM._skipReasons.gate||0)+1;
     var skEl=document.getElementById('gm-skipped');if(skEl)skEl.textContent=GM._skipped;
     // Reset probes for next loop
     _gmProbe.call=null;_gmProbe.put=null;
@@ -5547,6 +5632,18 @@ function gmUpdateStats(){
   set('gm-rounds',GM.rounds);
   set('gm-wr',wr+'%');
   set('gm-wl',GM.won+'W / '+GM.lost+'L');
+  // Skip breakdown sub-label
+  var sr=GM._skipReasons||{};
+  var _parts=[];
+  if(sr.gate)_parts.push('Gate:'+sr.gate);
+  if(sr.mf)_parts.push('MF:'+sr.mf);
+  if(sr.score)_parts.push('Score:'+sr.score);
+  if(sr.conf)_parts.push('Conf:'+sr.conf);
+  if(sr.stagnant)_parts.push('Stag:'+sr.stagnant);
+  if(sr.mom)_parts.push('Mom:'+sr.mom);
+  if(sr.atr)_parts.push('ATR:'+sr.atr);
+  var detailEl=document.getElementById('gm-skip-detail');
+  if(detailEl)detailEl.textContent=_parts.length?_parts.join(' | '):'—';
 }
 
 function gmRenderHistory(){
@@ -5632,6 +5729,8 @@ function gmReset(){
   _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:''};
   gmUpdateStats();gmRenderHistory();
   var net=document.getElementById('gm-round-net');if(net)net.textContent='$0.00';var skEl2=document.getElementById('gm-skipped');if(skEl2)skEl2.textContent='0';
+  GM._skipReasons={conf:0,mf:0,stagnant:0,mom:0,atr:0,gate:0,score:0};
+  var detailEl2=document.getElementById('gm-skip-detail');if(detailEl2)detailEl2.textContent='—';
   var rs=document.getElementById('gm-round-status');if(rs)rs.textContent='IDLE';
   var cEl=document.getElementById('gm-call-pay');if(cEl)cEl.textContent='--';
   var pEl=document.getElementById('gm-put-pay');if(pEl)pEl.textContent='--';
