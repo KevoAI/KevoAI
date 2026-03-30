@@ -800,17 +800,15 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         <div style="background:linear-gradient(135deg,rgba(0,229,160,0.1),rgba(59,130,246,0.08));border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:16px;margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
             <div style="font-size:18px;font-weight:800;color:var(--ac)">Gmilli Bot</div>
-            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">HIGHER + BETWEEN + LOWER — 3-Contract Strategy</div>
+            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">HIGHER + LOWER — Zero Gap Strategy</div>
           </div>
-          <div style="font-size:11px;color:var(--t2)">Barrier at ±offset — price ALWAYS ends in one of 3 zones. Solver adjusts stakes so every outcome is profitable. Requires BETWEEN payout &gt;2.11×.</div>
+          <div style="font-size:11px;color:var(--t2)">Barrier set at entry spot — one side ALWAYS wins. Only trades when combined payout > 2× stake.</div>
         </div>
-        <!-- STALE FEED WARNING — shown by watchdog when ticks stop arriving -->
-        <div id="gm-stale-warn" style="display:none;align-items:center;gap:9px;background:rgba(255,77,106,0.12);border:1px solid rgba(255,77,106,0.4);border-radius:var(--rs);padding:9px 13px;margin-bottom:10px;font-size:12px;font-weight:600;color:var(--re)">⚠ Price feed stalled — resubscribing...</div>
         <div class="sr" style="margin-bottom:12px">
           <div class="sc g"><div class="sl">Net P&amp;L</div><div class="sv g" id="gm-pnl">+$0.00</div><div class="ss">Session</div></div>
           <div class="sc b"><div class="sl">Rounds</div><div class="sv b" id="gm-rounds">0</div><div class="ss">This session</div></div>
           <div class="sc go"><div class="sl">Win Rate</div><div class="sv go" id="gm-wr">0%</div><div class="ss" id="gm-wl">0W / 0L</div></div>
-          <div class="sc r"><div class="sl">Skipped</div><div class="sv r" id="gm-skipped">0</div><div class="ss" id="gm-skip-detail">Gate failed</div></div>
+          <div class="sc r"><div class="sl">Skipped</div><div class="sv r" id="gm-skipped">0</div><div class="ss">Gate failed</div></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 320px;gap:12px">
           <div>
@@ -842,7 +840,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <span style="font-size:10px;font-family:var(--mo);padding:2px 7px;border-radius:4px;background:var(--bg4);color:var(--t3)" id="gm-chart-dir">--</span>
               </div>
               <div style="position:relative;height:200px">
-                <canvas id="gmChart"></canvas>
+                <canvas id="gmChart" height="200"></canvas>
                 <div id="gm-barrier-legend" style="position:absolute;top:6px;right:8px;font-size:9px;font-family:var(--mo);line-height:1.8;text-align:right"></div>
               </div>
             </div>
@@ -851,20 +849,16 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
               <div style="font-size:12px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px">
                 Payout Gate
-                <span style="font-size:10px;color:var(--t3);font-weight:400" id="gm-gate-desc">— 3-way: solver ensures all outcomes profitable</span>
+                <span style="font-size:10px;color:var(--t3);font-weight:400">— only trades when combined payout > 2× stake</span>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
                 <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;text-align:center;border:1px solid var(--bo)">
                   <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">HIGHER Payout</div>
-                  <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-call-pay">--</div>
-                </div>
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;text-align:center;border:1px solid rgba(59,130,246,0.3)">
-                  <div style="font-size:9px;color:var(--bl);text-transform:uppercase;margin-bottom:3px">BETWEEN Payout</div>
-                  <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--bl)" id="gm-between-pay">--</div>
+                  <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-call-pay">--</div>
                 </div>
                 <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;text-align:center;border:1px solid var(--bo)">
                   <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">LOWER Payout</div>
-                  <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-put-pay">--</div>
+                  <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-put-pay">--</div>
                 </div>
                 <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;text-align:center;border:1px solid var(--bo)">
                   <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Gate Status</div>
@@ -882,35 +876,22 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
                 <div style="font-size:13px;font-weight:700">This Round</div>
-                <div style="display:flex;align-items:center;gap:8px">
-                  <span style="font-size:10px;color:var(--t3)">3-Contract Mode</span>
-                  <div class="tsw on" id="gm-3way-sw" style="width:34px;height:18px" onclick="GM.threeWayMode=!GM.threeWayMode;this.classList.toggle('on',GM.threeWayMode);gmCalc();var lbl=document.getElementById('gm-stake-display');if(lbl)lbl.textContent=gmStake().toFixed(2);document.getElementById('gm-mode-label').textContent=GM.threeWayMode?'H+B+L (3-way)':'H+L (classic)';"></div>
-                  <span style="font-size:10px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-mode-label">H+B+L (3-way)</span>
-                </div>
                 <div style="font-size:11px;font-family:var(--mo);font-weight:700;padding:3px 10px;border-radius:99px;background:var(--bg4);color:var(--t3)" id="gm-round-status">IDLE</div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px" id="gm-3way-panel">
-                <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:10px">
-                  <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:4px">↑ HIGHER</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:12px">
+                  <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:6px">↑ HIGHER</div>
                   <div style="font-size:10px;color:var(--t3);margin-bottom:2px" id="gm-call-barrier-lbl">barrier: entry + offset</div>
-                  <div style="font-size:16px;font-weight:700;color:var(--ac);font-family:var(--mo)" id="gm-call-pnl">$0.00</div>
+                  <div style="font-size:18px;font-weight:700;color:var(--ac);font-family:var(--mo)" id="gm-call-pnl">$0.00</div>
                   <div style="font-size:10px;color:var(--t3);margin-top:3px" id="gm-call-stake">stake: --</div>
                 </div>
-                <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:var(--rs);padding:10px">
-                  <div style="font-size:10px;color:var(--bl);font-weight:700;margin-bottom:4px">↔ BETWEEN</div>
-                  <div style="font-size:10px;color:var(--t3);margin-bottom:2px" id="gm-between-barrier-lbl">barrier: ±offset</div>
-                  <div style="font-size:16px;font-weight:700;color:var(--bl);font-family:var(--mo)" id="gm-between-pnl">$0.00</div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px" id="gm-between-stake">stake: --</div>
-                </div>
-                <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:10px">
-                  <div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:4px">↓ LOWER</div>
+                <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:12px">
+                  <div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:6px">↓ LOWER</div>
                   <div style="font-size:10px;color:var(--t3);margin-bottom:2px" id="gm-put-barrier-lbl">barrier: entry - offset</div>
-                  <div style="font-size:16px;font-weight:700;color:var(--re);font-family:var(--mo)" id="gm-put-pnl">$0.00</div>
+                  <div style="font-size:18px;font-weight:700;color:var(--re);font-family:var(--mo)" id="gm-put-pnl">$0.00</div>
                   <div style="font-size:10px;color:var(--t3);margin-top:3px" id="gm-put-stake">stake: --</div>
                 </div>
               </div>
-              <!-- stake breakdown row -->
-              <div style="font-size:10px;font-family:var(--mo);color:var(--ac);margin-bottom:6px;text-align:center;padding:4px 8px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)" id="gm-stake-breakdown">Solved stakes shown here when gate passes</div>
               <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
                 <span style="font-size:11px;color:var(--t2)">Round Net</span>
                 <span style="font-size:16px;font-weight:700;font-family:var(--mo)" id="gm-round-net">$0.00</span>
@@ -939,7 +920,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <input type="number" class="iif" id="gm-budget" value="3.00" min="0.70" step="0.70" oninput="gmCalc()">
                     <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.70).toFixed(2);gmCalc()">+</div>
                   </div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">3-way: solved stakes shown live — $<span id="gm-stake-display">1.00</span> approx each</div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Split equally — $<span id="gm-stake-display">1.50</span> each side</div>
                 </div>
                 <!-- Barrier Offset -->
                 <div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;margin-bottom:11px">
@@ -964,11 +945,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div class="dr">
                     <div class="db" onclick="GM.dur=5;gmSetActive(this)">5S</div>
                     <div class="db" onclick="GM.dur=15;gmSetActive(this)">15S</div>
-                    <div class="db" onclick="GM.dur=30;gmSetActive(this)">30S</div>
-                    <div class="db active" onclick="GM.dur=60;gmSetActive(this)">1M</div>
+                    <div class="db active" onclick="GM.dur=30;gmSetActive(this)">30S</div>
+                    <div class="db" onclick="GM.dur=60;gmSetActive(this)">60S</div>
                     <div class="db" onclick="GM.dur=120;gmSetActive(this)">2M</div>
                   </div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">3-way mode needs ≥60S for BETWEEN payout to be high enough</div>
                 </div>
                 <!-- ── Unified Confidence Panel (merged 60/40 + composite score) ── -->
                 <div style="background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.22);border-radius:var(--rs);padding:10px;margin-bottom:11px">
@@ -1032,57 +1012,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px">
                   <div class="ig"><div class="il">Daily SL ($)</div><input type="number" class="iif" id="gm-daily-sl" value="30" min="1" oninput="gmCalc()"></div>
                   <div class="ig"><div class="il">Daily TP ($)</div><input type="number" class="iif" id="gm-daily-tp" value="60" min="1" oninput="gmCalc()"></div>
-                </div>
-                <!-- ── Entry Score Filter (multi-factor, data-driven) ── -->
-                <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.25);border-radius:var(--rs);padding:11px;margin-bottom:11px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
-                    <div style="font-size:11px;font-weight:700;color:var(--bl)">🎲 Entry Score Filter</div>
-                    <div style="font-size:10px;font-family:var(--mo);font-weight:700;padding:2px 9px;border-radius:99px;background:rgba(59,130,246,0.15);color:var(--bl)" id="gm-entry-score-badge">--/7</div>
-                  </div>
-                  <!-- Live factor pills -->
-                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:8px;font-size:9px;font-family:var(--mo)">
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Mom</div><div id="gm-sc-mom" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">ATR5</div><div id="gm-sc-atr" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">PricePos</div><div id="gm-sc-pos" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Slope</div><div id="gm-sc-slope" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Flats</div><div id="gm-sc-flats" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Squeeze</div><div id="gm-sc-squeeze" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">AtrRatio</div><div id="gm-sc-atrratio" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Dir</div><div id="gm-sc-dir" style="font-weight:700">--</div>
-                    </div>
-                  </div>
-                  <!-- Score bar -->
-                  <div style="height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-bottom:7px;position:relative">
-                    <div id="gm-sc-bar" style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--re),var(--go),var(--ac));width:0%;transition:width 0.3s"></div>
-                    <div id="gm-sc-threshold-line" style="position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,0.5);border-radius:1px;left:57%"></div>
-                  </div>
-                  <!-- Min score buttons -->
-                  <div style="display:flex;align-items:center;gap:4px">
-                    <span style="font-size:9px;color:var(--t3);white-space:nowrap">Min score:</span>
-                    <div class="dr" style="grid-template-columns:repeat(5,1fr);flex:1;gap:3px">
-                      <div class="db" onclick="GM.minScore=2;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(2/7*100)+'%'" style="font-size:10px;padding:4px 2px">2</div>
-                      <div class="db" onclick="GM.minScore=3;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(3/7*100)+'%'" style="font-size:10px;padding:4px 2px">3</div>
-                      <div class="db active" onclick="GM.minScore=4;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(4/7*100)+'%'" style="font-size:10px;padding:4px 2px">4</div>
-                      <div class="db" onclick="GM.minScore=5;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(5/7*100)+'%'" style="font-size:10px;padding:4px 2px">5</div>
-                      <div class="db" onclick="GM.minScore=6;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(6/7*100)+'%'" style="font-size:10px;padding:4px 2px">6</div>
-                    </div>
-                  </div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:5px">4 = balanced · 5 = conservative · 6 = strict · max 7</div>
                 </div>
                 <!-- ── Momentum Filters ── -->
                 <div style="background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.22);border-radius:var(--rs);padding:11px;margin-bottom:11px">
@@ -1206,7 +1135,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                         </div>
                         <div style="display:flex;align-items:center;gap:4px">
                           <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.stallFlats=Math.max(1,GM.mf.stallFlats-1);document.getElementById('mf-stall-val').value=GM.mf.stallFlats">-</div>
-                          <input type="number" id="mf-stall-val" value="1" step="1" min="1" max="5" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM.mf.stallFlats=parseInt(this.value)||1">
+                          <input type="number" id="mf-stall-val" value="2" step="1" min="1" max="5" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM.mf.stallFlats=parseInt(this.value)||2">
                           <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.stallFlats=Math.min(5,GM.mf.stallFlats+1);document.getElementById('mf-stall-val').value=GM.mf.stallFlats">+</div>
                         </div>
                       </div>
@@ -1217,12 +1146,14 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <!-- Gap between rounds -->
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Min Gap Between Rounds</div>
-                  <div class="dr" style="grid-template-columns:repeat(4,1fr)">
+                  <div class="dr" style="grid-template-columns:repeat(5,1fr)">
+                    <div class="db active" onclick="GM.minGap=0;gmSetActive(this)">0s</div>
+                    <div class="db" onclick="GM.minGap=5;gmSetActive(this)">5s</div>
                     <div class="db" onclick="GM.minGap=15;gmSetActive(this)">15s</div>
-                    <div class="db active" onclick="GM.minGap=30;gmSetActive(this)">30s</div>
-                    <div class="db" onclick="GM.minGap=45;gmSetActive(this)">45s</div>
+                    <div class="db" onclick="GM.minGap=30;gmSetActive(this)">30s</div>
                     <div class="db" onclick="GM.minGap=60;gmSetActive(this)">60s</div>
                   </div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">0s = fire next round immediately after settlement</div>
                 </div>
               </div>
             </div>
@@ -1458,64 +1389,6 @@ function subAllPrices() { for(var g in INSTR) INSTR[g].forEach(function(i){ subP
 function subPrice(sym) { wsSend({ticks:sym, subscribe:1}); }
 setInterval(function(){ if(S.ws&&S.ws.readyState===1) wsSend({ping:1}); }, 30000);
 
-// ── STALE TICK WATCHDOG ──────────────────────────────────────────
-// Detects when the GM asset feed freezes (no ticks for >8s) and auto-resubscribes.
-// This fixes the "price frozen + trades skipping" bug caused by Deriv tick stalls.
-setInterval(function(){
-  if(!S.connected || !S.authorized) return; // never resubscribe before auth completes
-  var now = Date.now();
-  var sym = GM.asset;
-  // Use the per-symbol timestamp map updated on every onTick call
-  var lastTick = (S._lastTickTime && S._lastTickTime[sym]) || 0;
-  // Fallback: also check GM.tickTimes array
-  if(!lastTick && GM.tickTimes && GM.tickTimes.length) lastTick = GM.tickTimes[GM.tickTimes.length-1];
-  if(!lastTick) return; // no ticks yet since page load — nothing to check
-  var elapsed = now - lastTick;
-  var warnEl = document.getElementById('gm-stale-warn');
-  // If GM asset hasn't ticked in 8 seconds, the feed is stalled — resubscribe
-  if(elapsed > 8000) {
-    console.warn('[WATCHDOG] '+sym+' feed stalled '+Math.round(elapsed/1000)+'s — resubscribing');
-    // Show warning in UI
-    var rs = document.getElementById('gm-round-status');
-    if(rs && !GM._placing && !Object.keys(GM.pending).length) rs.textContent = 'FEED STALLED — reconnecting...';
-    if(warnEl) { warnEl.style.display='flex'; warnEl.textContent='⚠ Price feed stalled '+Math.round(elapsed/1000)+'s — resubscribing to '+sym+'...'; }
-    // Resubscribe to this symbol's tick stream
-    wsSend({ticks: sym, subscribe: 1});
-    // Also resubscribe HB asset if different
-    if(HB.asset !== sym) wsSend({ticks: HB.asset, subscribe: 1});
-    // Stamp now so we don't spam resubscribe every 3s — wait for a real tick to clear
-    if(S._lastTickTime) S._lastTickTime[sym] = now - 5000; // allow recheck in 5s if still stuck
-    GM.tickTimes = [now - 5000];
-  } else {
-    // Feed is alive — hide warning if showing
-    if(warnEl && warnEl.style.display !== 'none') warnEl.style.display = 'none';
-  }
-}, 3000);
-// ── END STALE TICK WATCHDOG ──────────────────────────────────────
-
-// ── Gmilli chart redraw fallback ─────────────────────────────────
-// Keeps the chart live even if getInd() buffer is empty or ticks
-// arrive but the length-guard blocks the in-tick update path.
-setInterval(function(){
-  if(!gmChart||!S.connected)return;
-  var prices=getInd(GM.asset).prices.slice(-80);
-  // Seed with live price if buffer still empty
-  if(!prices.length&&S.prices[GM.asset])prices=[S.prices[GM.asset]];
-  if(!prices.length)return;
-  var len=prices.length;
-  gmChart.data.labels=prices.map(function(){return '';});
-  gmChart.data.datasets[0].data=prices.slice();
-  gmChart.data.datasets[1].data=(_gmActiveBarrier&&_gmActiveBarrier.active&&_gmActiveBarrier.higher>0)?Array(len).fill(_gmActiveBarrier.higher):[];
-  gmChart.data.datasets[2].data=(_gmActiveBarrier&&_gmActiveBarrier.active&&_gmActiveBarrier.lower>0)?Array(len).fill(_gmActiveBarrier.lower):[];
-  gmUpdateWalls(prices[len-1]||0);
-  gmChart.data.datasets[3].data=(GM.mf&&GM.mf.wallOn&&_gmWalls.upper>0)?Array(len).fill(_gmWalls.upper):[];
-  gmChart.data.datasets[4].data=(GM.mf&&GM.mf.wallOn&&_gmWalls.lower>0)?Array(len).fill(_gmWalls.lower):[];
-  gmChart.update('none');
-  var priceEl=document.getElementById('gm-chart-price');
-  if(priceEl&&S.prices[GM.asset])priceEl.textContent=S.prices[GM.asset].toFixed(S.prices[GM.asset]>100?2:5);
-}, 500);
-// ── END Gmilli chart redraw fallback ─────────────────────────────
-
 // Poll active trades
 setInterval(function(){
   if(!S.activeTrades.length) return;
@@ -1530,7 +1403,7 @@ setInterval(function(){
 function handleMsg(d) {
   if(d.error) {
     var code = d.error.code||'', msg = d.error.message||code;
-    if(code==='AlreadySubscribed'||code==='UnrecognisedRequest'||code==='WrongResponse') return;
+    if(code==='AlreadySubscribed'||code==='UnrecognisedRequest') return;
     if(code==='RateLimit') return;
     if(code==='ProposalOpenContractDoesNotExist') { wsSend({balance:1}); return; }
     if(code==='InvalidToken'||code==='AuthorizationRequired') {
@@ -1558,21 +1431,15 @@ function handleMsg(d) {
       var _neitherPlaced=!_gmRound.callPlaced&&!_gmRound.putPlaced;
       var _noBuysConfirmed=!_gmRound.callCid&&!_gmRound.putCid;
       if(_neitherPlaced&&_noBuysConfirmed){
-        console.log('[GM] Both sides PriceMoved on R'+_gmRid+' — cancelling round and re-fetching fresh proposals');
+        console.log('[GM] Both sides PriceMoved on R'+_gmRid+' — cancelling round (no real trade placed)');
         clearTimeout(_gmRound._timeout);
         GM.rounds=Math.max(0,GM.rounds-1); // don't count this as a real round
         GM._placing=false; // release placing lock if held
         delete GM.pending[_gmRid];
         GM.lastRoundTime=0; // allow immediate retry
         var rs=document.getElementById('gm-round-status');
-        if(rs)rs.textContent='PRICE MOVED — re-fetching...';
-        // Re-fetch proposals immediately with the current live price
-        // Small delay to let the market settle after the move
-        setTimeout(function(){
-          if(GM.running&&S.connected&&gmActiveCount()===0){
-            gmFetchProposals();
-          }
-        }, 300);
+        if(rs)rs.textContent='PRICE MOVED — retrying';
+        notify('PM','Price moved — round cancelled, retrying','info');
       }
     }
     return;
@@ -1693,7 +1560,6 @@ function onProposal(proposal, reqId){
 
 function onAuth(a) {
   S.connected = true;
-  S.authorized = true;
   S.currency = a.currency||'USD';
   S.loginid = a.loginid;
   updateConnUI(true);
@@ -1827,9 +1693,6 @@ function resetDG(){
 function onTick(tick) {
   var sym=tick.symbol, q=tick.quote, prev=S.prices[sym];
   S.prices[sym]=q;
-  // Track last tick arrival time per symbol (used by stale-feed watchdog)
-  if(!S._lastTickTime) S._lastTickTime={};
-  S._lastTickTime[sym]=Date.now();
   // Ticker bar — throttled to 2fps per symbol (cheap but fires for ALL symbols)
   var _tkNow=Date.now();
   if(!S._lastTicker)S._lastTicker={};
@@ -1914,69 +1777,17 @@ function onTick(tick) {
     if(!GM.tickTimes)GM.tickTimes=[];
     GM.tickTimes.push(Date.now());
     if(GM.tickTimes.length>100)GM.tickTimes.shift();
-
-    // ── Gmilli chart — Chart.js, same pattern as wwChart ──
-    if(gmChart){
-      var _gmNow=Date.now();
-      if(!GM._lastDraw||(_gmNow-GM._lastDraw)>250){
-        GM._lastDraw=_gmNow;
-        var _gmD=getInd(GM.asset).prices.slice(-80);
-        // Fallback: if indicator buffer is empty, seed with the current price
-        if(!_gmD.length&&S.prices[GM.asset])_gmD=[S.prices[GM.asset]];
-        if(_gmD.length>0){
-          var _gmLen=_gmD.length;
-          gmChart.data.labels=_gmD.map(function(){return '';});
-          gmChart.data.datasets[0].data=_gmD.slice();
-          gmChart.data.datasets[1].data=(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0)?Array(_gmLen).fill(_gmActiveBarrier.higher):[];
-          gmChart.data.datasets[2].data=(_gmActiveBarrier.active&&_gmActiveBarrier.lower>0)?Array(_gmLen).fill(_gmActiveBarrier.lower):[];
-          gmUpdateWalls(q);
-          gmChart.data.datasets[3].data=(GM.mf.wallOn&&_gmWalls.upper>0)?Array(_gmLen).fill(_gmWalls.upper):[];
-          gmChart.data.datasets[4].data=(GM.mf.wallOn&&_gmWalls.lower>0)?Array(_gmLen).fill(_gmWalls.lower):[];
-          gmChart.update('none');
-        }
-        var _gmPriceEl=document.getElementById('gm-chart-price');
-        if(_gmPriceEl)_gmPriceEl.textContent=q.toFixed(q>100?2:5);
-      }
-    }
-
-    // ── Heavy UI (confidence, filters, entry preview) — 2fps, page-visible only ──
     var _gmPg=document.getElementById('page-gmilli');
     if(_gmPg&&_gmPg.classList.contains('active')){
-      var _gmHeavyNow=Date.now();
-      if(!GM._lastHeavy||(_gmHeavyNow-GM._lastHeavy)>500){
-        GM._lastHeavy=_gmHeavyNow;
-        var _gmDir=document.getElementById('gm-chart-dir');
-        if(_gmDir){
-          var _gmp=getInd(GM.asset).prices,_gmn=_gmp.length,_gmu=0,_gmd=0,_gml=Math.min(20,_gmn-1);
-          for(var _gmi=_gmn-_gml;_gmi<_gmn;_gmi++){var _gmdiff=_gmp[_gmi]-_gmp[_gmi-1];if(_gmdiff>0)_gmu++;else if(_gmdiff<0)_gmd++;}
-          var _gmt=_gmu+_gmd||1;
-          _gmDir.textContent='UP:'+Math.round(_gmu/_gmt*100)+'% DN:'+Math.round(_gmd/_gmt*100)+'%';
-        }
-        gmGetConfidence();
-        var _mfPrices2=getInd(GM.asset).prices;
-        if(_mfPrices2.length>10){gmMFUpdateLive(gmMFCheck(_mfPrices2));}
-        gmUpdateConfScoreUI();
-        // ── Live Entry Score panel update ──
-        gmUpdateEntryScoreUI(gmEntryScore());
-        var _curP2=S.prices[GM.asset]||0;
-        if(_curP2>0){
-          var _off2=gmAdaptiveOffset();
-          var _dp2=_curP2>100?2:5;
-          var _hB2=parseFloat((_curP2+_off2).toFixed(_dp2));
-          var _lB2=parseFloat((_curP2-_off2).toFixed(_dp2));
-          var _eEl=document.getElementById('gm-entry-display');var _hEl=document.getElementById('gm-higher-level');
-          var _lEl=document.getElementById('gm-lower-level');var _gapEl=document.getElementById('gm-gap-display');
-          var _offEl=document.getElementById('gm-effective-offset');
-          if(_eEl)_eEl.textContent='Entry: '+_curP2.toFixed(_dp2);
-          if(_hEl)_hEl.textContent=_hB2;
-          if(_lEl)_lEl.textContent=_lB2;
-          if(_gapEl)_gapEl.textContent='Gap zone: '+_lB2+' → '+_hB2+' (±'+_off2.toFixed(2)+')';
-          if(_offEl)_offEl.textContent='±'+_off2.toFixed(2);
-        }
-        gmUpdateSignalBadge(getInd(GM.asset).prices.slice(-80),q);
-        GM._tickCount=(GM._tickCount||0)+1;
-        if(GM._tickCount%2===0) gmCalc();
+      // Throttle chart redraws to max 4fps — synthetic indices tick very fast
+      var _now=Date.now();
+      if(!GM._lastDraw||(_now-GM._lastDraw)>250){
+        GM._lastDraw=_now;
+        gmDrawChart();
       }
+      // gmCalc is expensive (snapshot + score) — run every 5th tick only
+      GM._tickCount=(GM._tickCount||0)+1;
+      if(GM._tickCount%5===0) gmCalc();
     }
   }
 }
@@ -2164,11 +1975,11 @@ function onContract(c) {
       profit=parseFloat((sp-bp).toFixed(2));
     } else if(sp===0&&bp>0){
       // No sell price available
-      // For GM HIGHER/LOWER: check exit price vs barrier to determine win/loss
-      // For GM BETWEEN (EXPIRYRANGE): rely on Deriv's profit field — fallback to stake loss
-      if(t.isGM&&exitPrice&&t.price&&t.gmSide!=='between'){
+      // For GM: check exit price vs barrier to determine win/loss
+      // exitPrice is now correctly resolved above before this block runs
+      if(t.isGM&&exitPrice&&t.price){
         var isHigher=t.dir==='HIGHER'||t.direction==='HIGHER';
-        var barrierOffset=0.12; // fallback
+        var barrierOffset=t.stake>0?0.12:0.12; // fallback
         if(isHigher&&exitPrice>parseFloat(t.price)+barrierOffset) profit=parseFloat((t.stake*0.97).toFixed(2)); // approx win
         else if(!isHigher&&exitPrice<parseFloat(t.price)-barrierOffset) profit=parseFloat((t.stake*0.97).toFixed(2));
         else profit=-bp;
@@ -3595,12 +3406,7 @@ function updP(){document.getElementById('pout').textContent='$'+(parseFloat(docu
 function setDur(el,v,t){el.closest('.dr').querySelectorAll('.db').forEach(function(b){b.classList.remove('active');});el.classList.add('active');S.dur={v:v,t:t};}
 function setTF(el){document.querySelectorAll('.ctb').forEach(function(b){b.classList.remove('active');});el.classList.add('active');}
 
-function showPage(id,navEl){if(id==='gmilli'){setTimeout(function(){
-  GM._lastDraw=0;
-  if(gmChart&&gmChart.resize)gmChart.resize();
-  gmDrawChart();
-  var p=getInd(GM.asset).prices;gmUpdateSignalBadge(p,p[p.length-1]||0);
-},50);}
+function showPage(id,navEl){if(id==='gmilli'){setTimeout(function(){gmInitChart();gmDrawChart();var p=getInd(GM.asset).prices;gmUpdateSignalBadge(p,p[p.length-1]||0);},100);}
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
   document.getElementById('page-'+id).classList.add('active');
@@ -4493,7 +4299,7 @@ function saveDemoToken(){var t=(document.getElementById('demoTok').value||'').tr
 function saveRealToken(){var t=(document.getElementById('realTok').value||'').trim();if(!t)return;S.realToken=t;localStorage.setItem('kevoai_real_token',t);if(S.accType==='real'){S.apiToken=t;if(S.ws&&S.ws.readyState===1)wsSend({authorize:t});else connectWS();}notify('OK','Real token saved','win');}
 function handleTokenPaste(e,id){e.preventDefault();var text='';if(e.clipboardData&&e.clipboardData.getData)text=e.clipboardData.getData('text/plain');text=text.trim().replace(/[\s\n\r\t]/g,'');document.getElementById(id).value=text;if(id==='demoTok'){S.demoToken=text;localStorage.setItem('kevoai_demo_token',text);}if(id==='realTok'){S.realToken=text;localStorage.setItem('kevoai_real_token',text);}}
 function connectFromDiv(){var div=document.getElementById('tokenDisplay');var t=(div.innerText||div.textContent||'').replace(/[\s\n\r\t]/g,'');if(t.length<5||t.indexOf('Paste')===0){alert('Please paste your Deriv API token first');div.focus();return;}S.apiToken=t;S.demoToken=null;S.realToken=null;localStorage.setItem('kevoai_token',t);div.innerText='Click here and paste your token';closeMo();if(S.ws&&S.ws.readyState===1)authorize();else{connectWS();setTimeout(function(){if(S.ws&&S.ws.readyState===1)authorize();},2000);}}
-function updateConnUI(c){S.connected=c;if(!c)S.authorized=false;document.getElementById('sdot').className='dot'+(c?' on':'');document.getElementById('stxt').textContent=c?'Connected':'Not connected';document.getElementById('connSt').innerHTML=c?'<div class="dot on"></div> Connected':'<div class="dot"></div> Not connected';if(!c)document.getElementById('balDisp').textContent='-- USD';}
+function updateConnUI(c){S.connected=c;document.getElementById('sdot').className='dot'+(c?' on':'');document.getElementById('stxt').textContent=c?'Connected':'Not connected';document.getElementById('connSt').innerHTML=c?'<div class="dot on"></div> Connected':'<div class="dot"></div> Not connected';if(!c)document.getElementById('balDisp').textContent='-- USD';}
 function derivOAuthLogin(){var u=window.location.href.split('?')[0].split('#')[0];window.location.href='https://oauth.deriv.com/oauth2/authorize?app_id=1089&l=EN&brand=deriv&redirect_uri='+encodeURIComponent(u);}
 function checkOAuthCallback(){var params=new URLSearchParams(window.location.search),t1=params.get('token1');if(!t1)return;S.apiToken=t1;localStorage.setItem('kevoai_token',t1);var ac1=params.get('acct1');if(ac1&&ac1.toUpperCase().indexOf('VRTC')!==-1){S.demoToken=t1;localStorage.setItem('kevoai_demo_token',t1);}else{S.realToken=t1;localStorage.setItem('kevoai_real_token',t1);}window.history.replaceState({},document.title,window.location.pathname);notify('OK','Deriv connected! Logging in...','win');connectWS();setTimeout(function(){if(S.ws&&S.ws.readyState===1)authorize();},1500);}
 
@@ -4528,25 +4334,13 @@ function initCharts(){
   if(wctx){
     wwChart=new Chart(wctx.getContext('2d'),{type:'line',data:{labels:[],datasets:[{data:[],borderColor:'#00e5a0',borderWidth:1.5,fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,180);g.addColorStop(0,'rgba(0,229,160,.15)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},pointRadius:0,tension:.3}]},options:chartOpts(180)});
   }
-  // Gmilli chart — Chart.js, same pattern as wwChart
-  var gctx=document.getElementById('gmChart');
-  if(gctx){
-    gmChart=new Chart(gctx.getContext('2d'),{type:'line',data:{labels:[],datasets:[
-      {label:'Price',data:[],borderColor:'#00e5a0',borderWidth:2,fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,180);g.addColorStop(0,'rgba(0,229,160,.12)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},pointRadius:0,tension:0.3},
-      {label:'HIGHER',data:[],borderColor:'rgba(0,229,160,0.9)',borderWidth:2,borderDash:[6,4],fill:false,pointRadius:0,tension:0},
-      {label:'LOWER', data:[],borderColor:'rgba(255,77,106,0.9)',borderWidth:2,borderDash:[6,4],fill:false,pointRadius:0,tension:0},
-      {label:'Entry', data:[],borderColor:'rgba(59,130,246,0.6)',borderWidth:1,borderDash:[3,3],fill:false,pointRadius:0,tension:0},
-      {label:'WallU', data:[],borderColor:'rgba(245,166,35,0.45)',borderWidth:1,borderDash:[3,6],fill:false,pointRadius:0,tension:0},
-      {label:'WallL', data:[],borderColor:'rgba(245,166,35,0.45)',borderWidth:1,borderDash:[3,6],fill:false,pointRadius:0,tension:0}
-    ]},options:chartOpts(200)});
-  }
   var pctx=document.getElementById('pnlChart').getContext('2d');
   pnlChart=new Chart(pctx,{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4a5568',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#4a5568',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}}}});
 }
 
 window.addEventListener('load',function(){
   S.botMultiplier=100; S.maxBotTrades=1;
-  buildAllDDs(); buildTicker(); initCharts(); gmCalc(); setTimeout(gmMFInit,600);
+  buildAllDDs(); buildTicker(); initCharts(); gmCalc(); setTimeout(gmInitChart,500); setTimeout(gmMFInit,600);
   buildDigitGrid(); buildMultInputs(); calcWWDaily(); initWWChart();
   updateStats(); renderTrades();
   updDG();
@@ -4594,24 +4388,14 @@ switchAcc(S.accType);
 //   - Winner covers loser stake + delivers profit
 // ================================================================
 var GM = {
-  running:false, interval:null, asset:'R_100', dur:60, minGap:30,
+  running:false, interval:null, asset:'R_100', dur:30, minGap:0,
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
   pending:{}, history:[], activeCids:{},
-  lastCallPay:0, lastPutPay:0, lastBetweenPay:0, lastCombinedPay:0,
+  lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
   _placing:false,  // lock: prevents duplicate gmPlace calls firing simultaneously
   confThresh:65,  // Min confidence threshold (old single-pct rule)
   minConfidence:65, // Multi-factor composite score threshold (0-100)
-  minMomentum:3,  // kept for legacy reference — superseded by minScore
-  minAtrMult:1.2, // kept for legacy reference — superseded by minScore
-  minScore:4,     // Entry Score threshold (0-7): 4=balanced, 5=conservative, 6=strict
-  _skipReasons:{conf:0,mf:0,stagnant:0,mom:0,atr:0,gate:0,score:0}, // skip breakdown by filter
   tickTimes:[],   // Timestamps of recent ticks for dead-zone speed detection
-  // ── 3-Contract mode (HIGHER + BETWEEN + LOWER) ──
-  threeWayMode: true,  // true = place 3 contracts; false = classic 2-contract mode
-  // ── Shared metric cache (refreshed once per 400ms, reused everywhere) ──
-  _cache:{atr5:0,atr20:0,atrRatio:1,atrLabel:'NORMAL',range20:0,rHigh:0,rLow:0,
-          upPct:50,dnPct:50,slope:0,flats:0,pricePos:50,wallDist:1,
-          lastScore:null,lastUpdate:0},
   // ── Momentum filters ──
   mf:{
     slopeOn:true,  slopeMin:0.02,  slopeLook:10,
@@ -4623,60 +4407,9 @@ var GM = {
     // Rule 1: skip UP-bias trades when price is at top of range
     posOn:true,    posMaxUp:30,
     // Rule 2: skip UP-bias when market is stalling (LOW ATR + flat ticks)
-    stallOn:true,  stallFlats:1
+    stallOn:true,  stallFlats:2
   }
 };
-
-// ── gmRefreshCache: compute all metrics ONCE per 400ms, share across callers ──
-// Eliminates 3-5x redundant full price-array scans per second.
-function gmRefreshCache(prices, force){
-  var now=Date.now();
-  var c=GM._cache;
-  if(!force && (now-c.lastUpdate)<400) return; // still fresh — reuse
-  c.lastUpdate=now;
-  var n=prices.length;
-  if(n<6) return;
-
-  // ATR5 (last 5 moves)
-  var a5=0;
-  for(var i=n-5;i<n;i++) a5+=Math.abs(prices[i]-prices[i-1]);
-  c.atr5=a5/5;
-
-  // ATR20 (last 20 moves)
-  var a20=0;
-  if(n>=21){ for(var i=n-20;i<n;i++) a20+=Math.abs(prices[i]-prices[i-1]); c.atr20=a20/20; }
-  else c.atr20=c.atr5;
-
-  c.atrRatio=c.atr20>0?(c.atr5/c.atr20):1;
-  c.atrLabel=c.atrRatio>=1.5?'VERY_HIGH':c.atrRatio>=1.2?'HIGH':c.atrRatio>=0.8?'NORMAL':c.atrRatio>=0.5?'LOW':'DEAD';
-
-  // Range20 (high-low of last 20 ticks)
-  var sl20=prices.slice(Math.max(0,n-20));
-  c.rHigh=Math.max.apply(null,sl20);
-  c.rLow=Math.min.apply(null,sl20);
-  c.range20=parseFloat((c.rHigh-c.rLow).toFixed(4));
-  c.pricePos=(c.rHigh>c.rLow)?parseFloat(((prices[n-1]-c.rLow)/(c.rHigh-c.rLow)*100).toFixed(1)):50;
-
-  // Tick direction (last 20 ticks)
-  var ups=0,dns=0,flats=0,look=Math.min(20,n-1);
-  for(var i=n-look;i<n;i++){
-    var d=prices[i]-prices[i-1];
-    if(d>0)ups++;else if(d<0)dns++;else flats++;
-  }
-  var tot=ups+dns||1;
-  c.upPct=Math.round(ups/tot*100);
-  c.dnPct=100-c.upPct;
-  c.flats=flats;
-
-  // Slope: fast O(1) — difference over last 10 ticks (replaces full linear regression)
-  var sl=Math.min(10,n-1);
-  c.slope=parseFloat((prices[n-1]-prices[n-1-sl]).toFixed(4));
-
-  // Wall distance
-  var curP=prices[n-1];
-  c.wallDist=parseFloat((Math.abs(curP-Math.round(curP))).toFixed(5));
-}
-// ── END gmRefreshCache ──
 
 function gmSetActive(el){
   var p=el.parentElement;
@@ -4751,93 +4484,13 @@ function gmGetConfidence(){
 // ── Helper: get stake per side from budget ──
 function gmStake(){
   var budget=Math.max(0.70,parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value)||3.00);
-  if(GM.threeWayMode) return parseFloat((budget/3).toFixed(2)); // equal thirds as starting point
   return parseFloat((budget/2).toFixed(2));
 }
 
-// ── 3-Way Stake Solver ──
-// Solves for h (HIGHER stake), b (BETWEEN stake), l (LOWER stake)
-// such that ALL three outcomes are profitable.
-// Constraints:
-//   h + b + l = budget
-//   h * Phm > b + l  (HIGHER wins: net profit)
-//   l * Plm > h + b  (LOWER wins: net profit)
-//   b * Pbm > h + l  (BETWEEN wins: net profit)
-// Where Phm, Plm, Pbm are payout MULTIPLIERS (payout/stake).
-// Since HIGHER and LOWER payouts are typically symmetric, h = l.
-// Returns {h, b, l, profitH, profitB, profitL, valid}
-function gmSolveThreeWayStakes(budget, callPay, betweenPay, putPay, callStake){
-  // callPay, betweenPay, putPay = absolute payout amounts (what Deriv returns to winner)
-  // callStake = stake used for the probe (all three probes use same stake amount)
-  if(!callStake||callStake<=0) callStake = gmStake();
-  var Phm = callPay    / callStake; // HIGHER payout multiplier
-  var Plm = putPay     / callStake; // LOWER payout multiplier
-  var Pbm = betweenPay / callStake; // BETWEEN payout multiplier
-
-  // Guard: BETWEEN must pay at least 2.11× for a solution to exist
-  if(Pbm < 2.105){
-    return {h:0,b:0,l:0,profitH:0,profitB:0,profitL:0,valid:false,
-      reason:'BETWEEN payout '+Pbm.toFixed(2)+'× < 2.11× minimum'};
-  }
-
-  // With symmetric H/L payouts (h = l), iterate to find optimal b:
-  // h + b + h = budget → 2h + b = budget → b = budget - 2h
-  // Condition 1: h * Phm > b + h  → h*(Phm-1) > b  → b < h*(Phm-1)
-  // Condition 2: b * Pbm > 2h     → b > 2h/Pbm
-  // Best strategy: b just above the minimum required, rest split to h = l
-
-  // Find minimum b that satisfies BETWEEN winning:
-  // b * Pbm > budget - b  → b*Pbm + b > budget → b > budget/(Pbm+1)
-  var bMin = budget / (Pbm + 1) + 0.001;
-
-  // Find max b where HIGHER/LOWER still win:
-  // HIGHER wins: h*Phm > b + l = b + h → h*(Phm-1) > b
-  // With 2h + b = budget → h = (budget-b)/2
-  // (budget-b)/2 * (Phm-1) > b → (budget-b)(Phm-1) > 2b
-  // budget*(Phm-1) > 2b + b*(Phm-1) = b*(Phm+1)
-  // b < budget*(Phm-1)/(Phm+1)
-  var bMax = budget * (Phm - 1) / (Phm + 1) - 0.001;
-
-  if(bMin >= bMax){
-    // No valid b — try solving without symmetric constraint
-    // Fall back: use equal stakes and check if it passes
-    var eq = parseFloat((budget/3).toFixed(2));
-    var profH = callPay * (eq/callStake) - (budget - eq);
-    var profB = betweenPay * (eq/callStake) - (budget - eq);
-    var profL = putPay * (eq/callStake) - (budget - eq);
-    if(profH > 0 && profB > 0 && profL > 0){
-      return {h:eq,b:eq,l:eq,profitH:profH,profitB:profB,profitL:profL,valid:true,note:'equal thirds'};
-    }
-    return {h:eq,b:eq,l:eq,profitH:profH,profitB:profB,profitL:profL,valid:false,
-      reason:'BETWEEN mult '+Pbm.toFixed(2)+'× too low to guarantee profit on all 3'};
-  }
-
-  // Pick b at midpoint of valid range, round to 2dp
-  var b = parseFloat(Math.min(bMax, Math.max(bMin, (bMin+bMax)/2)).toFixed(2));
-  var h = parseFloat(((budget - b) / 2).toFixed(2));
-  var l = parseFloat((budget - b - h).toFixed(2)); // absorb rounding
-
-  // Actual stakes scaled from probe-stake to solved stake
-  var scaleH = h / callStake;
-  var scaleB = b / callStake;
-  var scaleL = l / callStake;
-
-  var profitH = parseFloat((callPay    * scaleH - b - l).toFixed(2));
-  var profitL = parseFloat((putPay     * scaleL - h - b).toFixed(2));
-  var profitB = parseFloat((betweenPay * scaleB - h - l).toFixed(2));
-
-  var valid = profitH > 0 && profitL > 0 && profitB > 0;
-  return {h:h, b:b, l:l,
-    profitH:profitH, profitB:profitB, profitL:profitL,
-    Phm:Phm, Plm:Plm, Pbm:Pbm,
-    valid:valid,
-    reason: valid ? 'OK' : 'Profit not guaranteed on all 3 sides'
-  };
-}
-
-// ── Gate: 2-contract mode (legacy) — combined payout must exceed 2× total stake ──
+// ── Gate: combined payout must exceed 2× total stake ──
 function gmGatePasses(callPay, putPay, stake){
-  if(GM.threeWayMode) return true; // 3-way uses its own gate in onGMProbe
+  // Each individual payout must exceed the total risk (stake x2)
+  // because whichever side wins, it must return more than both stakes combined
   var totalRisk = stake * 2;
   return callPay > totalRisk && putPay > totalRisk;
 }
@@ -5004,18 +4657,20 @@ function gmExportData(){
 
 
 function gmCalc(){
-  var budget=Math.max(0.70,parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value)||3.00);
-  var stake=gmStake(); // budget/3 in 3-way, budget/2 in classic
+  var stake=gmStake();
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
   var offset=gmAdaptiveOffset(); // uses adaptive if toggle is on, else manual
-  var totalRisk=budget; // total at risk is always the full budget
+  var totalRisk=stake*2;
   // Use last known payouts if available
   var cPay=GM.lastCallPay||0;
   var pPay=GM.lastPutPay||0;
-  var bPay=GM.lastBetweenPay||0;
-  var combined=cPay+pPay+(GM.threeWayMode?bPay:0);
+  var combined=cPay+pPay;
   var passes=combined>0&&gmGatePasses(cPay,pPay,stake);
+  var bestProfit=combined>0?parseFloat((Math.max(cPay,pPay)-totalRisk).toFixed(2)):null;
+  var worstProfit=combined>0?parseFloat((Math.min(cPay,pPay)-totalRisk).toFixed(2)):null;
+  var el=document.getElementById('gm-calc-display');
+  var budget=stake*2;
   // Update stake display
   var stakeDisp=document.getElementById('gm-stake-display');
   if(stakeDisp)stakeDisp.textContent=stake.toFixed(2);
@@ -5032,35 +4687,27 @@ function gmCalc(){
   var _csSnap2=_csEntry2>0?gmConfSnap(_csEntry2,offset):null;
   var _csScore2=_csSnap2?gmConfidenceScore(_csSnap2):null;
   var _csMin=GM.minConfidence||65;
-  var el=document.getElementById('gm-calc-display');
+
+  if(el)el.textContent=
+    'Budget per round: $'+budget.toFixed(2)+'\n'
+   +'Each side stake:  $'+stake.toFixed(2)+'\n'
+   +'Barrier offset:   ±'+offset.toFixed(2)+'\n'
+   +'Total risk:       $'+totalRisk.toFixed(2)+'\n\n'
   var _adaptSw=document.getElementById('gm-adaptive-offset-sw');
   var _isAdapt=_adaptSw&&_adaptSw.classList.contains('on');
   if(el)el.textContent=
     'Budget per round: $'+budget.toFixed(2)+'\n'
+   +'Each side stake:  $'+stake.toFixed(2)+'\n'
    +'Barrier offset:   ±'+offset.toFixed(2)+(_isAdapt?' (AUTO)':' (manual)')+'\n'
-   +'Mode:             '+(GM.threeWayMode?'3-CONTRACT (H+B+L)':'2-CONTRACT (H+L)')+'\n\n'
-   +(GM.threeWayMode
-     ?('HIGHER payout:    $'+(cPay?cPay.toFixed(2):'--')+'\n'
-      +'BETWEEN payout:   $'+(GM.lastBetweenPay?GM.lastBetweenPay.toFixed(2):'--')
-      +' ('+(GM.lastBetweenPay&&stake>0?(GM.lastBetweenPay/stake).toFixed(2):'--')+'× — need >2.11×)\n'
-      +'LOWER payout:     $'+(pPay?pPay.toFixed(2):'--')+'\n\n'
-      +(GM.lastBetweenPay>0&&stake>0&&cPay>0&&pPay>0
-        ?(function(){var sv=gmSolveThreeWayStakes(budget,cPay,GM.lastBetweenPay,pPay,stake);return sv.valid
-          ?'Solved stakes:\n  H: $'+sv.h.toFixed(2)+' | B: $'+sv.b.toFixed(2)+' | L: $'+sv.l.toFixed(2)+'\n'
-          +'Min profit:  +$'+Math.min(sv.profitH,sv.profitB,sv.profitL).toFixed(2)+'\n'
-          +'  H wins: +$'+sv.profitH.toFixed(2)+' | B wins: +$'+sv.profitB.toFixed(2)+' | L wins: +$'+sv.profitL.toFixed(2)+'\n'
-          +'Gate: ✅ PASS\n'
-          :'Gate: ❌ SKIP — '+sv.reason+'\n';}())
-        :'Solved stakes:    Fetching payouts...\n'))
-     :('HIGHER payout:    $'+(cPay?cPay.toFixed(2):'--')+'\n'
-      +'LOWER payout:     $'+(pPay?pPay.toFixed(2):'--')+'\n'
-      +'Combined payout:  $'+(combined?combined.toFixed(2):'--')+'\n\n'
-      +'Gate: each payout > $'+(stake*2).toFixed(2)+'\n'
-      +'Status: '+(combined?(passes?'✅ PASS — will trade':'❌ SKIP — payout too low'):'Fetching...')+'\n')
-   )
-   +'\n'
+   +'Total risk:       $'+totalRisk.toFixed(2)+'\n\n'
+   +'HIGHER payout:    $'+(cPay?cPay.toFixed(2):'--')+'\n'
+   +'LOWER payout:     $'+(pPay?pPay.toFixed(2):'--')+'\n'
+   +'Combined payout:  $'+(combined?combined.toFixed(2):'--')+'\n\n'
    +'Momentum check:   net10='+momNet.toFixed(3)+' vs min='+(offset*0.6).toFixed(3)+' '+(n>=10?(momOk?'✅':'❌ STAGNANT'):'--')+'\n'
    +'Composite score:  '+(_csScore2!==null?_csScore2+'/100 (min '+_csMin+') '+(_csScore2>=_csMin?'✅':'❌'):'--')+'\n'
+   +'Gate: each payout > $'+totalRisk.toFixed(2)+'\n'
+   +'Status: '+(combined?(passes?'✅ PASS — will trade':'❌ SKIP — payout too low'):'Fetching...')+'\n\n'
+   +'Best profit: '+(bestProfit!==null?(bestProfit>=0?'+$'+bestProfit.toFixed(2):'-$'+Math.abs(bestProfit).toFixed(2)):'--')+'\n'
    +'Daily SL: $'+sl+' | Daily TP: $'+tp;
 }
 
@@ -5091,186 +4738,12 @@ function gmCleanActiveCids(){
   });
 }
 
-// ════════════════════════════════════════════════════════════════
-// ENTRY SCORE SYSTEM — multi-factor confluence filter
-// Replaces individual momentum/ATR/stagnant checks.
-// Each of 7 factors contributes 1 point; trade fires when score ≥ GM.minScore.
-// ════════════════════════════════════════════════════════════════
-
-function gmGetConsecutive(prices, direction){
-  var n=prices.length;
-  if(n<2)return 0;
-  var count=0;
-  for(var i=n-1;i>0;i--){
-    var diff=prices[i]-prices[i-1];
-    if(direction==='HIGHER'&&diff>0)count++;
-    else if(direction==='LOWER'&&diff<0)count++;
-    else break;
-  }
-  return count;
-}
-
-function gmGetAtr5(prices){
-  var c=GM._cache;
-  if(c.lastUpdate>0&&(Date.now()-c.lastUpdate)<600&&c.atr5>0)return c.atr5;
-  var n=prices.length;
-  if(n<6)return 0;
-  var sum=0;
-  for(var i=n-5;i<n;i++)sum+=Math.abs(prices[i]-prices[i-1]);
-  return sum/5;
-}
-
-function gmGetAtr20(prices){
-  var c=GM._cache;
-  if(c.lastUpdate>0&&(Date.now()-c.lastUpdate)<600&&c.atr20>0)return c.atr20;
-  var n=prices.length;
-  if(n<21)return 0.1;
-  var sum=0;
-  for(var i=n-20;i<n;i++)sum+=Math.abs(prices[i]-prices[i-1]);
-  return sum/20;
-}
-
-function gmGetSlope(prices, lookback){
-  lookback=lookback||10;
-  var n=prices.length;
-  if(n<lookback+1)return 0;
-  return prices[n-1]-prices[n-1-lookback];
-}
-
-function gmCountFlats(prices, lastN){
-  lastN=lastN||5;
-  var n=prices.length;
-  if(n<lastN+1)return 0;
-  var flats=0;
-  for(var i=n-lastN;i<n;i++){if(Math.abs(prices[i]-prices[i-1])<1e-8)flats++;}
-  return flats;
-}
-
-function gmGetPricePos(prices){
-  var n=prices.length;
-  var lookback=Math.min(20,n-1);
-  if(lookback<5)return 50;
-  var slice=prices.slice(-lookback);
-  var high=Math.max.apply(null,slice);
-  var low=Math.min.apply(null,slice);
-  if(high===low)return 50;
-  return ((prices[n-1]-low)/(high-low))*100;
-}
-
-// ── Main entry scoring function ──
-// Returns: { score, pass, reasons, points, direction, pricePos, momentumStrength, atr5 }
-function gmEntryScore(){
-  var prices=getInd(GM.asset).prices;
-  var n=prices.length;
-  if(n<20)return{score:0,pass:false,reasons:['warming up'],points:{},direction:'LOWER'};
-
-  // Determine dominant direction from last 5 ticks
-  var upCount=0,downCount=0;
-  for(var i=n-5;i<n;i++){
-    var _d=prices[i]-prices[i-1];
-    if(_d>0)upCount++;else if(_d<0)downCount++;
-  }
-  var direction=upCount>downCount?'HIGHER':'LOWER';
-
-  var atr5=gmGetAtr5(prices);
-  var atr20=gmGetAtr20(prices);
-  var atrRatio=atr20>0?atr5/atr20:1;
-  var offset=gmAdaptiveOffset();
-  var momentumStrength=gmGetConsecutive(prices,direction);
-  var pricePos=gmGetPricePos(prices);
-  var slope=gmGetSlope(prices,10);
-  var flats=gmCountFlats(prices,5);
-  var bbSqueeze=!!(getInd(GM.asset).bbSqueeze);
-
-  var score=0;
-  var points={};
-
-  // ── Factor 1: Momentum strength ≥ 4 consecutive ticks ──
-  if(momentumStrength>=4){score++;points.mom=1;}else{points.mom=0;}
-
-  // ── Factor 2: ATR5 ≥ offset × 1.2 (enough volatility to exit the gap) ──
-  if(atr5>=offset*1.2){score++;points.atr=1;}else{points.atr=0;}
-
-  // ── Factor 3: Price not at range extreme in trade direction ──
-  // (gap losses cluster at pricePos=0 with DN bias, and pricePos=100 with UP bias)
-  if((direction==='HIGHER'&&pricePos<80)||(direction==='LOWER'&&pricePos>20)){
-    score++;points.pos=1;
-  }else{points.pos=0;}
-
-  // ── Factor 4: Slope magnitude > 0.2 (directional net move) ──
-  if(Math.abs(slope)>0.2){score++;points.slope=1;}else{points.slope=0;}
-
-  // ── Factor 5: Few flat ticks (market is actively moving) ──
-  if(flats<2){score++;points.flats=1;}else{points.flats=0;}
-
-  // ── Factor 6: Not in Bollinger squeeze (low-volatility compression) ──
-  if(!bbSqueeze){score++;points.squeeze=1;}else{points.squeeze=0;}
-
-  // ── Factor 7: ATR ratio not collapsing (short-term vol ≥ 70% of long-term) ──
-  if(atrRatio>0.7){score++;points.atrRatio=1;}else{points.atrRatio=0;}
-
-  var minScore=GM.minScore||4;
-  var pass=score>=minScore;
-
-  // Build reasons array (what passed)
-  var reasons=[];
-  if(points.mom)reasons.push('mom≥4');
-  if(points.atr)reasons.push('atr5✓');
-  if(points.pos)reasons.push('posOK');
-  if(points.slope)reasons.push('slope');
-  if(points.flats)reasons.push('active');
-  if(points.squeeze)reasons.push('noSqz');
-  if(points.atrRatio)reasons.push('vol✓');
-
-  return{score:score,pass:pass,reasons:reasons,points:points,
-    direction:direction,pricePos:pricePos,momentumStrength:momentumStrength,
-    atr5:atr5,atrRatio:atrRatio,slope:slope,flats:flats};
-}
-
-// ── Update the Entry Score UI panel (called from tick handler) ──
-function gmUpdateEntryScoreUI(es){
-  if(!es)es=gmEntryScore();
-  var ok='var(--ac)',bad='var(--re)',dim='var(--t3)';
-  var p=es.points||{};
-  var s=function(id,txt,col){var e=document.getElementById(id);if(e){e.textContent=txt;e.style.color=col||dim;}};
-  s('gm-sc-mom', es.momentumStrength+'tk', p.mom?ok:bad);
-  s('gm-sc-atr', es.atr5?es.atr5.toFixed(3):'--', p.atr?ok:bad);
-  s('gm-sc-pos', es.pricePos?es.pricePos.toFixed(0)+'%':'--', p.pos?ok:bad);
-  s('gm-sc-slope', es.slope?es.slope.toFixed(2):'--', p.slope?ok:bad);
-  s('gm-sc-flats', es.flats!==undefined?es.flats+'f':'--', p.flats?ok:bad);
-  s('gm-sc-squeeze', p.squeeze?'NO':'YES', p.squeeze?ok:bad);
-  s('gm-sc-atrratio', es.atrRatio?es.atrRatio.toFixed(2):'--', p.atrRatio?ok:bad);
-  s('gm-sc-dir', es.direction==='HIGHER'?'↑ UP':'↓ DN', es.direction==='HIGHER'?ok:bad);
-  var badge=document.getElementById('gm-entry-score-badge');
-  if(badge){
-    badge.textContent=es.score+'/7';
-    badge.style.color=es.pass?'var(--ac)':es.score>=3?'var(--go)':'var(--re)';
-    badge.style.background=es.pass?'rgba(0,229,160,0.12)':es.score>=3?'rgba(245,166,35,0.1)':'rgba(255,77,106,0.1)';
-  }
-  var bar=document.getElementById('gm-sc-bar');
-  if(bar)bar.style.width=Math.round(es.score/7*100)+'%';
-}
-
 function gmLoop(){
   if(!GM.running)return;
-  gmUpdateStats(); // keep skip breakdown live on every cycle
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
   if(GM.pnl<=-sl){gmToggle();notify('STOP','Gmilli daily SL hit','loss');return;}
   if(GM.pnl>=tp){gmToggle();notify('DONE','Gmilli daily target hit!','win');return;}
-
-  // ── Refresh shared metric cache ONCE here — all filters below are cache reads ──
-  var _loopPrices=getInd(GM.asset).prices;
-  gmRefreshCache(_loopPrices, true); // force=true ensures loop always has fresh data
-
-  // ── Adaptive interval: scan faster when market is moving, slower when slow ──
-  var _tickSpeed=0;
-  var _tArr=GM.tickTimes;
-  if(_tArr&&_tArr.length>=3){
-    var _tElapsed=(_tArr[_tArr.length-1]-_tArr[_tArr.length-3])/2||1000;
-    _tickSpeed=Math.round(1000/_tElapsed);
-  }
-  var _nextInterval=_tickSpeed>8?300:_tickSpeed>3?500:800;
 
   // Clean stale activeCids before checking
   gmCleanActiveCids();
@@ -5288,7 +4761,7 @@ function gmLoop(){
   if(gmActiveCount()>0){
     var rs=document.getElementById('gm-round-status');
     if(rs)rs.textContent='ACTIVE';
-    GM.interval=setTimeout(gmLoop,_nextInterval);return;
+    GM.interval=setTimeout(gmLoop,500);return;
   }
 
   // Enforce gap between rounds
@@ -5301,30 +4774,66 @@ function gmLoop(){
     GM.interval=setTimeout(gmLoop,1000);return;
   }
 
-  // ── Momentum filter checks — still runs for the MF panel UI display ──
-  var mfr=gmMFCheck(_loopPrices);
+  // ── Momentum filter checks ──
+  var _mfPrices=getInd(GM.asset).prices;
+  var mfr=gmMFCheck(_mfPrices);
   gmMFUpdateLive(mfr);
   if(!mfr.pass){
     var rs6=document.getElementById('gm-round-status');
     if(rs6)rs6.textContent='SKIP: '+mfr.reason;
-    GM._skipReasons.mf=(GM._skipReasons.mf||0)+1;
-    GM.interval=setTimeout(gmLoop,_nextInterval);return;
+    GM.interval=setTimeout(gmLoop,1000);return;
   }
 
-  // ── Entry Score — 7-factor confluence filter (replaces conf/stagnant/mom/atr checks) ──
-  var _es=gmEntryScore();
-  gmUpdateEntryScoreUI(_es);
-  if(!_es.pass){
-    var rs7=document.getElementById('gm-round-status');
-    if(rs7)rs7.textContent='SCORE '+_es.score+'/'+(GM.minScore||4)+': '+(_es.reasons.length?_es.reasons.join(' '):'no confluence');
-    GM._skipReasons.score=(GM._skipReasons.score||0)+1;
-    GM.interval=setTimeout(gmLoop,_nextInterval);return;
+  // ── Composite Confidence Score ──
+  // Build a lightweight snapshot and score the current market conditions.
+  // Only proceed when score >= GM.minConfidence (default 65).
+  var _csEntry=S.prices[GM.asset]||0;
+  var _csOffset=gmAdaptiveOffset();
+  var _csSnap=gmConfSnap(_csEntry,_csOffset);
+  if(_csSnap){
+    var _csScore=gmConfidenceScore(_csSnap);
+    // Update score display in UI
+    var _csBadge=document.getElementById('gm-conf-score-badge');
+    if(_csBadge){
+      _csBadge.textContent='Score: '+_csScore+'/100';
+      _csBadge.style.color=_csScore>=GM.minConfidence?'var(--ac)':_csScore>=50?'var(--go)':'var(--re)';
+      _csBadge.style.background=_csScore>=GM.minConfidence?'rgba(0,229,160,0.12)':_csScore>=50?'rgba(245,166,35,0.1)':'rgba(255,77,106,0.1)';
+    }
+    if(_csScore<GM.minConfidence){
+      var rs7=document.getElementById('gm-round-status');
+      if(rs7)rs7.textContent='LOW CONF: '+_csScore+'/100 < '+GM.minConfidence;
+      GM._skipped=(GM._skipped||0)+1;
+      var skEl7=document.getElementById('gm-skipped');if(skEl7)skEl7.textContent=GM._skipped;
+      GM.interval=setTimeout(gmLoop,2000);return;
+    }
+  }
+
+  // ── Pre-round momentum check ──────────────────────────────────────
+  // Data shows gap losses when |priceMove| ≈ offset — price barely clears barrier.
+  // Check: recent 10-tick net move must be at least 60% of the offset.
+  // This ensures the market is actively moving before we commit.
+  {
+    var _prPrices=getInd(GM.asset).prices;
+    var _prN=_prPrices.length;
+    var _prOffset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+    if(_prN>=10){
+      var _prLook=10;
+      var _prNet=Math.abs(_prPrices[_prN-1]-_prPrices[_prN-1-_prLook]);
+      var _prRequired=_prOffset*0.6; // need at least 60% of offset in recent net move
+      if(_prNet<_prRequired){
+        var rs8=document.getElementById('gm-round-status');
+        if(rs8)rs8.textContent='STAGNANT: move='+_prNet.toFixed(3)+' < '+_prRequired.toFixed(3);
+        GM._skipped=(GM._skipped||0)+1;
+        var skEl8=document.getElementById('gm-skipped');if(skEl8)skEl8.textContent=GM._skipped;
+        GM.interval=setTimeout(gmLoop,1000);return;
+      }
+    }
   }
 
   // Fire a payout check — fetch proposals at current stake
   // Once we get both payouts back, gate decides whether to buy
   gmFetchProposals();
-  GM.interval=setTimeout(gmLoop,_nextInterval);
+  GM.interval=setTimeout(gmLoop,500);
 }
 
 // ── Adaptive offset: scales with ATR and duration ──────────────────
@@ -5336,16 +4845,10 @@ function gmAdaptiveOffset(){
   var adaptiveToggle=document.getElementById('gm-adaptive-offset-sw');
   if(!adaptiveToggle||!adaptiveToggle.classList.contains('on')) return Math.max(0.01,manualOffset);
 
-  // Use cached atr5 if fresh (< 600ms), otherwise recompute
+  var prices=getInd(GM.asset).prices;
+  var n=prices.length;
   var atr5=0;
-  var c=GM._cache;
-  if(c.lastUpdate>0&&(Date.now()-c.lastUpdate)<600){
-    atr5=c.atr5;
-  } else {
-    var prices=getInd(GM.asset).prices;
-    var n=prices.length;
-    if(n>=6){for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;}
-  }
+  if(n>=6){for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;}
   if(atr5<=0) return Math.max(0.01,manualOffset);
 
   // Scale: for a 15s contract, expected move ≈ atr5 × 7-8 ticks
@@ -5366,7 +4869,8 @@ function gmFetchProposals(){
 
   // HIGHER barrier = entry + offset (price must close ABOVE this)
   // LOWER barrier  = entry - offset (price must close BELOW this)
-  // BETWEEN        = price ends INSIDE [entry-offset, entry+offset]
+  // Gap zone = entry-offset to entry+offset (both lose if price stays inside)
+  // On R_100 at 30s, price almost always moves more than 0.12
   var dp=entry>100?2:5;
   var callBarrier='+'+offset.toFixed(2);   // relative offset format for Deriv API
   var putBarrier ='-'+offset.toFixed(2);
@@ -5377,10 +4881,8 @@ function gmFetchProposals(){
   // Update barrier display labels
   var cbLbl=document.getElementById('gm-call-barrier-lbl');
   var pbLbl=document.getElementById('gm-put-barrier-lbl');
-  var bbLbl=document.getElementById('gm-between-barrier-lbl');
   if(cbLbl)cbLbl.textContent='barrier: '+parseFloat((entry+offset).toFixed(dp))+' (entry+'+offset.toFixed(2)+')';
   if(pbLbl)pbLbl.textContent='barrier: '+parseFloat((entry-offset).toFixed(dp))+' (entry-'+offset.toFixed(2)+')';
-  if(bbLbl)bbLbl.textContent='barrier: ±'+offset.toFixed(2)+' (entry±'+offset.toFixed(2)+')';
 
   var p1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
     currency:S.currency,duration:GM.dur,duration_unit:'s',
@@ -5391,20 +4893,10 @@ function gmFetchProposals(){
     currency:S.currency,duration:GM.dur,duration_unit:'s',
     symbol:GM.asset,barrier:putBarrier});
   if(p2)S.pending[p2]={type:'gm_probe',gmSide:'put',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:putBarrier};
-
-  // 3-way mode: also probe BETWEEN (EXPIRYMISS = ends outside; EXPIRYRANGE = ends between)
-  // We want BETWEEN — price closes inside ±offset — which is EXPIRYRANGE on Deriv
-  if(GM.threeWayMode){
-    var p3=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'EXPIRYRANGE',
-      currency:S.currency,duration:GM.dur,duration_unit:'s',
-      symbol:GM.asset,barrier:callBarrier,barrier2:putBarrier});
-    if(p3)S.pending[p3]={type:'gm_probe',gmSide:'between',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:'±'+offset.toFixed(2)};
-    if(rs)rs.textContent='CHECKING (3-WAY)...';
-  }
 }
 
 // Probe responses come back — check gate, then place or skip
-var _gmProbe={call:null,put:null,between:null,callId:null,putId:null,betweenId:null,callAsk:0,putAsk:0,betweenAsk:0,stake:0,entry:0,barrier:''};
+var _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:''};
 
 function onGMProbe(proposal,pendInfo){
   if(!proposal||!proposal.id){
@@ -5414,12 +4906,12 @@ function onGMProbe(proposal,pendInfo){
   }
   var payout=parseFloat(proposal.payout||0);   // total returned to winner (stake + profit)
   var ask=parseFloat(proposal.ask_price||0);     // stake paid
+  // payout is what winner receives back in full
+  // Net per round = payout - totalRisk = payout - (stake*2)
   if(pendInfo.gmSide==='call'){
     _gmProbe.call=payout;_gmProbe.callId=proposal.id;_gmProbe.callAsk=ask;
-  } else if(pendInfo.gmSide==='put'){
+  } else {
     _gmProbe.put=payout;_gmProbe.putId=proposal.id;_gmProbe.putAsk=ask;
-  } else if(pendInfo.gmSide==='between'){
-    _gmProbe.between=payout;_gmProbe.betweenId=proposal.id;_gmProbe.betweenAsk=ask;
   }
   _gmProbe.stake=pendInfo.probeStake;
   _gmProbe.entry=pendInfo.probeEntry;
@@ -5428,123 +4920,96 @@ function onGMProbe(proposal,pendInfo){
   // Update live payout display
   GM.lastCallPay=_gmProbe.call||GM.lastCallPay;
   GM.lastPutPay=_gmProbe.put||GM.lastPutPay;
-  if(_gmProbe.between) GM.lastBetweenPay=_gmProbe.between;
-  GM.lastCombinedPay=(GM.lastCallPay+GM.lastPutPay+(GM.threeWayMode?GM.lastBetweenPay:0));
+  GM.lastCombinedPay=(GM.lastCallPay+GM.lastPutPay);
 
   var cEl=document.getElementById('gm-call-pay');
   var pEl=document.getElementById('gm-put-pay');
-  var bEl=document.getElementById('gm-between-pay');
   var gEl=document.getElementById('gm-gate-status');
   var epEl=document.getElementById('gm-expected-profit');
   var _cMult=_gmProbe.call&&_gmProbe.stake?(_gmProbe.call/_gmProbe.stake):0;
   var _pMult=_gmProbe.put&&_gmProbe.stake?(_gmProbe.put/_gmProbe.stake):0;
-  var _bMult=_gmProbe.between&&_gmProbe.stake?(_gmProbe.between/_gmProbe.stake):0;
   if(cEl&&_gmProbe.call)cEl.textContent='$'+_gmProbe.call.toFixed(2)+' ('+_cMult.toFixed(2)+'x)';
   if(pEl&&_gmProbe.put)pEl.textContent='$'+_gmProbe.put.toFixed(2)+' ('+_pMult.toFixed(2)+'x)';
-  if(bEl&&_gmProbe.between)bEl.textContent='$'+_gmProbe.between.toFixed(2)+' ('+_bMult.toFixed(2)+'x)';
 
-  // Wait for all required probes
-  var needBetween = GM.threeWayMode;
-  if(!_gmProbe.call||!_gmProbe.put) return;
-  if(needBetween && !_gmProbe.between) return;
+  // Need both probes before deciding
+  if(!_gmProbe.call||!_gmProbe.put)return;
 
   var stake=_gmProbe.stake;
+  var passes=gmGatePasses(_gmProbe.call,_gmProbe.put,stake);
+  var combined=_gmProbe.call+_gmProbe.put;
+  var bestProfit=parseFloat((Math.max(_gmProbe.call,_gmProbe.put)-stake*2).toFixed(2));
+  var worstProfit=parseFloat((Math.min(_gmProbe.call,_gmProbe.put)-stake*2).toFixed(2));
 
-  if(GM.threeWayMode){
-    // ── 3-WAY GATE: solve stakes so all 3 outcomes are profitable ──
-    var budget=parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value)||3.00;
-    var solved=gmSolveThreeWayStakes(budget,_gmProbe.call,_gmProbe.between,_gmProbe.put,stake);
-
-    // Update between payout display with multiplier
-    if(bEl)bEl.textContent='$'+_gmProbe.between.toFixed(2)+' ('+_bMult.toFixed(2)+'×)';
-
-    // Show stake breakdown
-    var stakeBreakEl=document.getElementById('gm-stake-breakdown');
-    if(stakeBreakEl){
-      if(solved.valid){
-        stakeBreakEl.textContent='H:$'+solved.h.toFixed(2)+' / B:$'+solved.b.toFixed(2)+' / L:$'+solved.l.toFixed(2);
-        stakeBreakEl.style.color='var(--ac)';
-      } else {
-        stakeBreakEl.textContent=solved.reason||'Cannot solve';
-        stakeBreakEl.style.color='var(--re)';
-      }
-    }
-
-    if(gEl){gEl.textContent=solved.valid?'✅ 3-WAY PASS':'❌ SKIP';gEl.style.color=solved.valid?'var(--ac)':'var(--re)';}
-    if(epEl){
-      if(solved.valid){
-        var minProfit=Math.min(solved.profitH,solved.profitB,solved.profitL);
-        epEl.textContent='Min profit: +$'+minProfit.toFixed(2)+' | H:+$'+solved.profitH.toFixed(2)+' B:+$'+solved.profitB.toFixed(2)+' L:+$'+solved.profitL.toFixed(2);
-        epEl.style.color='var(--ac)';
-      } else {
-        epEl.textContent=solved.reason||'Stakes cannot guarantee profit';
-        epEl.style.color='var(--re)';
-      }
-    }
-
-    gmCalc();
-
-    if(!solved.valid){
-      var rs2=document.getElementById('gm-round-status');
-      if(rs2)rs2.textContent='SKIP — '+solved.reason;
-      GM._skipped=(GM._skipped||0)+1;
-      GM._skipReasons.gate=(GM._skipReasons.gate||0)+1;
-      var skEl=document.getElementById('gm-skipped');if(skEl)skEl.textContent=GM._skipped;
-      _gmProbe.call=null;_gmProbe.put=null;_gmProbe.between=null;
-      return;
-    }
-
-    // Gate passes — place 3-way round
-    gmPlace3Way(_gmProbe.callId,_gmProbe.betweenId,_gmProbe.putId,
-      _gmProbe.callAsk,_gmProbe.betweenAsk,_gmProbe.putAsk,
-      solved.h,solved.b,solved.l,
-      _gmProbe.entry,_gmProbe.barrier,
-      _gmProbe.call,_gmProbe.between,_gmProbe.put,solved);
-    _gmProbe.call=null;_gmProbe.put=null;_gmProbe.between=null;
-
-  } else {
-    // ── CLASSIC 2-CONTRACT MODE ──
-    var passes=gmGatePasses(_gmProbe.call,_gmProbe.put,stake);
-    var combined=_gmProbe.call+_gmProbe.put;
-    var bestProfit=parseFloat((Math.max(_gmProbe.call,_gmProbe.put)-stake*2).toFixed(2));
-    if(gEl){gEl.textContent=passes?'✅ PASS':'❌ SKIP';gEl.style.color=passes?'var(--ac)':'var(--re)';}
-    var netProfit=parseFloat((Math.min(_gmProbe.call,_gmProbe.put)-(_gmProbe.stake*2)).toFixed(2));
-    if(epEl){
-      epEl.textContent=passes?'Net per round: +$'+netProfit.toFixed(2):'Payout too low — skipping';
-      epEl.style.color=passes?'var(--ac)':'var(--re)';
-    }
-    gmCalc();
-    if(!passes){
-      var rs3=document.getElementById('gm-round-status');
-      if(rs3)rs3.textContent='SKIP (need each payout>$'+(stake*2).toFixed(2)+')';
-      GM._skipped=(GM._skipped||0)+1;
-      GM._skipReasons.gate=(GM._skipReasons.gate||0)+1;
-      var skEl2=document.getElementById('gm-skipped');if(skEl2)skEl2.textContent=GM._skipped;
-      _gmProbe.call=null;_gmProbe.put=null;_gmProbe.between=null;
-      return;
-    }
-    gmPlace(_gmProbe.callId,_gmProbe.putId,_gmProbe.callAsk,_gmProbe.putAsk,stake,_gmProbe.entry,_gmProbe.barrier,_gmProbe.call,_gmProbe.put);
-    _gmProbe.call=null;_gmProbe.put=null;_gmProbe.between=null;
+  if(gEl){gEl.textContent=passes?'✅ PASS':'❌ SKIP';gEl.style.color=passes?'var(--ac)':'var(--re)';}
+  var netProfit=parseFloat((Math.min(_gmProbe.call,_gmProbe.put)-(_gmProbe.stake*2)).toFixed(2));
+  if(epEl){
+    epEl.textContent=passes?'Net per round: +$'+netProfit.toFixed(2):'Payout too low — skipping';
+    epEl.style.color=passes?'var(--ac)':'var(--re)';
   }
+
+  gmCalc();
+
+  if(!passes){
+    var rs=document.getElementById('gm-round-status');
+    if(rs)rs.textContent='SKIP (need each payout>$'+(stake*2).toFixed(2)+')';
+    // Track skips
+    GM._skipped=(GM._skipped||0)+1;
+    var skEl=document.getElementById('gm-skipped');if(skEl)skEl.textContent=GM._skipped;
+    // Reset probes for next loop
+    _gmProbe.call=null;_gmProbe.put=null;
+    return;
+  }
+
+  // ── RE-RUN ALL FILTERS before placing ───────────────────────────
+  // gmLoop checked filters, then sent proposals. By the time proposals come back
+  // (1-3 seconds later), market conditions may have changed. Re-check everything.
+
+  // 1. Momentum filters
+  var _mfp=getInd(GM.asset).prices;
+  var _mfr=gmMFCheck(_mfp);
+  if(!_mfr.pass){
+    var rs=document.getElementById('gm-round-status');
+    if(rs)rs.textContent='SKIP (MF): '+_mfr.reason;
+    GM._skipped=(GM._skipped||0)+1;
+    var skElA=document.getElementById('gm-skipped');if(skElA)skElA.textContent=GM._skipped;
+    _gmProbe.call=null;_gmProbe.put=null;
+    return;
+  }
+
+  // 2. Composite confidence score
+  var _csv=gmConfidenceScore(gmConfSnap(_gmProbe.entry,gmAdaptiveOffset())||{upPct:0,dnPct:0,atrLabel:'NORMAL',pricePos:50,range20:1,slope:0,flats:0});
+  if(_csv<(GM.minConfidence||65)){
+    var rs=document.getElementById('gm-round-status');
+    if(rs)rs.textContent='SKIP (CONF '+_csv+'<'+GM.minConfidence+')';
+    GM._skipped=(GM._skipped||0)+1;
+    var skElB=document.getElementById('gm-skipped');if(skElB)skElB.textContent=GM._skipped;
+    _gmProbe.call=null;_gmProbe.put=null;
+    return;
+  }
+
+  // 3. Pre-round stagnation check
+  var _prp=getInd(GM.asset).prices;
+  var _prN=_prp.length;
+  var _prOff=gmAdaptiveOffset();
+  if(_prN>=10){
+    var _prNet=Math.abs(_prp[_prN-1]-_prp[_prN-11]);
+    if(_prNet<_prOff*0.6){
+      var rs=document.getElementById('gm-round-status');
+      if(rs)rs.textContent='SKIP (STAGNANT '+_prNet.toFixed(3)+')';
+      GM._skipped=(GM._skipped||0)+1;
+      var skElC=document.getElementById('gm-skipped');if(skElC)skElC.textContent=GM._skipped;
+      _gmProbe.call=null;_gmProbe.put=null;
+      return;
+    }
+  }
+
+  // Gate passes AND all filters confirmed — place the actual trades
+  gmPlace(_gmProbe.callId,_gmProbe.putId,_gmProbe.callAsk,_gmProbe.putAsk,stake,_gmProbe.entry,_gmProbe.barrier,_gmProbe.call,_gmProbe.put);
+  _gmProbe.call=null;_gmProbe.put=null;
 }
 
 function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay){
   if(!S.connected)return;
-
-  // ── STALENESS GUARD: if price has moved too far since proposal was fetched, re-fetch ──
-  // PriceMoved errors happen when this drift exceeds Deriv's tolerance (~0.05% on R_100)
-  var _liveNow=S.prices[GM.asset]||0;
-  var _drift=_liveNow>0&&entry>0?Math.abs(_liveNow-entry):0;
-  var _driftPct=entry>0?(_drift/entry)*100:0;
-  if(_driftPct>0.04){ // 0.04% tolerance — slightly under Deriv's limit
-    console.warn('[GM] Stale proposal: price drifted '+_driftPct.toFixed(4)+'% since fetch (entry='+entry+' live='+_liveNow+') — re-fetching');
-    var rs0=document.getElementById('gm-round-status');
-    if(rs0)rs0.textContent='STALE PROPOSAL — re-fetching...';
-    setTimeout(function(){
-      if(GM.running&&S.connected&&gmActiveCount()===0) gmFetchProposals();
-    }, 150);
-    return;
-  }
   // ── DUPLICATE GUARD: prevent multiple gmPlace calls firing simultaneously ──
   // This fixes the bug where 4 rounds (R38-R41) fired at the same timestamp
   // because the probe response arrived before the previous round registered in GM.pending
@@ -5578,10 +5043,8 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   var set=function(id,val){var e=document.getElementById(id);if(e)e.textContent=val;};
   set('gm-call-stake','stake: $'+stake.toFixed(2)+' | pays: $'+callPay.toFixed(2)+' | barrier: +'+(offset||0.12).toFixed(2));
   set('gm-put-stake','stake: $'+stake.toFixed(2)+' | pays: $'+putPay.toFixed(2)+' | barrier: -'+(offset||0.12).toFixed(2));
-  set('gm-between-stake','— (2-contract mode)');
   set('gm-call-pnl','...');
   set('gm-put-pnl','...');
-  set('gm-between-pnl','—');
   set('gm-round-status','BUYING...');
   set('gm-round-net','...');
 
@@ -5603,11 +5066,25 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
     entryPrice:entry,durVal:GM.dur,durUnit:'s'};
 
   // Clear placing lock — both buy requests are now queued to WS
-  // Use setTimeout(0) so the lock is released after this call stack unwinds,
-  // giving the WS send queue time to process before another gmPlace could fire
   setTimeout(function(){ GM._placing=false; }, 200);
 
-  // Force-settle timeout: duration + 15s buffer (not flat 120s which causes stuck trades)
+  // Pre-probe: fetch next round's proposals ~5s before this round expires.
+  // This way the payout check is already done by the time the round settles,
+  // eliminating the probe-wait gap between rounds.
+  var _preProbeMs=Math.max(0,(GM.dur*1000)-5000);
+  setTimeout(function(){
+    // Only pre-probe if: bot still running, this round is still pending (not settled/cancelled),
+    // no other round already started, and minGap is 0 (back-to-back mode)
+    if(!GM.running)return;
+    if(!GM.pending[rid])return;  // round already settled
+    if(GM.minGap>0)return;       // only in 0s-gap mode
+    if(GM._preProbeActive)return; // already pre-probing
+    GM._preProbeActive=true;
+    console.log('[GM PRE-PROBE] R'+rid+' fetching next proposals early');
+    gmFetchProposals();
+  },_preProbeMs);
+
+  // Force-settle timeout: duration + 15s buffer
   var _forceMs=(GM.dur*1000)+15000;
   GM.pending[rid]._timeout=setTimeout(function(){
     if(GM.pending[rid]&&GM.pending[rid].settled<2){
@@ -5617,125 +5094,16 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   },_forceMs);
 }
 
-// ════════════════════════════════════════════════════════════════
-// gmPlace3Way — Place HIGHER + BETWEEN + LOWER simultaneously
-// Stakes are pre-solved so all 3 outcomes are profitable.
-// ════════════════════════════════════════════════════════════════
-function gmPlace3Way(callId,betweenId,putId,callAsk,betweenAsk,putAsk,stakeH,stakeB,stakeL,entry,barrier,callPay,betweenPay,putPay,solved){
-  if(!S.connected)return;
-
-  // Staleness guard
-  var _liveNow=S.prices[GM.asset]||0;
-  var _drift=_liveNow>0&&entry>0?Math.abs(_liveNow-entry):0;
-  var _driftPct=entry>0?(_drift/entry)*100:0;
-  if(_driftPct>0.04){
-    console.warn('[GM3] Stale proposal: drifted '+_driftPct.toFixed(4)+'% — re-fetching');
-    var rs0=document.getElementById('gm-round-status');
-    if(rs0)rs0.textContent='STALE — re-fetching...';
-    setTimeout(function(){
-      if(GM.running&&S.connected&&gmActiveCount()===0) gmFetchProposals();
-    },150);
-    return;
-  }
-
-  // Duplicate guard
-  if(GM._placing){
-    console.warn('[GM3] gmPlace3Way duplicate suppressed');
-    return;
-  }
-  GM._placing=true;
-  GM.roundId++;
-  var rid=GM.roundId;
-  GM.rounds++;
-  GM.lastRoundTime=Date.now();
-
-  var offset=gmAdaptiveOffset();
-  // Use average stake for snapshot display purposes
-  var avgStake=parseFloat(((stakeH+stakeB+stakeL)/3).toFixed(2));
-  var _snap=gmSnapshot(entry,offset,avgStake,callPay,putPay);
-
-  GM.pending[rid]={
-    results:{call:null,put:null,between:null},settled:0,
-    entry:entry,barrier:barrier,
-    stakeH:stakeH,stakeB:stakeB,stakeL:stakeL,
-    stake:avgStake, // for legacy display
-    offset:offset,
-    callPay:callPay,putPay:putPay,betweenPay:betweenPay,
-    combinedPay:callPay+betweenPay+putPay,
-    bias:_snap.dominantDir||'--',
-    callPlaced:false,betweenPlaced:false,putPlaced:false,
-    callCid:null,betweenCid:null,putCid:null,
-    threeWay:true,
-    solved:solved,
-    time:_snap.time,asset:GM.asset,
-    lastRoundTime:Date.now(),
-    snap:_snap
-  };
-
-  var set=function(id,val){var e=document.getElementById(id);if(e)e.textContent=val;};
-  set('gm-call-stake','H: $'+stakeH.toFixed(2)+' | pays: $'+callPay.toFixed(2));
-  set('gm-put-stake','L: $'+stakeL.toFixed(2)+' | pays: $'+putPay.toFixed(2));
-  set('gm-between-stake','B: $'+stakeB.toFixed(2)+' | pays: $'+betweenPay.toFixed(2));
-  set('gm-call-pnl','...');
-  set('gm-put-pnl','...');
-  set('gm-between-pnl','...');
-  set('gm-round-status','BUYING 3-WAY...');
-  set('gm-round-net','...');
-
-  console.log('[GM3 PLACE] R'+rid+' entry:'+entry+' offset:±'+offset.toFixed(2)+
-    ' H:$'+stakeH+' pays:$'+callPay.toFixed(2)+
-    ' B:$'+stakeB+' pays:$'+betweenPay.toFixed(2)+
-    ' L:$'+stakeL+' pays:$'+putPay.toFixed(2));
-
-  var dp2=entry>100?2:5;
-  _gmActiveBarrier={active:true,higher:parseFloat((entry+offset).toFixed(dp2)),lower:parseFloat((entry-offset).toFixed(dp2))};
-  gmDrawChart();
-
-  // Buy HIGHER
-  var b1=wsSend({buy:callId,price:callAsk});
-  if(b1)S.pending[b1]={dir:'HIGHER',stake:stakeH,asset:GM.asset,
-    isBot:true,isGM:true,gmRound:rid,gmSide:'call',
-    entryPrice:entry,durVal:GM.dur,durUnit:'s'};
-
-  // Buy BETWEEN (EXPIRYRANGE)
-  var b2=wsSend({buy:betweenId,price:betweenAsk});
-  if(b2)S.pending[b2]={dir:'BETWEEN',stake:stakeB,asset:GM.asset,
-    isBot:true,isGM:true,gmRound:rid,gmSide:'between',
-    entryPrice:entry,durVal:GM.dur,durUnit:'s'};
-
-  // Buy LOWER
-  var b3=wsSend({buy:putId,price:putAsk});
-  if(b3)S.pending[b3]={dir:'LOWER',stake:stakeL,asset:GM.asset,
-    isBot:true,isGM:true,gmRound:rid,gmSide:'put',
-    entryPrice:entry,durVal:GM.dur,durUnit:'s'};
-
-  setTimeout(function(){ GM._placing=false; },300);
-
-  // Force-settle timeout: duration + 20s buffer
-  var _forceMs3=(GM.dur*1000)+20000;
-  GM.pending[rid]._timeout=setTimeout(function(){
-    var r=GM.pending[rid];
-    if(r&&r.settled<(r.threeWay?3:2)){
-      console.warn('[GM3] Round '+rid+' timed out after '+(_forceMs3/1000)+'s — force settling');
-      gmForceSettle(rid);
-    }
-  },_forceMs3);
-}
-
 function onGMBuy(cid,side,rid){
   GM.activeCids[cid]={rid:rid,side:side};
   var round=GM.pending[rid];
   if(round){
     if(side==='call'){round.callCid=cid;round.callPlaced=true;}
-    else if(side==='between'){round.betweenCid=cid;round.betweenPlaced=true;}
     else{round.putCid=cid;round.putPlaced=true;}
-    // Update status once all contracts are placed
-    var allPlaced=round.threeWay
-      ?(round.callPlaced&&round.betweenPlaced&&round.putPlaced)
-      :(round.callPlaced&&round.putPlaced);
-    if(allPlaced){
+    // Update status once both are placed
+    if(round.callPlaced&&round.putPlaced){
       var rs=document.getElementById('gm-round-status');
-      if(rs)rs.textContent=round.threeWay?'3 ACTIVE':'2 ACTIVE';
+      if(rs)rs.textContent='2 ACTIVE';
     }
   }
   console.log('[GM BUY CONFIRMED] cid:'+cid+' side:'+side+' rid:'+rid);
@@ -5751,13 +5119,10 @@ function onGMResult(rid,side,profit,exitPrice){
   }
 
   var pnl=parseFloat(profit);
-  if(isNaN(pnl)){
-    // Use the correct stake for this side
-    var _s=side==='call'?(round.stakeH||round.stake||1.50)
-          :side==='between'?(round.stakeB||round.stake||1.50)
-          :(round.stakeL||round.stake||1.50);
-    pnl=-_s;
-  }
+  // Only default to loss when profit is genuinely missing (NaN).
+  // Do NOT force profit===0 to a loss — Deriv can send 0 for boundary ticks,
+  // and the onContract fallback already computed a signed value before calling here.
+  if(isNaN(pnl)) pnl=-(round.stake||1.50);
 
   if(exitPrice&&exitPrice>0){
     if(!round._exitPrices)round._exitPrices={};
@@ -5767,25 +5132,23 @@ function onGMResult(rid,side,profit,exitPrice){
   round.settled=(round.settled||0)+1;
 
   // Remove from active CIDs
-  var cid=side==='call'?round.callCid:side==='between'?round.betweenCid:round.putCid;
+  var cid=side==='call'?round.callCid:round.putCid;
   if(cid)delete GM.activeCids[cid];
 
   // Update individual side display
-  var dispId=side==='call'?'gm-call-pnl':side==='between'?'gm-between-pnl':'gm-put-pnl';
+  var dispId=side==='call'?'gm-call-pnl':'gm-put-pnl';
   var el=document.getElementById(dispId);
   if(el){el.textContent=(pnl>=0?'+':'')+'$'+Math.abs(pnl).toFixed(2);el.style.color=pnl>0?'var(--ac)':'var(--re)';}
 
-  var neededResults=round.threeWay?3:2;
-  console.log('[GM RESULT] R'+rid+' side:'+side+' pnl:'+pnl+' settled:'+round.settled+'/'+neededResults);
-  if(round.settled>=neededResults)gmSettle(rid);
+  console.log('[GM RESULT] R'+rid+' side:'+side+' pnl:'+pnl+' settled:'+round.settled);
+  if(round.settled>=2)gmSettle(rid);
 }
 
 function gmForceSettle(rid){
   var round=GM.pending[rid];
   if(!round)return;
-  if(!round.results.call)round.results.call={profit:-(round.stakeH||round.stake||0),win:false};
-  if(!round.results.put)round.results.put={profit:-(round.stakeL||round.stake||0),win:false};
-  if(round.threeWay&&!round.results.between)round.results.between={profit:-(round.stakeB||round.stake||0),win:false};
+  if(!round.results.call)round.results.call={profit:-(round.stake||0),win:false};
+  if(!round.results.put)round.results.put={profit:-(round.stake||0),win:false};
   Object.keys(GM.activeCids).forEach(function(cid){
     if(GM.activeCids[cid].rid===rid)delete GM.activeCids[cid];
   });
@@ -5798,39 +5161,25 @@ function gmSettle(rid){
   r._settled=true;
   clearTimeout(r._timeout);
 
+  var stake=r.stake||1.50;
   var cRes=r.results.call;
   var pRes=r.results.put;
-  var bRes=r.results.between;
+  // Deriv `profit` field: WIN = payout-stake (positive net), LOSS = negative value
+  // Use directly — don't recompute. Sanity-cap guards bad data.
+  var cPnl=cRes?parseFloat(cRes.profit||0):-stake;
+  var pPnl=pRes?parseFloat(pRes.profit||0):-stake;
+  // Sanity-cap: winner must be positive, loser must be negative
+  if(cRes&&cRes.win  &&cPnl<=0) cPnl=parseFloat((r.callPay-stake).toFixed(2));
+  if(cRes&&!cRes.win &&cPnl>0)  cPnl=-stake;
+  if(pRes&&pRes.win  &&pPnl<=0) pPnl=parseFloat((r.putPay-stake).toFixed(2));
+  if(pRes&&!pRes.win &&pPnl>0)  pPnl=-stake;
+  var total=parseFloat((cPnl+pPnl).toFixed(2));
 
-  // Stakes per side
-  var stakeH=r.stakeH||r.stake||1.50;
-  var stakeL=r.stakeL||r.stake||1.50;
-  var stakeB=r.stakeB||r.stake||1.50;
-
-  var cPnl=cRes?parseFloat(cRes.profit||0):-stakeH;
-  var pPnl=pRes?parseFloat(pRes.profit||0):-stakeL;
-  var bPnl=bRes?parseFloat(bRes.profit||0):(r.threeWay?-stakeB:0);
-
-  // Sanity-caps
-  if(cRes&&cRes.win  &&cPnl<=0) cPnl=parseFloat((r.callPay-stakeH).toFixed(2));
-  if(cRes&&!cRes.win &&cPnl>0)  cPnl=-stakeH;
-  if(pRes&&pRes.win  &&pPnl<=0) pPnl=parseFloat((r.putPay-stakeL).toFixed(2));
-  if(pRes&&!pRes.win &&pPnl>0)  pPnl=-stakeL;
-  if(r.threeWay){
-    if(bRes&&bRes.win  &&bPnl<=0) bPnl=parseFloat(((r.betweenPay||0)-stakeB).toFixed(2));
-    if(bRes&&!bRes.win &&bPnl>0)  bPnl=-stakeB;
-  }
-
-  var total=r.threeWay
-    ?parseFloat((cPnl+pPnl+bPnl).toFixed(2))
-    :parseFloat((cPnl+pPnl).toFixed(2));
-
-  console.log('[GM SETTLE] R'+rid+(r.threeWay?' [3-WAY]':'')+' cPnl:'+cPnl+' bPnl:'+bPnl+' pPnl:'+pPnl+' total:'+total);
+  console.log('[GM SETTLE] R'+rid+' cPnl:'+cPnl+' pPnl:'+pPnl+' total:'+total+' stake:'+stake);
 
   var isWin=total>0;
   var callWon=cRes&&cRes.win;
   var putWon=pRes&&pRes.win;
-  var betweenWon=bRes&&bRes.win;
 
   GM.pnl=parseFloat((GM.pnl+total).toFixed(2));
   if(isWin)GM.won++;else GM.lost++;
@@ -5842,49 +5191,44 @@ function gmSettle(rid){
   var snap=r.snap||{};
   var _cExit=(r.results.call&&r.results.call.exitPrice)||0;
   var _pExit=(r.results.put&&r.results.put.exitPrice)||0;
-  var _bExit=(r.results.between&&r.results.between.exitPrice)||0;
-  var exitPrice=_cExit>0?_cExit:(_pExit>0?_pExit:(_bExit>0?_bExit:(S.prices[r.asset]||0)));
+  var exitPrice=_cExit>0?_cExit:(_pExit>0?_pExit:(S.prices[r.asset]||0));
   var priceMove=exitPrice>0&&r.entry>0?parseFloat((exitPrice-r.entry).toFixed(exitPrice>100?2:5)):0;
   var moveDir=priceMove>0?'UP':priceMove<0?'DN':'FLAT';
   var brokeHigher=exitPrice>0&&r.snap&&r.snap.higherBarrier?exitPrice>r.snap.higherBarrier:false;
   var brokeLower=exitPrice>0&&r.snap&&r.snap.lowerBarrier?exitPrice<r.snap.lowerBarrier:false;
   var brokeBarrier=brokeHigher||brokeLower;
 
-  // In 3-way mode, a "total loss" (all 3 lose) is theoretically impossible if gate passed
-  var gapLoss=r.threeWay?(!callWon&&!betweenWon&&!putWon):(!callWon&&!putWon);
-  var winnerSide=callWon?'HIGHER':betweenWon?'BETWEEN':putWon?'LOWER':'NONE';
-
+  // Gap loss = both sides genuinely lost (Deriv confirmed).
+  // Do NOT second-guess Deriv's profit — the old "fix" block was turning real gap losses
+  // into fake wins by overriding Deriv's result with exit-price arithmetic.
+  var gapLoss=!callWon&&!putWon;
+  // Merge exit data into snap
   snap.exitPrice=parseFloat((exitPrice||(r.entry||0)).toFixed(exitPrice>100?2:5));
   snap.priceMove=priceMove;
   snap.moveDirection=moveDir;
   snap.brokeBarrier=brokeBarrier;
   snap.gapLoss=gapLoss;
-  snap.winnerSide=winnerSide;
-  snap.threeWay=!!r.threeWay;
-  snap.betweenPnl=bPnl;
-  snap.betweenWon=betweenWon;
-  snap.stakeH=stakeH;snap.stakeB=stakeB;snap.stakeL=stakeL;
-  snap.winnerPnl=parseFloat(Math.max(cPnl,r.threeWay?bPnl:-Infinity,pPnl).toFixed(2));
-  snap.loserPnl=parseFloat(Math.min(cPnl,r.threeWay?bPnl:Infinity,pPnl).toFixed(2));
+  snap.winnerSide=callWon?'HIGHER':putWon?'LOWER':'NONE';
+  snap.winnerPnl=parseFloat(Math.max(cPnl,pPnl).toFixed(2));
+  snap.loserPnl=parseFloat(Math.min(cPnl,pPnl).toFixed(2));
   snap.netPnl=total;
   snap.result=isWin?'WIN':gapLoss?'GAP_LOSS':'LOSS';
-  snap.higherExitPrice=_cExit;
-  snap.lowerExitPrice=_pExit;
-  snap.betweenExitPrice=_bExit;
+  // Per-side exit prices
+  snap.higherExitPrice=(r.results.call&&r.results.call.exitPrice)||0;
+  snap.lowerExitPrice=(r.results.put&&r.results.put.exitPrice)||0;
+  // How far price moved vs barrier distance
   snap.moveVsOffset=r.offset>0?parseFloat((Math.abs(priceMove)/r.offset).toFixed(3)):0;
+  // Time of settlement
   snap.settleTime=new Date().toLocaleTimeString();
 
   GM.history.unshift({
     rid:rid,total:total,win:isWin,
-    callPnl:cPnl,putPnl:pPnl,betweenPnl:bPnl,
-    callWon:callWon,putWon:putWon,betweenWon:betweenWon,
-    threeWay:!!r.threeWay,
+    callPnl:cPnl,putPnl:pPnl,
+    callWon:callWon,putWon:putWon,
     time:r.time,asset:r.asset,
-    stakeH:stakeH,stakeB:stakeB,stakeL:stakeL,
-    stake:r.stake||stakeH,
-    callPay:r.callPay,putPay:r.putPay,betweenPay:r.betweenPay,
+    stake:stake,callPay:r.callPay,putPay:r.putPay,
     combinedPay:r.combinedPay,entry:r.entry,offset:r.offset||0.12,
-    snap:snap
+    snap:snap  // full enriched snapshot
   });
 
   gmUpdateStats();
@@ -5894,23 +5238,81 @@ function gmSettle(rid){
   var net=document.getElementById('gm-round-net');
   if(net){net.textContent=(total>=0?'+':'')+'$'+Math.abs(total).toFixed(2);net.style.color=total>0?'var(--ac)':'var(--re)';}
   var rs=document.getElementById('gm-round-status');
-  var statusTxt=isWin?('WIN ✅ '+winnerSide):gapLoss?'TOTAL LOSS ⚠':'LOSS ❌';
+  var statusTxt=isWin?'WIN ✅':gapLoss?'GAP LOSS ⚠':'LOSS ❌';
   var statusCol=isWin?'var(--ac)':gapLoss?'var(--go)':'var(--re)';
   if(rs){rs.textContent=statusTxt;rs.style.color=statusCol;}
 
-  var notifyMsg=isWin
-    ?(winnerSide+' won | Net:'+(total>=0?'+':'')+total.toFixed(2))
-    :(gapLoss?'TOTAL LOSS | All 3 lost | Net:-$'+Math.abs(total).toFixed(2):'Net:-$'+Math.abs(total).toFixed(2));
-  notify('GM '+(isWin?'WIN ✅':gapLoss?'TOTAL LOSS ⚠':'LOSS ❌'),
+  var notifyMsg=gapLoss
+    ?('GAP LOSS | Both lost | Net: -$'+Math.abs(total).toFixed(2))
+    :(callWon?'HIGHER':'LOWER')+' won | Net:'+(total>=0?'+':'')+total.toFixed(2);
+  notify('GM '+(isWin?'WIN ✅':gapLoss?'GAP ⚠':'LOSS ❌'),
     notifyMsg,
     isWin?'win':'loss');
 
   delete GM.pending[rid];
-  GM._placing=false;
-  _gmActiveBarrier={active:false,higher:0,lower:0};
+  GM._placing=false; // always release placing lock when a round fully settles
+
+  // Keep barriers on chart for 4 seconds after settlement so you can see where price
+  // was relative to barriers at expiry — then clear them
+  if(r.snap&&r.snap.higherBarrier&&r.snap.lowerBarrier){
+    _gmLastSettled={
+      active:true,
+      higher:r.snap.higherBarrier,
+      lower:r.snap.lowerBarrier,
+      exitPrice:exitPrice||0,
+      won:isWin,
+      gapLoss:gapLoss,
+      clearAt:Date.now()+4000
+    };
+    // Keep active barrier showing for the linger period
+    _gmActiveBarrier={active:true,higher:r.snap.higherBarrier,lower:r.snap.lowerBarrier};
+    setTimeout(function(){
+      _gmActiveBarrier={active:false,higher:0,lower:0};
+      _gmLastSettled.active=false;
+      gmDrawChart();gmUpdateSignalBadge([],0);
+    },4000);
+  } else {
+    _gmActiveBarrier={active:false,higher:0,lower:0};
+  }
   gmDrawChart();
   gmUpdateSignalBadge([],0);
   updateStats();renderTrades();renderActive();
+
+  // If pre-probe already fetched valid proposals, use them immediately for next round
+  // This gives zero-gap back-to-back rounds — no waiting for probe after settlement
+  GM._preProbeActive=false;
+  if(GM.running&&GM.minGap===0&&_gmProbe.call&&_gmProbe.put&&!_gmProbe._used){
+    _gmProbe._used=true;
+    console.log('[GM] Using pre-probed proposals for instant next round');
+    // Re-validate: proposals may be slightly stale (PriceMoved possible)
+    // onGMProbe handles that gracefully via the gate check
+    var _pp=_gmProbe;
+    _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:''};
+    // Small delay to let settlement UI render, then fire
+    setTimeout(function(){
+      if(GM.running&&gmActiveCount()===0){
+        // Check filters before placing
+        var _mfp=getInd(GM.asset).prices;
+        var _mfr=gmMFCheck(_mfp);
+        if(_mfr.pass){
+          var _cse=S.prices[GM.asset]||0;
+          var _cso=gmAdaptiveOffset();
+          var _css=gmConfSnap(_cse,_cso);
+          var _csv=_css?gmConfidenceScore(_css):0;
+          if(_csv>=(GM.minConfidence||65)){
+            // Stagnation check
+            var _prpN=_mfp.length;
+            var _prpNet=_prpN>=10?Math.abs(_mfp[_prpN-1]-_mfp[_prpN-11]):99;
+            if(_prpNet>=_cso*0.6){
+              gmPlace(_pp.callId,_pp.putId,_pp.callAsk,_pp.putAsk,_pp.stake,_pp.entry,_pp.barrier,_pp.call,_pp.put);
+              return;
+            }
+          }
+        }
+      }
+      // Filters failed or round already started — just let gmLoop handle it normally
+    },100);
+  }
 }
 
 function gmCleanup(rid){
@@ -5939,18 +5341,6 @@ function gmUpdateStats(){
   set('gm-rounds',GM.rounds);
   set('gm-wr',wr+'%');
   set('gm-wl',GM.won+'W / '+GM.lost+'L');
-  // Skip breakdown sub-label
-  var sr=GM._skipReasons||{};
-  var _parts=[];
-  if(sr.gate)_parts.push('Gate:'+sr.gate);
-  if(sr.mf)_parts.push('MF:'+sr.mf);
-  if(sr.score)_parts.push('Score:'+sr.score);
-  if(sr.conf)_parts.push('Conf:'+sr.conf);
-  if(sr.stagnant)_parts.push('Stag:'+sr.stagnant);
-  if(sr.mom)_parts.push('Mom:'+sr.mom);
-  if(sr.atr)_parts.push('ATR:'+sr.atr);
-  var detailEl=document.getElementById('gm-skip-detail');
-  if(detailEl)detailEl.textContent=_parts.length?_parts.join(' | '):'—';
 }
 
 function gmRenderHistory(){
@@ -5969,16 +5359,13 @@ function gmRenderHistory(){
   var slice=GM.history.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE);
   var rows=slice.map(function(r){
     var s=r.snap||{};
-    var is3way=!!r.threeWay;
-    var gapLoss=s.gapLoss||(!r.callWon&&(is3way?(!r.betweenWon&&!r.putWon):!r.putWon));
-    var winnerSide=r.callWon?'↑ HIGHER':r.betweenWon?'↔ BETWEEN':r.putWon?'↓ LOWER':'NONE';
+    var gapLoss=s.gapLoss||(!r.callWon&&!r.putWon);
+    var winSide=r.callWon?'↑ HIGHER':'↓ LOWER';
+    var loseSide=r.callWon?'↓ LOWER':'↑ HIGHER';
     var resultBg=gapLoss?'rgba(245,166,35,0.2)':r.win?'var(--ad)':'var(--rd)';
     var resultColor=gapLoss?'var(--go)':r.win?'var(--ac)':'var(--re)';
-    var resultLabel=gapLoss?'TOTAL LOSS':r.win?'WIN':'LOSS';
-    var winnerNet=r.callWon?r.callPnl:r.betweenWon?r.betweenPnl:r.putPnl;
-    var stakeStr=is3way
-      ?'H:$'+(r.stakeH||0).toFixed(2)+' B:$'+(r.stakeB||0).toFixed(2)+' L:$'+(r.stakeL||0).toFixed(2)
-      :'stake:$'+parseFloat(r.stake||0).toFixed(2)+' each';
+    var resultLabel=gapLoss?'GAP':r.win?'WIN':'LOSS';
+    var winnerNet=r.callWon?r.callPnl:r.putPnl;
     var snapRow='';
     if(s.atr5!==undefined){
       snapRow='<div style="display:flex;gap:8px;font-size:9px;color:var(--t3);font-family:var(--mo);flex-wrap:wrap;padding:4px 6px;background:var(--bg3);border-radius:4px;margin-top:3px">'
@@ -5990,12 +5377,11 @@ function gmRenderHistory(){
         +'<span>Trend:'+s.trend+'</span>'
         +'<span>BB:'+(s.bbSqueeze?'SQUEEZE':parseFloat(s.bbWidth||0).toFixed(2)+'%')+'</span>'
         +'<span>Move:'+(s.priceMove!==undefined?(s.priceMove>=0?'+':'')+s.priceMove:'--')+'</span>'
-        +'<span>'+(s.session||'')+'</span>'
+        +'<span>'+s.session+'</span>'
         +'</div>';
     }
     return '<div style="padding:9px 0;border-bottom:1px solid var(--bo);font-size:12px">'
       +'<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">'
-      +(is3way?'<span style="padding:2px 6px;border-radius:99px;font-size:9px;font-weight:700;background:rgba(59,130,246,0.15);color:var(--bl)">3W</span>':'')
       +'<span style="padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;background:'+resultBg+';color:'+resultColor+'">'+resultLabel+'</span>'
       +'<span style="color:var(--t2);font-weight:600">'+r.asset+'</span>'
       +'<span style="color:var(--t3);font-size:10px">'+r.time+(s.session?' • '+s.session:'')+'</span>'
@@ -6003,12 +5389,12 @@ function gmRenderHistory(){
       +'</div>'
       +'<div style="display:flex;gap:8px;font-size:10px;font-family:var(--mo);flex-wrap:wrap;margin-bottom:2px">'
       +(gapLoss
-        ?'<span style="color:var(--re)">⚠ ALL LOST — '+(is3way?'no valid outcome?':'GAP in ±'+parseFloat(r.offset||0.12).toFixed(2))+'</span>'
-        :r.win?('<span style="color:'+(r.callWon?'var(--ac)':r.betweenWon?'var(--bl)':'var(--re)')+'">'+winnerSide+' WON +$'+parseFloat(winnerNet||0).toFixed(2)+'</span>')
-        :'<span style="color:var(--re)">LOSS — net: -$'+Math.abs(r.total||0).toFixed(2)+'</span>'
+        ?'<span style="color:var(--go)">⚠ GAP — price inside ±'+parseFloat(r.offset||0.12).toFixed(2)+'</span>'
+        :'<span style="color:'+(r.callWon?'var(--ac)':'var(--re)')+'">'+winSide+' WON +$'+parseFloat(winnerNet||0).toFixed(2)+'</span>'
+         +'<span style="color:var(--re)">'+loseSide+' -$'+parseFloat(r.stake||0).toFixed(2)+'</span>'
       )
-      +'<span style="color:var(--t3)">'+stakeStr+'</span>'
-      +'<span style="color:var(--t3)">combined:$'+parseFloat(r.combinedPay||0).toFixed(2)+'</span>'
+      +'<span style="color:var(--t3)">stake:$'+parseFloat(r.stake||0).toFixed(2)+' each</span>'
+      +'<span style="color:var(--t3)">pay:$'+parseFloat(r.combinedPay||0).toFixed(2)+'</span>'
       +'</div>'
       +snapRow
       +'</div>';
@@ -6036,21 +5422,15 @@ function gmHistPage(dir){
 function gmReset(){
   GM.pnl=0;GM.rounds=0;GM.won=0;GM.lost=0;GM._placing=false;
   GM.history=[];GM.activeCids={};GM.pending={};GM.lastRoundTime=0;
-  GM.lastCallPay=0;GM.lastPutPay=0;GM.lastBetweenPay=0;GM.lastCombinedPay=0;
-  GM._skipped=0;GM._histPage=0;GM.tickTimes=[];
-  _gmProbe={call:null,put:null,between:null,callId:null,putId:null,betweenId:null,callAsk:0,putAsk:0,betweenAsk:0,stake:0,entry:0,barrier:''};
+  GM.lastCallPay=0;GM.lastPutPay=0;GM.lastCombinedPay=0;GM._skipped=0;GM._histPage=0;GM.tickTimes=[];GM._preProbeActive=false;
+  _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:''};
   gmUpdateStats();gmRenderHistory();
-  var net=document.getElementById('gm-round-net');if(net)net.textContent='$0.00';
-  var skEl2=document.getElementById('gm-skipped');if(skEl2)skEl2.textContent='0';
-  GM._skipReasons={conf:0,mf:0,stagnant:0,mom:0,atr:0,gate:0,score:0};
-  var detailEl2=document.getElementById('gm-skip-detail');if(detailEl2)detailEl2.textContent='—';
+  var net=document.getElementById('gm-round-net');if(net)net.textContent='$0.00';var skEl2=document.getElementById('gm-skipped');if(skEl2)skEl2.textContent='0';
   var rs=document.getElementById('gm-round-status');if(rs)rs.textContent='IDLE';
   var cEl=document.getElementById('gm-call-pay');if(cEl)cEl.textContent='--';
   var pEl=document.getElementById('gm-put-pay');if(pEl)pEl.textContent='--';
-  var bEl=document.getElementById('gm-between-pay');if(bEl)bEl.textContent='--';
   var gEl=document.getElementById('gm-gate-status');if(gEl)gEl.textContent='WAITING';
   var epEl=document.getElementById('gm-expected-profit');if(epEl)epEl.textContent='--';
-  var sbEl=document.getElementById('gm-stake-breakdown');if(sbEl)sbEl.textContent='Solved stakes shown here when gate passes';
   notify('Reset','Gmilli session reset','info');
 }
 
@@ -6077,48 +5457,144 @@ function buildGMDD(){
 var gmChart=null;
 
 function gmInitChart(){
-  // Chart is now created in initCharts() at page load — this is kept as a no-op for safety
+  var ctx=document.getElementById('gmChart');
+  if(!ctx||gmChart)return;
+  gmChart=new Chart(ctx.getContext('2d'),{
+    type:'line',
+    data:{labels:[],datasets:[
+      // Price line
+      {label:'Price',data:[],borderColor:'#00e5a0',borderWidth:2,
+       fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,180);g.addColorStop(0,'rgba(0,229,160,.12)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},
+       pointRadius:0,tension:0.3,order:1},
+      // HIGHER barrier line
+      {label:'HIGHER',data:[],borderColor:'rgba(0,229,160,0.9)',
+       borderWidth:2,borderDash:[6,4],fill:false,
+       pointRadius:0,tension:0,order:2},
+      // LOWER barrier line
+      {label:'LOWER',data:[],borderColor:'rgba(255,77,106,0.9)',
+       borderWidth:2,borderDash:[6,4],fill:false,
+       pointRadius:0,tension:0,order:3},
+      // Wall UPPER (integer ceiling)
+      {label:'WallU',data:[],borderColor:'rgba(245,166,35,0.45)',
+       borderWidth:1,borderDash:[3,6],fill:false,
+       pointRadius:0,tension:0,order:4},
+      // Wall LOWER (integer floor)
+      {label:'WallL',data:[],borderColor:'rgba(245,166,35,0.45)',
+       borderWidth:1,borderDash:[3,6],fill:false,
+       pointRadius:0,tension:0,order:5}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{display:false},
+        y:{display:true,grid:{color:'rgba(255,255,255,0.04)'},
+           ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:9},maxTicksLimit:5}}
+      },
+      animation:{duration:0}
+    }
+  });
 }
 // Track active barriers for chart
 var _gmActiveBarrier={active:false,higher:0,lower:0};
+// Track last settled round for brief post-round display
+var _gmLastSettled={active:false,higher:0,lower:0,exitPrice:0,won:false,clearAt:0};
 
 function gmDrawChart(){
   if(!gmChart)return;
-  var prices=getInd(GM.asset).prices.slice(-80);
+  var ind=getInd(GM.asset);
+  var prices=ind.prices.slice(-80);
   if(!prices.length)return;
   var len=prices.length;
-  var curP=prices[len-1]||0;
-  gmChart.data.labels=prices.map(function(){return '';});
+  var labels=prices.map(function(){return '';});
+
+  // Price dataset
+  gmChart.data.labels=labels;
   gmChart.data.datasets[0].data=prices.slice();
-  // dataset[1] = HIGHER barrier (green dashed)
-  gmChart.data.datasets[1].data=(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0)?Array(len).fill(_gmActiveBarrier.higher):[];
-  // dataset[2] = LOWER barrier (red dashed)
-  gmChart.data.datasets[2].data=(_gmActiveBarrier.active&&_gmActiveBarrier.lower>0)?Array(len).fill(_gmActiveBarrier.lower):[];
-  // dataset[3] = Entry midpoint (blue dashed) — shown in 3-way mode
-  var _entryMid=(_gmActiveBarrier.higher+_gmActiveBarrier.lower)/2;
-  gmChart.data.datasets[3].data=(GM.threeWayMode&&_gmActiveBarrier.active&&_entryMid>0)?Array(len).fill(_entryMid):[];
-  // datasets[4,5] = integer walls
-  gmUpdateWalls(curP);
-  gmChart.data.datasets[4].data=(GM.mf.wallOn&&_gmWalls.upper>0)?Array(len).fill(_gmWalls.upper):[];
-  gmChart.data.datasets[5].data=(GM.mf.wallOn&&_gmWalls.lower>0)?Array(len).fill(_gmWalls.lower):[];
-  gmChart.update('none');
-  var leg=document.getElementById('gm-barrier-legend');
-  if(leg){
-    if(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0){
-      var inGap=curP>_gmActiveBarrier.lower&&curP<_gmActiveBarrier.higher;
-      leg.innerHTML='<span style="color:rgba(0,229,160,0.9);font-weight:700">↑ H: '+_gmActiveBarrier.higher.toFixed(2)+'</span><br>'
-        +(GM.threeWayMode?'<span style="color:rgba(59,130,246,0.9);font-weight:700">↔ B: ±'+gmAdaptiveOffset().toFixed(2)+'</span><br>':'')
-        +'<span style="color:rgba(255,77,106,0.9);font-weight:700">↓ L: '+_gmActiveBarrier.lower.toFixed(2)+'</span><br>'
-        +'<span style="color:'+(inGap?'var(--bl)':'var(--t3)')+'">price: '+curP.toFixed(2)+(inGap?' IN GAP':'')+'</span>';
-    } else {
-      leg.innerHTML='';
-    }
+
+  // Draw barrier lines if active round
+  if(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0){
+    gmChart.data.datasets[1].data=Array(len).fill(_gmActiveBarrier.higher);
+    gmChart.data.datasets[2].data=Array(len).fill(_gmActiveBarrier.lower);
+    // Update barrier legend overlay
+    var leg=document.getElementById('gm-barrier-legend');
+    if(leg)leg.innerHTML=
+      '<span style="color:rgba(0,229,160,0.9);font-weight:700">↑ HIGHER: '+_gmActiveBarrier.higher.toFixed(2)+'</span><br>'
+      +'<span style="color:rgba(255,77,106,0.9);font-weight:700">↓ LOWER: '+_gmActiveBarrier.lower.toFixed(2)+'</span>';
+  } else {
+    gmChart.data.datasets[1].data=[];
+    gmChart.data.datasets[2].data=[];
+    var leg=document.getElementById('gm-barrier-legend');
+    if(leg)leg.innerHTML='';
   }
+
+  // ── Draw integer wall lines (always track price) ──
+  var curPriceForWall=prices[len-1]||0;
+  gmUpdateWalls(curPriceForWall);
+  if(GM.mf.wallOn&&_gmWalls.upper>0){
+    gmChart.data.datasets[3].data=Array(len).fill(_gmWalls.upper);
+    gmChart.data.datasets[4].data=Array(len).fill(_gmWalls.lower);
+  } else {
+    gmChart.data.datasets[3].data=[];
+    gmChart.data.datasets[4].data=[];
+  }
+
+  gmChart.update('none');
+
+  // Price display
   var p=prices[len-1];
   var priceEl=document.getElementById('gm-chart-price');
   if(priceEl)priceEl.textContent=p?p.toFixed(p>100?2:5):'--';
-}
+  var symEl=document.getElementById('gm-chart-sym');
+  if(symEl)symEl.textContent=GM.asset;
 
+  // Direction %
+  var dirEl=document.getElementById('gm-chart-dir');
+  if(dirEl){
+    var n=prices.length,ups=0,dns=0,look=Math.min(20,n-1);
+    for(var i=n-look;i<n;i++){var d=prices[i]-prices[i-1];if(d>0)ups++;else if(d<0)dns++;}
+    var t=ups+dns||1;
+    dirEl.textContent='UP:'+Math.round(ups/t*100)+'% DN:'+Math.round(dns/t*100)+'%';
+  }
+  // Update confidence display live
+  gmGetConfidence();
+
+  // Update momentum filters live
+  var _mfLivePrices=getInd(GM.asset).prices;
+  if(_mfLivePrices.length>10){
+    var _mfLiveResult=gmMFCheck(_mfLivePrices);
+    gmMFUpdateLive(_mfLiveResult);
+  }
+
+  // Update composite confidence score UI — throttled to 2/sec (expensive snapshot calc)
+  var _csNow=Date.now();
+  if(!GM._lastScoreUI||(_csNow-GM._lastScoreUI)>500){
+    GM._lastScoreUI=_csNow;
+    gmUpdateConfScoreUI();
+  }
+
+  // Update entry preview panel
+  var curP=S.prices[GM.asset]||0;
+  var offset=gmAdaptiveOffset();
+  if(curP>0){
+    var dp=curP>100?2:5;
+    var hBar=parseFloat((curP+offset).toFixed(dp));
+    var lBar=parseFloat((curP-offset).toFixed(dp));
+    var entryEl=document.getElementById('gm-entry-display');
+    var higherEl=document.getElementById('gm-higher-level');
+    var lowerEl=document.getElementById('gm-lower-level');
+    var gapEl=document.getElementById('gm-gap-display');
+    var effOff2=document.getElementById('gm-effective-offset');
+    if(entryEl)entryEl.textContent='Entry: '+curP.toFixed(dp);
+    if(higherEl)higherEl.textContent=hBar;
+    if(lowerEl)lowerEl.textContent=lBar;
+    if(gapEl)gapEl.textContent='Gap zone: '+lBar+' → '+hBar+' (±'+offset.toFixed(2)+')';
+    if(effOff2)effOff2.textContent='±'+offset.toFixed(2);
+  }
+
+  // ── Signal badge (top right) ──
+  gmUpdateSignalBadge(prices, p);
+}
 
 function gmUpdateSignalBadge(prices, curP){
   var badge=document.getElementById('gm-signal-badge');
@@ -6303,54 +5779,54 @@ function gmConfidenceScore(snap){
   return Math.min(100,Math.max(0,score));
 }
 
-// Build a lightweight snap object for the confidence score — reads from cache
+// Build a lightweight snap object for the confidence score (no full snapshot needed)
 function gmConfSnap(entry,offset){
   var ind=getInd(GM.asset);
   var prices=ind.prices;
   var n=prices.length;
   if(n<5)return null;
-  // Refresh cache (no-op if already fresh)
-  gmRefreshCache(prices);
-  var c=GM._cache;
-  return {upPct:c.upPct, dnPct:c.dnPct, atrLabel:c.atrLabel,
-          pricePos:c.pricePos, range20:c.range20, slope:c.slope, flats:c.flats};
+
+  // ATR5 / ATR20
+  var atr5=0,atr20=0;
+  if(n>=6){for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;}
+  if(n>=21){for(var i=n-20;i<n;i++)atr20+=Math.abs(prices[i]-prices[i-1]);atr20/=20;}
+  var atrRatio=atr20>0?(atr5/atr20):1;
+  var atrLabel=atrRatio>=1.5?'VERY_HIGH':atrRatio>=1.2?'HIGH':atrRatio>=0.8?'NORMAL':atrRatio>=0.5?'LOW':'DEAD';
+
+  // Range 20
+  var slice20=prices.slice(Math.max(0,n-20));
+  var rH=Math.max.apply(null,slice20);
+  var rL=Math.min.apply(null,slice20);
+  var range20=parseFloat((rH-rL).toFixed(4));
+  var pricePos=(rH>rL)?parseFloat(((prices[n-1]-rL)/(rH-rL)*100).toFixed(1)):50;
+
+  // Tick direction
+  var look=Math.min(20,n-1),ups=0,dns=0,flats=0;
+  for(var i=n-look;i<n;i++){
+    var d=prices[i]-prices[i-1];
+    if(d>0)ups++;else if(d<0)dns++;else flats++;
+  }
+  var total=ups+dns||1;
+  var upPct=Math.round(ups/total*100);
+  var dnPct=100-upPct;
+
+  // Slope
+  var tl=Math.min(30,n-1);
+  var slope=n>tl?parseFloat((prices[n-1]-prices[n-1-tl]).toFixed(4)):0;
+
+  return {upPct:upPct,dnPct:dnPct,atrLabel:atrLabel,pricePos:pricePos,
+          range20:range20,slope:slope,flats:flats};
 }
 
 // ── Live update of the Composite Confidence Score breakdown in the UI ──
 function gmUpdateConfScoreUI(){
-  // Only run when Gmilli page is visible (saves 4fps of wasted DOM work)
-  var gmPage=document.getElementById('page-gmilli');
-  if(!gmPage||!gmPage.classList.contains('active'))return;
-
   var entry=S.prices[GM.asset]||0;
   var offset=gmAdaptiveOffset();
-  var snap=gmConfSnap(entry,offset); // now reads from cache — essentially free
+  var snap=gmConfSnap(entry,offset);
   if(!snap)return;
   var score=gmConfidenceScore(snap);
 
-  // Only repaint DOM if score changed by more than 5 points — prevents layout thrash
-  var lastScore=GM._cache.lastScore;
-  var needsRepaint=(lastScore===null||Math.abs(score-lastScore)>5);
-  GM._cache.lastScore=score;
-
-  // Always update the badge (cheap, single element)
-  var badge=document.getElementById('gm-conf-score-badge');
-  if(badge){
-    badge.textContent=score+'/100';
-    badge.style.color=score>=(GM.minConfidence||65)?'var(--ac)':score>=50?'var(--go)':'var(--re)';
-    badge.style.background=score>=(GM.minConfidence||65)?'rgba(0,229,160,0.12)':score>=50?'rgba(245,166,35,0.1)':'rgba(255,77,106,0.1)';
-    badge.style.border='1px solid '+(score>=(GM.minConfidence||65)?'rgba(0,229,160,0.3)':score>=50?'rgba(245,166,35,0.3)':'rgba(255,77,106,0.3)');
-  }
-  var bar=document.getElementById('gm-cs-bar');
-  if(bar)bar.style.width=Math.min(100,Math.max(0,score))+'%';
-  var barVal=document.getElementById('gm-cs-bar-val');
-  if(barVal){barVal.textContent=score+'/100';barVal.style.color=score>=(GM.minConfidence||65)?'var(--ac)':'var(--re)';}
-  var line=document.getElementById('gm-cs-threshold-line');
-  if(line)line.style.left=(GM.minConfidence||65)+'%';
-
-  // Factor breakdown — only repaint when score actually changed meaningfully
-  if(!needsRepaint)return;
-
+  // Factor contributions — must exactly mirror gmConfidenceScore()
   var biasPct=Math.max(snap.upPct||0,snap.dnPct||0);
   var dirPts=biasPct>=70?35:biasPct>=60?20:biasPct>=50?5:0;
   var volPts={VERY_HIGH:20,HIGH:15,NORMAL:10,LOW:0,DEAD:-5}[snap.atrLabel]||0;
@@ -6371,6 +5847,24 @@ function gmUpdateConfScoreUI(){
   s('gm-cs-slope',(slopePts>=0?'+':'')+slopePts+(slopeAlign?' ✓':' ✗'),col(slopePts));
   s('gm-cs-flats',(flatPts>=0?'+':'')+flatPts+' ('+snap.flats+'f)',col(flatPts));
   s('gm-cs-dead',(deadPts===0?'OK':'−20 STALL'),col(deadPts));
+
+  // Score badge
+  var badge=document.getElementById('gm-conf-score-badge');
+  if(badge){
+    badge.textContent=score+'/100';
+    badge.style.color=score>=(GM.minConfidence||65)?'var(--ac)':score>=50?'var(--go)':'var(--re)';
+    badge.style.background=score>=(GM.minConfidence||65)?'rgba(0,229,160,0.12)':score>=50?'rgba(245,166,35,0.1)':'rgba(255,77,106,0.1)';
+    badge.style.border='1px solid '+(score>=(GM.minConfidence||65)?'rgba(0,229,160,0.3)':score>=50?'rgba(245,166,35,0.3)':'rgba(255,77,106,0.3)');
+  }
+
+  // Score bar
+  var bar=document.getElementById('gm-cs-bar');
+  if(bar)bar.style.width=Math.min(100,Math.max(0,score))+'%';
+  var barVal=document.getElementById('gm-cs-bar-val');
+  if(barVal){barVal.textContent=score+'/100';barVal.style.color=score>=(GM.minConfidence||65)?'var(--ac)':'var(--re)';}
+  // Threshold indicator line
+  var line=document.getElementById('gm-cs-threshold-line');
+  if(line)line.style.left=(GM.minConfidence||65)+'%';
 }
 
 // END gmUpdateConfScoreUI
@@ -6380,32 +5874,40 @@ function gmMFCheck(prices){
   var n=prices.length;
   if(n<21)return{pass:true,reason:'not enough data'};
 
-  // ── Refresh shared cache (no-op if already fresh this frame) ──
-  gmRefreshCache(prices);
-  var c=GM._cache;
+  var result={pass:true,reason:'OK',slope:0,range:0,cons:0,atr:0,wallDist:0,dir:'--'};
 
-  var result={pass:true,reason:'OK',
-    slope:c.slope, range:c.range20, cons:0, atr:c.atr5,
-    wallDist:c.wallDist, dir:c.slope>=0?'UP':'DN',
-    pricePos:c.pricePos, domDir:c.upPct>50?'UP':'DN',
-    upPct:c.upPct, atrLabel:c.atrLabel, flats:c.flats};
+  // ── 1. Slope (linear regression over last slopeLook ticks) ──
+  var look=mf.slopeLook||10;
+  var sl=Math.min(look,n-1);
+  var pts=prices.slice(n-sl-1);
+  var sumX=0,sumY=0,sumXY=0,sumX2=0,cnt=pts.length;
+  for(var i=0;i<cnt;i++){sumX+=i;sumY+=pts[i];sumXY+=i*pts[i];sumX2+=i*i;}
+  var slope=cnt>1?(cnt*sumXY-sumX*sumY)/(cnt*sumX2-sumX*sumX):0;
+  result.slope=slope;
+  result.dir=slope>0?'UP':'DN';
 
-  // ── 1. Slope ──
-  if(mf.slopeOn&&Math.abs(c.slope)<mf.slopeMin){
+  if(mf.slopeOn&&Math.abs(slope)<mf.slopeMin){
     result.pass=false;
-    result.reason='SLOPE '+Math.abs(c.slope).toFixed(4)+' < '+mf.slopeMin;
+    result.reason='SLOPE '+Math.abs(slope).toFixed(4)+' < '+mf.slopeMin;
   }
 
-  // ── 2. Range ──
-  if(result.pass&&mf.rangeOn&&c.range20<mf.rangeMin){
+  // ── 2. Range width (high-low over rangeLook ticks) ──
+  var rl=Math.min(mf.rangeLook||20,n);
+  var slice=prices.slice(n-rl);
+  var hi=Math.max.apply(null,slice);
+  var lo=Math.min.apply(null,slice);
+  var range=parseFloat((hi-lo).toFixed(5));
+  result.range=range;
+
+  if(result.pass&&mf.rangeOn&&range<mf.rangeMin){
     result.pass=false;
-    result.reason='RANGE '+c.range20.toFixed(3)+' < '+mf.rangeMin;
+    result.reason='RANGE '+range.toFixed(3)+' < '+mf.rangeMin;
   }
 
-  // ── 3. Consecutive moves (still needs a tiny loop — only 5 ticks) ──
-  var consDir=c.slope>=0?1:-1;
-  var cons=0;
+  // ── 3. Consecutive moves ──
   var cl=Math.min(mf.consLook||5,n-1);
+  var consDir=slope>=0?1:-1;
+  var cons=0;
   for(var j=n-1;j>=n-cl;j--){
     var d=prices[j]-prices[j-1];
     if(consDir>0&&d>0)cons++;
@@ -6413,59 +5915,76 @@ function gmMFCheck(prices){
     else break;
   }
   result.cons=cons;
+
   if(result.pass&&mf.consOn&&cons<mf.consMin){
     result.pass=false;
     result.reason='CONSEC '+cons+' < '+mf.consMin;
   }
 
-  // ── 4. ATR (already in cache) ──
-  if(result.pass&&mf.atrOn&&c.atr5<mf.atrMin){
+  // ── 4. ATR (average |move| over atrLook ticks) ──
+  var al=Math.min(mf.atrLook||5,n-1);
+  var atrSum=0;
+  for(var k=n-al;k<n;k++)atrSum+=Math.abs(prices[k]-prices[k-1]);
+  var atr=parseFloat((atrSum/al).toFixed(5));
+  result.atr=atr;
+
+  if(result.pass&&mf.atrOn&&atr<mf.atrMin){
     result.pass=false;
-    result.reason='ATR '+c.atr5.toFixed(4)+' < '+mf.atrMin;
+    result.reason='ATR '+atr.toFixed(4)+' < '+mf.atrMin;
   }
 
-  // ── 5. Wall Guard (already in cache) ──
-  if(result.pass&&mf.wallOn&&c.wallDist<mf.wallDist){
+  // ── 5. Wall Guard ──
+  var curP=prices[n-1];
+  var wallDist=parseFloat((Math.abs(curP-Math.round(curP))).toFixed(5));
+  result.wallDist=wallDist;
+
+  if(result.pass&&mf.wallOn&&wallDist<mf.wallDist){
     result.pass=false;
-    result.reason='WALL dist='+c.wallDist.toFixed(3)+' < '+mf.wallDist;
+    result.reason='WALL dist='+wallDist.toFixed(3)+' < '+mf.wallDist;
   }
 
-  // ── 6. Price Position (already in cache) ──
-  if(result.pass&&mf.posOn&&c.upPct>50&&c.pricePos>mf.posMaxUp){
+  // ── 6. Price Position (UP bias + price at range top) ──
+  // Compute pricePos: 0=at range low, 100=at range high
+  var slice20pos=prices.slice(Math.max(0,n-20));
+  var rHigh=slice20pos.length?Math.max.apply(null,slice20pos):curP;
+  var rLow=slice20pos.length?Math.min.apply(null,slice20pos):curP;
+  var pricePos=(rHigh>rLow)?parseFloat(((curP-rLow)/(rHigh-rLow)*100).toFixed(1)):50;
+  result.pricePos=pricePos;
+
+  // Also need dominantDir and atrLabel for Rules 1 & 2
+  // Re-use the range slice already computed above
+  var upsPos=0,dnsPos=0;
+  var lookPos=Math.min(20,n-1);
+  for(var _i=n-lookPos;_i<n;_i++){var _d=prices[_i]-prices[_i-1];if(_d>0)upsPos++;else if(_d<0)dnsPos++;}
+  var totalPos=upsPos+dnsPos||1;
+  var upPctPos=Math.round(upsPos/totalPos*100);
+  var domDirPos=upPctPos>50?'UP':'DN';
+  result.domDir=domDirPos;
+  result.upPct=upPctPos;
+
+  // atrLabel (same logic as gmSnapshot)
+  var atr5pos=0,atr20pos=0;
+  if(n>=6){for(var _k=n-5;_k<n;_k++)atr5pos+=Math.abs(prices[_k]-prices[_k-1]);atr5pos/=5;}
+  if(n>=21){for(var _k=n-20;_k<n;_k++)atr20pos+=Math.abs(prices[_k]-prices[_k-1]);atr20pos/=20;}
+  var atrRatioPos=atr20pos>0?(atr5pos/atr20pos):1;
+  var atrLabelPos=atrRatioPos>=1.5?'VERY_HIGH':atrRatioPos>=1.2?'HIGH':atrRatioPos>=0.8?'NORMAL':atrRatioPos>=0.5?'LOW':'DEAD';
+  result.atrLabel=atrLabelPos;
+
+  // Flat ticks in last 5
+  var flatsPos=0;
+  for(var _f=n-5;_f<n;_f++){if(prices[_f]-prices[_f-1]===0)flatsPos++;}
+  result.flats=flatsPos;
+
+  // Rule 1: skip if UP bias AND pricePos > posMaxUp (price exhausted at top)
+  if(result.pass&&mf.posOn&&domDirPos==='UP'&&pricePos>mf.posMaxUp){
     result.pass=false;
-    result.reason='POS BLOCK: UP bias + pricePos='+c.pricePos.toFixed(0)+'% > '+mf.posMaxUp+'%';
+    result.reason='POS BLOCK: UP bias + pricePos='+pricePos.toFixed(0)+'% > '+mf.posMaxUp+'%';
   }
 
-  // ── 7. Stall guard (already in cache) ──
-  if(result.pass&&mf.stallOn&&c.upPct>50&&c.atrLabel==='LOW'&&c.flats>=mf.stallFlats){
+  // Rule 2: skip if UP bias AND atrLabel=LOW AND flats >= stallFlats (stalling)
+  if(result.pass&&mf.stallOn&&domDirPos==='UP'&&atrLabelPos==='LOW'&&flatsPos>=mf.stallFlats){
     result.pass=false;
-    result.reason='STALL BLOCK: UP+LOW ATR+'+c.flats+' flats';
-  }
-
-  // ── 8. Range-extreme guard (analysis: all gap losses had pricePos=0 during DN trends) ──
-  // Block DN-bias entries when price is at the bottom of the 20-tick range AND ATR is low
-  // (high-ATR breakouts are exempted — they often genuinely exit the gap)
-  if(result.pass){
-    var _reDn=c.upPct<=50; // downtrend bias
-    var _reUp=c.upPct>50;  // uptrend bias
-    var _atLow=c.pricePos<=5;   // price at or near 20-tick low
-    var _atHigh=c.pricePos>=95; // price at or near 20-tick high
-    var _lowAtr=c.atr5<0.15;    // low volatility — not a breakout
-    if((_reDn&&_atLow&&_lowAtr)||(_reUp&&_atHigh&&_lowAtr)){
-      result.pass=false;
-      result.reason='EXTREME: '+((_reDn&&_atLow)?'DN+atLow':'UP+atHigh')+' pricePos='+c.pricePos.toFixed(0)+'% ATR='+c.atr5.toFixed(4);
-    }
-  }
-
-  // ── 9. Offset/Range ratio guard (analysis: very small gaps relative to range increase gap-loss risk) ──
-  // Skip when the barrier gap is < 8% of the 20-tick range
-  if(result.pass&&c.range20>0){
-    var _offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
-    var _orRatio=_offset/c.range20;
-    if(_orRatio<0.08){
-      result.pass=false;
-      result.reason='TINY GAP: offset/range='+(_orRatio*100).toFixed(1)+'% < 8%';
-    }
+    result.reason='STALL BLOCK: UP+LOW ATR+'+flatsPos+' flats';
   }
 
   return result;
