@@ -963,11 +963,11 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   </div>
                   <div class="ir" style="margin-bottom:5px">
                     <div class="ia" onclick="var e=document.getElementById('gm-inner-offset');e.value=Math.max(0.05,(parseFloat(e.value)-0.01)).toFixed(2);gmCalc()">-</div>
-                    <input type="number" class="iif" id="gm-inner-offset" value="0.10" min="0.05" step="0.01" oninput="gmCalc()">
+                    <input type="number" class="iif" id="gm-inner-offset" value="0.20" min="0.12" step="0.01" oninput="gmCalc()">
                     <div class="ia" onclick="var e=document.getElementById('gm-inner-offset');e.value=(parseFloat(e.value)+0.01).toFixed(2);gmCalc()">+</div>
-                    <span style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--bl);margin-left:6px">±<span id="gm-inner-offset-display">0.10</span></span>
+                    <span style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--bl);margin-left:6px">±<span id="gm-inner-offset-display">0.20</span></span>
                   </div>
-                  <div style="font-size:10px;color:var(--t3)">Must be less than outer offset. Gap shrinks to 2× this value.</div>
+                  <div style="font-size:10px;color:var(--t3)">Min ±0.12. At ±0.20 payout is ~2.90x — safely above the 1.86x breakeven. Gap shrinks to ±0.20 wide.</div>
                   <div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:9px;font-family:var(--mo)">
                     <div style="background:var(--bg4);border-radius:4px;padding:4px;text-align:center">
                       <div style="color:var(--t3)">Outer stake</div>
@@ -1569,33 +1569,33 @@ function handleMsg(d) {
     var _gmRid=pend.gmRound;
     var _gmRound=GM.pending[_gmRid];
     if(_gmRound){
-      console.log('[GM] PriceMoved on '+pend.gmSide+' - marking as not placed');
-      if(pend.gmSide==='call')_gmRound.callPlaced=false;
-      else _gmRound.putPlaced=false;
-      // If the other side was already settled (won/lost), settle the round now
-      var _otherSettled=pend.gmSide==='call'?
-        _gmRound.results.put!==null:_gmRound.results.call!==null;
-      if(_otherSettled){gmSettle(_gmRid);return;}
-      // If NEITHER side was placed (both got PriceMoved), cancel the round entirely
-      // so the force-settle timeout does NOT fire a -$3 ghost loss
-      var _neitherPlaced=!_gmRound.callPlaced&&!_gmRound.putPlaced;
-      var _noBuysConfirmed=!_gmRound.callCid&&!_gmRound.putCid;
-      if(_neitherPlaced&&_noBuysConfirmed){
-        console.log('[GM] Both sides PriceMoved on R'+_gmRid+' — cancelling round and re-fetching fresh proposals');
+      var _side=pend.gmSide;
+      console.log('[GM] PriceMoved on '+_side+' R'+_gmRid);
+      // Mark the failed side as not placed
+      if(_side==='call')   _gmRound.callPlaced=false;
+      else if(_side==='put')    _gmRound.putPlaced=false;
+      else if(_side==='callIn') _gmRound.callInPlaced=false;
+      else if(_side==='putIn')  _gmRound.putInPlaced=false;
+      // Force-settle a loss for the side that failed so settled count still reaches 4
+      if(!_gmRound.results[_side]){
+        var _failStake=(_side==='call'||_side==='put')?(_gmRound.S_big||1.50):(_gmRound.S_sml||1.05);
+        _gmRound.results[_side]={profit:-_failStake,win:false,exitPrice:0};
+        _gmRound.settled=(_gmRound.settled||0)+1;
+        console.log('[GM] PriceMoved: forced -$'+_failStake+' loss for '+_side+', settled='+_gmRound.settled+'/4');
+        if(_gmRound.settled>=4){gmSettle(_gmRid);return;}
+      }
+      // If no buys confirmed at all, cancel the round entirely
+      var _noBuys=!_gmRound.callCid&&!_gmRound.putCid&&!_gmRound.callInCid&&!_gmRound.putInCid;
+      if(_noBuys){
+        console.log('[GM] All sides PriceMoved on R'+_gmRid+' — cancelling ghost round');
         clearTimeout(_gmRound._timeout);
-        GM.rounds=Math.max(0,GM.rounds-1); // don't count this as a real round
-        GM._placing=false; // release placing lock if held
+        GM.rounds=Math.max(0,GM.rounds-1);
+        GM._placing=false;
         delete GM.pending[_gmRid];
-        GM.lastRoundTime=0; // allow immediate retry
+        GM.lastRoundTime=0;
         var rs=document.getElementById('gm-round-status');
         if(rs)rs.textContent='PRICE MOVED — re-fetching...';
-        // Re-fetch proposals immediately with the current live price
-        // Small delay to let the market settle after the move
-        setTimeout(function(){
-          if(GM.running&&S.connected&&gmActiveCount()===0){
-            gmFetchProposals();
-          }
-        }, 300);
+        setTimeout(function(){if(GM.running&&S.connected&&gmActiveCount()===0)gmFetchProposals();},300);
       }
     }
     return;
@@ -1606,7 +1606,7 @@ function handleMsg(d) {
   if(code==='InvalidContractProposal'&&pend&&pend.isGM){
     var _icpRid=pend.gmRound;
     var _icpRound=GM.pending[_icpRid];
-    if(_icpRound&&!_icpRound.callCid&&!_icpRound.putCid){
+    if(_icpRound&&!_icpRound.callCid&&!_icpRound.putCid&&!_icpRound.callInCid&&!_icpRound.putInCid){
       // No buys were confirmed at all — this round never reached Deriv, cancel it
       console.log('[GM] InvalidContractProposal on R'+_icpRid+' with no confirmed buys — cancelling ghost round');
       clearTimeout(_icpRound._timeout);
@@ -2190,10 +2190,17 @@ function onContract(c) {
       // For GM: check exit price vs barrier to determine win/loss
       // exitPrice is now correctly resolved above before this block runs
       if(t.isGM&&exitPrice&&t.price){
-        var isHigher=t.dir==='HIGHER'||t.direction==='HIGHER';
-        var barrierOffset=t.stake>0?0.12:0.12; // fallback
-        if(isHigher&&exitPrice>parseFloat(t.price)+barrierOffset) profit=parseFloat((t.stake*0.97).toFixed(2)); // approx win
-        else if(!isHigher&&exitPrice<parseFloat(t.price)-barrierOffset) profit=parseFloat((t.stake*0.97).toFixed(2));
+        // Use the actual barrier offset stored on the trade, not a hardcoded value
+        var _gmRound=t.gmRound?GM.pending[t.gmRound]:null;
+        var _barrierOff=0.12; // fallback
+        if(_gmRound){
+          _barrierOff=t.gmSide==='call'||t.gmSide==='put'
+            ?(_gmRound.offset||0.35)
+            :(_gmRound.innerOffset||0.20);
+        }
+        var isHigher=t.dir==='HIGHER'||t.dir==='HIGHER-IN';
+        if(isHigher&&exitPrice>parseFloat(t.price)+_barrierOff) profit=parseFloat((t.stake*2.0).toFixed(2));
+        else if(!isHigher&&exitPrice<parseFloat(t.price)-_barrierOff) profit=parseFloat((t.stake*2.0).toFixed(2));
         else profit=-bp;
       } else {
         profit=-bp;
@@ -4620,7 +4627,7 @@ var GM = {
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
-  layered:true, innerOffset:0.10,
+  layered:true, innerOffset:0.20,
   _placing:false,  // lock: prevents duplicate gmPlace calls firing simultaneously
   confThresh:65,  // Min confidence threshold (old single-pct rule)
   minConfidence:65, // Multi-factor composite score threshold (0-100)
@@ -4949,8 +4956,8 @@ function gmCalc(){
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
   var offset=gmAdaptiveOffset();
-  var innerOffset=Math.max(0.05,parseFloat((document.getElementById('gm-inner-offset')||{value:'0.10'}).value)||0.10);
-  if(innerOffset>=offset)innerOffset=parseFloat((offset*0.4).toFixed(2));
+  var innerOffset=Math.max(0.12,parseFloat((document.getElementById('gm-inner-offset')||{value:'0.20'}).value)||0.20);
+  if(innerOffset>=offset)innerOffset=parseFloat((offset*0.55).toFixed(2));
 
   // Stake split
   var S_sml=parseFloat((budget*0.35).toFixed(2));
@@ -5313,8 +5320,8 @@ function gmFetchProposals(){
   if(entry<=0)return;
   var budget=Math.max(0.70,parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value)||3.00);
   var offset=gmAdaptiveOffset();
-  var innerOffset=Math.max(0.05,parseFloat((document.getElementById('gm-inner-offset')||{value:'0.10'}).value)||GM.innerOffset);
-  if(innerOffset>=offset)innerOffset=parseFloat((offset*0.4).toFixed(2)); // clamp inner below outer
+  var innerOffset=Math.max(0.12,parseFloat((document.getElementById('gm-inner-offset')||{value:'0.20'}).value)||GM.innerOffset);
+  if(innerOffset>=offset)innerOffset=parseFloat((offset*0.55).toFixed(2)); // clamp inner below outer
 
   // ── Stake split: S_sml must be > budget/(2*(Pb+1)) to be profitable on small moves
   // Sweet spot from data analysis: 70% of budget goes to inner (small) contracts
@@ -5408,20 +5415,24 @@ function onGMProbe(proposal,pendInfo){
   if(!_gmProbe.call||!_gmProbe.put||!_gmProbe.callIn||!_gmProbe.putIn)return;
 
   // ── 4-CONTRACT GATE ──
-  // Pa = outer payout mult, Pb = inner payout mult
+  // Pa = outer payout mult, Pb = inner payout mult (from actual live proposals)
   var Pa=_gmProbe.call/S_big;
   var Pb=_gmProbe.callIn/S_sml;
 
-  // Scenario profits:
+  // Minimum safe Pb: must cover 2×S_big loss when only inner wins
+  // (Pb-1)*S_sml > 2*S_big  →  Pb > 1 + 2*S_big/S_sml
+  var Pb_min=parseFloat((1+2*S_big/S_sml).toFixed(4));
+
+  // Scenario profits using ACTUAL live multipliers from proposals:
   // BIG move:   (Pa-1)*S_big + (Pb-1)*S_sml
   // SMALL move: (Pb-1)*S_sml - 2*S_big
   // GAP loss:   -budget
   var profitBig  =parseFloat(((Pa-1)*S_big+(Pb-1)*S_sml).toFixed(2));
   var profitSmall=parseFloat(((Pb-1)*S_sml-2*S_big).toFixed(2));
-  var passes=profitBig>0&&profitSmall>0;
+  var passes=Pa>1&&Pb>Pb_min&&profitBig>0&&profitSmall>0;
 
   if(gEl){
-    gEl.textContent=passes?'✅ PASS (4-way)':'❌ SKIP';
+    gEl.textContent=passes?'✅ PASS (4-way)':Pb<=Pb_min?'❌ Pb='+Pb.toFixed(2)+'x < min '+Pb_min+'x':'❌ SKIP';
     gEl.style.color=passes?'var(--ac)':'var(--re)';
   }
   // Update 3-outcome profit boxes
