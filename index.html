@@ -948,10 +948,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     </div>
                   </div>
                   <div class="ir" style="margin-bottom:5px">
-                    <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=Math.max(0.01,(parseFloat(e.value)-0.01)).toFixed(2);gmCalc()">-</div>
-                    <input type="number" class="iif" id="gm-offset" value="0.12" min="0.01" step="0.01" oninput="gmCalc()">
+                    <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=Math.max(0.20,(parseFloat(e.value)-0.01)).toFixed(2);gmCalc()">-</div>
+                    <input type="number" class="iif" id="gm-offset" value="0.35" min="0.20" step="0.01" oninput="gmCalc()">
                     <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=(parseFloat(e.value)+0.01).toFixed(2);gmCalc()">+</div>
-                    <span style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--ac);margin-left:6px" id="gm-effective-offset">±0.12</span>
+                    <span style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--ac);margin-left:6px" id="gm-effective-offset">±0.35</span>
                   </div>
                   <div style="font-size:10px;color:var(--t3)">Manual baseline. Auto scales with ATR×duration.</div>
                 </div>
@@ -962,7 +962,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <span style="font-size:9px;color:var(--t3);background:rgba(59,130,246,0.1);padding:2px 7px;border-radius:99px">covers small moves</span>
                   </div>
                   <div class="ir" style="margin-bottom:5px">
-                    <div class="ia" onclick="var e=document.getElementById('gm-inner-offset');e.value=Math.max(0.05,(parseFloat(e.value)-0.01)).toFixed(2);gmCalc()">-</div>
+                    <div class="ia" onclick="var e=document.getElementById('gm-inner-offset');e.value=Math.max(0.12,(parseFloat(e.value)-0.01)).toFixed(2);gmCalc()">-</div>
                     <input type="number" class="iif" id="gm-inner-offset" value="0.20" min="0.12" step="0.01" oninput="gmCalc()">
                     <div class="ia" onclick="var e=document.getElementById('gm-inner-offset');e.value=(parseFloat(e.value)+0.01).toFixed(2);gmCalc()">+</div>
                     <span style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--bl);margin-left:6px">±<span id="gm-inner-offset-display">0.20</span></span>
@@ -5289,7 +5289,7 @@ function gmLoop(){
 // This ensures the barrier is proportional to expected price movement.
 // A 15s contract needs less offset than a 30s one; high ATR needs more.
 function gmAdaptiveOffset(){
-  var manualOffset=parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12;
+  var manualOffset=parseFloat((document.getElementById('gm-offset')||{value:'0.35'}).value)||0.35;
   var adaptiveToggle=document.getElementById('gm-adaptive-offset-sw');
   if(!adaptiveToggle||!adaptiveToggle.classList.contains('on')) return Math.max(0.01,manualOffset);
 
@@ -6253,7 +6253,7 @@ function gmMFCheck(prices){
   // ── 9. Offset/Range ratio guard (analysis: very small gaps relative to range increase gap-loss risk) ──
   // Skip when the barrier gap is < 8% of the 20-tick range
   if(result.pass&&c.range20>0){
-    var _offset=Math.max(0.01,parseFloat((document.getElementById('gm-offset')||{value:'0.12'}).value)||0.12);
+    var _offset=Math.max(0.20,parseFloat((document.getElementById('gm-offset')||{value:'0.35'}).value)||0.35);
     var _orRatio=_offset/c.range20;
     if(_orRatio<0.08){
       result.pass=false;
