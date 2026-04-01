@@ -843,7 +843,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div id="gm-mom-bar" style="height:100%;width:0%;border-radius:99px;transition:width 0.25s ease;background:var(--re)"></div>
                 <div style="position:absolute;top:0;bottom:0;left:65%;width:2px;background:rgba(255,255,255,0.25)"></div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:7px">
                 <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;border:1px solid var(--bo)">
                   <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px;letter-spacing:.05em">Distance (5 ticks)</div>
                   <div style="font-size:16px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-mom-dist">0.000</div>
@@ -858,6 +858,19 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px;letter-spacing:.05em">Frequency (5s)</div>
                   <div style="font-size:16px;font-weight:700;font-family:var(--mo);color:var(--bl)" id="gm-mom-freq">0</div>
                   <div style="height:4px;background:var(--bg4);border-radius:2px;margin-top:6px"><div id="gm-mom-freq-bar" style="height:100%;width:0%;background:var(--bl);border-radius:2px;transition:width 0.25s"></div></div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;border:1px solid var(--bo)">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px;letter-spacing:.05em">RSI (14)</div>
+                  <div style="font-size:16px;font-weight:700;font-family:var(--mo);color:var(--go)" id="gm-mom-rsi">50.0</div>
+                  <div style="height:4px;background:var(--bg4);border-radius:2px;margin-top:6px"><div id="gm-mom-rsi-bar" style="height:100%;width:0%;background:var(--go);border-radius:2px;transition:width 0.25s"></div></div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:4px">↑70+ or ↓30− = strong</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;border:1px solid var(--bo)">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px;letter-spacing:.05em">BB Bands</div>
+                  <div style="font-size:14px;font-weight:700;font-family:var(--mo)" id="gm-mom-bb" style="color:var(--re)">TIGHT</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:10px">EXPANDING = vol returning ✅</div>
                 </div>
               </div>
             </div>
@@ -4966,45 +4979,96 @@ function gmMomentumScore(){
   var n=prices.length;
   var now=Date.now();
 
-  // ── 1. DISTANCE: total price movement over last 5 ticks ──────────
-  // Sum of absolute moves: |p[n-1]-p[n-2]| + ... + |p[n-5]-p[n-6]|
+  // ── 1. DISTANCE: total price moved over last 5 ticks ─────────────
   var dist=0;
   if(n>=6){
     for(var i=n-5;i<n;i++) dist+=Math.abs(prices[i]-prices[i-1]);
   }
   dist=parseFloat(dist.toFixed(4));
 
-  // ── 2. SPEED: ticks per second over last 5 ticks ─────────────────
-  // Use timestamps of last 5 ticks, measure elapsed time
+  // ── 2. SPEED: avg ms between ticks → convert to ticks/sec ────────
+  // Only needs 2 timestamps minimum
   var speed=0;
-  if(times.length>=5){
-    var t5=times.slice(-5);
-    var elapsed=(t5[4]-t5[0])||1; // ms
-    speed=parseFloat((4000/elapsed).toFixed(2)); // 4 gaps / elapsed = ticks/sec
-  }
-
-  // ── 3. FREQUENCY: how many ticks arrived in last 5 seconds ───────
-  var freq=0;
-  if(times.length){
-    var cutoff=now-5000;
-    for(var j=times.length-1;j>=0;j--){
-      if(times[j]>=cutoff)freq++;else break;
+  var tLen=times.length;
+  if(tLen>=2){
+    // Use last min(10,tLen) timestamps for a stable average
+    var tSlice=times.slice(-Math.min(10,tLen));
+    var gaps=[];
+    for(var gi=1;gi<tSlice.length;gi++) gaps.push(tSlice[gi]-tSlice[gi-1]);
+    if(gaps.length){
+      var avgGap=gaps.reduce(function(a,b){return a+b;},0)/gaps.length;
+      speed=avgGap>0?parseFloat((1000/avgGap).toFixed(2)):0;
     }
   }
 
-  // ── Normalise each to 0-33 ────────────────────────────────────────
-  // Ranges tuned for R_100 at current price levels
-  var distMin=0,    distMax=1.50;  // total distance over 5 ticks
-  var speedMin=0.5, speedMax=10;   // ticks/sec
-  var freqMin=1,    freqMax=15;    // ticks in 5s
+  // ── 3. FREQUENCY: ticks in last 5 seconds ────────────────────────
+  // Scan all timestamps, don't break early (they may be out of order)
+  var freq=0;
+  var cutoff=now-5000;
+  for(var j=0;j<times.length;j++){
+    if(times[j]>=cutoff) freq++;
+  }
 
-  var distScore =Math.round(Math.min(33, Math.max(0, (dist-distMin)/(distMax-distMin)*33)));
-  var speedScore=Math.round(Math.min(33, Math.max(0, (speed-speedMin)/(speedMax-speedMin)*33)));
-  var freqScore =Math.round(Math.min(33, Math.max(0, (freq-freqMin)/(freqMax-freqMin)*33)));
-  var total=distScore+speedScore+freqScore; // 0-99, cap at 100
+  // ── 4. RSI (14-period) ───────────────────────────────────────────
+  var rsi=50; // neutral default
+  if(n>=15){
+    var gains=0,losses=0;
+    for(var ri=n-14;ri<n;ri++){
+      var rd=prices[ri]-prices[ri-1];
+      if(rd>0)gains+=rd; else losses+=Math.abs(rd);
+    }
+    var avgG=gains/14, avgL=losses/14;
+    rsi=avgL===0?100:parseFloat((100-(100/(1+avgG/avgL))).toFixed(1));
+  }
 
-  return{score:Math.min(100,total),dist:dist,speed:speed,freq:freq,
-         distScore:distScore,speedScore:speedScore,freqScore:freqScore};
+  // ── 5. BB Squeeze — are bands EXPANDING (volatility returning)? ──
+  // Squeeze = bands tight. Expansion = bands widening = good entry
+  var bbExpanding=false, bbWidth=0, bbPrevWidth=0;
+  if(n>=22){
+    // Current BB width (last 20)
+    var sl20=prices.slice(-20);
+    var mean20=sl20.reduce(function(a,b){return a+b;},0)/20;
+    var var20=sl20.reduce(function(a,v){return a+(v-mean20)*(v-mean20);},0)/20;
+    bbWidth=Math.sqrt(var20)*4; // 2σ × 2 = full band width
+
+    // Previous BB width (20 ticks ago window)
+    var sl20p=prices.slice(-22,-2);
+    var mean20p=sl20p.reduce(function(a,b){return a+b;},0)/20;
+    var var20p=sl20p.reduce(function(a,v){return a+(v-mean20p)*(v-mean20p);},0)/20;
+    bbPrevWidth=Math.sqrt(var20p)*4;
+
+    // Expanding = current wider than 2 ticks ago
+    bbExpanding=bbWidth>bbPrevWidth*1.05; // 5% wider = confirmed expansion
+  }
+
+  // ── Combine into 0-100 score ──────────────────────────────────────
+  // Weights: Distance 35%, Speed 30%, Frequency 25%, RSI 5%, BB 5%
+  // Each normalised 0-1 then weighted
+
+  var distMax=2.0;   // R_100: 5 ticks at 0.40/tick = 2.0 total
+  var speedMax=8;    // 8 ticks/sec = very fast
+  var freqMax=12;    // 12 ticks in 5s = very frequent
+
+  var dN=Math.min(1, dist/distMax);
+  var sN=Math.min(1, speed/speedMax);
+  var fN=Math.min(1, freq/freqMax);
+
+  // RSI: score highest when strongly directional (far from 50)
+  // RSI 80+ or RSI 20- = max RSI score
+  var rsiDist=Math.abs(rsi-50); // 0-50
+  var rsiN=Math.min(1, rsiDist/30); // 30 points from 50 = max score
+
+  // BB: binary — expanding=1, not=0
+  var bbN=bbExpanding?1:0;
+
+  var rawScore=(dN*35)+(sN*30)+(fN*25)+(rsiN*5)+(bbN*5);
+  var score=Math.round(Math.min(100,rawScore));
+
+  return{
+    score:score, dist:dist, speed:speed, freq:freq,
+    rsi:rsi, bbExpanding:bbExpanding, bbWidth:parseFloat(bbWidth.toFixed(4)),
+    dN:dN, sN:sN, fN:fN, rsiN:rsiN, bbN:bbN
+  };
 }
 
 function gmUpdateMomentumBar(){
@@ -5019,19 +5083,39 @@ function gmUpdateMomentumBar(){
   var badge=document.getElementById('gm-mom-score-badge');
   if(badge){badge.textContent=score+' / 100';badge.style.color=barColor;}
 
-  // Sub-bars
+  // Distance sub-bar
   var dEl=document.getElementById('gm-mom-dist');
-  var sEl=document.getElementById('gm-mom-speed');
-  var fEl=document.getElementById('gm-mom-freq');
   var dbEl=document.getElementById('gm-mom-dist-bar');
-  var sbEl=document.getElementById('gm-mom-speed-bar');
-  var fbEl=document.getElementById('gm-mom-freq-bar');
   if(dEl)dEl.textContent=m.dist.toFixed(3);
+  if(dbEl)dbEl.style.width=Math.round(m.dN*100)+'%';
+
+  // Speed sub-bar
+  var sEl=document.getElementById('gm-mom-speed');
+  var sbEl=document.getElementById('gm-mom-speed-bar');
   if(sEl)sEl.textContent=m.speed.toFixed(1);
+  if(sbEl)sbEl.style.width=Math.round(m.sN*100)+'%';
+
+  // Frequency sub-bar
+  var fEl=document.getElementById('gm-mom-freq');
+  var fbEl=document.getElementById('gm-mom-freq-bar');
   if(fEl)fEl.textContent=m.freq;
-  if(dbEl)dbEl.style.width=Math.round(m.distScore/33*100)+'%';
-  if(sbEl)sbEl.style.width=Math.round(m.speedScore/33*100)+'%';
-  if(fbEl)fbEl.style.width=Math.round(m.freqScore/33*100)+'%';
+  if(fbEl)fbEl.style.width=Math.round(m.fN*100)+'%';
+
+  // RSI display
+  var rsiEl=document.getElementById('gm-mom-rsi');
+  var rsiBar=document.getElementById('gm-mom-rsi-bar');
+  if(rsiEl){
+    rsiEl.textContent=m.rsi.toFixed(1);
+    rsiEl.style.color=m.rsi>=70?'var(--re)':m.rsi<=30?'var(--ac)':'var(--go)';
+  }
+  if(rsiBar)rsiBar.style.width=Math.round(m.rsiN*100)+'%';
+
+  // BB Squeeze display
+  var bbEl=document.getElementById('gm-mom-bb');
+  if(bbEl){
+    bbEl.textContent=m.bbExpanding?'EXPANDING':'TIGHT';
+    bbEl.style.color=m.bbExpanding?'var(--ac)':'var(--re)';
+  }
 
   return m;
 }
