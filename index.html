@@ -979,6 +979,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div class="ct">Round History</div>
                 <div style="display:flex;gap:6px;align-items:center">
                   <span style="font-size:11px;font-family:var(--mo);color:var(--t2)" id="s8-hist-wl">0W / 0L / 0G</span>
+                  <button onclick="s8ExportCSV()" style="padding:3px 9px;background:var(--ad);border:1px solid rgba(0,229,160,.3);border-radius:var(--rs);color:var(--ac);font-size:11px;cursor:pointer;font-family:var(--fn);font-weight:600">Export CSV</button>
                   <button onclick="s8Reset()" style="padding:3px 9px;background:var(--rd);border:1px solid rgba(255,77,106,.3);border-radius:var(--rs);color:var(--re);font-size:11px;cursor:pointer;font-family:var(--fn)">Reset</button>
                 </div>
               </div>
@@ -1007,11 +1008,11 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div class="ig">
                   <div class="il">Duration (Ticks)</div>
                   <div class="dr">
-                    <div class="db active" onclick="S8.dur=1;S8.durUnit='t';s8SetActive(this)">1T</div>
-                    <div class="db" onclick="S8.dur=3;S8.durUnit='t';s8SetActive(this)">3T</div>
-                    <div class="db" onclick="S8.dur=5;S8.durUnit='t';s8SetActive(this)">5T</div>
+                    <div class="db active" onclick="S8.dur=5;S8.durUnit='t';s8SetActive(this)">5T</div>
+                    <div class="db" onclick="S8.dur=6;S8.durUnit='t';s8SetActive(this)">6T</div>
+                    <div class="db" onclick="S8.dur=7;S8.durUnit='t';s8SetActive(this)">7T</div>
+                    <div class="db" onclick="S8.dur=8;S8.durUnit='t';s8SetActive(this)">8T</div>
                     <div class="db" onclick="S8.dur=10;S8.durUnit='t';s8SetActive(this)">10T</div>
-                    <div class="db" onclick="S8.dur=15;S8.durUnit='s';s8SetActive(this)">15S</div>
                   </div>
                 </div>
               </div>
@@ -1896,6 +1897,10 @@ function onBuy(buy, reqId) {
     // Keep GM trades in S.trades for settlement routing
     // They are filtered from display in renderTrades/renderActive
   }
+  if(p.type==='s8_buy'){
+    t.isS8=true;t.s8Rid=p.s8Rid;t.s8Side=p.s8Side;
+    s8OnBuy(buy.contract_id+'',p.s8Side,p.s8Rid);
+  }
 
   // WS subscription handles live updates  -  poll is only a safety net for missed settlements
   var _pocReqId=wsSend({proposal_open_contract:1,contract_id:buy.contract_id,subscribe:1});
@@ -2039,6 +2044,7 @@ function onContract(c) {
     S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
     return;
   }
+  if(t.isS8&&t.s8Rid){s8OnResult(t.s8Rid,t.s8Side,profit,exitPrice);return;}
   if(t.isGM&&t.gmRound){onGMResult(t.gmRound,t.gmSide,profit,exitPrice);return;}
   if(t.isHB&&t.hbRound!==null){
     onHBResult(t.hbRound,t.hbIdx,profit,t.direction,t.exitPrice);
@@ -3613,7 +3619,7 @@ function hbRoundRow(roundId, trades){
 
 function renderTrades(){
   // Show only HB summary trades + non-HB + non-GM trades
-  var all=S.trades.filter(function(t){return (!t.isHB||t.isHBSummary)&&!t.isGM;}).slice(0,10);
+  var all=S.trades.filter(function(t){return (!t.isHB||t.isHBSummary)&&!t.isGM&&!t.isS8;}).slice(0,10);
   if(!all.length){document.getElementById('recentTrades').innerHTML='<div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No trades yet.</div>';return;}
   // Group HB summaries by round
   var shown=[], seenRounds={};
@@ -3665,7 +3671,7 @@ function filtH(f,el){document.querySelectorAll('#page-history .btn').forEach(fun
 
 function renderActive(){
   var el=document.getElementById('activeTrades');
-  var visibleTrades=S.activeTrades.filter(function(t){return !t.isGM;});
+  var visibleTrades=S.activeTrades.filter(function(t){return !t.isGM&&!t.isS8;});
   if(!visibleTrades.length){el.innerHTML='';return;}
   var html='';
   visibleTrades.forEach(function(t){
@@ -6483,6 +6489,44 @@ function s8Loop(){
   s8PlaceRound();S8._interval=setTimeout(s8Loop,1000);
 }
 
+function s8ExportCSV(){
+  if(!S8.history.length){notify('!','No rounds to export','loss');return;}
+  var cols=['round','time','asset','duration','h1_dist','total_risk','result','winners','net_pnl',
+    'entry','gap_zone',
+    'h1_barrier','h2_barrier','h3_barrier','h4_barrier',
+    'l1_barrier','l2_barrier','l3_barrier','l4_barrier',
+    'h1_stake','h2_stake','h3_stake','h4_stake',
+    'l1_stake','l2_stake','l3_stake','l4_stake'];
+  var rows=[cols.join(',')];
+  S8.history.forEach(function(r){
+    var sk=r.sk||{h1:0.35,h2:0.35,h3:0.35,h4:0.35,l1:0.35,l2:0.35,l3:0.35,l4:0.35};
+    var b=r.b||{};
+    var risk=Object.values(sk).reduce(function(a,v){return a+v;},0);
+    var row=[
+      r.rid, r.time, r.asset,
+      S8.dur+''+S8.durUnit,
+      r.h1?r.h1.toFixed(2):'--',
+      risk.toFixed(2),
+      r.isGap?'GAP_LOSS':r.win?'WIN':'LOSS',
+      r.winners?r.winners.join('+'):'none',
+      (r.total>=0?'+':'')+r.total.toFixed(2),
+      r.entry?r.entry:'--',
+      r.h1?(r.h1*2).toFixed(2):'--',
+      b.h1||'--',b.h2||'--',b.h3||'--',b.h4||'--',
+      b.l1||'--',b.l2||'--',b.l3||'--',b.l4||'--',
+      sk.h1,sk.h2,sk.h3,sk.h4,
+      sk.l1,sk.l2,sk.l3,sk.l4
+    ];
+    rows.push(row.join(','));
+  });
+  var csv=rows.join('\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='stack8_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  notify('OK','Exported '+S8.history.length+' rounds','win');
+}
+
 function s8Reset(){
   S8.pnl=0;S8.rounds=0;S8.won=0;S8.lost=0;S8.gaps=0;
   S8.history=[];S8.pending={};S8._placing=false;S8.lastRoundTime=0;S8._lastPayouts={};
@@ -6536,8 +6580,8 @@ window.handleMsg=function(d){
   if(typeof _s8OrigHandleMsg==='function')_s8OrigHandleMsg(d);
   if(d.proposal&&d.req_id&&S8._scanPending[d.req_id]){var si=S8._scanPending[d.req_id];delete S8._scanPending[d.req_id];s8OnScan(d.proposal,si);return;}
   if(d.proposal&&d.req_id){var pp=S.pending[d.req_id];if(pp&&pp.type==='s8_probe'){delete S.pending[d.req_id];s8OnProbe(d.proposal,pp);}}
-  if(d.buy&&d.req_id){var bp=S.pending[d.req_id];if(bp&&bp.type==='s8_buy'){delete S.pending[d.req_id];s8OnBuy(d.buy.contract_id,bp.s8Side,bp.s8Rid);}}
-  if(d.proposal_open_contract&&d.proposal_open_contract.is_sold){var poc=d.proposal_open_contract;var cid2=poc.contract_id;Object.keys(S8.pending).forEach(function(rid){var round=S8.pending[rid];if(!round)return;Object.keys(round.cids).forEach(function(side){if(round.cids[side]===cid2)s8OnResult(parseInt(rid),side,parseFloat(poc.profit||0),parseFloat(poc.exit_tick_display_value||0));});});}
+  // s8_buy handled via main buy handler — no duplicate processing needed
+  // S8 contract results now routed via main settlement path — isS8 flag handles routing
 };
 // END STACK8
 //                                                               
