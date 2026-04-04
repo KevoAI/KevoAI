@@ -3771,6 +3771,7 @@ setInterval(function(){
   if(!S.activeTrades.length)return;
   var now=Date.now();
   S.activeTrades.slice().forEach(function(t){
+    if(t.isS8)return; // S8 uses POC subscription, not polling
     var elapsed=now-(t.startTime||now),durMs=t.durMs||8000,remaining=Math.max(0,durMs-elapsed),secs=Math.ceil(remaining/1000),pct=Math.min(100,(elapsed/durMs)*100);
     if(elapsed>durMs*2&&!t.repolled){t.repolled=true;wsSend({proposal_open_contract:1,contract_id:t.contractId});}
     if(elapsed>durMs*5&&durMs>0){
@@ -6459,7 +6460,7 @@ function s8PlaceRound(){
     var pid=wsSend({proposal:1,amount:sk[side],basis:'stake',contract_type:isH?'CALL':'PUT',currency:S.currency,duration:S8.dur,duration_unit:S8.durUnit,symbol:S8.asset,barrier:barrierStr});
     if(pid)S.pending[pid]={type:'s8_probe',s8Side:side,s8Rid:rid,s8Stake:sk[side]};
   });
-  var forceMs=(S8.durUnit==='t'?S8.dur*3000:S8.dur*1000)+20000;
+  var forceMs=(S8.durUnit==='t'?S8.dur*8000:S8.dur*1000)+30000; // 8s per tick safety net
   setTimeout(function(){if(S8.pending[rid]&&!S8.pending[rid]._settled)s8ForceSettle(rid);},forceMs);
   setTimeout(function(){S8._placing=false;},600);
 }
@@ -6467,13 +6468,19 @@ function s8PlaceRound(){
 function s8OnProbe(proposal,pend){
   var rid=pend.s8Rid;if(!S8.pending[rid])return;
   var bid=wsSend({buy:proposal.id,price:parseFloat(proposal.ask_price||0)});
-  if(bid)S.pending[bid]={type:'s8_buy',s8Side:pend.s8Side,s8Rid:rid};
+  if(bid)S.pending[bid]={type:'s8_buy',s8Side:pend.s8Side,s8Rid:rid,isBot:true,asset:S8.asset,stake:pend.s8Stake,durVal:S8.dur,durUnit:S8.durUnit};
 }
 
 function s8OnBuy(cid,side,rid){
   var round=S8.pending[rid];if(!round)return;
   round.cids[side]=cid;
-  s8Set('s8-round-status',Object.keys(round.cids).length+'/8 ACTIVE');
+  var placed=Object.keys(round.cids).length;
+  s8Set('s8-round-status',placed+'/8 ACTIVE');
+  if(placed===8){
+    // All 8 confirmed — refresh balance to show deducted stake
+    wsSend({balance:1});
+    s8Set('s8-round-status','8/8 ACTIVE');
+  }
 }
 
 function s8OnResult(rid,side,profit,exit){
