@@ -2041,9 +2041,9 @@ function onContract(c) {
     c.status==='sold'||c.status==='won'||c.status==='lost'||
     c.status==='expired'||c.status==='cancelled';
 
-  // For GM trades: only run heavy settlement logic when actually done.
+  // For GM and S8 trades: only run heavy settlement logic when actually done.
   // Mid-contract POC pushes just update _liveExit (done above) and return.
-  if(t.isGM && !isDone) return;
+  if((t.isGM||t.isS8) && !isDone) return;
 
   if(!isDone) return;
   t._settled=true;
@@ -2071,6 +2071,12 @@ function onContract(c) {
   // -- PROFIT ------------------------------------------------------
   var profit=parseFloat(c.profit);
   if(isNaN(profit)) profit=0;
+  // For S8: if c.profit is still 0, use sell_price - buy_price
+  if(profit===0&&t.isS8){
+    var _sp8=parseFloat(c.sell_price||0),_bp8=parseFloat(c.buy_price||t.stake||0);
+    if(_sp8>0&&_bp8>0)profit=parseFloat((_sp8-_bp8).toFixed(2));
+    else if(_bp8>0)profit=-_bp8;
+  }
   if(profit===0){
     var sp=parseFloat(c.sell_price||c.sell_spot||0);
     var bp=t.isGM?parseFloat(t.stake||0):parseFloat(c.buy_price||t.stake||0);
@@ -6430,7 +6436,7 @@ function s8ShowRoundMath(){
   s8Set('s8-math-display',lines.join('\n'));
 }
 
-function s8ManualPlace(){s8PlaceRound();}
+function s8ManualPlace(){_origS8PlaceInner();}
 
 function s8PlaceRound(){
   if(!S.connected){notify('!','Connect first','loss');return;}
@@ -6501,6 +6507,7 @@ function s8Settle(rid){
   var statusEl=document.getElementById('s8-round-status');if(statusEl){statusEl.textContent=lbl;statusEl.style.color=col;}
   notify('S8 '+lbl,(isGap?'Price inside +-'+round.h1.toFixed(2):winners.join('+')+' | Net:'+(total>=0?'+':'')+'$'+Math.abs(total).toFixed(2)),(isWin?'win':'loss'));
   updateStats();renderTrades();
+  wsSend({balance:1});
 }
 
 function s8UpdateStats(){
@@ -6785,20 +6792,26 @@ function s8UpdateCFUI(cf){
   }
 }
 
-// Hook tick stream
-// S8 hooks into onTick via onTickWrapper which fires per-tick
-// We patch onTickWrapper to also fire S8 confluence update
-var _s8OrigOnTickWrapper=window.onTickWrapper;
-window.onTickWrapper=function(tick){
-  if(typeof _s8OrigOnTickWrapper==='function')_s8OrigOnTickWrapper(tick);
-  if(!tick||tick.symbol!==S8.asset)return;
-  S8.tickTimes=S8.tickTimes||[];
-  S8.tickTimes.push(Date.now());
-  if(S8.tickTimes.length>100)S8.tickTimes.shift();
-  var cf=s8CalcConfluence();
-  s8UpdateCFUI(cf);
-  S8._lastCF=cf;
-};
+// Hook tick stream — deferred so onTickWrapper is defined before we wrap it
+function s8InstallTickHook(){
+  var _orig=onTickWrapper; // direct reference, no window. needed
+  onTickWrapper=function(tick){
+    _orig(tick);
+    if(!tick||tick.symbol!==S8.asset)return;
+    S8.tickTimes=S8.tickTimes||[];
+    S8.tickTimes.push(Date.now());
+    if(S8.tickTimes.length>100)S8.tickTimes.shift();
+    var cf=s8CalcConfluence();
+    s8UpdateCFUI(cf);
+    S8._lastCF=cf;
+  };
+}
+// Install after page loads
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',s8InstallTickHook);
+} else {
+  s8InstallTickHook();
+}
 
 // Gate placement on confluence
 var _origS8PlaceInner=s8PlaceRound;
