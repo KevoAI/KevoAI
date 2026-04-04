@@ -959,7 +959,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <!-- Momentum score bar -->
               <div style="margin-bottom:10px">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                  <span style="font-size:11px;color:var(--t2)">① Momentum Score <span style="color:var(--t3);font-size:10px">(need 65+)</span></span>
+                  <span style="font-size:11px;color:var(--t2)">① Momentum Score <span style="color:var(--t3);font-size:10px">(need 40+, direction-agnostic)</span></span>
                   <span style="font-size:12px;font-weight:700;font-family:var(--mo)" id="s8-cf1-val">0/100</span>
                 </div>
                 <div style="height:8px;background:var(--bg4);border-radius:99px;overflow:hidden;position:relative">
@@ -992,15 +992,15 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <!-- 3 binary checks -->
               <div style="display:flex;flex-direction:column;gap:5px">
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);transition:all .3s" id="s8-cf2-row">
-                  <span style="font-size:11px;color:var(--t2)">② Price moved >= 0.08 in last 3 ticks</span>
+                  <span style="font-size:11px;color:var(--t2)">② Net move last 3 ticks &gt;= 50% of H1</span>
                   <span style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-cf2-val">--</span>
                 </div>
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);transition:all .3s" id="s8-cf3-row">
-                  <span style="font-size:11px;color:var(--t2)">③ 4 of last 5 ticks same direction</span>
+                  <span style="font-size:11px;color:var(--t2)">③ ATR5 &gt;= 80% of H1 (vol can breach barrier)</span>
                   <span style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-cf3-val">--</span>
                 </div>
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);transition:all .3s" id="s8-cf4-row">
-                  <span style="font-size:11px;color:var(--t2)">④ RSI crossed 30/70 in last 10s</span>
+                  <span style="font-size:11px;color:var(--t2)">④ Not flat — fewer than 3 flat ticks in last 5</span>
                   <span style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-cf4-val">--</span>
                 </div>
               </div>
@@ -6716,14 +6716,17 @@ function s8CalcConfluence(){
   var n=prices.length;
   var times=S8.tickTimes||[];
   var now=Date.now();
-  if(n<15)return{pass:false,score:0,c1:false,c2:false,c3:false,c4:false,reason:'warming up',move3:0,ups:0,dns:0,dist:0,speed:0,freq:0,rsi:50,bbExpanding:false};
+  var h1=s8H1(); // gap size — conditions scale with barrier
 
-  // Distance
+  if(n<10)return{pass:false,score:0,c1:false,c2:false,c3:false,c4:false,
+    reason:'warming up',move3:0,flats:0,dist:0,speed:0,freq:0,rsi:50,atr5:0,bbExpanding:false};
+
+  // ── Distance: total absolute move last 5 ticks ────────────────
   var dist=0;
   if(n>=6)for(var i=n-5;i<n;i++)dist+=Math.abs(prices[i]-prices[i-1]);
   dist=parseFloat(dist.toFixed(4));
 
-  // Speed
+  // ── Speed: ticks/sec ─────────────────────────────────────────
   var speed=0;
   if(times.length>=2){
     var tSlice=times.slice(-10),gaps=[];
@@ -6731,11 +6734,11 @@ function s8CalcConfluence(){
     if(gaps.length){var avgGap=gaps.reduce(function(a,b){return a+b;},0)/gaps.length;speed=avgGap>0?parseFloat((1000/avgGap).toFixed(2)):0;}
   }
 
-  // Frequency
+  // ── Frequency: ticks in last 5s ──────────────────────────────
   var freq=0,cutoff=now-5000;
   for(var j=0;j<times.length;j++)if(times[j]>=cutoff)freq++;
 
-  // RSI
+  // ── RSI ──────────────────────────────────────────────────────
   var rsi=50;
   if(n>=15){
     var gains=0,losses=0;
@@ -6744,7 +6747,7 @@ function s8CalcConfluence(){
     rsi=avgL===0?100:parseFloat((100-(100/(1+avgG/avgL))).toFixed(1));
   }
 
-  // BB expanding
+  // ── BB expanding ─────────────────────────────────────────────
   var bbExpanding=false;
   if(n>=22){
     var sl20=prices.slice(-20),sl20p=prices.slice(-22,-2);
@@ -6752,40 +6755,52 @@ function s8CalcConfluence(){
     var v1=sl20.reduce(function(a,v){return a+(v-m1)*(v-m1);},0)/20;
     var m2=sl20p.reduce(function(a,b){return a+b;},0)/20;
     var v2=sl20p.reduce(function(a,v){return a+(v-m2)*(v-m2);},0)/20;
-    bbExpanding=Math.sqrt(v1)>Math.sqrt(v2)*1.05;
+    bbExpanding=Math.sqrt(v1)>Math.sqrt(v2)*1.02;
   }
 
-  // Score
-  var dN=Math.min(1,dist/2.0),sN=Math.min(1,speed/8),fN=Math.min(1,freq/12);
-  var rsiN=Math.min(1,Math.abs(rsi-50)/30),bbN=bbExpanding?1:0;
+  // ── ATR5 ─────────────────────────────────────────────────────
+  var atr5=0;
+  if(n>=6){for(var ai=n-5;ai<n;ai++)atr5+=Math.abs(prices[ai]-prices[ai-1]);atr5=parseFloat((atr5/5).toFixed(4));}
+
+  // ── Momentum score (same weights, lower threshold) ────────────
+  var dN=Math.min(1,dist/1.0);  // max at 1.0 total move (was 2.0)
+  var sN=Math.min(1,speed/6);   // max at 6 ticks/sec (was 8)
+  var fN=Math.min(1,freq/8);    // max at 8 ticks in 5s (was 12)
+  var rsiN=Math.min(1,Math.abs(rsi-50)/30);
+  var bbN=bbExpanding?1:0;
   var momScore=Math.round(dN*35+sN*30+fN*25+rsiN*5+bbN*5);
-  var c1=momScore>=65;
 
-  // C2
+  // ── C1: Momentum score >= 40 (direction-agnostic movement) ───
+  var c1=momScore>=40;
+
+  // ── C2: Net move last 3 ticks >= 50% of H1 gap ───────────────
+  // Ensures there's genuine price movement relative to the barrier
   var move3=0,c2=false;
-  if(n>=4){move3=parseFloat(Math.abs(prices[n-1]-prices[n-4]).toFixed(4));c2=move3>=0.08;}
-
-  // C3
-  var ups3=0,dns3=0;
-  if(n>=6)for(var k=n-5;k<n;k++){var d=prices[k]-prices[k-1];if(d>0)ups3++;else if(d<0)dns3++;}
-  var c3=ups3>=4||dns3>=4;
-
-  // C4 - RSI cross in last 10s
-  S8.rsiHistory=S8.rsiHistory||[];
-  S8.rsiHistory.push({time:now,rsi:rsi});
-  S8.rsiHistory=S8.rsiHistory.filter(function(r){return r.time>now-10000;});
-  var c4=false;
-  for(var ri2=1;ri2<S8.rsiHistory.length;ri2++){
-    var prev=S8.rsiHistory[ri2-1].rsi,cur2=S8.rsiHistory[ri2].rsi;
-    if((prev<30&&cur2>=30)||(prev>70&&cur2<=70)){c4=true;break;}
+  if(n>=4){
+    move3=parseFloat(Math.abs(prices[n-1]-prices[n-4]).toFixed(4));
+    c2=move3>=(h1*0.5);
   }
+
+  // ── C3: ATR5 > H1*0.8 ────────────────────────────────────────
+  // Average tick range exceeds 80% of barrier — vol sufficient to breach
+  var c3=atr5>=(h1*0.8);
+
+  // ── C4: Not dead — fewer than 3 flat ticks in last 5 ─────────
+  var flats=0;
+  if(n>=6)for(var fi=n-5;fi<n;fi++)if(prices[fi]===prices[fi-1])flats++;
+  var c4=flats<3;
 
   var reason=[];
-  if(!c1)reason.push('mom='+momScore+'<65');
-  if(!c2)reason.push('move='+move3.toFixed(3));
-  if(!c3)reason.push('trend:'+ups3+'u'+dns3+'d');
-  if(!c4)reason.push('noRSI');
-  return{pass:c1&&c2&&c3&&c4,score:momScore,c1:c1,c2:c2,c3:c3,c4:c4,dist:dist,speed:speed,freq:freq,rsi:rsi,bbExpanding:bbExpanding,move3:move3,ups:ups3,dns:dns3,reason:reason.join('|')};
+  if(!c1)reason.push('mom='+momScore+'<40');
+  if(!c2)reason.push('move='+move3.toFixed(3)+'<'+(h1*0.5).toFixed(3));
+  if(!c3)reason.push('atr='+atr5.toFixed(3)+'<'+(h1*0.8).toFixed(3));
+  if(!c4)reason.push('flat='+flats+'/5');
+
+  return{pass:c1&&c2&&c3&&c4,score:momScore,
+    c1:c1,c2:c2,c3:c3,c4:c4,
+    dist:dist,speed:speed,freq:freq,rsi:rsi,atr5:atr5,bbExpanding:bbExpanding,
+    move3:move3,flats:flats,h1:h1,
+    reason:reason.length?reason.join(' | '):'ALL PASS'};
 }
 
 function s8UpdateCFUI(cf){
@@ -6806,9 +6821,16 @@ function s8UpdateCFUI(cf){
     if(r)r.style.borderColor=pass?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.2)';
     if(v){v.textContent=txt;v.style.color=pass?ok:bad;}
   }
-  styleRow('s8-cf2-row','s8-cf2-val',cf.c2,cf.c2?'PASS '+cf.move3.toFixed(3):'FAIL '+(cf.move3||0).toFixed(3));
-  styleRow('s8-cf3-row','s8-cf3-val',cf.c3,cf.c3?'PASS '+(cf.ups>=4?cf.ups+'UP':cf.dns+'DN')+'/5':'FAIL '+cf.ups+'u'+cf.dns+'d');
-  styleRow('s8-cf4-row','s8-cf4-val',cf.c4,cf.c4?'PASS cross':'FAIL no cross');
+  var _h1d=(cf.h1||0.06);
+  styleRow('s8-cf2-row','s8-cf2-val',cf.c2,
+    cf.c2?'PASS '+( cf.move3||0).toFixed(3)+' >= '+(_h1d*0.5).toFixed(3)
+          :'FAIL '+( cf.move3||0).toFixed(3)+' < '+(_h1d*0.5).toFixed(3));
+  styleRow('s8-cf3-row','s8-cf3-val',cf.c3,
+    cf.c3?'PASS ATR='+( cf.atr5||0).toFixed(3)+' >= '+(_h1d*0.8).toFixed(3)
+          :'FAIL ATR='+( cf.atr5||0).toFixed(3)+' < '+(_h1d*0.8).toFixed(3));
+  styleRow('s8-cf4-row','s8-cf4-val',cf.c4,
+    cf.c4?'PASS flats='+( cf.flats||0)+'/5'
+          :'FAIL flats='+( cf.flats||0)+'/5 >=3');
   if(!Object.keys(S8.pending).length&&!S8._placing){
     var rsEl=document.getElementById('s8-round-status');
     if(rsEl){if(!S8.running){rsEl.textContent='IDLE';rsEl.style.color='var(--t3)';}else if(!cf.pass){rsEl.textContent='WAIT';rsEl.style.color=bad;}else{rsEl.textContent='READY';rsEl.style.color=ok;}}
