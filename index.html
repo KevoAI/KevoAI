@@ -6658,14 +6658,30 @@ function s8BuildDD(){
   });
 }
 
-// Hook into handleMsg  -  no window.showPage override needed
+// Hook into handleMsg
+// CRITICAL: S8 probe/scan checks MUST run BEFORE _s8OrigHandleMsg
+// because onProposal() inside it deletes S.pending[reqId] immediately
 var _s8OrigHandleMsg=window.handleMsg;
 window.handleMsg=function(d){
+  // ── S8: intercept proposals BEFORE original handler deletes S.pending ──
+  if(d.proposal&&d.req_id){
+    // Scan probe
+    if(S8._scanPending[d.req_id]){
+      var si=S8._scanPending[d.req_id];
+      delete S8._scanPending[d.req_id];
+      s8OnScan(d.proposal,si);
+      return; // scan probes: don't pass to original handler
+    }
+    // Round probe
+    var pp=S.pending[d.req_id];
+    if(pp&&pp.type==='s8_probe'){
+      delete S.pending[d.req_id]; // remove before original handler sees it
+      s8OnProbe(d.proposal,pp);
+      return; // don't pass to original handler
+    }
+  }
+  // All other messages go through the original handler
   if(typeof _s8OrigHandleMsg==='function')_s8OrigHandleMsg(d);
-  if(d.proposal&&d.req_id&&S8._scanPending[d.req_id]){var si=S8._scanPending[d.req_id];delete S8._scanPending[d.req_id];s8OnScan(d.proposal,si);return;}
-  if(d.proposal&&d.req_id){var pp=S.pending[d.req_id];if(pp&&pp.type==='s8_probe'){delete S.pending[d.req_id];s8OnProbe(d.proposal,pp);}}
-  // s8_buy handled via main buy handler — no duplicate processing needed
-  // S8 contract results now routed via main settlement path — isS8 flag handles routing
 };
 
 
