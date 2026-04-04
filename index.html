@@ -950,6 +950,70 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               </div>
             </div>
 
+            <!-- Confluence Gate — 4 conditions -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:12px;font-weight:700">4-Confluence Entry Gate</div>
+                <div id="s8-cf-badge" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--bg4);color:var(--t3);font-family:var(--mo)">WAITING</div>
+              </div>
+              <!-- Momentum score bar -->
+              <div style="margin-bottom:10px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                  <span style="font-size:11px;color:var(--t2)">① Momentum Score <span style="color:var(--t3);font-size:10px">(need 65+)</span></span>
+                  <span style="font-size:12px;font-weight:700;font-family:var(--mo)" id="s8-cf1-val">0/100</span>
+                </div>
+                <div style="height:8px;background:var(--bg4);border-radius:99px;overflow:hidden;position:relative">
+                  <div id="s8-cf1-bar" style="height:100%;width:0%;border-radius:99px;background:var(--re);transition:width .3s,background .3s"></div>
+                  <div style="position:absolute;top:0;bottom:0;left:65%;width:1px;background:rgba(255,255,255,0.3)"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:5px">
+                  <div style="background:var(--bg3);border-radius:4px;padding:4px 5px;text-align:center">
+                    <div style="font-size:9px;color:var(--t3)">Dist 35%</div>
+                    <div style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-mom-dist">--</div>
+                  </div>
+                  <div style="background:var(--bg3);border-radius:4px;padding:4px 5px;text-align:center">
+                    <div style="font-size:9px;color:var(--t3)">Speed 30%</div>
+                    <div style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-mom-spd">--</div>
+                  </div>
+                  <div style="background:var(--bg3);border-radius:4px;padding:4px 5px;text-align:center">
+                    <div style="font-size:9px;color:var(--t3)">Freq 25%</div>
+                    <div style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-mom-freq">--</div>
+                  </div>
+                  <div style="background:var(--bg3);border-radius:4px;padding:4px 5px;text-align:center">
+                    <div style="font-size:9px;color:var(--t3)">RSI 5%</div>
+                    <div style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-mom-rsi">--</div>
+                  </div>
+                  <div style="background:var(--bg3);border-radius:4px;padding:4px 5px;text-align:center">
+                    <div style="font-size:9px;color:var(--t3)">BB 5%</div>
+                    <div style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-mom-bb">--</div>
+                  </div>
+                </div>
+              </div>
+              <!-- 3 binary checks -->
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);transition:all .3s" id="s8-cf2-row">
+                  <span style="font-size:11px;color:var(--t2)">② Price moved >= 0.08 in last 3 ticks</span>
+                  <span style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-cf2-val">--</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);transition:all .3s" id="s8-cf3-row">
+                  <span style="font-size:11px;color:var(--t2)">③ 4 of last 5 ticks same direction</span>
+                  <span style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-cf3-val">--</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);transition:all .3s" id="s8-cf4-row">
+                  <span style="font-size:11px;color:var(--t2)">④ RSI crossed 30/70 in last 10s</span>
+                  <span style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-cf4-val">--</span>
+                </div>
+              </div>
+              <!-- Min score setting -->
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:11px;color:var(--t2)">Filter ON</span>
+                  <div class="tsw on" id="s8-cf-sw" onclick="S8.cfOn=this.classList.toggle('on')" style="width:34px;height:18px"></div>
+                </div>
+                <span style="font-size:10px;color:var(--t3)">Off = place every round regardless</span>
+              </div>
+            </div>
+
             <!-- Payout Scanner -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -1062,6 +1126,12 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 </div>
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
                   <span style="font-size:11px;color:var(--t2)">Total Risk Per Round</span>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="font-size:11px;color:var(--t2)">or set all equal:</span>
+                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="s8SetBudget(-0.35)">-</div>
+                    <input type="number" id="s8-budget-inp" value="2.80" min="2.80" step="0.35" style="width:64px;background:var(--bg4);border:1px solid rgba(255,77,106,.4);border-radius:var(--rs);padding:4px 6px;color:var(--re);font-family:var(--mo);font-size:13px;font-weight:700;outline:none;text-align:center" oninput="s8ApplyBudget()">
+                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="s8SetBudget(0.35)">+</div>
+                  </div>
                   <span style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--re)" id="s8-total-risk">$2.80</span>
                 </div>
               </div>
@@ -6265,7 +6335,7 @@ function gmUpdateWalls(price){
 // STACK8 BOT
 //                                                               
 var S8={
-  asset:'R_100',dur:1,durUnit:'t',minGap:5,
+  asset:'R_100',dur:5,durUnit:'t',minGap:5,
   running:false,_interval:null,_placing:false,
   pnl:0,rounds:0,won:0,lost:0,gaps:0,
   lastRoundTime:0,pending:{},history:[],
@@ -6583,6 +6653,169 @@ window.handleMsg=function(d){
   // s8_buy handled via main buy handler — no duplicate processing needed
   // S8 contract results now routed via main settlement path — isS8 flag handles routing
 };
+
+
+// S8 Budget control
+function s8SetBudget(delta){
+  var el=document.getElementById('s8-budget-inp');
+  if(!el)return;
+  var v=Math.max(2.80,parseFloat(el.value||2.80)+delta);
+  el.value=parseFloat(v.toFixed(2));
+  s8ApplyBudget();
+}
+function s8ApplyBudget(){
+  var el=document.getElementById('s8-budget-inp');
+  if(!el)return;
+  var budget=Math.max(2.80,parseFloat(el.value)||2.80);
+  var perContract=parseFloat((budget/8).toFixed(2));
+  if(perContract<0.35)perContract=0.35;
+  ['sh1','sh2','sh3','sh4','sl1','sl2','sl3','sl4'].forEach(function(k){
+    var inp=document.getElementById('s8-'+k);
+    if(inp)inp.value=perContract.toFixed(2);
+  });
+  s8UpdateMath();
+}
+
+// S8 4-Confluence entry check
+S8.tickTimes=S8.tickTimes||[];
+S8.rsiHistory=[];
+S8.cfOn=true;
+
+function s8CalcConfluence(){
+  var prices=getInd(S8.asset).prices;
+  var n=prices.length;
+  var times=S8.tickTimes||[];
+  var now=Date.now();
+  if(n<15)return{pass:false,score:0,c1:false,c2:false,c3:false,c4:false,reason:'warming up',move3:0,ups:0,dns:0,dist:0,speed:0,freq:0,rsi:50,bbExpanding:false};
+
+  // Distance
+  var dist=0;
+  if(n>=6)for(var i=n-5;i<n;i++)dist+=Math.abs(prices[i]-prices[i-1]);
+  dist=parseFloat(dist.toFixed(4));
+
+  // Speed
+  var speed=0;
+  if(times.length>=2){
+    var tSlice=times.slice(-10),gaps=[];
+    for(var gi=1;gi<tSlice.length;gi++)gaps.push(tSlice[gi]-tSlice[gi-1]);
+    if(gaps.length){var avgGap=gaps.reduce(function(a,b){return a+b;},0)/gaps.length;speed=avgGap>0?parseFloat((1000/avgGap).toFixed(2)):0;}
+  }
+
+  // Frequency
+  var freq=0,cutoff=now-5000;
+  for(var j=0;j<times.length;j++)if(times[j]>=cutoff)freq++;
+
+  // RSI
+  var rsi=50;
+  if(n>=15){
+    var gains=0,losses=0;
+    for(var ri=n-14;ri<n;ri++){var rd=prices[ri]-prices[ri-1];if(rd>0)gains+=rd;else losses+=Math.abs(rd);}
+    var avgG=gains/14,avgL=losses/14;
+    rsi=avgL===0?100:parseFloat((100-(100/(1+avgG/avgL))).toFixed(1));
+  }
+
+  // BB expanding
+  var bbExpanding=false;
+  if(n>=22){
+    var sl20=prices.slice(-20),sl20p=prices.slice(-22,-2);
+    var m1=sl20.reduce(function(a,b){return a+b;},0)/20;
+    var v1=sl20.reduce(function(a,v){return a+(v-m1)*(v-m1);},0)/20;
+    var m2=sl20p.reduce(function(a,b){return a+b;},0)/20;
+    var v2=sl20p.reduce(function(a,v){return a+(v-m2)*(v-m2);},0)/20;
+    bbExpanding=Math.sqrt(v1)>Math.sqrt(v2)*1.05;
+  }
+
+  // Score
+  var dN=Math.min(1,dist/2.0),sN=Math.min(1,speed/8),fN=Math.min(1,freq/12);
+  var rsiN=Math.min(1,Math.abs(rsi-50)/30),bbN=bbExpanding?1:0;
+  var momScore=Math.round(dN*35+sN*30+fN*25+rsiN*5+bbN*5);
+  var c1=momScore>=65;
+
+  // C2
+  var move3=0,c2=false;
+  if(n>=4){move3=parseFloat(Math.abs(prices[n-1]-prices[n-4]).toFixed(4));c2=move3>=0.08;}
+
+  // C3
+  var ups3=0,dns3=0;
+  if(n>=6)for(var k=n-5;k<n;k++){var d=prices[k]-prices[k-1];if(d>0)ups3++;else if(d<0)dns3++;}
+  var c3=ups3>=4||dns3>=4;
+
+  // C4 - RSI cross in last 10s
+  S8.rsiHistory=S8.rsiHistory||[];
+  S8.rsiHistory.push({time:now,rsi:rsi});
+  S8.rsiHistory=S8.rsiHistory.filter(function(r){return r.time>now-10000;});
+  var c4=false;
+  for(var ri2=1;ri2<S8.rsiHistory.length;ri2++){
+    var prev=S8.rsiHistory[ri2-1].rsi,cur2=S8.rsiHistory[ri2].rsi;
+    if((prev<30&&cur2>=30)||(prev>70&&cur2<=70)){c4=true;break;}
+  }
+
+  var reason=[];
+  if(!c1)reason.push('mom='+momScore+'<65');
+  if(!c2)reason.push('move='+move3.toFixed(3));
+  if(!c3)reason.push('trend:'+ups3+'u'+dns3+'d');
+  if(!c4)reason.push('noRSI');
+  return{pass:c1&&c2&&c3&&c4,score:momScore,c1:c1,c2:c2,c3:c3,c4:c4,dist:dist,speed:speed,freq:freq,rsi:rsi,bbExpanding:bbExpanding,move3:move3,ups:ups3,dns:dns3,reason:reason.join('|')};
+}
+
+function s8UpdateCFUI(cf){
+  var ok='var(--ac)',bad='var(--re)';
+  var badge=document.getElementById('s8-cf-badge');
+  if(badge){badge.textContent=cf.pass?'ALL PASS':(!cf.reason||cf.reason==='warming up'?'WARMING':'BLOCKED');badge.style.color=cf.pass?ok:bad;badge.style.background=cf.pass?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.1)';}
+  var bar=document.getElementById('s8-cf1-bar');var val=document.getElementById('s8-cf1-val');
+  if(bar){bar.style.width=cf.score+'%';bar.style.background=cf.c1?ok:bad;}
+  if(val){val.textContent=cf.score+'/100';val.style.color=cf.c1?ok:bad;}
+  function sv(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+  sv('s8-mom-dist',cf.dist!==undefined?cf.dist.toFixed(3):'--');
+  sv('s8-mom-spd',cf.speed!==undefined?cf.speed.toFixed(1):'--');
+  sv('s8-mom-freq',cf.freq!==undefined?cf.freq:'--');
+  sv('s8-mom-rsi',cf.rsi!==undefined?cf.rsi.toFixed(1):'--');
+  sv('s8-mom-bb',cf.bbExpanding?'EXP':'TIGHT');
+  function styleRow(id,vidx,pass,txt){
+    var r=document.getElementById(id),v=document.getElementById(vidx);
+    if(r)r.style.borderColor=pass?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.2)';
+    if(v){v.textContent=txt;v.style.color=pass?ok:bad;}
+  }
+  styleRow('s8-cf2-row','s8-cf2-val',cf.c2,cf.c2?'PASS '+cf.move3.toFixed(3):'FAIL '+(cf.move3||0).toFixed(3));
+  styleRow('s8-cf3-row','s8-cf3-val',cf.c3,cf.c3?'PASS '+(cf.ups>=4?cf.ups+'UP':cf.dns+'DN')+'/5':'FAIL '+cf.ups+'u'+cf.dns+'d');
+  styleRow('s8-cf4-row','s8-cf4-val',cf.c4,cf.c4?'PASS cross':'FAIL no cross');
+  if(!Object.keys(S8.pending).length&&!S8._placing){
+    var rsEl=document.getElementById('s8-round-status');
+    if(rsEl){if(!S8.running){rsEl.textContent='IDLE';rsEl.style.color='var(--t3)';}else if(!cf.pass){rsEl.textContent='WAIT';rsEl.style.color=bad;}else{rsEl.textContent='READY';rsEl.style.color=ok;}}
+  }
+}
+
+// Hook tick stream
+// S8 hooks into onTick via onTickWrapper which fires per-tick
+// We patch onTickWrapper to also fire S8 confluence update
+var _s8OrigOnTickWrapper=window.onTickWrapper;
+window.onTickWrapper=function(tick){
+  if(typeof _s8OrigOnTickWrapper==='function')_s8OrigOnTickWrapper(tick);
+  if(!tick||tick.symbol!==S8.asset)return;
+  S8.tickTimes=S8.tickTimes||[];
+  S8.tickTimes.push(Date.now());
+  if(S8.tickTimes.length>100)S8.tickTimes.shift();
+  var cf=s8CalcConfluence();
+  s8UpdateCFUI(cf);
+  S8._lastCF=cf;
+};
+
+// Gate placement on confluence
+var _origS8PlaceInner=s8PlaceRound;
+s8PlaceRound=function(){
+  var cfSw=document.getElementById('s8-cf-sw');
+  var cfOn=S8.cfOn!==false&&(!cfSw||cfSw.classList.contains('on'));
+  if(cfOn){
+    var cf=S8._lastCF||s8CalcConfluence();
+    if(!cf.pass){
+      var rsEl=document.getElementById('s8-round-status');
+      if(rsEl){rsEl.textContent='SKIP: '+cf.reason;rsEl.style.color='var(--re)';}
+      return;
+    }
+  }
+  _origS8PlaceInner();
+};
+
 // END STACK8
 //                                                               
 
