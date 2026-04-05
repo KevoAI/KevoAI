@@ -953,64 +953,68 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <!-- Confluence Gate — 4 conditions -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div style="font-size:12px;font-weight:700">4-Confluence Entry Gate</div>
+                <div style="font-size:12px;font-weight:700">Entry Model — 2 Confluences</div>
                 <div id="s8-cf-badge" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--bg4);color:var(--t3);font-family:var(--mo)">WAITING</div>
               </div>
-              <!-- Momentum score bar -->
+
+              <!-- C1: RSI Cross -->
+              <div style="margin-bottom:10px;padding:9px 11px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);transition:all .3s" id="s8-cf1-row">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                  <span style="font-size:11px;font-weight:700;color:var(--t2)">① RSI crossing from outside back in</span>
+                  <span style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-cf1-val">--</span>
+                </div>
+                <div style="display:flex;gap:8px;font-size:10px;font-family:var(--mo)">
+                  <span style="color:var(--t3)">RSI(14):</span>
+                  <span id="s8-rsi-val" style="color:var(--t1);font-weight:700">--</span>
+                  <span style="color:var(--t3)">|</span>
+                  <span id="s8-rsi-state" style="color:var(--t3)">waiting...</span>
+                </div>
+              </div>
+
+              <!-- C2: Momentum Score -->
               <div style="margin-bottom:10px">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                  <span style="font-size:11px;color:var(--t2)">① Momentum Score <span style="color:var(--t3);font-size:10px">(need 40+, direction-agnostic)</span></span>
-                  <span style="font-size:12px;font-weight:700;font-family:var(--mo)" id="s8-cf1-val">0/100</span>
-                </div>
-                <div style="height:8px;background:var(--bg4);border-radius:99px;overflow:hidden;position:relative">
-                  <div id="s8-cf1-bar" style="height:100%;width:0%;border-radius:99px;background:var(--re);transition:width .3s,background .3s"></div>
-                  <div style="position:absolute;top:0;bottom:0;left:65%;width:1px;background:rgba(255,255,255,0.3)"></div>
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:5px">
-                  <div style="background:var(--bg3);border-radius:4px;padding:4px 5px;text-align:center">
-                    <div style="font-size:9px;color:var(--t3)">Dist 35%</div>
-                    <div style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-mom-dist">--</div>
-                  </div>
-                  <div style="background:var(--bg3);border-radius:4px;padding:4px 5px;text-align:center">
-                    <div style="font-size:9px;color:var(--t3)">Speed 30%</div>
-                    <div style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-mom-spd">--</div>
-                  </div>
-                  <div style="background:var(--bg3);border-radius:4px;padding:4px 5px;text-align:center">
-                    <div style="font-size:9px;color:var(--t3)">Freq 25%</div>
-                    <div style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-mom-freq">--</div>
-                  </div>
-                  <div style="background:var(--bg3);border-radius:4px;padding:4px 5px;text-align:center">
-                    <div style="font-size:9px;color:var(--t3)">RSI 5%</div>
-                    <div style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-mom-rsi">--</div>
-                  </div>
-                  <div style="background:var(--bg3);border-radius:4px;padding:4px 5px;text-align:center">
-                    <div style="font-size:9px;color:var(--t3)">BB 5%</div>
-                    <div style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-mom-bb">--</div>
+                  <span style="font-size:11px;font-weight:700;color:var(--t2)">② Momentum Score</span>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="font-size:10px;color:var(--t3)">min:</span>
+                    <input type="number" id="s8-min-score" value="65" min="1" max="100" step="1"
+                      style="width:44px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:2px 5px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center"
+                      oninput="S8.minScore=parseInt(this.value)||65;document.getElementById('s8-min-score-line').style.left=(S8.minScore||65)+'%'">
+                    <span style="font-size:12px;font-weight:700;font-family:var(--mo)" id="s8-cf2-val">0/100</span>
                   </div>
                 </div>
+                <div style="height:10px;background:var(--bg4);border-radius:99px;overflow:hidden;position:relative;margin-bottom:6px">
+                  <div id="s8-cf2-bar" style="height:100%;width:0%;border-radius:99px;background:var(--re);transition:width .25s,background .25s"></div>
+                  <div id="s8-min-score-line" style="position:absolute;top:0;bottom:0;left:65%;width:2px;background:rgba(255,255,255,0.5)"></div>
+                </div>
+                <!-- 3 sub-signals -->
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
+                  <div style="background:var(--bg3);border-radius:5px;padding:6px 7px;text-align:center;border:1px solid var(--bo);transition:all .3s" id="s8-dist-card">
+                    <div style="font-size:9px;color:var(--t3);margin-bottom:2px">FAR (35%)</div>
+                    <div style="font-size:12px;font-weight:700;font-family:var(--mo)" id="s8-mom-dist">--</div>
+                    <div style="height:3px;background:var(--bg4);border-radius:2px;margin-top:4px;overflow:hidden"><div id="s8-dist-bar" style="height:100%;width:0%;background:var(--ac);border-radius:2px;transition:width .25s"></div></div>
+                  </div>
+                  <div style="background:var(--bg3);border-radius:5px;padding:6px 7px;text-align:center;border:1px solid var(--bo);transition:all .3s" id="s8-spd-card">
+                    <div style="font-size:9px;color:var(--t3);margin-bottom:2px">FAST (30%)</div>
+                    <div style="font-size:12px;font-weight:700;font-family:var(--mo)" id="s8-mom-spd">--</div>
+                    <div style="height:3px;background:var(--bg4);border-radius:2px;margin-top:4px;overflow:hidden"><div id="s8-spd-bar" style="height:100%;width:0%;background:var(--go);border-radius:2px;transition:width .25s"></div></div>
+                  </div>
+                  <div style="background:var(--bg3);border-radius:5px;padding:6px 7px;text-align:center;border:1px solid var(--bo);transition:all .3s" id="s8-freq-card">
+                    <div style="font-size:9px;color:var(--t3);margin-bottom:2px">OFTEN (25%)</div>
+                    <div style="font-size:12px;font-weight:700;font-family:var(--mo)" id="s8-mom-freq">--</div>
+                    <div style="height:3px;background:var(--bg4);border-radius:2px;margin-top:4px;overflow:hidden"><div id="s8-freq-bar" style="height:100%;width:0%;background:var(--bl);border-radius:2px;transition:width .25s"></div></div>
+                  </div>
+                </div>
+                <div style="font-size:10px;color:var(--t3);margin-top:5px;font-family:var(--mo)">RSI bonus 5% + BB bonus 5% added when active</div>
               </div>
-              <!-- 3 binary checks -->
-              <div style="display:flex;flex-direction:column;gap:5px">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);transition:all .3s" id="s8-cf2-row">
-                  <span style="font-size:11px;color:var(--t2)">② Net move last 3 ticks &gt;= 50% of H1</span>
-                  <span style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-cf2-val">--</span>
-                </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);transition:all .3s" id="s8-cf3-row">
-                  <span style="font-size:11px;color:var(--t2)">③ ATR5 &gt;= 80% of H1 (vol can breach barrier)</span>
-                  <span style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-cf3-val">--</span>
-                </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);transition:all .3s" id="s8-cf4-row">
-                  <span style="font-size:11px;color:var(--t2)">④ Not flat — fewer than 3 flat ticks in last 5</span>
-                  <span style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-cf4-val">--</span>
-                </div>
-              </div>
-              <!-- Min score setting -->
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
+
+              <!-- Filter toggle -->
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
                 <div style="display:flex;align-items:center;gap:8px">
                   <span style="font-size:11px;color:var(--t2)">Filter ON</span>
                   <div class="tsw on" id="s8-cf-sw" onclick="S8.cfOn=this.classList.toggle('on')" style="width:34px;height:18px"></div>
                 </div>
-                <span style="font-size:10px;color:var(--t3)">Off = place every round regardless</span>
+                <span style="font-size:10px;color:var(--t3)">Off = fire every round</span>
               </div>
             </div>
 
@@ -6711,43 +6715,94 @@ S8.tickTimes=S8.tickTimes||[];
 S8.rsiHistory=[];
 S8.cfOn=true;
 
+// S8 RSI cross tracker — persists between ticks
+S8.rsiHistory=S8.rsiHistory||[];    // [{time, rsi}]
+S8.rsiCrossTime=0;                   // timestamp of last valid cross
+S8.rsiCrossType='';                  // 'ob' = overbought->in, 'os' = oversold->in
+S8.minScore=65;                      // adjustable min momentum score
+
+function s8CalcRSI(prices){
+  var n=prices.length;
+  if(n<15)return 50;
+  var gains=0,losses=0;
+  for(var i=n-14;i<n;i++){
+    var d=prices[i]-prices[i-1];
+    if(d>0)gains+=d;else losses+=Math.abs(d);
+  }
+  var ag=gains/14,al=losses/14;
+  return al===0?100:parseFloat((100-(100/(1+ag/al))).toFixed(2));
+}
+
 function s8CalcConfluence(){
   var prices=getInd(S8.asset).prices;
   var n=prices.length;
   var times=S8.tickTimes||[];
   var now=Date.now();
-  var h1=s8H1(); // gap size — conditions scale with barrier
 
-  if(n<10)return{pass:false,score:0,c1:false,c2:false,c3:false,c4:false,
-    reason:'warming up',move3:0,flats:0,dist:0,speed:0,freq:0,rsi:50,atr5:0,bbExpanding:false};
+  if(n<15)return{pass:false,score:0,c1:false,c2:false,
+    reason:'warming up',dist:0,speed:0,freq:0,rsi:50,bbExpanding:false,
+    rsiState:'warming',crossType:''};
 
-  // ── Distance: total absolute move last 5 ticks ────────────────
+  // ── RSI(14) ───────────────────────────────────────────────────
+  var rsi=s8CalcRSI(prices);
+
+  // Track RSI history (keep last 30s)
+  S8.rsiHistory.push({time:now,rsi:rsi});
+  S8.rsiHistory=S8.rsiHistory.filter(function(r){return now-r.time<30000;});
+
+  // Detect cross FROM OUTSIDE back IN:
+  // Overbought: was above 70, just crossed back below 70 (RSI now <= 70, prev > 70)
+  // Oversold:   was below 30, just crossed back above 30 (RSI now >= 30, prev < 30)
+  var crossDetected=false;
+  var crossType='';
+  var rsiState='normal'; // 'ob','os','normal'
+  if(rsi>70)rsiState='ob';
+  else if(rsi<30)rsiState='os';
+
+  var histLen=S8.rsiHistory.length;
+  if(histLen>=2){
+    var prevRsi=S8.rsiHistory[histLen-2].rsi;
+    var curRsi=S8.rsiHistory[histLen-1].rsi;
+    // Cross from overbought back in: was >70, now <=70
+    if(prevRsi>70&&curRsi<=70){
+      S8.rsiCrossTime=now;
+      S8.rsiCrossType='ob';
+      crossDetected=true;crossType='ob';
+    }
+    // Cross from oversold back in: was <30, now >=30
+    if(prevRsi<30&&curRsi>=30){
+      S8.rsiCrossTime=now;
+      S8.rsiCrossType='os';
+      crossDetected=true;crossType='os';
+    }
+  }
+
+  // C1: RSI cross valid if happened within last 20 seconds
+  var crossAge=now-S8.rsiCrossTime;
+  var c1=S8.rsiCrossTime>0&&crossAge<=20000;
+  var activeCrossType=c1?S8.rsiCrossType:'';
+
+  // ── Distance: total absolute move last 5 ticks (35%) ─────────
   var dist=0;
   if(n>=6)for(var i=n-5;i<n;i++)dist+=Math.abs(prices[i]-prices[i-1]);
   dist=parseFloat(dist.toFixed(4));
 
-  // ── Speed: ticks/sec ─────────────────────────────────────────
+  // ── Speed: avg ticks per second from timestamps (30%) ────────
   var speed=0;
   if(times.length>=2){
     var tSlice=times.slice(-10),gaps=[];
     for(var gi=1;gi<tSlice.length;gi++)gaps.push(tSlice[gi]-tSlice[gi-1]);
-    if(gaps.length){var avgGap=gaps.reduce(function(a,b){return a+b;},0)/gaps.length;speed=avgGap>0?parseFloat((1000/avgGap).toFixed(2)):0;}
+    if(gaps.length){
+      var avgGap=gaps.reduce(function(a,b){return a+b;},0)/gaps.length;
+      speed=avgGap>0?parseFloat((1000/avgGap).toFixed(2)):0;
+    }
   }
 
-  // ── Frequency: ticks in last 5s ──────────────────────────────
-  var freq=0,cutoff=now-5000;
-  for(var j=0;j<times.length;j++)if(times[j]>=cutoff)freq++;
+  // ── Frequency: ticks arrived in last 5 seconds (25%) ─────────
+  var freq=0,cutoff5=now-5000;
+  for(var j=0;j<times.length;j++)if(times[j]>=cutoff5)freq++;
 
-  // ── RSI ──────────────────────────────────────────────────────
-  var rsi=50;
-  if(n>=15){
-    var gains=0,losses=0;
-    for(var ri=n-14;ri<n;ri++){var rd=prices[ri]-prices[ri-1];if(rd>0)gains+=rd;else losses+=Math.abs(rd);}
-    var avgG=gains/14,avgL=losses/14;
-    rsi=avgL===0?100:parseFloat((100-(100/(1+avgG/avgL))).toFixed(1));
-  }
-
-  // ── BB expanding ─────────────────────────────────────────────
+  // ── BB expanding bonus (5%) ───────────────────────────────────
   var bbExpanding=false;
   if(n>=22){
     var sl20=prices.slice(-20),sl20p=prices.slice(-22,-2);
@@ -6758,82 +6813,110 @@ function s8CalcConfluence(){
     bbExpanding=Math.sqrt(v1)>Math.sqrt(v2)*1.02;
   }
 
-  // ── ATR5 ─────────────────────────────────────────────────────
-  var atr5=0;
-  if(n>=6){for(var ai=n-5;ai<n;ai++)atr5+=Math.abs(prices[ai]-prices[ai-1]);atr5=parseFloat((atr5/5).toFixed(4));}
+  // ── RSI bonus (5%): active when RSI is in extreme zone ───────
+  var rsiBonus=rsi>65||rsi<35; // near extreme = active momentum
 
-  // ── Momentum score (same weights, lower threshold) ────────────
-  var dN=Math.min(1,dist/1.0);  // max at 1.0 total move (was 2.0)
-  var sN=Math.min(1,speed/6);   // max at 6 ticks/sec (was 8)
-  var fN=Math.min(1,freq/8);    // max at 8 ticks in 5s (was 12)
-  var rsiN=Math.min(1,Math.abs(rsi-50)/30);
+  // ── Momentum Score 0-100 ─────────────────────────────────────
+  // Normalise each signal 0-1 then weight
+  var dMax=2.0;  // R_100 typical: 5 ticks * ~0.4 = 2.0 total move
+  var sMax=8;    // 8 ticks/sec = very fast
+  var fMax=12;   // 12 ticks in 5s = very frequent
+  var dN=Math.min(1,dist/dMax);
+  var sN=Math.min(1,speed/sMax);
+  var fN=Math.min(1,freq/fMax);
   var bbN=bbExpanding?1:0;
+  var rsiN=rsiBonus?1:0;
   var momScore=Math.round(dN*35+sN*30+fN*25+rsiN*5+bbN*5);
 
-  // ── C1: Momentum score >= 40 (direction-agnostic movement) ───
-  var c1=momScore>=40;
-
-  // ── C2: Net move last 3 ticks >= 50% of H1 gap ───────────────
-  // Ensures there's genuine price movement relative to the barrier
-  var move3=0,c2=false;
-  if(n>=4){
-    move3=parseFloat(Math.abs(prices[n-1]-prices[n-4]).toFixed(4));
-    c2=move3>=(h1*0.5);
-  }
-
-  // ── C3: ATR5 > H1*0.8 ────────────────────────────────────────
-  // Average tick range exceeds 80% of barrier — vol sufficient to breach
-  var c3=atr5>=(h1*0.8);
-
-  // ── C4: Not dead — fewer than 3 flat ticks in last 5 ─────────
-  var flats=0;
-  if(n>=6)for(var fi=n-5;fi<n;fi++)if(prices[fi]===prices[fi-1])flats++;
-  var c4=flats<3;
+  // C2: Momentum score >= minScore (user-adjustable 65-75)
+  var minScore=S8.minScore||65;
+  var c2=momScore>=minScore;
 
   var reason=[];
-  if(!c1)reason.push('mom='+momScore+'<40');
-  if(!c2)reason.push('move='+move3.toFixed(3)+'<'+(h1*0.5).toFixed(3));
-  if(!c3)reason.push('atr='+atr5.toFixed(3)+'<'+(h1*0.8).toFixed(3));
-  if(!c4)reason.push('flat='+flats+'/5');
+  if(!c1){
+    var ageStr=S8.rsiCrossTime>0?Math.round(crossAge/1000)+'s ago':'no cross';
+    reason.push('RSI: '+ageStr);
+  }
+  if(!c2)reason.push('mom='+momScore+'<'+minScore);
 
-  return{pass:c1&&c2&&c3&&c4,score:momScore,
-    c1:c1,c2:c2,c3:c3,c4:c4,
-    dist:dist,speed:speed,freq:freq,rsi:rsi,atr5:atr5,bbExpanding:bbExpanding,
-    move3:move3,flats:flats,h1:h1,
-    reason:reason.length?reason.join(' | '):'ALL PASS'};
+  return{
+    pass:c1&&c2,score:momScore,c1:c1,c2:c2,
+    dist:dist,speed:speed,freq:freq,rsi:rsi,bbExpanding:bbExpanding,rsiBonus:rsiBonus,
+    rsiState:rsiState,crossType:activeCrossType,crossAge:crossAge,
+    dN:dN,sN:sN,fN:fN,
+    reason:reason.length?reason.join(' | '):'ALL PASS'
+  };
 }
 
 function s8UpdateCFUI(cf){
-  var ok='var(--ac)',bad='var(--re)';
+  var ok='var(--ac)',bad='var(--re)',dim='var(--t3)';
+  var minScore=S8.minScore||65;
+
+  // Badge
   var badge=document.getElementById('s8-cf-badge');
-  if(badge){badge.textContent=cf.pass?'ALL PASS':(!cf.reason||cf.reason==='warming up'?'WARMING':'BLOCKED');badge.style.color=cf.pass?ok:bad;badge.style.background=cf.pass?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.1)';}
-  var bar=document.getElementById('s8-cf1-bar');var val=document.getElementById('s8-cf1-val');
-  if(bar){bar.style.width=cf.score+'%';bar.style.background=cf.c1?ok:bad;}
-  if(val){val.textContent=cf.score+'/100';val.style.color=cf.c1?ok:bad;}
-  function sv(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
-  sv('s8-mom-dist',cf.dist!==undefined?cf.dist.toFixed(3):'--');
-  sv('s8-mom-spd',cf.speed!==undefined?cf.speed.toFixed(1):'--');
-  sv('s8-mom-freq',cf.freq!==undefined?cf.freq:'--');
-  sv('s8-mom-rsi',cf.rsi!==undefined?cf.rsi.toFixed(1):'--');
-  sv('s8-mom-bb',cf.bbExpanding?'EXP':'TIGHT');
-  function styleRow(id,vidx,pass,txt){
-    var r=document.getElementById(id),v=document.getElementById(vidx);
-    if(r)r.style.borderColor=pass?'rgba(0,229,160,0.3)':'rgba(255,77,106,0.2)';
-    if(v){v.textContent=txt;v.style.color=pass?ok:bad;}
+  if(badge){
+    badge.textContent=cf.pass?'ALL PASS':cf.reason==='warming up'?'WARMING':'BLOCKED';
+    badge.style.color=cf.pass?ok:bad;
+    badge.style.background=cf.pass?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.1)';
   }
-  var _h1d=(cf.h1||0.06);
-  styleRow('s8-cf2-row','s8-cf2-val',cf.c2,
-    cf.c2?'PASS '+( cf.move3||0).toFixed(3)+' >= '+(_h1d*0.5).toFixed(3)
-          :'FAIL '+( cf.move3||0).toFixed(3)+' < '+(_h1d*0.5).toFixed(3));
-  styleRow('s8-cf3-row','s8-cf3-val',cf.c3,
-    cf.c3?'PASS ATR='+( cf.atr5||0).toFixed(3)+' >= '+(_h1d*0.8).toFixed(3)
-          :'FAIL ATR='+( cf.atr5||0).toFixed(3)+' < '+(_h1d*0.8).toFixed(3));
-  styleRow('s8-cf4-row','s8-cf4-val',cf.c4,
-    cf.c4?'PASS flats='+( cf.flats||0)+'/5'
-          :'FAIL flats='+( cf.flats||0)+'/5 >=3');
+
+  // C1: RSI cross row
+  var r1=document.getElementById('s8-cf1-row');
+  var v1=document.getElementById('s8-cf1-val');
+  var rsiEl=document.getElementById('s8-rsi-val');
+  var rsiStateEl=document.getElementById('s8-rsi-state');
+  if(r1)r1.style.borderColor=cf.c1?'rgba(0,229,160,0.35)':'rgba(255,77,106,0.25)';
+  if(v1){
+    v1.textContent=cf.c1?'PASS':'FAIL';
+    v1.style.color=cf.c1?ok:bad;
+  }
+  if(rsiEl)rsiEl.textContent=cf.rsi!==undefined?cf.rsi.toFixed(1):'--';
+  if(rsiStateEl){
+    var stateStr='';
+    if(cf.rsiState==='ob')stateStr='ABOVE 70 — waiting for cross back in';
+    else if(cf.rsiState==='os')stateStr='BELOW 30 — waiting for cross back in';
+    else if(cf.c1){
+      var secAgo=Math.round((cf.crossAge||0)/1000);
+      stateStr='CROSSED '+(cf.crossType==='ob'?'OB->IN':'OS->IN')+' '+secAgo+'s ago';
+      rsiStateEl.style.color=ok;
+    } else {
+      stateStr='normal range — need extreme first';
+      rsiStateEl.style.color=dim;
+    }
+    if(cf.rsiState==='ob'){rsiStateEl.style.color='var(--re)';rsiStateEl.textContent=stateStr;}
+    else if(cf.rsiState==='os'){rsiStateEl.style.color='var(--bl)';rsiStateEl.textContent=stateStr;}
+    else rsiStateEl.textContent=stateStr;
+  }
+
+  // C2: Momentum score bar
+  var bar2=document.getElementById('s8-cf2-bar');
+  var val2=document.getElementById('s8-cf2-val');
+  var scoreLine=document.getElementById('s8-min-score-line');
+  if(bar2){bar2.style.width=cf.score+'%';bar2.style.background=cf.c2?ok:bad;}
+  if(val2){val2.textContent=cf.score+'/100';val2.style.color=cf.c2?ok:bad;}
+  if(scoreLine)scoreLine.style.left=minScore+'%';
+
+  // Sub-signal cards
+  function setCard(cardId,barId,valId,val,norm,label){
+    var card=document.getElementById(cardId);
+    var bar=document.getElementById(barId);
+    var el=document.getElementById(valId);
+    if(el)el.textContent=label;
+    if(bar)bar.style.width=Math.min(100,Math.round(norm*100))+'%';
+    if(card)card.style.borderColor=norm>=0.5?'rgba(0,229,160,0.25)':'var(--bo)';
+  }
+  setCard('s8-dist-card','s8-dist-bar','s8-mom-dist',cf.dist,cf.dN||0,cf.dist!==undefined?cf.dist.toFixed(3):'--');
+  setCard('s8-spd-card','s8-spd-bar','s8-mom-spd',cf.speed,cf.sN||0,cf.speed!==undefined?cf.speed.toFixed(1)+'/s':'--');
+  setCard('s8-freq-card','s8-freq-bar','s8-mom-freq',cf.freq,cf.fN||0,cf.freq!==undefined?cf.freq+' t/5s':'--');
+
+  // Round status
   if(!Object.keys(S8.pending).length&&!S8._placing){
     var rsEl=document.getElementById('s8-round-status');
-    if(rsEl){if(!S8.running){rsEl.textContent='IDLE';rsEl.style.color='var(--t3)';}else if(!cf.pass){rsEl.textContent='WAIT';rsEl.style.color=bad;}else{rsEl.textContent='READY';rsEl.style.color=ok;}}
+    if(rsEl){
+      if(!S8.running){rsEl.textContent='IDLE';rsEl.style.color=dim;}
+      else if(!cf.pass){rsEl.textContent='WAIT: '+cf.reason;rsEl.style.color=bad;}
+      else{rsEl.textContent='READY - FIRING';rsEl.style.color=ok;}
+    }
   }
 }
 
