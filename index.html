@@ -1739,7 +1739,10 @@ function onTick(tick) {
   S.prices[sym]=q;
   // Track last tick arrival time per symbol (used by stale-feed watchdog)
   if(!S._lastTickTime) S._lastTickTime={};
-  S._lastTickTime[sym]=Date.now();
+  var _tickNow=Date.now();
+  S._lastTickTime[sym]=_tickNow;
+  // S8 tick tracking — runs on every tick for the S8 asset
+  s8OnTickUpdate(sym,_tickNow);
   // Ticker bar  -  throttled to 2fps per symbol (cheap but fires for ALL symbols)
   var _tkNow=Date.now();
   if(!S._lastTicker)S._lastTicker={};
@@ -6920,25 +6923,16 @@ function s8UpdateCFUI(cf){
   }
 }
 
-// Hook tick stream — deferred so onTickWrapper is defined before we wrap it
-function s8InstallTickHook(){
-  var _orig=onTickWrapper; // direct reference, no window. needed
-  onTickWrapper=function(tick){
-    _orig(tick);
-    if(!tick||tick.symbol!==S8.asset)return;
-    S8.tickTimes=S8.tickTimes||[];
-    S8.tickTimes.push(Date.now());
-    if(S8.tickTimes.length>100)S8.tickTimes.shift();
-    var cf=s8CalcConfluence();
-    s8UpdateCFUI(cf);
-    S8._lastCF=cf;
-  };
-}
-// Install after page loads
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',s8InstallTickHook);
-} else {
-  s8InstallTickHook();
+// S8 tick handler — called directly from onTick when symbol matches
+// No hook needed — onTick is a regular function call, not reassignable
+function s8OnTickUpdate(sym,now){
+  if(sym!==S8.asset)return;
+  S8.tickTimes=S8.tickTimes||[];
+  S8.tickTimes.push(now);
+  if(S8.tickTimes.length>100)S8.tickTimes.shift();
+  var cf=s8CalcConfluence();
+  s8UpdateCFUI(cf);
+  S8._lastCF=cf;
 }
 
 // Gate placement on confluence
