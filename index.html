@@ -950,71 +950,107 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               </div>
             </div>
 
-            <!-- Confluence Gate — 4 conditions -->
+            <!-- Entry Model -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;margin-bottom:12px">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div style="font-size:12px;font-weight:700">Entry Model — 2 Confluences</div>
+              <!-- Header -->
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <div style="font-size:12px;font-weight:700">Entry Model — 3 Confluences</div>
                 <div id="s8-cf-badge" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--bg4);color:var(--t3);font-family:var(--mo)">WAITING</div>
               </div>
 
-              <!-- C1: RSI Cross -->
-              <div style="margin-bottom:10px;padding:9px 11px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);transition:all .3s" id="s8-cf1-row">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                  <span style="font-size:11px;font-weight:700;color:var(--t2)">① RSI crossing from outside back in</span>
+              <!-- C1: Zone Breakout -->
+              <div style="margin-bottom:8px;padding:9px 11px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);transition:border-color .3s" id="s8-cf1-row">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                  <span style="font-size:11px;font-weight:700;color:var(--t2)">① Zone Breakout</span>
                   <span style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-cf1-val">--</span>
                 </div>
-                <div style="display:flex;gap:8px;font-size:10px;font-family:var(--mo)">
-                  <span style="color:var(--t3)">RSI(14):</span>
-                  <span id="s8-rsi-val" style="color:var(--t1);font-weight:700">--</span>
-                  <span style="color:var(--t3)">|</span>
-                  <span id="s8-rsi-state" style="color:var(--t3)">waiting...</span>
+                <div style="display:flex;gap:10px;font-size:10px;font-family:var(--mo);flex-wrap:wrap">
+                  <span style="color:var(--t3)">Zone: <span id="s8-zone-lo" style="color:var(--re)">--</span> — <span id="s8-zone-hi" style="color:var(--ac)">--</span></span>
+                  <span style="color:var(--t3)">Width: <span id="s8-zone-w" style="color:var(--go)">--</span></span>
+                  <span id="s8-zone-state" style="color:var(--t3)">detecting zone...</span>
+                </div>
+                <!-- Zone compression bar -->
+                <div style="height:4px;background:var(--bg4);border-radius:2px;margin-top:6px;overflow:hidden">
+                  <div id="s8-zone-bar" style="height:100%;width:0%;border-radius:2px;background:var(--go);transition:width .3s"></div>
+                </div>
+                <div style="font-size:9px;color:var(--t3);margin-top:3px">Tighter bar = more compressed zone = bigger breakout expected</div>
+              </div>
+
+              <!-- Live RSI Indicator (between C1 and C2) -->
+              <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 11px;margin-bottom:8px;border:1px solid var(--bo)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                  <span style="font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.05em">RSI (14)</span>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-rsi-val">--</span>
+                    <span id="s8-rsi-state" style="font-size:10px;font-family:var(--mo);color:var(--t3)">--</span>
+                  </div>
+                </div>
+                <!-- RSI canvas indicator -->
+                <div style="position:relative;height:52px">
+                  <canvas id="s8RsiCanvas" style="width:100%;height:52px"></canvas>
+                  <!-- OB/OS labels -->
+                  <div style="position:absolute;top:2px;right:4px;font-size:9px;color:rgba(255,77,106,0.6);font-family:var(--mo)">70</div>
+                  <div style="position:absolute;bottom:2px;right:4px;font-size:9px;color:rgba(59,130,246,0.6);font-family:var(--mo)">30</div>
+                  <div style="position:absolute;top:50%;right:4px;font-size:9px;color:rgba(255,255,255,0.2);font-family:var(--mo);transform:translateY(-50%)">50</div>
                 </div>
               </div>
 
-              <!-- C2: Momentum Score -->
+              <!-- C2: RSI Cross -->
+              <div style="margin-bottom:8px;padding:9px 11px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo);transition:border-color .3s" id="s8-cf2-row">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:11px;font-weight:700;color:var(--t2)">② RSI cross from outside back in</span>
+                  <span style="font-size:11px;font-weight:700;font-family:var(--mo)" id="s8-cf2-val">--</span>
+                </div>
+                <div style="font-size:10px;font-family:var(--mo);color:var(--t3);margin-top:3px" id="s8-cf2-detail">RSI must hit 70+ or 30- then cross back</div>
+              </div>
+
+              <!-- C3: Momentum Score -->
               <div style="margin-bottom:10px">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                  <span style="font-size:11px;font-weight:700;color:var(--t2)">② Momentum Score</span>
+                  <span style="font-size:11px;font-weight:700;color:var(--t2)">③ Momentum Score</span>
                   <div style="display:flex;align-items:center;gap:6px">
                     <span style="font-size:10px;color:var(--t3)">min:</span>
                     <input type="number" id="s8-min-score" value="65" min="1" max="100" step="1"
                       style="width:44px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:2px 5px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center"
                       oninput="S8.minScore=parseInt(this.value)||65;document.getElementById('s8-min-score-line').style.left=(S8.minScore||65)+'%'">
-                    <span style="font-size:12px;font-weight:700;font-family:var(--mo)" id="s8-cf2-val">0/100</span>
+                    <span style="font-size:12px;font-weight:700;font-family:var(--mo)" id="s8-cf3-val">0/100</span>
                   </div>
                 </div>
                 <div style="height:10px;background:var(--bg4);border-radius:99px;overflow:hidden;position:relative;margin-bottom:6px">
-                  <div id="s8-cf2-bar" style="height:100%;width:0%;border-radius:99px;background:var(--re);transition:width .25s,background .25s"></div>
+                  <div id="s8-cf3-bar" style="height:100%;width:0%;border-radius:99px;background:var(--re);transition:width .25s,background .25s"></div>
                   <div id="s8-min-score-line" style="position:absolute;top:0;bottom:0;left:65%;width:2px;background:rgba(255,255,255,0.5)"></div>
                 </div>
-                <!-- 3 sub-signals -->
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
-                  <div style="background:var(--bg3);border-radius:5px;padding:6px 7px;text-align:center;border:1px solid var(--bo);transition:all .3s" id="s8-dist-card">
+                  <div style="background:var(--bg3);border-radius:5px;padding:6px 7px;text-align:center;border:1px solid var(--bo);transition:border-color .3s" id="s8-dist-card">
                     <div style="font-size:9px;color:var(--t3);margin-bottom:2px">FAR (35%)</div>
                     <div style="font-size:12px;font-weight:700;font-family:var(--mo)" id="s8-mom-dist">--</div>
                     <div style="height:3px;background:var(--bg4);border-radius:2px;margin-top:4px;overflow:hidden"><div id="s8-dist-bar" style="height:100%;width:0%;background:var(--ac);border-radius:2px;transition:width .25s"></div></div>
                   </div>
-                  <div style="background:var(--bg3);border-radius:5px;padding:6px 7px;text-align:center;border:1px solid var(--bo);transition:all .3s" id="s8-spd-card">
+                  <div style="background:var(--bg3);border-radius:5px;padding:6px 7px;text-align:center;border:1px solid var(--bo);transition:border-color .3s" id="s8-spd-card">
                     <div style="font-size:9px;color:var(--t3);margin-bottom:2px">FAST (30%)</div>
                     <div style="font-size:12px;font-weight:700;font-family:var(--mo)" id="s8-mom-spd">--</div>
                     <div style="height:3px;background:var(--bg4);border-radius:2px;margin-top:4px;overflow:hidden"><div id="s8-spd-bar" style="height:100%;width:0%;background:var(--go);border-radius:2px;transition:width .25s"></div></div>
                   </div>
-                  <div style="background:var(--bg3);border-radius:5px;padding:6px 7px;text-align:center;border:1px solid var(--bo);transition:all .3s" id="s8-freq-card">
+                  <div style="background:var(--bg3);border-radius:5px;padding:6px 7px;text-align:center;border:1px solid var(--bo);transition:border-color .3s" id="s8-freq-card">
                     <div style="font-size:9px;color:var(--t3);margin-bottom:2px">OFTEN (25%)</div>
                     <div style="font-size:12px;font-weight:700;font-family:var(--mo)" id="s8-mom-freq">--</div>
                     <div style="height:3px;background:var(--bg4);border-radius:2px;margin-top:4px;overflow:hidden"><div id="s8-freq-bar" style="height:100%;width:0%;background:var(--bl);border-radius:2px;transition:width .25s"></div></div>
                   </div>
                 </div>
-                <div style="font-size:10px;color:var(--t3);margin-top:5px;font-family:var(--mo)">RSI bonus 5% + BB bonus 5% added when active</div>
               </div>
 
-              <!-- Filter toggle -->
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
-                <div style="display:flex;align-items:center;gap:8px">
+              <!-- Filter toggle + zone ticks setting -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
                   <span style="font-size:11px;color:var(--t2)">Filter ON</span>
                   <div class="tsw on" id="s8-cf-sw" onclick="S8.cfOn=this.classList.toggle('on')" style="width:34px;height:18px"></div>
                 </div>
-                <span style="font-size:10px;color:var(--t3)">Off = fire every round</span>
+                <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
+                  <span style="font-size:10px;color:var(--t3)">Zone ticks:</span>
+                  <input type="number" id="s8-zone-ticks" value="20" min="5" max="50" step="1"
+                    style="width:40px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:2px 5px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center"
+                    oninput="S8.zoneTicks=parseInt(this.value)||20">
+                </div>
               </div>
             </div>
 
@@ -6713,16 +6749,17 @@ function s8ApplyBudget(){
   s8UpdateMath();
 }
 
-// S8 4-Confluence entry check
+// S8 Entry Model state
 S8.tickTimes=S8.tickTimes||[];
-S8.rsiHistory=[];
+S8.rsiHistory=S8.rsiHistory||[];
+S8.rsiCrossTime=0;
+S8.rsiCrossType='';
+S8.minScore=65;
+S8.zoneTicks=20;
 S8.cfOn=true;
-
-// S8 RSI cross tracker — persists between ticks
-S8.rsiHistory=S8.rsiHistory||[];    // [{time, rsi}]
-S8.rsiCrossTime=0;                   // timestamp of last valid cross
-S8.rsiCrossType='';                  // 'ob' = overbought->in, 'os' = oversold->in
-S8.minScore=65;                      // adjustable min momentum score
+S8._rsiCanvas=null;
+S8._rsiCtx=null;
+S8._rsiBuffer=[];  // last 60 RSI values for canvas drawing
 
 function s8CalcRSI(prices){
   var n=prices.length;
@@ -6741,24 +6778,26 @@ function s8CalcConfluence(){
   var n=prices.length;
   var times=S8.tickTimes||[];
   var now=Date.now();
+  var zoneTicks=Math.max(5,S8.zoneTicks||20);
 
-  if(n<15)return{pass:false,score:0,c1:false,c2:false,
-    reason:'warming up',dist:0,speed:0,freq:0,rsi:50,bbExpanding:false,
-    rsiState:'warming',crossType:''};
+  if(n<15)return{pass:false,score:0,c1:false,c2:false,c3:false,
+    reason:'warming up',dist:0,speed:0,freq:0,rsi:50,
+    zoneHi:0,zoneLo:0,zoneW:0,zoneBreak:'none',
+    rsiState:'warming',crossType:'',crossAge:0,dN:0,sN:0,fN:0};
 
   // ── RSI(14) ───────────────────────────────────────────────────
   var rsi=s8CalcRSI(prices);
 
-  // Track RSI history (keep last 30s)
+  // RSI canvas buffer
+  S8._rsiBuffer.push(rsi);
+  if(S8._rsiBuffer.length>80)S8._rsiBuffer.shift();
+
+  // RSI history for cross detection (30s window)
   S8.rsiHistory.push({time:now,rsi:rsi});
   S8.rsiHistory=S8.rsiHistory.filter(function(r){return now-r.time<30000;});
 
-  // Detect cross FROM OUTSIDE back IN:
-  // Overbought: was above 70, just crossed back below 70 (RSI now <= 70, prev > 70)
-  // Oversold:   was below 30, just crossed back above 30 (RSI now >= 30, prev < 30)
-  var crossDetected=false;
-  var crossType='';
-  var rsiState='normal'; // 'ob','os','normal'
+  // RSI state and cross detection
+  var rsiState='normal';
   if(rsi>70)rsiState='ob';
   else if(rsi<30)rsiState='os';
 
@@ -6766,46 +6805,71 @@ function s8CalcConfluence(){
   if(histLen>=2){
     var prevRsi=S8.rsiHistory[histLen-2].rsi;
     var curRsi=S8.rsiHistory[histLen-1].rsi;
-    // Cross from overbought back in: was >70, now <=70
-    if(prevRsi>70&&curRsi<=70){
-      S8.rsiCrossTime=now;
-      S8.rsiCrossType='ob';
-      crossDetected=true;crossType='ob';
-    }
-    // Cross from oversold back in: was <30, now >=30
-    if(prevRsi<30&&curRsi>=30){
-      S8.rsiCrossTime=now;
-      S8.rsiCrossType='os';
-      crossDetected=true;crossType='os';
-    }
+    if(prevRsi>70&&curRsi<=70){S8.rsiCrossTime=now;S8.rsiCrossType='ob';}
+    if(prevRsi<30&&curRsi>=30){S8.rsiCrossTime=now;S8.rsiCrossType='os';}
+  }
+  var crossAge=now-S8.rsiCrossTime;
+  var c2=S8.rsiCrossTime>0&&crossAge<=20000;
+  var activeCrossType=c2?S8.rsiCrossType:'';
+
+  // ── Zone Detection ─────────────────────────────────────────────
+  // Look at last zoneTicks prices to find the consolidation zone
+  // Zone = high and low of the last N ticks
+  // Breakout = current price just exceeded the zone boundary
+  var zoneSlice=prices.slice(-(zoneTicks+1)); // +1 so we can compare prev vs zone
+  var zoneLen=zoneSlice.length;
+  // Zone is defined by ticks BEFORE the last one (prev N-1 ticks)
+  var zonePrices=zoneSlice.slice(0,-1);
+  var zoneHi=Math.max.apply(null,zonePrices);
+  var zoneLo=Math.min.apply(null,zonePrices);
+  var zoneW=parseFloat((zoneHi-zoneLo).toFixed(4));
+  var curPrice=prices[n-1];
+  var prevPrice=prices[n-2]||curPrice;
+
+  // Breakout: current tick crossed the zone boundary from inside
+  var zoneBreak='none';
+  if(prevPrice<=zoneHi&&curPrice>zoneHi)zoneBreak='up';    // broke above
+  else if(prevPrice>=zoneLo&&curPrice<zoneLo)zoneBreak='dn'; // broke below
+  // Also accept: price is currently outside zone (just broke in last few ticks)
+  // Check if any of last 3 ticks was a breakout
+  if(zoneBreak==='none'&&n>=4){
+    var recent3=prices.slice(-3);
+    var hadBreakUp=recent3.some(function(p){return p>zoneHi;});
+    var hadBreakDn=recent3.some(function(p){return p<zoneLo;});
+    // But price 5 ticks ago must have been inside the zone
+    var anchorP=prices[n-6]||prices[0];
+    if(hadBreakUp&&anchorP>=zoneLo&&anchorP<=zoneHi)zoneBreak='up';
+    else if(hadBreakDn&&anchorP>=zoneLo&&anchorP<=zoneHi)zoneBreak='dn';
   }
 
-  // C1: RSI cross valid if happened within last 20 seconds
-  var crossAge=now-S8.rsiCrossTime;
-  var c1=S8.rsiCrossTime>0&&crossAge<=20000;
-  var activeCrossType=c1?S8.rsiCrossType:'';
+  // C1: Zone breakout detected
+  var c1=zoneBreak!=='none';
 
-  // ── Distance: total absolute move last 5 ticks (35%) ─────────
-  var dist=0;
-  if(n>=6)for(var i=n-5;i<n;i++)dist+=Math.abs(prices[i]-prices[i-1]);
-  dist=parseFloat(dist.toFixed(4));
+  // Zone tightness: smaller zone relative to recent ATR = more compressed = better setup
+  var atr5=0;
+  if(n>=6){for(var ai=n-5;ai<n;ai++)atr5+=Math.abs(prices[ai]-prices[ai-1]);atr5/=5;}
+  // Compression ratio: how tight is the zone vs volatility
+  // Tight zone (w < 0.5×ATR×zoneTicks) = very compressed
+  var zoneCompression=atr5>0?Math.max(0,1-(zoneW/(atr5*zoneTicks*0.3))):0;
 
-  // ── Speed: avg ticks per second from timestamps (30%) ────────
+  // ── Speed: avg ticks per second ──────────────────────────────
   var speed=0;
   if(times.length>=2){
     var tSlice=times.slice(-10),gaps=[];
     for(var gi=1;gi<tSlice.length;gi++)gaps.push(tSlice[gi]-tSlice[gi-1]);
-    if(gaps.length){
-      var avgGap=gaps.reduce(function(a,b){return a+b;},0)/gaps.length;
-      speed=avgGap>0?parseFloat((1000/avgGap).toFixed(2)):0;
-    }
+    if(gaps.length){var avgGap=gaps.reduce(function(a,b){return a+b;},0)/gaps.length;speed=avgGap>0?parseFloat((1000/avgGap).toFixed(2)):0;}
   }
 
-  // ── Frequency: ticks arrived in last 5 seconds (25%) ─────────
+  // ── Distance: total move last 5 ticks ────────────────────────
+  var dist=0;
+  if(n>=6)for(var i=n-5;i<n;i++)dist+=Math.abs(prices[i]-prices[i-1]);
+  dist=parseFloat(dist.toFixed(4));
+
+  // ── Frequency: ticks in last 5s ──────────────────────────────
   var freq=0,cutoff5=now-5000;
   for(var j=0;j<times.length;j++)if(times[j]>=cutoff5)freq++;
 
-  // ── BB expanding bonus (5%) ───────────────────────────────────
+  // ── BB expanding bonus ────────────────────────────────────────
   var bbExpanding=false;
   if(n>=22){
     var sl20=prices.slice(-20),sl20p=prices.slice(-22,-2);
@@ -6816,101 +6880,167 @@ function s8CalcConfluence(){
     bbExpanding=Math.sqrt(v1)>Math.sqrt(v2)*1.02;
   }
 
-  // ── RSI bonus (5%): active when RSI is in extreme zone ───────
-  var rsiBonus=rsi>65||rsi<35; // near extreme = active momentum
-
-  // ── Momentum Score 0-100 ─────────────────────────────────────
-  // Normalise each signal 0-1 then weight
-  var dMax=2.0;  // R_100 typical: 5 ticks * ~0.4 = 2.0 total move
-  var sMax=8;    // 8 ticks/sec = very fast
-  var fMax=12;   // 12 ticks in 5s = very frequent
-  var dN=Math.min(1,dist/dMax);
-  var sN=Math.min(1,speed/sMax);
-  var fN=Math.min(1,freq/fMax);
+  // ── Momentum Score ────────────────────────────────────────────
+  var dN=Math.min(1,dist/2.0);
+  var sN=Math.min(1,speed/8);
+  var fN=Math.min(1,freq/12);
+  var rsiN=(rsi>65||rsi<35)?1:0;
   var bbN=bbExpanding?1:0;
-  var rsiN=rsiBonus?1:0;
   var momScore=Math.round(dN*35+sN*30+fN*25+rsiN*5+bbN*5);
 
-  // C2: Momentum score >= minScore (user-adjustable 65-75)
   var minScore=S8.minScore||65;
-  var c2=momScore>=minScore;
+  var c3=momScore>=minScore;
 
   var reason=[];
-  if(!c1){
-    var ageStr=S8.rsiCrossTime>0?Math.round(crossAge/1000)+'s ago':'no cross';
-    reason.push('RSI: '+ageStr);
-  }
-  if(!c2)reason.push('mom='+momScore+'<'+minScore);
+  if(!c1)reason.push('no zone break');
+  if(!c2){var ageStr=S8.rsiCrossTime>0?Math.round(crossAge/1000)+'s ago':'no cross yet';reason.push('RSI '+ageStr);}
+  if(!c3)reason.push('mom='+momScore+'<'+minScore);
 
   return{
-    pass:c1&&c2,score:momScore,c1:c1,c2:c2,
-    dist:dist,speed:speed,freq:freq,rsi:rsi,bbExpanding:bbExpanding,rsiBonus:rsiBonus,
+    pass:c1&&c2&&c3,score:momScore,c1:c1,c2:c2,c3:c3,
+    dist:dist,speed:speed,freq:freq,rsi:rsi,
+    zoneHi:zoneHi,zoneLo:zoneLo,zoneW:zoneW,zoneBreak:zoneBreak,zoneCompression:zoneCompression,
     rsiState:rsiState,crossType:activeCrossType,crossAge:crossAge,
     dN:dN,sN:sN,fN:fN,
     reason:reason.length?reason.join(' | '):'ALL PASS'
   };
 }
 
+// ── RSI Canvas Draw ───────────────────────────────────────────────────
+function s8DrawRSI(){
+  var canvas=document.getElementById('s8RsiCanvas');
+  if(!canvas)return;
+  var buf=S8._rsiBuffer;
+  if(!buf||!buf.length)return;
+  var W=canvas.offsetWidth||400,H=canvas.offsetHeight||52;
+  if(canvas.width!==W||canvas.height!==H){canvas.width=W;canvas.height=H;}
+  var ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  // OB line at 70, OS line at 30, mid at 50
+  function rsiY(r){return H-(r/100)*H;}
+
+  // Background zones
+  ctx.fillStyle='rgba(255,77,106,0.06)';
+  ctx.fillRect(0,0,W,rsiY(70)); // above 70
+  ctx.fillStyle='rgba(59,130,246,0.06)';
+  ctx.fillRect(0,rsiY(30),W,H-rsiY(30)); // below 30
+
+  // Grid lines
+  ctx.strokeStyle='rgba(255,77,106,0.25)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(0,rsiY(70));ctx.lineTo(W,rsiY(70));ctx.stroke();
+  ctx.strokeStyle='rgba(59,130,246,0.25)';
+  ctx.beginPath();ctx.moveTo(0,rsiY(30));ctx.lineTo(W,rsiY(30));ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,0.08)';
+  ctx.beginPath();ctx.moveTo(0,rsiY(50));ctx.lineTo(W,rsiY(50));ctx.stroke();
+  ctx.setLineDash([]);
+
+  // RSI line
+  if(buf.length<2)return;
+  var step=W/(buf.length-1);
+  ctx.lineWidth=1.5;
+  ctx.strokeStyle='#00e5a0';
+  ctx.beginPath();
+  buf.forEach(function(r,i){
+    var x=i*step,y=rsiY(r);
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  // Current RSI dot
+  var lastRsi=buf[buf.length-1];
+  var dotColor=lastRsi>70?'#ff4d6a':lastRsi<30?'#3b82f6':'#00e5a0';
+  ctx.fillStyle=dotColor;
+  ctx.beginPath();
+  ctx.arc(W-1,rsiY(lastRsi),3,0,Math.PI*2);
+  ctx.fill();
+}
+
 function s8UpdateCFUI(cf){
   var ok='var(--ac)',bad='var(--re)',dim='var(--t3)';
   var minScore=S8.minScore||65;
+  var dp=cf.zoneHi>100?2:4;
 
   // Badge
   var badge=document.getElementById('s8-cf-badge');
   if(badge){
-    badge.textContent=cf.pass?'ALL PASS':cf.reason==='warming up'?'WARMING':'BLOCKED';
-    badge.style.color=cf.pass?ok:bad;
-    badge.style.background=cf.pass?'rgba(0,229,160,0.1)':'rgba(255,77,106,0.1)';
+    badge.textContent=cf.pass?'FIRE':cf.reason==='warming up'?'WARMING':'WAIT';
+    badge.style.color=cf.pass?ok:cf.reason==='warming up'?'var(--go)':bad;
+    badge.style.background=cf.pass?'rgba(0,229,160,0.15)':cf.reason==='warming up'?'rgba(245,166,35,0.1)':'rgba(255,77,106,0.1)';
   }
 
-  // C1: RSI cross row
+  // C1: Zone breakout
   var r1=document.getElementById('s8-cf1-row');
   var v1=document.getElementById('s8-cf1-val');
-  var rsiEl=document.getElementById('s8-rsi-val');
-  var rsiStateEl=document.getElementById('s8-rsi-state');
-  if(r1)r1.style.borderColor=cf.c1?'rgba(0,229,160,0.35)':'rgba(255,77,106,0.25)';
-  if(v1){
-    v1.textContent=cf.c1?'PASS':'FAIL';
-    v1.style.color=cf.c1?ok:bad;
-  }
-  if(rsiEl)rsiEl.textContent=cf.rsi!==undefined?cf.rsi.toFixed(1):'--';
-  if(rsiStateEl){
-    var stateStr='';
-    if(cf.rsiState==='ob')stateStr='ABOVE 70 — waiting for cross back in';
-    else if(cf.rsiState==='os')stateStr='BELOW 30 — waiting for cross back in';
-    else if(cf.c1){
-      var secAgo=Math.round((cf.crossAge||0)/1000);
-      stateStr='CROSSED '+(cf.crossType==='ob'?'OB->IN':'OS->IN')+' '+secAgo+'s ago';
-      rsiStateEl.style.color=ok;
-    } else {
-      stateStr='normal range — need extreme first';
-      rsiStateEl.style.color=dim;
-    }
-    if(cf.rsiState==='ob'){rsiStateEl.style.color='var(--re)';rsiStateEl.textContent=stateStr;}
-    else if(cf.rsiState==='os'){rsiStateEl.style.color='var(--bl)';rsiStateEl.textContent=stateStr;}
-    else rsiStateEl.textContent=stateStr;
+  if(r1)r1.style.borderColor=cf.c1?'rgba(0,229,160,0.4)':'rgba(255,77,106,0.2)';
+  if(v1){v1.textContent=cf.c1?(cf.zoneBreak==='up'?'BREAK UP':'BREAK DN'):'NO BREAK';v1.style.color=cf.c1?ok:bad;}
+  var zLoEl=document.getElementById('s8-zone-lo');
+  var zHiEl=document.getElementById('s8-zone-hi');
+  var zWEl=document.getElementById('s8-zone-w');
+  var zStateEl=document.getElementById('s8-zone-state');
+  var zBarEl=document.getElementById('s8-zone-bar');
+  if(zLoEl)zLoEl.textContent=cf.zoneLo?cf.zoneLo.toFixed(dp):'--';
+  if(zHiEl)zHiEl.textContent=cf.zoneHi?cf.zoneHi.toFixed(dp):'--';
+  if(zWEl){zWEl.textContent=cf.zoneW?cf.zoneW.toFixed(dp):'--';zWEl.style.color=cf.zoneW<0.1?ok:cf.zoneW<0.3?'var(--go)':'var(--re)';}
+  if(zBarEl)zBarEl.style.width=Math.min(100,Math.round((cf.zoneCompression||0)*100))+'%';
+  if(zStateEl){
+    var zs=cf.zoneBreak==='up'?'BROKE ABOVE zone high':cf.zoneBreak==='dn'?'BROKE BELOW zone low':'consolidating inside zone';
+    zStateEl.textContent=zs;
+    zStateEl.style.color=cf.c1?ok:dim;
   }
 
-  // C2: Momentum score bar
-  var bar2=document.getElementById('s8-cf2-bar');
-  var val2=document.getElementById('s8-cf2-val');
+  // RSI canvas
+  s8DrawRSI();
+
+  // RSI value and state text
+  var rsiEl=document.getElementById('s8-rsi-val');
+  var rsiStEl=document.getElementById('s8-rsi-state');
+  if(rsiEl){
+    rsiEl.textContent=cf.rsi!==undefined?cf.rsi.toFixed(1):'--';
+    rsiEl.style.color=cf.rsi>70?bad:cf.rsi<30?'var(--bl)':cf.rsi!==undefined?ok:dim;
+  }
+  if(rsiStEl){
+    var rst=cf.rsiState==='ob'?'OVERBOUGHT >70':cf.rsiState==='os'?'OVERSOLD <30':'neutral';
+    rsiStEl.textContent=rst;
+    rsiStEl.style.color=cf.rsiState==='ob'?bad:cf.rsiState==='os'?'var(--bl)':dim;
+  }
+
+  // C2: RSI cross
+  var r2=document.getElementById('s8-cf2-row');
+  var v2=document.getElementById('s8-cf2-val');
+  var d2=document.getElementById('s8-cf2-detail');
+  if(r2)r2.style.borderColor=cf.c2?'rgba(0,229,160,0.4)':'rgba(255,77,106,0.2)';
+  if(v2){
+    v2.textContent=cf.c2?(cf.crossType==='ob'?'OB CROSS':'OS CROSS'):'NO CROSS';
+    v2.style.color=cf.c2?ok:bad;
+  }
+  if(d2){
+    if(cf.c2){var sa=Math.round((cf.crossAge||0)/1000);d2.textContent='crossed '+(cf.crossType==='ob'?'70->below':'30->above')+' '+sa+'s ago';d2.style.color=ok;}
+    else if(cf.rsiState==='ob')d2.textContent='RSI above 70 — wait for it to cross back below 70';
+    else if(cf.rsiState==='os')d2.textContent='RSI below 30 — wait for it to cross back above 30';
+    else d2.textContent='RSI must reach 70+ or 30- first then cross back in';
+  }
+
+  // C3: Momentum score bar
+  var bar3=document.getElementById('s8-cf3-bar');
+  var val3=document.getElementById('s8-cf3-val');
   var scoreLine=document.getElementById('s8-min-score-line');
-  if(bar2){bar2.style.width=cf.score+'%';bar2.style.background=cf.c2?ok:bad;}
-  if(val2){val2.textContent=cf.score+'/100';val2.style.color=cf.c2?ok:bad;}
+  if(bar3){bar3.style.width=cf.score+'%';bar3.style.background=cf.c3?ok:bad;}
+  if(val3){val3.textContent=cf.score+'/100';val3.style.color=cf.c3?ok:bad;}
   if(scoreLine)scoreLine.style.left=minScore+'%';
 
   // Sub-signal cards
-  function setCard(cardId,barId,valId,val,norm,label){
+  function setCard(cardId,barId,valId,norm,label){
     var card=document.getElementById(cardId);
     var bar=document.getElementById(barId);
     var el=document.getElementById(valId);
     if(el)el.textContent=label;
     if(bar)bar.style.width=Math.min(100,Math.round(norm*100))+'%';
-    if(card)card.style.borderColor=norm>=0.5?'rgba(0,229,160,0.25)':'var(--bo)';
+    if(card)card.style.borderColor=norm>=0.5?'rgba(0,229,160,0.3)':'var(--bo)';
   }
-  setCard('s8-dist-card','s8-dist-bar','s8-mom-dist',cf.dist,cf.dN||0,cf.dist!==undefined?cf.dist.toFixed(3):'--');
-  setCard('s8-spd-card','s8-spd-bar','s8-mom-spd',cf.speed,cf.sN||0,cf.speed!==undefined?cf.speed.toFixed(1)+'/s':'--');
-  setCard('s8-freq-card','s8-freq-bar','s8-mom-freq',cf.freq,cf.fN||0,cf.freq!==undefined?cf.freq+' t/5s':'--');
+  setCard('s8-dist-card','s8-dist-bar','s8-mom-dist',cf.dN||0,cf.dist!==undefined?cf.dist.toFixed(3):'--');
+  setCard('s8-spd-card','s8-spd-bar','s8-mom-spd',cf.sN||0,cf.speed!==undefined?cf.speed.toFixed(1)+'/s':'--');
+  setCard('s8-freq-card','s8-freq-bar','s8-mom-freq',cf.fN||0,cf.freq!==undefined?cf.freq+' t/5s':'--');
 
   // Round status
   if(!Object.keys(S8.pending).length&&!S8._placing){
@@ -6918,7 +7048,7 @@ function s8UpdateCFUI(cf){
     if(rsEl){
       if(!S8.running){rsEl.textContent='IDLE';rsEl.style.color=dim;}
       else if(!cf.pass){rsEl.textContent='WAIT: '+cf.reason;rsEl.style.color=bad;}
-      else{rsEl.textContent='READY - FIRING';rsEl.style.color=ok;}
+      else{rsEl.textContent='READY — FIRING';rsEl.style.color=ok;}
     }
   }
 }
