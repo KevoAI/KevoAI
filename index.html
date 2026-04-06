@@ -845,6 +845,12 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <canvas id="gmChart"></canvas>
                 <div id="gm-barrier-legend" style="position:absolute;top:6px;right:8px;font-size:9px;font-family:var(--mo);line-height:1.8;text-align:right"></div>
               </div>
+              <!-- RSI sub-chart -->
+              <div style="position:relative;height:64px;border-top:1px solid var(--bo)">
+                <canvas id="gmRsiChart"></canvas>
+                <div style="position:absolute;top:3px;left:7px;font-size:9px;font-family:var(--mo);color:var(--t3)" id="gm-rsi-chart-label">RSI(5)</div>
+                <div style="position:absolute;top:3px;right:7px;font-size:10px;font-family:var(--mo);font-weight:700" id="gm-rsi-chart-val">--</div>
+              </div>
             </div>
 
             <!-- Payout Gate -->
@@ -963,251 +969,130 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <div class="db" onclick="GM.dur=20;GM.durUnit='t';gmSetActive(this)">20T</div>
                   </div>
                 </div>
-                <!-- ── Unified Confidence Panel (merged 60/40 + composite score) ── -->
-                <div style="background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.22);border-radius:var(--rs);padding:10px;margin-bottom:11px">
-                  <!-- Header row: title + live score badge -->
+
+                <!-- ── RSI Settings ── -->
+                <div style="background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.25);border-radius:var(--rs);padding:11px;margin-bottom:11px">
+                  <div style="font-size:11px;font-weight:700;color:var(--go);margin-bottom:9px">📈 RSI Settings</div>
+                  <div class="ig" style="margin-bottom:8px">
+                    <div class="il">RSI Period</div>
+                    <div class="dr" style="grid-template-columns:1fr 1fr">
+                      <div class="db active" id="rsi-p5" onclick="GM.rsiPeriod=5;gmSetActive(this);document.getElementById('rsi-p7').classList.remove('active')">5 — Fast</div>
+                      <div class="db" id="rsi-p7" onclick="GM.rsiPeriod=7;gmSetActive(this);document.getElementById('rsi-p5').classList.remove('active')">7 — Balanced</div>
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px">
+                    <div class="ig">
+                      <div class="il" style="color:var(--re)">Overbought</div>
+                      <div class="ir">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.rsiOB=Math.max(70,GM.rsiOB-5);document.getElementById('rsi-ob').value=GM.rsiOB">-</div>
+                        <input type="number" class="iif" id="rsi-ob" value="80" min="70" max="95" step="5" oninput="GM.rsiOB=parseInt(this.value)||80">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.rsiOB=Math.min(95,GM.rsiOB+5);document.getElementById('rsi-ob').value=GM.rsiOB">+</div>
+                      </div>
+                    </div>
+                    <div class="ig">
+                      <div class="il" style="color:var(--ac)">Oversold</div>
+                      <div class="ir">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.rsiOS=Math.max(5,GM.rsiOS-5);document.getElementById('rsi-os').value=GM.rsiOS">-</div>
+                        <input type="number" class="iif" id="rsi-os" value="20" min="5" max="30" step="5" oninput="GM.rsiOS=parseInt(this.value)||20">
+                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.rsiOS=Math.min(30,GM.rsiOS+5);document.getElementById('rsi-os').value=GM.rsiOS">+</div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Live RSI display -->
+                  <div style="background:var(--bg3);border-radius:var(--rs);padding:7px 10px;display:flex;align-items:center;justify-content:space-between">
+                    <span style="font-size:10px;color:var(--t3)">Live RSI(<span id="rsi-period-disp">5</span>)</span>
+                    <span style="font-size:14px;font-weight:700;font-family:var(--mo)" id="gm-rsi-val">--</span>
+                    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--bg4)" id="gm-rsi-label">--</span>
+                  </div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:5px">Entry fires on RSI crossing 80/20 <b>+</b> zone breakout. RSI alone does not trigger.</div>
+                </div>
+
+                <!-- ── Zone Detection ── -->
+                <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.25);border-radius:var(--rs);padding:11px;margin-bottom:11px">
                   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                    <div style="font-size:11px;font-weight:700;color:var(--ac)">🎯 Confidence Filter</div>
-                    <div id="gm-conf-score-badge" style="font-size:11px;font-weight:700;font-family:var(--mo);padding:2px 9px;border-radius:99px;background:rgba(0,229,160,0.12);color:var(--ac)">--/100</div>
+                    <div style="font-size:11px;font-weight:700;color:var(--bl)">🗺 Zone Breakout Detection</div>
+                    <div style="font-size:10px;font-family:var(--mo);font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(59,130,246,0.15);color:var(--bl)" id="gm-zone-status">FORMING</div>
                   </div>
-                  <!-- Tick direction row (was 60/40) -->
-                  <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:5px;padding:5px 9px;margin-bottom:7px;font-size:10px;font-family:var(--mo)">
-                    <span style="color:var(--ac)">↑ UP: <b id="gm-conf-up">--</b></span>
-                    <span id="gm-conf-display" style="color:var(--t3);font-size:10px">--</span>
-                    <span style="color:var(--re)">↓ DN: <b id="gm-conf-dn">--</b></span>
-                    <span style="color:var(--t3)"><b id="gm-conf-ticks">20</b>tk</span>
-                  </div>
-                  <!-- Factor mini-grid: 3 columns, 2 rows -->
-                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:7px;font-size:10px;font-family:var(--mo)">
-                    <div style="background:var(--bg3);border-radius:4px;padding:4px 6px;border:1px solid var(--bo)">
-                      <div style="color:var(--t3);font-size:9px">Dir</div>
-                      <div style="font-weight:700" id="gm-cs-dir">--</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;font-size:10px;font-family:var(--mo);margin-bottom:8px">
+                    <div style="background:var(--bg3);border-radius:4px;padding:5px 7px;border:1px solid var(--bo)">
+                      <div style="color:var(--t3);font-size:9px">Zone TOP</div>
+                      <div style="font-weight:700;color:var(--re)" id="gm-zone-top">--</div>
                     </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:4px 6px;border:1px solid var(--bo)">
-                      <div style="color:var(--t3);font-size:9px">Vol</div>
-                      <div style="font-weight:700" id="gm-cs-vol">--</div>
+                    <div style="background:var(--bg3);border-radius:4px;padding:5px 7px;border:1px solid var(--bo)">
+                      <div style="color:var(--t3);font-size:9px">Zone BOT</div>
+                      <div style="font-weight:700;color:var(--ac)" id="gm-zone-bot">--</div>
                     </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:4px 6px;border:1px solid var(--bo)">
-                      <div style="color:var(--t3);font-size:9px">Pos</div>
-                      <div style="font-weight:700" id="gm-cs-pos">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:4px 6px;border:1px solid var(--bo)">
-                      <div style="color:var(--t3);font-size:9px">Slope</div>
-                      <div style="font-weight:700" id="gm-cs-slope">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:4px 6px;border:1px solid var(--bo)">
-                      <div style="color:var(--t3);font-size:9px">Flats</div>
-                      <div style="font-weight:700" id="gm-cs-flats">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:4px 6px;border:1px solid var(--bo)">
-                      <div style="color:var(--t3);font-size:9px">Dead?</div>
-                      <div style="font-weight:700" id="gm-cs-dead">--</div>
+                    <div style="background:var(--bg3);border-radius:4px;padding:5px 7px;border:1px solid var(--bo)">
+                      <div style="color:var(--t3);font-size:9px">Width</div>
+                      <div style="font-weight:700;color:var(--go)" id="gm-zone-width">--</div>
                     </div>
                   </div>
-                  <!-- Score bar -->
-                  <div style="position:relative;height:5px;background:var(--bg4);border-radius:3px;overflow:visible;margin-bottom:5px">
-                    <div id="gm-cs-bar" style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--re),var(--go),var(--ac));width:0%;transition:width 0.35s"></div>
-                    <div id="gm-cs-threshold-line" style="position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,0.6);border-radius:1px;left:65%"></div>
-                  </div>
-                  <!-- Min score threshold buttons (replaces both old button rows) -->
-                  <div style="display:flex;align-items:center;gap:4px;margin-top:6px">
-                    <span style="font-size:9px;color:var(--t3);white-space:nowrap">Min:</span>
-                    <div class="dr" style="grid-template-columns:repeat(5,1fr);flex:1;gap:3px">
-                      <div class="db" onclick="GM.minConfidence=0;GM.confThresh=0;gmSetActive(this)" style="font-size:10px;padding:4px 2px">OFF</div>
-                      <div class="db" onclick="GM.minConfidence=50;GM.confThresh=55;gmSetActive(this)" style="font-size:10px;padding:4px 2px">50</div>
-                      <div class="db active" onclick="GM.minConfidence=65;GM.confThresh=60;gmSetActive(this)" style="font-size:10px;padding:4px 2px">65</div>
-                      <div class="db" onclick="GM.minConfidence=75;GM.confThresh=65;gmSetActive(this)" style="font-size:10px;padding:4px 2px">75</div>
-                      <div class="db" onclick="GM.minConfidence=85;GM.confThresh=75;gmSetActive(this)" style="font-size:10px;padding:4px 2px">85</div>
+                  <div style="background:var(--bg3);border-radius:var(--rs);padding:7px 10px;font-size:10px;color:var(--t2);font-family:var(--mo);line-height:1.7" id="gm-zone-detail">Detecting zone from last 20 ticks...</div>
+                  <div class="ig" style="margin-top:8px">
+                    <div class="il">Zone Lookback (ticks)</div>
+                    <div class="dr" style="grid-template-columns:repeat(4,1fr)">
+                      <div class="db" onclick="GM.zoneLook=10;gmSetActive(this)">10</div>
+                      <div class="db active" onclick="GM.zoneLook=20;gmSetActive(this)">20</div>
+                      <div class="db" onclick="GM.zoneLook=30;gmSetActive(this)">30</div>
+                      <div class="db" onclick="GM.zoneLook=50;gmSetActive(this)">50</div>
                     </div>
                   </div>
                 </div>
+
                 <!-- Daily limits -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px">
                   <div class="ig"><div class="il">Daily SL ($)</div><input type="number" class="iif" id="gm-daily-sl" value="30" min="1" oninput="gmCalc()"></div>
                   <div class="ig"><div class="il">Daily TP ($)</div><input type="number" class="iif" id="gm-daily-tp" value="60" min="1" oninput="gmCalc()"></div>
                 </div>
-                <!-- ── Entry Score Filter (multi-factor, data-driven) ── -->
-                <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.25);border-radius:var(--rs);padding:11px;margin-bottom:11px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
-                    <div style="font-size:11px;font-weight:700;color:var(--bl)">🎲 Entry Score Filter</div>
-                    <div style="font-size:10px;font-family:var(--mo);font-weight:700;padding:2px 9px;border-radius:99px;background:rgba(59,130,246,0.15);color:var(--bl)" id="gm-entry-score-badge">--/7</div>
-                  </div>
-                  <!-- Live factor pills -->
-                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:8px;font-size:9px;font-family:var(--mo)">
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Mom</div><div id="gm-sc-mom" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">ATR5</div><div id="gm-sc-atr" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">PricePos</div><div id="gm-sc-pos" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Slope</div><div id="gm-sc-slope" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Flats</div><div id="gm-sc-flats" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Squeeze</div><div id="gm-sc-squeeze" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">AtrRatio</div><div id="gm-sc-atrratio" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Dir</div><div id="gm-sc-dir" style="font-weight:700">--</div>
-                    </div>
-                  </div>
-                  <!-- Score bar -->
-                  <div style="height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-bottom:7px;position:relative">
-                    <div id="gm-sc-bar" style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--re),var(--go),var(--ac));width:0%;transition:width 0.3s"></div>
-                    <div id="gm-sc-threshold-line" style="position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,0.5);border-radius:1px;left:57%"></div>
-                  </div>
-                  <!-- Min score buttons -->
-                  <div style="display:flex;align-items:center;gap:4px">
-                    <span style="font-size:9px;color:var(--t3);white-space:nowrap">Min score:</span>
-                    <div class="dr" style="grid-template-columns:repeat(5,1fr);flex:1;gap:3px">
-                      <div class="db" onclick="GM.minScore=2;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(2/7*100)+'%'" style="font-size:10px;padding:4px 2px">2</div>
-                      <div class="db" onclick="GM.minScore=3;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(3/7*100)+'%'" style="font-size:10px;padding:4px 2px">3</div>
-                      <div class="db active" onclick="GM.minScore=4;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(4/7*100)+'%'" style="font-size:10px;padding:4px 2px">4</div>
-                      <div class="db" onclick="GM.minScore=5;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(5/7*100)+'%'" style="font-size:10px;padding:4px 2px">5</div>
-                      <div class="db" onclick="GM.minScore=6;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(6/7*100)+'%'" style="font-size:10px;padding:4px 2px">6</div>
-                    </div>
-                  </div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:5px">4 = balanced · 5 = conservative · 6 = strict · max 7</div>
+
+                <!-- ── Momentum Filters stub (hidden IDs needed by JS) ── -->
+                <div style="display:none">
+                  <div id="mf-slope-sw"></div><div id="mf-range-sw"></div><div id="mf-cons-sw"></div>
+                  <div id="mf-atr-sw"></div><div id="mf-wall-sw"></div>
+                  <div id="mf-pos-sw"></div><div id="mf-stall-sw"></div>
+                  <input id="mf-slope-val" value="0"><input id="mf-range-val" value="0">
+                  <input id="mf-cons-val" value="0"><input id="mf-atr-val" value="0">
+                  <input id="mf-wall-val" value="0"><input id="mf-pos-val" value="100">
+                  <input id="mf-stall-val" value="999">
+                  <div id="mf-slope-live"></div><div id="mf-range-live"></div>
+                  <div id="mf-cons-live"></div><div id="mf-atr-live"></div>
+                  <div id="mf-wall-live"></div><div id="mf-pos-live"></div>
+                  <div id="mf-stall-live"></div><div id="gm-mf-status"></div>
+                  <div id="gm-conf-score-badge"></div><div id="gm-conf-up"></div>
+                  <div id="gm-conf-dn"></div><div id="gm-conf-display"></div>
+                  <div id="gm-conf-ticks"></div><div id="gm-cs-dir"></div>
+                  <div id="gm-cs-vol"></div><div id="gm-cs-pos"></div><div id="gm-cs-slope"></div>
+                  <div id="gm-cs-flats"></div><div id="gm-cs-dead"></div>
+                  <div id="gm-cs-bar"></div><div id="gm-cs-threshold-line"></div>
+                  <div id="gm-entry-score-badge"></div><div id="gm-sc-mom"></div>
+                  <div id="gm-sc-atr"></div><div id="gm-sc-pos"></div><div id="gm-sc-slope"></div>
+                  <div id="gm-sc-flats"></div><div id="gm-sc-squeeze"></div>
+                  <div id="gm-sc-atrratio"></div><div id="gm-sc-dir"></div>
+                  <div id="gm-sc-bar"></div><div id="gm-sc-threshold-line"></div>
+                  <div id="gm-dir-trend"></div><div id="gm-dir-mom"></div><div id="gm-dir-conf"></div>
+                  <div id="gm-bar-up-fill"></div><div id="gm-bar-dn-fill"></div>
+                  <div id="gm-tick-pills"></div>
                 </div>
-                <!-- ── Momentum Filters ── -->
-                <div style="background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.22);border-radius:var(--rs);padding:11px;margin-bottom:11px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                    <div style="font-size:11px;font-weight:700;color:var(--go)">⚡ Momentum Filters</div>
-                    <div id="gm-mf-status" style="font-size:10px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--t3)">--</div>
-                  </div>
 
-                  <!-- Slope -->
-                  <div style="margin-bottom:8px">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                      <div style="display:flex;align-items:center;gap:7px">
-                        <div class="tsw" id="mf-slope-sw" onclick="gmMFToggle('slope')" style="width:34px;height:18px"></div>
-                        <span style="font-size:10px;font-weight:600;color:var(--t1)">Slope</span>
-                        <span style="font-size:10px;color:var(--t3)">min/tick</span>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:4px">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('slopeMin',-0.005)">-</div>
-                        <input type="number" id="mf-slope-val" value="0.02" step="0.005" min="0.005" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('slopeMin',this.value)">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('slopeMin',0.005)">+</div>
-                      </div>
-                    </div>
-                    <div id="mf-slope-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">slope: --</div>
-                  </div>
-
-                  <!-- Range Width -->
-                  <div style="margin-bottom:8px">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                      <div style="display:flex;align-items:center;gap:7px">
-                        <div class="tsw" id="mf-range-sw" onclick="gmMFToggle('range')" style="width:34px;height:18px"></div>
-                        <span style="font-size:10px;font-weight:600;color:var(--t1)">Range</span>
-                        <span style="font-size:10px;color:var(--t3)">min 20-tick H-L</span>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:4px">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('rangeMin',-0.05)">-</div>
-                        <input type="number" id="mf-range-val" value="0.20" step="0.05" min="0.05" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('rangeMin',this.value)">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('rangeMin',0.05)">+</div>
-                      </div>
-                    </div>
-                    <div id="mf-range-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">range: --</div>
-                  </div>
-
-                  <!-- Consecutive -->
-                  <div style="margin-bottom:8px">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                      <div style="display:flex;align-items:center;gap:7px">
-                        <div class="tsw" id="mf-cons-sw" onclick="gmMFToggle('cons')" style="width:34px;height:18px"></div>
-                        <span style="font-size:10px;font-weight:600;color:var(--t1)">Consec</span>
-                        <span style="font-size:10px;color:var(--t3)">of last 5 same dir</span>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:4px">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('consMin',-1)">-</div>
-                        <input type="number" id="mf-cons-val" value="4" step="1" min="2" max="5" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('consMin',this.value)">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('consMin',1)">+</div>
-                      </div>
-                    </div>
-                    <div id="mf-cons-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">consec: --</div>
-                  </div>
-
-                  <!-- ATR -->
-                  <div style="margin-bottom:8px">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                      <div style="display:flex;align-items:center;gap:7px">
-                        <div class="tsw" id="mf-atr-sw" onclick="gmMFToggle('atr')" style="width:34px;height:18px"></div>
-                        <span style="font-size:10px;font-weight:600;color:var(--t1)">ATR</span>
-                        <span style="font-size:10px;color:var(--t3)">min 5-tick avg range</span>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:4px">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('atrMin',-0.01)">-</div>
-                        <input type="number" id="mf-atr-val" value="0.05" step="0.01" min="0.01" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('atrMin',this.value)">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('atrMin',0.01)">+</div>
-                      </div>
-                    </div>
-                    <div id="mf-atr-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">atr: --</div>
-                  </div>
-
-                  <!-- Wall Distance -->
-                  <div>
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                      <div style="display:flex;align-items:center;gap:7px">
-                        <div class="tsw" id="mf-wall-sw" onclick="gmMFToggle('wall')" style="width:34px;height:18px"></div>
-                        <span style="font-size:10px;font-weight:600;color:var(--t1)">Wall Guard</span>
-                        <span style="font-size:10px;color:var(--t3)">skip near integers</span>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:4px">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('wallDist',-0.01)">-</div>
-                        <input type="number" id="mf-wall-val" value="0.05" step="0.01" min="0.01" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('wallDist',this.value)">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('wallDist',0.01)">+</div>
-                      </div>
-                    </div>
-                    <div id="mf-wall-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">dist to wall: --</div>
-                  </div>
-
-                  <!-- Price Position Filter (Rule 1) -->
-                  <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(245,166,35,0.2)">
-                    <div style="font-size:10px;font-weight:700;color:var(--go);margin-bottom:8px">📊 Entry Position Filters</div>
-
-                    <div style="margin-bottom:8px">
-                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                        <div style="display:flex;align-items:center;gap:7px">
-                          <div class="tsw on" id="mf-pos-sw" onclick="GM.mf.posOn=this.classList.toggle('on')" style="width:34px;height:18px"></div>
-                          <span style="font-size:10px;font-weight:600;color:var(--t1)">UP at Top</span>
-                          <span style="font-size:10px;color:var(--t3)">block UP bias if pricePos &gt; %</span>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:4px">
-                          <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.posMaxUp=Math.max(10,GM.mf.posMaxUp-5);document.getElementById('mf-pos-val').value=GM.mf.posMaxUp">-</div>
-                          <input type="number" id="mf-pos-val" value="30" step="5" min="10" max="90" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM.mf.posMaxUp=parseInt(this.value)||30">
-                          <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.posMaxUp=Math.min(90,GM.mf.posMaxUp+5);document.getElementById('mf-pos-val').value=GM.mf.posMaxUp">+</div>
-                        </div>
-                      </div>
-                      <div id="mf-pos-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">pricePos: --</div>
-                    </div>
-
-                    <!-- Stall Filter (Rule 2) -->
-                    <div>
-                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                        <div style="display:flex;align-items:center;gap:7px">
-                          <div class="tsw on" id="mf-stall-sw" onclick="GM.mf.stallOn=this.classList.toggle('on')" style="width:34px;height:18px"></div>
-                          <span style="font-size:10px;font-weight:600;color:var(--t1)">Stall Guard</span>
-                          <span style="font-size:10px;color:var(--t3)">UP + LOW ATR + flats ≥</span>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:4px">
-                          <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.stallFlats=Math.max(1,GM.mf.stallFlats-1);document.getElementById('mf-stall-val').value=GM.mf.stallFlats">-</div>
-                          <input type="number" id="mf-stall-val" value="1" step="1" min="1" max="5" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM.mf.stallFlats=parseInt(this.value)||1">
-                          <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.stallFlats=Math.min(5,GM.mf.stallFlats+1);document.getElementById('mf-stall-val').value=GM.mf.stallFlats">+</div>
-                        </div>
-                      </div>
-                      <div id="mf-stall-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">atr: -- | flats: --</div>
-                    </div>
-                  </div>
-                </div>
                 <!-- Gap between rounds -->
+                <div class="ig" style="margin-bottom:11px">
+                  <div class="il">Min Gap Between Rounds</div>
+                  <div class="dr" style="grid-template-columns:repeat(4,1fr)">
+                    <div class="db" onclick="GM.minGap=15;gmSetActive(this)">15s</div>
+                    <div class="db active" onclick="GM.minGap=30;gmSetActive(this)">30s</div>
+                    <div class="db" onclick="GM.minGap=45;gmSetActive(this)">45s</div>
+                    <div class="db" onclick="GM.minGap=60;gmSetActive(this)">60s</div>
+                  </div>
+                </div>
+
+                <!-- ── Manual Trade (1 round, fires immediately) ── -->
+                <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:var(--rs);padding:11px;margin-bottom:11px">
+                  <div style="font-size:11px;font-weight:700;color:var(--go);margin-bottom:8px">⚡ Manual Trade — fire 1 round now</div>
+                  <div style="font-size:10px;color:var(--t2);margin-bottom:9px">Places HIGHER + LOWER + TOUCH using current config at live price.</div>
+                  <button onclick="gmManualFire()" style="width:100%;padding:11px;border-radius:var(--rs);border:1px solid rgba(245,166,35,0.4);background:rgba(245,166,35,0.15);color:var(--go);font-family:var(--fn);font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.03em" id="gm-manual-btn">⚡ FIRE TRADE NOW</button>
+                  <div style="font-size:10px;color:var(--t3);margin-top:6px;font-family:var(--mo)" id="gm-manual-status">Ready — bot can run alongside</div>
+                </div>
+                <!-- Gap between rounds (already inserted above) -->
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Min Gap Between Rounds</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
@@ -1492,7 +1377,6 @@ setInterval(function(){
 setInterval(function(){
   if(!gmChart||!S.connected)return;
   var prices=getInd(GM.asset).prices.slice(-80);
-  // Seed with live price if buffer still empty
   if(!prices.length&&S.prices[GM.asset])prices=[S.prices[GM.asset]];
   if(!prices.length)return;
   var len=prices.length;
@@ -1500,10 +1384,34 @@ setInterval(function(){
   gmChart.data.datasets[0].data=prices.slice();
   gmChart.data.datasets[1].data=(_gmActiveBarrier&&_gmActiveBarrier.active&&_gmActiveBarrier.higher>0)?Array(len).fill(_gmActiveBarrier.higher):[];
   gmChart.data.datasets[2].data=(_gmActiveBarrier&&_gmActiveBarrier.active&&_gmActiveBarrier.lower>0)?Array(len).fill(_gmActiveBarrier.lower):[];
+  // Zone lines (datasets 3 & 4)
+  var z=GM._zone||{};
+  gmChart.data.datasets[3].data=(z.formed&&z.top>0)?Array(len).fill(z.top):[];
+  gmChart.data.datasets[4].data=(z.formed&&z.bot>0)?Array(len).fill(z.bot):[];
+  // Walls (datasets 5 & 6)
   gmUpdateWalls(prices[len-1]||0);
-  gmChart.data.datasets[3].data=(GM.mf&&GM.mf.wallOn&&_gmWalls.upper>0)?Array(len).fill(_gmWalls.upper):[];
-  gmChart.data.datasets[4].data=(GM.mf&&GM.mf.wallOn&&_gmWalls.lower>0)?Array(len).fill(_gmWalls.lower):[];
+  gmChart.data.datasets[5].data=(GM.mf&&GM.mf.wallOn&&_gmWalls.upper>0)?Array(len).fill(_gmWalls.upper):[];
+  gmChart.data.datasets[6].data=(GM.mf&&GM.mf.wallOn&&_gmWalls.lower>0)?Array(len).fill(_gmWalls.lower):[];
   gmChart.update('none');
+
+  // RSI sub-chart
+  if(gmRsiChart&&prices.length>=(GM.rsiPeriod||5)+1){
+    // Build rolling RSI series
+    var rsiData=[];
+    var rsiLook=Math.min(prices.length,80);
+    for(var ri=Math.max((GM.rsiPeriod||5)+1,prices.length-rsiLook);ri<=prices.length;ri++){
+      rsiData.push(gmCalcRSI(prices.slice(0,ri),GM.rsiPeriod));
+    }
+    gmRsiChart.data.labels=rsiData.map(function(){return '';});
+    gmRsiChart.data.datasets[0].data=rsiData.slice();
+    gmRsiChart.data.datasets[1].data=Array(rsiData.length).fill(GM.rsiOB||80);
+    gmRsiChart.data.datasets[2].data=Array(rsiData.length).fill(GM.rsiOS||20);
+    gmRsiChart.update('none');
+    // Update chart label
+    var rcl=document.getElementById('gm-rsi-chart-label');
+    if(rcl)rcl.textContent='RSI('+GM.rsiPeriod+')';
+  }
+
   var priceEl=document.getElementById('gm-chart-price');
   if(priceEl&&S.prices[GM.asset])priceEl.textContent=S.prices[GM.asset].toFixed(S.prices[GM.asset]>100?2:5);
 }, 500);
@@ -4564,9 +4472,26 @@ function initCharts(){
       {label:'Price',data:[],borderColor:'#00e5a0',borderWidth:2,fill:true,backgroundColor:function(c){var g=c.chart.ctx.createLinearGradient(0,0,0,180);g.addColorStop(0,'rgba(0,229,160,.12)');g.addColorStop(1,'rgba(0,229,160,0)');return g;},pointRadius:0,tension:0.3},
       {label:'HIGHER',data:[],borderColor:'rgba(0,229,160,0.9)',borderWidth:2,borderDash:[6,4],fill:false,pointRadius:0,tension:0},
       {label:'LOWER', data:[],borderColor:'rgba(255,77,106,0.9)',borderWidth:2,borderDash:[6,4],fill:false,pointRadius:0,tension:0},
-      {label:'WallU', data:[],borderColor:'rgba(245,166,35,0.45)',borderWidth:1,borderDash:[3,6],fill:false,pointRadius:0,tension:0},
-      {label:'WallL', data:[],borderColor:'rgba(245,166,35,0.45)',borderWidth:1,borderDash:[3,6],fill:false,pointRadius:0,tension:0}
+      {label:'ZoneTop',data:[],borderColor:'rgba(245,166,35,0.6)',borderWidth:1.5,borderDash:[4,5],fill:false,pointRadius:0,tension:0},
+      {label:'ZoneBot',data:[],borderColor:'rgba(59,130,246,0.6)',borderWidth:1.5,borderDash:[4,5],fill:false,pointRadius:0,tension:0},
+      {label:'WallU', data:[],borderColor:'rgba(245,166,35,0.35)',borderWidth:1,borderDash:[3,6],fill:false,pointRadius:0,tension:0},
+      {label:'WallL', data:[],borderColor:'rgba(245,166,35,0.35)',borderWidth:1,borderDash:[3,6],fill:false,pointRadius:0,tension:0}
     ]},options:chartOpts(200)});
+  }
+  // RSI sub-chart
+  var rctx=document.getElementById('gmRsiChart');
+  if(rctx){
+    gmRsiChart=new Chart(rctx.getContext('2d'),{type:'line',data:{labels:[],datasets:[
+      {label:'RSI',data:[],borderColor:'rgba(245,166,35,0.9)',borderWidth:1.5,fill:false,pointRadius:0,tension:0.3},
+      {label:'OB', data:[],borderColor:'rgba(255,77,106,0.5)',borderWidth:1,borderDash:[4,4],fill:false,pointRadius:0,tension:0},
+      {label:'OS', data:[],borderColor:'rgba(0,229,160,0.5)',borderWidth:1,borderDash:[4,4],fill:false,pointRadius:0,tension:0}
+    ]},options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{display:false},
+        y:{display:true,min:0,max:100,grid:{color:'rgba(255,255,255,.04)'},
+           ticks:{color:'#4a5568',font:{family:'JetBrains Mono',size:9},maxTicksLimit:3}}
+      },animation:{duration:0}}});
   }
   var pctx=document.getElementById('pnlChart').getContext('2d');
   pnlChart=new Chart(pctx,{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4a5568',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#4a5568',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}}}});
@@ -4626,32 +4551,33 @@ var GM = {
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
-  _placing:false,  // lock: prevents duplicate gmPlace calls firing simultaneously
-  confThresh:65,  // Min confidence threshold (old single-pct rule)
-  minConfidence:65, // Multi-factor composite score threshold (0-100)
-  minMomentum:3,  // kept for legacy reference — superseded by minScore
-  minAtrMult:1.2, // kept for legacy reference — superseded by minScore
-  minScore:4,     // Entry Score threshold (0-7): 4=balanced, 5=conservative, 6=strict
+  _placing:false,
+  confThresh:0,   // disabled — not used for entry
+  minConfidence:0,// disabled — not used for entry
+  minMomentum:0,
+  minAtrMult:0,
+  minScore:0,     // disabled — not used for entry
+  // RSI settings
+  rsiPeriod:5, rsiOB:80, rsiOS:20,
+  // Zone detection
+  zoneLook:20,
+  _zone:{top:0,bot:0,width:0,formed:false,breakDir:null,breakConfirmed:false},
+  _rsiPrev:50, _rsiCur:50,
   // TOUCH insurance contract state
   touchEnabled:true, touchStake:0, touchContractId:null,
-  _skipReasons:{conf:0,mf:0,stagnant:0,mom:0,atr:0,gate:0,score:0}, // skip breakdown by filter
-  tickTimes:[],   // Timestamps of recent ticks for dead-zone speed detection
-  // ── Shared metric cache (refreshed once per 400ms, reused everywhere) ──
+  _skipReasons:{conf:0,mf:0,stagnant:0,mom:0,atr:0,gate:0,score:0,zone:0,rsi:0},
+  tickTimes:[],
   _cache:{atr5:0,atr20:0,atrRatio:1,atrLabel:'NORMAL',range20:0,rHigh:0,rLow:0,
           upPct:50,dnPct:50,slope:0,flats:0,pricePos:50,wallDist:1,
           lastScore:null,lastUpdate:0},
-  // ── Momentum filters ──
   mf:{
-    slopeOn:true,  slopeMin:0.02,  slopeLook:10,
-    rangeOn:true,  rangeMin:0.20,  rangeLook:20,
-    consOn:true,   consMin:4,      consLook:5,
-    atrOn:false,   atrMin:0.05,    atrLook:5,
-    wallOn:true,   wallDist:0.05,
-    // 25002500 Entry position filters (data-driven, 2026-03-26) 25002500
-    // Rule 1: skip UP-bias trades when price is at top of range
-    posOn:true,    posMaxUp:30,
-    // Rule 2: skip UP-bias when market is stalling (LOW ATR + flat ticks)
-    stallOn:true,  stallFlats:1
+    slopeOn:false, slopeMin:0,   slopeLook:10,
+    rangeOn:false, rangeMin:0,   rangeLook:20,
+    consOn:false,  consMin:0,    consLook:5,
+    atrOn:false,   atrMin:0,     atrLook:5,
+    wallOn:false,  wallDist:0,
+    posOn:false,   posMaxUp:100,
+    stallOn:false, stallFlats:999
   }
 };
 
@@ -4705,6 +4631,129 @@ function gmRefreshCache(prices, force){
   c.wallDist=parseFloat((Math.abs(curP-Math.round(curP))).toFixed(5));
 }
 // ── END gmRefreshCache ──
+
+// ── RSI calculation (configurable period) ──────────────────────
+function gmCalcRSI(prices, period){
+  period = period || GM.rsiPeriod || 5;
+  var n = prices.length;
+  if(n < period + 1) return 50;
+  var gains = 0, losses = 0;
+  for(var i = n - period; i < n; i++){
+    var d = prices[i] - prices[i-1];
+    if(d > 0) gains += d; else losses += Math.abs(d);
+  }
+  if(losses === 0) return 100;
+  var rs = gains / losses;
+  return parseFloat((100 - 100/(1+rs)).toFixed(2));
+}
+
+// ── Zone detection: find the H/L box of the last N ticks ────────
+// A "zone" is a tight range where price has been consolidating.
+// We detect it by measuring the H-L spread vs an ATR multiple.
+function gmDetectZone(prices){
+  var look = GM.zoneLook || 20;
+  var n = prices.length;
+  if(n < look) return {formed:false};
+  var slice = prices.slice(n - look);
+  var hi = Math.max.apply(null, slice);
+  var lo = Math.min.apply(null, slice);
+  var width = parseFloat((hi - lo).toFixed(5));
+  // Zone is "formed" when width ≤ 1.5 × ATR5 (tight consolidation)
+  var atr5 = GM._cache.atr5 || 0;
+  var formed = atr5 > 0 && width <= atr5 * 2.5;
+  return {top: hi, bot: lo, width: width, formed: formed};
+}
+
+// ── Zone breakout + RSI cross entry check ───────────────────────
+// Returns {pass, reason, dir} — dir is 'UP' or 'DN'
+function gmZoneRSICheck(prices){
+  var n = prices.length;
+  if(n < (GM.rsiPeriod||5) + 2) return {pass:false, reason:'Warming up'};
+
+  var price = prices[n-1];
+  var prevPrice = prices[n-2];
+  var zone = gmDetectZone(prices);
+  GM._zone = zone;
+
+  // Update zone display
+  var zTop=document.getElementById('gm-zone-top'),
+      zBot=document.getElementById('gm-zone-bot'),
+      zW=document.getElementById('gm-zone-width'),
+      zSt=document.getElementById('gm-zone-status'),
+      zDet=document.getElementById('gm-zone-detail');
+  var dp5=price>100?2:5;
+  if(zTop) zTop.textContent = zone.top ? zone.top.toFixed(dp5) : '--';
+  if(zBot) zBot.textContent = zone.bot ? zone.bot.toFixed(dp5) : '--';
+  if(zW)   zW.textContent   = zone.width ? zone.width.toFixed(dp5) : '--';
+
+  // RSI now and previous tick
+  var rsiNow  = gmCalcRSI(prices, GM.rsiPeriod);
+  var rsiPrev = gmCalcRSI(prices.slice(0,-1), GM.rsiPeriod);
+  GM._rsiPrev = rsiPrev;
+  GM._rsiCur  = rsiNow;
+
+  // Update RSI display
+  var rsiEl = document.getElementById('gm-rsi-val');
+  var rsiLbl = document.getElementById('gm-rsi-label');
+  var rsiPD  = document.getElementById('rsi-period-disp');
+  var rsiCV  = document.getElementById('gm-rsi-chart-val');
+  if(rsiEl)  { rsiEl.textContent = rsiNow.toFixed(1); rsiEl.style.color = rsiNow>=GM.rsiOB?'var(--re)':rsiNow<=GM.rsiOS?'var(--ac)':'var(--t2)'; }
+  if(rsiCV)  { rsiCV.textContent = rsiNow.toFixed(1); rsiCV.style.color = rsiNow>=GM.rsiOB?'var(--re)':rsiNow<=GM.rsiOS?'var(--ac)':'var(--t1)'; }
+  if(rsiPD)  rsiPD.textContent = GM.rsiPeriod;
+  if(document.getElementById('rsi-chart-label')) document.getElementById('rsi-chart-label').textContent = 'RSI('+GM.rsiPeriod+')';
+  if(rsiLbl) {
+    if(rsiNow >= GM.rsiOB){ rsiLbl.textContent='OVERBOUGHT'; rsiLbl.style.color='var(--re)'; rsiLbl.style.background='var(--rd)'; }
+    else if(rsiNow <= GM.rsiOS){ rsiLbl.textContent='OVERSOLD'; rsiLbl.style.color='var(--ac)'; rsiLbl.style.background='var(--ad)'; }
+    else { rsiLbl.textContent='NEUTRAL'; rsiLbl.style.color='var(--t3)'; rsiLbl.style.background='var(--bg4)'; }
+  }
+
+  if(!zone.formed){
+    if(zSt)  { zSt.textContent='FORMING'; zSt.style.color='var(--t3)'; }
+    if(zDet) zDet.textContent='No tight zone yet. Width='+zone.width.toFixed(dp5)+' vs ATR5='+(GM._cache.atr5||0).toFixed(dp5);
+    return {pass:false, reason:'No zone formed'};
+  }
+
+  if(zSt) { zSt.textContent='ZONE READY'; zSt.style.color='var(--go)'; }
+
+  // ── Check for breakout ──
+  // UP breakout: previous close was inside or near zone top, current tick breaks above
+  var tolerance = GM._cache.atr5 * 0.3;
+  var brokeUp   = prevPrice <= zone.top + tolerance && price > zone.top + tolerance;
+  var brokeDn   = prevPrice >= zone.bot - tolerance && price < zone.bot - tolerance;
+
+  if(!brokeUp && !brokeDn){
+    if(zDet) zDet.textContent='Inside zone ['+zone.bot.toFixed(dp5)+' → '+zone.top.toFixed(dp5)+']. Waiting breakout.';
+    return {pass:false, reason:'Inside zone — awaiting breakout'};
+  }
+
+  var dir = brokeUp ? 'UP' : 'DN';
+
+  // ── RSI confirmation ──
+  // UP breakout needs RSI crossing OUT of oversold (≤20) into neutral — bullish divergence
+  // OR RSI not yet overbought (momentum still has room to run)
+  // DN breakout needs RSI crossing out of overbought (≥80) — bearish signal
+  var rsiCrossUp = rsiPrev <= GM.rsiOS && rsiNow > GM.rsiOS;   // bullish cross out of oversold
+  var rsiCrossDn = rsiPrev >= GM.rsiOB && rsiNow < GM.rsiOB;   // bearish cross out of overbought
+  var rsiMomentumUp = rsiNow <= GM.rsiOB && rsiNow > 40;        // not overbought, still moving up
+  var rsiMomentumDn = rsiNow >= GM.rsiOS && rsiNow < 60;        // not oversold, still moving down
+
+  var rsiOk = false;
+  if(dir==='UP')  rsiOk = rsiCrossUp || rsiMomentumUp;
+  if(dir==='DN')  rsiOk = rsiCrossDn || rsiMomentumDn;
+
+  if(zDet) zDet.textContent='BREAK '+dir+' | RSI='+rsiNow.toFixed(1)+(rsiOk?' ✅':' ❌ (blocked)')+' | prev='+rsiPrev.toFixed(1);
+
+  if(!rsiOk){
+    return {pass:false, reason:'Break '+dir+' blocked — RSI='+rsiNow.toFixed(1)+(dir==='UP'?' (overbought on UP)':' (oversold on DN)')};
+  }
+
+  if(zSt) { zSt.textContent='🚀 BREAKOUT!'; zSt.style.color='var(--ac)'; }
+  return {pass:true, reason:'Zone break '+dir+' + RSI='+rsiNow.toFixed(1)+' ✅', dir:dir};
+}
+
+// ── RSI chart dataset ─────────────────────────────────────────
+var gmRsiChart = null;
+var _gmRsiHistory = []; // rolling RSI values for sub-chart
 
 function gmSetActive(el){
   var p=el.parentElement;
@@ -5005,6 +5054,69 @@ function gmCalc(){
    +'Daily SL: $'+sl+' | Daily TP: $'+tp;
 }
 
+// ── Manual trade: fire one round immediately, regardless of bot state ──
+function gmManualFire(){
+  if(!S.connected){notify('!','Connect first','loss');return;}
+  var entry=S.prices[GM.asset]||0;
+  if(!entry){notify('!','No price yet','loss');return;}
+  if(GM._placing){notify('!','Already placing — wait a moment','loss');return;}
+  if(gmActiveCount()>0){notify('!','Active round in progress — wait for settlement','loss');return;}
+
+  var btn=document.getElementById('gm-manual-btn');
+  var st=document.getElementById('gm-manual-status');
+  if(btn){btn.style.opacity='0.5';btn.textContent='⏳ Placing...';}
+  if(st)st.textContent='Fetching proposals at entry '+entry.toFixed(entry>100?2:5)+'...';
+
+  // Fetch proposals then fire — re-uses the normal proposal → gmGatePasses → gmPlace pipeline
+  GM._manualPending=true;
+  var stake=gmStake();
+  var offset=0.36;
+  var dp=entry>100?2:5;
+  var callBarrier='+'+offset.toFixed(2);
+  var putBarrier ='-'+offset.toFixed(2);
+
+  var p1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
+    currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit||'t',
+    symbol:GM.asset,barrier:callBarrier});
+  if(p1)S.pending[p1]={type:'gm_probe',gmSide:'call',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:callBarrier,_manual:true};
+
+  var p2=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'PUT',
+    currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit||'t',
+    symbol:GM.asset,barrier:putBarrier});
+  if(p2)S.pending[p2]={type:'gm_probe',gmSide:'put',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:putBarrier,_manual:true};
+
+  // Reset button after 8s regardless
+  setTimeout(function(){
+    GM._manualPending=false;
+    if(btn){btn.style.opacity='1';btn.textContent='⚡ FIRE TRADE NOW';}
+    if(st)st.textContent='Ready — bot can run alongside';
+  },8000);
+}
+
+// Patch onGMProbe to handle manual flag
+var _gmOrigProbe=onGMProbe;
+onGMProbe=function(proposal,pendInfo){
+  if(pendInfo&&pendInfo._manual){
+    // Force gate pass for manual trades — skip auto gate check
+    var _manualStake=pendInfo.probeStake;
+    var payout=parseFloat(proposal.payout||0);
+    var ask=parseFloat(proposal.ask_price||0);
+    if(pendInfo.gmSide==='call'){_gmProbe.call=payout;_gmProbe.callId=proposal.id;_gmProbe.callAsk=ask;}
+    else{_gmProbe.put=payout;_gmProbe.putId=proposal.id;_gmProbe.putAsk=ask;}
+    _gmProbe.stake=_manualStake;_gmProbe.entry=pendInfo.probeEntry;_gmProbe.barrier=pendInfo.probeBarrier;
+    if(_gmProbe.call&&_gmProbe.put){
+      var btn=document.getElementById('gm-manual-btn');
+      var st=document.getElementById('gm-manual-status');
+      if(btn){btn.style.opacity='1';btn.textContent='⚡ FIRE TRADE NOW';}
+      if(st)st.textContent='Placing... payouts: $'+_gmProbe.call.toFixed(2)+' / $'+_gmProbe.put.toFixed(2);
+      gmPlace(_gmProbe.callId,_gmProbe.putId,_gmProbe.callAsk,_gmProbe.putAsk,_manualStake,_gmProbe.entry,_gmProbe.barrier,_gmProbe.call,_gmProbe.put);
+      _gmProbe.call=null;_gmProbe.put=null;
+    }
+    return;
+  }
+  _gmOrigProbe(proposal,pendInfo);
+};
+
 function gmToggle(){
   GM.running=!GM.running;
   var btn=document.getElementById('gm-toggle-btn');
@@ -5242,23 +5354,12 @@ function gmLoop(){
     GM.interval=setTimeout(gmLoop,1000);return;
   }
 
-  // ── Momentum filter checks — still runs for the MF panel UI display ──
-  var mfr=gmMFCheck(_loopPrices);
-  gmMFUpdateLive(mfr);
-  if(!mfr.pass){
-    var rs6=document.getElementById('gm-round-status');
-    if(rs6)rs6.textContent='SKIP: '+mfr.reason;
-    GM._skipReasons.mf=(GM._skipReasons.mf||0)+1;
-    GM.interval=setTimeout(gmLoop,_nextInterval);return;
-  }
-
-  // ── Entry Score — 7-factor confluence filter (replaces conf/stagnant/mom/atr checks) ──
-  var _es=gmEntryScore();
-  gmUpdateEntryScoreUI(_es);
-  if(!_es.pass){
-    var rs7=document.getElementById('gm-round-status');
-    if(rs7)rs7.textContent='SCORE '+_es.score+'/'+(GM.minScore||4)+': '+(_es.reasons.length?_es.reasons.join(' '):'no confluence');
-    GM._skipReasons.score=(GM._skipReasons.score||0)+1;
+  // ── Zone + RSI breakout entry check ──────────────────────────
+  var _loopRSICheck = gmZoneRSICheck(_loopPrices);
+  if(!_loopRSICheck.pass){
+    var rs8=document.getElementById('gm-round-status');
+    if(rs8)rs8.textContent='WAIT: '+_loopRSICheck.reason;
+    GM._skipReasons.zone=(GM._skipReasons.zone||0)+1;
     GM.interval=setTimeout(gmLoop,_nextInterval);return;
   }
 
