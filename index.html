@@ -2006,7 +2006,16 @@ function onBuy(buy, reqId) {
   if(p._vb){t._vb=true;t._vbId=p._vbId;t._vbSide=p._vbSide;t._vbIdx=p._vbIdx;}
   if(p.isGM){
     t.isGM=true;t.gmRound=p.gmRound;t.gmSide=p.gmSide;
-    onGMBuy(buy.contract_id+'',p.gmSide,p.gmRound);
+    // TOUCH contract: mark separately — do NOT call onGMBuy (would corrupt active count)
+    // and do NOT add to GM.activeCids (touch settles independently after main round)
+    if(p.isGMTouch){
+      t.isGMTouch=true;
+      console.log('[GM TOUCH BUY] cid:'+buy.contract_id+' rid:'+p.gmRound+' — tracking separately');
+      var _tRound=GM.pending[p.gmRound];
+      if(_tRound)_tRound.touchCid=buy.contract_id+'';
+    } else {
+      onGMBuy(buy.contract_id+'',p.gmSide,p.gmRound);
+    }
     // Keep GM trades in S.trades for settlement routing
     // They are filtered from display in renderTrades/renderActive
   }
@@ -2029,7 +2038,10 @@ function onBuy(buy, reqId) {
           S.trades[i]._settled=true;
           S.trades[i].status='timeout';S.trades[i].pnl=-S.trades[i].stake;
           if(S.trades[i].isHB&&S.trades[i].hbRound) onHBResult(S.trades[i].hbRound,S.trades[i].hbIdx,-S.trades[i].stake,S.trades[i].direction,null);
-          if(S.trades[i].isGM&&S.trades[i].gmRound) onGMResult(S.trades[i].gmRound,S.trades[i].gmSide,-S.trades[i].stake);
+          if(S.trades[i].isGM&&S.trades[i].gmRound){
+            if(S.trades[i].isGMTouch) onGMTouchResult(S.trades[i].gmRound,-S.trades[i].stake,null);
+            else onGMResult(S.trades[i].gmRound,S.trades[i].gmSide,-S.trades[i].stake);
+          }
           break;
         }
       }
@@ -5631,6 +5643,11 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
 }
 
 function onGMBuy(cid,side,rid){
+  // Only track call/put sides — TOUCH contracts are tracked separately
+  if(side!=='call'&&side!=='put'){
+    console.warn('[GM BUY] R'+rid+' cid:'+cid+' unexpected side="'+side+'" — skipped');
+    return;
+  }
   GM.activeCids[cid]={rid:rid,side:side};
   var round=GM.pending[rid];
   if(round){
@@ -5648,6 +5665,11 @@ function onGMBuy(cid,side,rid){
 function onGMResult(rid,side,profit,exitPrice){
   var round=GM.pending[rid];
   if(!round)return;
+  // Guard: side must be 'call' or 'put' — any other value means wrong routing
+  if(side!=='call'&&side!=='put'){
+    console.warn('[GM RESULT] R'+rid+' unexpected side="'+side+'" — ignoring (may be TOUCH misroute)');
+    return;
+  }
   // Guard: don't overwrite an already-settled side (WS subscription + poll can both fire)
   if(round.results[side] !== null && round.results[side] !== undefined){
     console.log('[GM RESULT] R'+rid+' side:'+side+' already settled, ignoring duplicate');
@@ -5693,11 +5715,14 @@ function gmForceSettle(rid){
 
 // ── TOUCH insurance result handler ──────────────────────────────
 function onGMTouchResult(rid, profit, exitPrice){
+  // round may already be deleted from GM.pending after settle — use history to patch
   var round=GM.pending[rid];
-  if(!round) return;
   var pnl=parseFloat(profit)||0;
-  round.touchResult={profit:pnl,win:pnl>0,exitPrice:exitPrice||0};
-  console.log('[GM TOUCH RESULT] R'+rid+' touchPnl:'+pnl+(pnl>0?' 🎯 TOUCH WON':' miss'));
+  console.log('[GM TOUCH RESULT] R'+rid+' touchPnl:$'+pnl.toFixed(2)+(pnl>0?' 🎯 TOUCH WON — insurance hit!':' miss — price never touched barrier'));
+
+  // Remove touch contract from active trades
+  S.activeTrades=S.activeTrades.filter(function(t){return !(t.isGMTouch&&t.gmRound===rid);});
+
   // Update touch display in UI
   var _tInfoEl=document.getElementById('gm-touch-info');
   var _tPnlEl=document.getElementById('gm-touch-pnl');
@@ -5705,25 +5730,36 @@ function onGMTouchResult(rid, profit, exitPrice){
     _tPnlEl.textContent=(pnl>=0?'+':'')+'$'+Math.abs(pnl).toFixed(2);
     _tPnlEl.style.color=pnl>0?'var(--ac)':'var(--re)';
   }
-  if(_tInfoEl) _tInfoEl.textContent=pnl>0?'🎯 TOUCHED barrier — insurance paid!':'Price stayed in gap, missed touch';
-  var _rs=document.getElementById('gm-round-status');
-  if(_rs && round.settled<2){
-    _rs.textContent=pnl>0?'TOUCH WON ✅ (insurance hit!)':'Touch: missed (normal)';
+  if(_tInfoEl) _tInfoEl.textContent=pnl>0?'🎯 TOUCHED — insurance paid +$'+pnl.toFixed(2)+'!':'Missed — price never hit ±0.36 barrier';
+
+  if(round){
+    round.touchResult={profit:pnl,win:pnl>0,exitPrice:exitPrice||0};
+    // Main contracts NOT yet settled — touch result stored, gmSettle will include it
+    if(!round._settled) return;
   }
-  // If the main contracts are already settled, re-settle to include touch PnL
-  if(round._settled){
-    // Patch the last history entry with touch adjustment
-    if(GM.history.length){
-      GM.history[0].touchPnl=pnl;
-      GM.history[0].touchWon=pnl>0;
-      GM.history[0].total=parseFloat((GM.history[0].total+pnl).toFixed(2));
-      GM.pnl=parseFloat((GM.pnl+pnl).toFixed(2));
-      gmUpdateStats();
-      gmRenderHistory();
-      notify('TOUCH '+(pnl>0?'WIN ✅':'miss'), pnl>0?'Insurance paid: +$'+pnl.toFixed(2):'Touch missed — no gap loss cover', pnl>0?'win':'info');
+
+  // Main contracts already settled — patch history entry
+  if(GM.history.length){
+    var _h=GM.history[0];
+    // Find the right history entry by rid in case multiple rounds completed
+    for(var _hi=0;_hi<GM.history.length;_hi++){
+      if(GM.history[_hi].rid===rid){_h=GM.history[_hi];break;}
     }
+    var _prevTotal=_h.total||0;
+    _h.touchPnl=pnl;
+    _h.touchWon=pnl>0;
+    _h.total=parseFloat((_prevTotal+pnl).toFixed(2));
+    GM.pnl=parseFloat((GM.pnl+pnl).toFixed(2));
+    // Update round net display
+    var netEl=document.getElementById('gm-round-net');
+    if(netEl){netEl.textContent=(_h.total>=0?'+':'')+'$'+Math.abs(_h.total).toFixed(2);netEl.style.color=_h.total>0?'var(--ac)':'var(--re)';}
+    gmUpdateStats();
+    gmRenderHistory();
   }
-  // If main contracts are NOT yet settled, the touchResult will be included in gmSettle
+  notify('TOUCH '+(pnl>0?'WIN ✅':'MISS'),
+    pnl>0?('Insurance paid +$'+pnl.toFixed(2)+' — gap partially covered'):
+           'Touch missed — price never reached ±0.36 barrier',
+    pnl>0?'win':'loss');
 }
 
 function gmSettle(rid){
