@@ -857,7 +857,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
               <div style="font-size:12px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px">
                 Payout Gate
-                <span style="font-size:10px;color:var(--t3);font-weight:400">— only trades when combined payout > 2× stake</span>
+                <span style="font-size:10px;color:var(--t3);font-weight:400">— each payout must exceed 2× per-side stake</span>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
                 <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;text-align:center;border:1px solid var(--bo)">
@@ -873,10 +873,16 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div style="font-size:12px;font-weight:700;color:var(--go)" id="gm-gate-status">WAITING</div>
                 </div>
               </div>
-              <!-- Expected profit display -->
-              <div style="margin-top:8px;background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.15);border-radius:var(--rs);padding:9px;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:11px;color:var(--t2)">Expected profit if gate passes</span>
-                <span style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-expected-profit">--</span>
+              <!-- Total risk (3 contracts) -->
+              <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:7px 10px;border:1px solid var(--bo)">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">Total Risk (3 contracts)</div>
+                  <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-total-risk">$4.50</div>
+                </div>
+                <div style="background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.15);border-radius:var(--rs);padding:7px 10px">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">Expected Net (if gate passes)</div>
+                  <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-expected-profit">--</div>
+                </div>
               </div>
             </div>
 
@@ -889,28 +895,27 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
                 <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:12px">
                   <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:6px">↑ HIGHER</div>
-                  <div style="font-size:10px;color:var(--t3);margin-bottom:2px" id="gm-call-barrier-lbl">barrier: entry + offset</div>
+                  <div style="font-size:10px;color:var(--t3);margin-bottom:2px" id="gm-call-barrier-lbl">barrier: entry + 0.36</div>
                   <div style="font-size:18px;font-weight:700;color:var(--ac);font-family:var(--mo)" id="gm-call-pnl">$0.00</div>
                   <div style="font-size:10px;color:var(--t3);margin-top:3px" id="gm-call-stake">stake: --</div>
                 </div>
                 <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:12px">
                   <div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:6px">↓ LOWER</div>
-                  <div style="font-size:10px;color:var(--t3);margin-bottom:2px" id="gm-put-barrier-lbl">barrier: entry - offset</div>
+                  <div style="font-size:10px;color:var(--t3);margin-bottom:2px" id="gm-put-barrier-lbl">barrier: entry - 0.36</div>
                   <div style="font-size:18px;font-weight:700;color:var(--re);font-family:var(--mo)" id="gm-put-pnl">$0.00</div>
                   <div style="font-size:10px;color:var(--t3);margin-top:3px" id="gm-put-stake">stake: --</div>
                 </div>
               </div>
               <!-- TOUCH insurance row -->
-              <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:var(--rs);padding:10px;margin-top:8px;display:flex;align-items:center;justify-content:space-between">
-                <div>
-                  <div style="font-size:10px;color:#3b82f6;font-weight:700;margin-bottom:3px">🛡 TOUCH Insurance (±0.36 zone)</div>
-                  <div style="font-size:10px;color:var(--t3)" id="gm-touch-info">Waiting for round...</div>
+              <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:var(--rs);padding:10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:10px;color:#3b82f6;font-weight:700;margin-bottom:3px">🛡 ONETOUCH Insurance (barrier ±0.36)</div>
+                  <div style="font-size:10px;color:var(--t3);white-space:normal" id="gm-touch-info">Waiting for round...</div>
                 </div>
-                <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:#3b82f6" id="gm-touch-pnl">--</div>
-              </div>
+                <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:#3b82f6;margin-left:10px;flex-shrink:0" id="gm-touch-pnl">--</div>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
-                <span style="font-size:11px;color:var(--t2)">Round Net</span>
+                <span style="font-size:11px;color:var(--t2)">Round Net (all 3 contracts)</span>
                 <span style="font-size:16px;font-weight:700;font-family:var(--mo)" id="gm-round-net">$0.00</span>
               </div>
             </div>
@@ -1442,6 +1447,18 @@ function handleMsg(d) {
       console.warn('Deriv error:', code, msg, 'req_id:', d.req_id);
       // Check if this error belongs to an HB proposal or buy
       var pend = d.req_id ? S.pending[d.req_id] : null;
+          // Handle TOUCH contract errors gracefully — mark round and continue
+  if(pend&&pend.isGMTouch){
+    console.warn('[GM TOUCH] Buy error:',code,msg,'— insurance unavailable, round continues without it');
+    var _touchEl=document.getElementById('gm-touch-info');
+    var _touchPEl=document.getElementById('gm-touch-pnl');
+    if(_touchEl)_touchEl.textContent='⚠ TOUCH error: '+code+' — gap unprotected';
+    if(_touchPEl){_touchPEl.textContent='ERR';_touchPEl.style.color='var(--re)';}
+    var _tRound=pend.gmRound?GM.pending[pend.gmRound]:null;
+    if(_tRound&&!_tRound.touchResult)_tRound.touchResult={profit:0,win:false,unavailable:true};
+    if(d.req_id)delete S.pending[d.req_id];
+    return;
+  }
       // Handle PriceMoved error for GM contracts
   if(code==='PriceMoved'&&pend&&pend.isGM){
     var _gmRid=pend.gmRound;
@@ -1593,14 +1610,21 @@ function onProposal(proposal, reqId){
 
   // ── TOUCH insurance proposal: buy it immediately if valid ──
   if(p.type==='gm_touch_probe'){
+    var _tInfoEl2=document.getElementById('gm-touch-info');
+    var _tPnlEl2=document.getElementById('gm-touch-pnl');
     if(!proposal||!proposal.id){
-      console.warn('[GM TOUCH] Proposal failed — skipping TOUCH insurance');
+      console.warn('[GM TOUCH] Proposal failed/rejected — TOUCH insurance unavailable for this duration/asset');
+      if(_tInfoEl2)_tInfoEl2.textContent='⚠ TOUCH unavailable — gap loss unprotected';
+      if(_tPnlEl2){_tPnlEl2.textContent='N/A';_tPnlEl2.style.color='var(--t3)';}
+      // Mark round as having no touch so settle knows
+      var _pr2=GM.pending[p.gmRound];
+      if(_pr2){_pr2.touchResult={profit:0,win:false,unavailable:true};}
       return;
     }
     var _tAsk=parseFloat(proposal.ask_price||0);
     var _tPay=parseFloat(proposal.payout||0);
-    console.log('[GM TOUCH] Proposal: id='+proposal.id+' ask=$'+_tAsk+' payout=$'+_tPay);
-    // Only buy if payout covers at least the touch stake (≥1× — ensures it pays if price touches)
+    console.log('[GM TOUCH] Proposal OK: id='+proposal.id+' ask=$'+_tAsk.toFixed(2)+' payout=$'+_tPay.toFixed(2)+' barrier='+p.touchBarrier);
+    if(_tInfoEl2)_tInfoEl2.textContent='TOUCH placed: ask=$'+_tAsk.toFixed(2)+' | payout=$'+_tPay.toFixed(2)+' | barrier='+p.touchBarrier;
     if(_tAsk>0){
       var _tRid=wsSend({buy:proposal.id,price:_tAsk});
       if(_tRid) S.pending[_tRid]={
@@ -1612,10 +1636,10 @@ function onProposal(proposal, reqId){
       };
       // Update UI to show 3-contract display
       var _rsEl=document.getElementById('gm-round-status');
-      if(_rsEl&&_rsEl.textContent==='2 ACTIVE')_rsEl.textContent='3 ACTIVE (TOUCH ✛)';
+      if(_rsEl&&(_rsEl.textContent==='2 ACTIVE'||_rsEl.textContent==='BUYING...'))_rsEl.textContent='3 ACTIVE (TOUCH ✛)';
       // Update touch stake display in pending round
-      var _pr=GM.pending[p.gmRound];
-      if(_pr){_pr.touchStake=_tAsk;_pr.touchPay=_tPay;}
+      var _pr3=GM.pending[p.gmRound];
+      if(_pr3){_pr3.touchStake=_tAsk;_pr3.touchPay=_tPay;}
     }
     return;
   }
@@ -5027,9 +5051,9 @@ function gmCalc(){
 
   var touchNote=GM.touchEnabled
     ?'Touch stake:      $'+stake.toFixed(2)+' (1× stake)\n'
-     +'Total risk(3c):   $'+totalRisk3.toFixed(2)+'\n'
-     +'Gap scenario:     TOUCH fires if price hits ±0.36\n'
-     +'                  Covers lost stake from gap loss\n'
+     +'Total risk(3c):   $'+(stake*3).toFixed(2)+'\n'
+     +'Gap coverage:     ONETOUCH fires if price hits ±0.36\n'
+     +'                  barrier: +0.36 (relative to entry)\n'
     :'Touch insurance:  OFF\n';
 
   if(el)el.textContent=
@@ -5462,6 +5486,10 @@ function onGMProbe(proposal,pendInfo){
   }
 
   gmCalc();
+  // Update total risk display (2 sides + touch)
+  var _trEl=document.getElementById('gm-total-risk');
+  var _touchSt=GM.touchEnabled?stake:0;
+  if(_trEl)_trEl.textContent='$'+parseFloat((stake*2+_touchSt).toFixed(2))+(GM.touchEnabled?' (incl. TOUCH)':'');
 
   if(!passes){
     var rs=document.getElementById('gm-round-status');
@@ -5557,26 +5585,33 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
     isBot:true,isGM:true,gmRound:rid,gmSide:'put',
     entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit||'t'};
 
-  // ── TOUCH insurance: place a TOUCH contract with barrier at entry+0.36
-  // If price stays inside the gap, TOUCH may not pay but at least covers
-  // partial loss risk. We place it at the HIGHER barrier level.
-  // Stake = equal to one side stake so it can recover the gap loss.
+  // ── TOUCH insurance: ONETOUCH at entry+0.36 (relative barrier format)
+  // ONETOUCH pays if price hits the barrier at any point during the contract.
+  // Gap scenario: price bounced inside ±0.36 — ONETOUCH fires when it eventually touches.
+  // Barrier MUST be relative (+0.36) not absolute for tick-duration contracts on Deriv.
   if(GM.touchEnabled){
     var touchStake=parseFloat(stake.toFixed(2));
     GM.touchStake=touchStake;
-    // TOUCH barrier = entry + offset (same as HIGHER barrier)
-    var _touchBarrier=parseFloat((entry+offset).toFixed(entry>100?2:5));
+    // Relative barrier: +0.36 means "spot + 0.36" — Deriv resolves this at buy time
+    var _touchBarrierRel='+'+offset.toFixed(2);
     // Update touch UI
     var _tInfoEl=document.getElementById('gm-touch-info');
     var _tPnlEl=document.getElementById('gm-touch-pnl');
-    if(_tInfoEl)_tInfoEl.textContent='barrier: '+_touchBarrier+' | stake: $'+touchStake.toFixed(2)+' | fetching...';
+    if(_tInfoEl)_tInfoEl.textContent='barrier: ±'+offset.toFixed(2)+' (relative) | stake: $'+touchStake.toFixed(2)+' | fetching...';
     if(_tPnlEl){_tPnlEl.textContent='...';_tPnlEl.style.color='#3b82f6';}
+    console.log('[GM TOUCH] Requesting ONETOUCH proposal barrier='+_touchBarrierRel+' dur='+GM.dur+'t stake=$'+touchStake);
     var touchReq=wsSend({proposal:1,amount:touchStake,basis:'stake',
       contract_type:'ONETOUCH',
       currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit||'t',
-      symbol:GM.asset,barrier:String(_touchBarrier)});
+      symbol:GM.asset,barrier:_touchBarrierRel});
     if(touchReq)S.pending[touchReq]={type:'gm_touch_probe',gmRound:rid,
-      touchStake:touchStake,touchBarrier:_touchBarrier,touchEntry:entry};
+      touchStake:touchStake,touchBarrier:_touchBarrierRel,touchEntry:entry};
+    // Update round display to show 3-contract total risk
+    var _totalRisk3=parseFloat((stake*2+touchStake).toFixed(2));
+    var cStakeEl=document.getElementById('gm-call-stake');
+    var pStakeEl=document.getElementById('gm-put-stake');
+    if(cStakeEl)cStakeEl.textContent='stake: $'+stake.toFixed(2)+' | pays: $'+callPay.toFixed(2)+' | barrier: +'+offset.toFixed(2);
+    if(pStakeEl)pStakeEl.textContent='stake: $'+stake.toFixed(2)+' | pays: $'+putPay.toFixed(2)+' | barrier: -'+offset.toFixed(2);
   }
 
   // Clear placing lock — both buy requests are now queued to WS
