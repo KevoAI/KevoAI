@@ -1447,17 +1447,25 @@ function handleMsg(d) {
       console.warn('Deriv error:', code, msg, 'req_id:', d.req_id);
       // Check if this error belongs to an HB proposal or buy
       var pend = d.req_id ? S.pending[d.req_id] : null;
-          // Handle TOUCH contract errors gracefully — mark round and continue
-  if(pend&&pend.isGMTouch){
-    console.warn('[GM TOUCH] Buy error:',code,msg,'— insurance unavailable, round continues without it');
+      // Handle NOTOUCH insurance errors gracefully — proposal or buy failure
+  // Suppress the red toast, mark round as NT-unavailable, continue without it
+  if(pend&&(pend.isGMTouch||pend.type==='gm_touch_probe')){
+    var _ntSideErr=pend.gmNTSide||'?';
+    console.warn('[GM NOTOUCH] '+_ntSideErr.toUpperCase()+' error:',code,msg,'barrier='+pend.touchBarrier,'— insurance unavailable, round continues');
     var _touchEl=document.getElementById('gm-touch-info');
     var _touchPEl=document.getElementById('gm-touch-pnl');
-    if(_touchEl)_touchEl.textContent='⚠ TOUCH error: '+code+' — gap unprotected';
-    if(_touchPEl){_touchPEl.textContent='ERR';_touchPEl.style.color='var(--re)';}
+    if(_touchEl)_touchEl.textContent='⚠ NOTOUCH_'+_ntSideErr.toUpperCase()+' error: '+code;
+    if(_touchPEl){_touchPEl.textContent='N/A';_touchPEl.style.color='var(--t3)';}
     var _tRound=pend.gmRound?GM.pending[pend.gmRound]:null;
-    if(_tRound&&!_tRound.touchResult)_tRound.touchResult={profit:0,win:false,unavailable:true};
+    if(_tRound){
+      if(!_tRound._ntResults)_tRound._ntResults={};
+      _tRound._ntResults[_ntSideErr]={profit:0,win:false,unavailable:true};
+      // If both NT sides have errored, mark touchResult as fully unavailable
+      var _bothErrored=_tRound._ntResults['high']&&_tRound._ntResults['low'];
+      if(_bothErrored&&!_tRound.touchResult)_tRound.touchResult={profit:0,win:false,unavailable:true};
+    }
     if(d.req_id)delete S.pending[d.req_id];
-    return;
+    return; // suppress the default error toast
   }
       // Handle PriceMoved error for GM contracts
   if(code==='PriceMoved'&&pend&&pend.isGM){
@@ -5621,29 +5629,33 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
     if(touchStake<0.35)touchStake=0.35;
     GM.touchStake=touchStake;
     var dp3=entry>100?2:5;
-    // Absolute barriers — NOTOUCH requires absolute price levels
-    var _ntHigh=parseFloat((entry+offset).toFixed(dp3));
-    var _ntLow =parseFloat((entry-offset).toFixed(dp3));
+    // NOTOUCH on tick-duration contracts requires RELATIVE barriers (+X.XX / -X.XX)
+    // Absolute prices cause "Invalid barrier" — Deriv resolves relative to entry spot at buy time
+    var _ntHighRel='+'+offset.toFixed(2);
+    var _ntLowRel ='-'+offset.toFixed(2);
+    // Keep absolute values for display only
+    var _ntHighAbs=parseFloat((entry+offset).toFixed(dp3));
+    var _ntLowAbs =parseFloat((entry-offset).toFixed(dp3));
     // Update touch UI
     var _tInfoEl=document.getElementById('gm-touch-info');
     var _tPnlEl=document.getElementById('gm-touch-pnl');
-    if(_tInfoEl)_tInfoEl.textContent='NT_H('+_ntHigh+') + NT_L('+_ntLow+') stake:$'+touchStake.toFixed(2)+' each — fetching...';
+    if(_tInfoEl)_tInfoEl.textContent='NT_H('+_ntHighAbs+') + NT_L('+_ntLowAbs+') stake:$'+touchStake.toFixed(2)+' each — fetching...';
     if(_tPnlEl){_tPnlEl.textContent='...';_tPnlEl.style.color='#3b82f6';}
-    console.log('[GM NOTOUCH] Requesting NT_HIGH='+_ntHigh+' NT_LOW='+_ntLow+' dur='+GM.dur+'t stake=$'+touchStake);
-    // Request NOTOUCH HIGH proposal
+    console.log('[GM NOTOUCH] Requesting NT_HIGH='+_ntHighRel+'(~'+_ntHighAbs+') NT_LOW='+_ntLowRel+'(~'+_ntLowAbs+') dur='+GM.dur+'t stake=$'+touchStake);
+    // Request NOTOUCH HIGH proposal — relative barrier +0.36
     var ntHighReq=wsSend({proposal:1,amount:touchStake,basis:'stake',
       contract_type:'NOTOUCH',
       currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit||'t',
-      symbol:GM.asset,barrier:String(_ntHigh)});
+      symbol:GM.asset,barrier:_ntHighRel});
     if(ntHighReq)S.pending[ntHighReq]={type:'gm_touch_probe',gmRound:rid,gmNTSide:'high',
-      touchStake:touchStake,touchBarrier:_ntHigh,touchEntry:entry};
-    // Request NOTOUCH LOW proposal
+      touchStake:touchStake,touchBarrier:_ntHighRel,touchEntry:entry};
+    // Request NOTOUCH LOW proposal — relative barrier -0.36
     var ntLowReq=wsSend({proposal:1,amount:touchStake,basis:'stake',
       contract_type:'NOTOUCH',
       currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit||'t',
-      symbol:GM.asset,barrier:String(_ntLow)});
+      symbol:GM.asset,barrier:_ntLowRel});
     if(ntLowReq)S.pending[ntLowReq]={type:'gm_touch_probe',gmRound:rid,gmNTSide:'low',
-      touchStake:touchStake,touchBarrier:_ntLow,touchEntry:entry};
+      touchStake:touchStake,touchBarrier:_ntLowRel,touchEntry:entry};
     // Update round display to show 3-contract total risk
     var _totalRisk3=parseFloat((stake*2+touchStake).toFixed(2));
     var cStakeEl=document.getElementById('gm-call-stake');
