@@ -802,7 +802,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <div style="font-size:18px;font-weight:800;color:var(--ac)">Gmilli Bot</div>
             <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">HIGHER + LOWER + TOUCH — 3-Contract System</div>
           </div>
-          <div style="font-size:11px;color:var(--t2)">Static ±0.36 barrier | Duration in <b style="color:var(--ac)">ticks</b> | EXPIRYRANGE insurance wins when price stays inside gap. One directional side always wins outside.</div>
+          <div style="font-size:11px;color:var(--t2)">Static ±0.40 barrier | Duration in <b style="color:var(--ac)">ticks</b> | EXPIRYRANGE insurance wins when price stays inside gap. One directional side always wins outside.</div>
         </div>
         <!-- STALE FEED WARNING — shown by watchdog when ticks stop arriving -->
         <div id="gm-stale-warn" style="display:none;align-items:center;gap:9px;background:rgba(255,77,106,0.12);border:1px solid rgba(255,77,106,0.4);border-radius:var(--rs);padding:9px 13px;margin-bottom:10px;font-size:12px;font-weight:600;color:var(--re)">⚠ Price feed stalled — resubscribing...</div>
@@ -909,7 +909,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <!-- NOTOUCH dual insurance row -->
               <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:var(--rs);padding:10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
                 <div style="flex:1;min-width:0">
-                  <div style="font-size:10px;color:#3b82f6;font-weight:700;margin-bottom:3px">🛡 NOTOUCH Insurance (NT_H + NT_L at ±0.36)</div>
+                  <div style="font-size:10px;color:#3b82f6;font-weight:700;margin-bottom:3px">🛡 NOTOUCH Insurance (NT_H + NT_L at ±0.40)</div>
                   <div style="font-size:10px;color:var(--t3);white-space:normal" id="gm-touch-info">Waiting for round...</div>
                 </div>
                 <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:#3b82f6;margin-left:10px;flex-shrink:0" id="gm-touch-pnl">--</div>
@@ -953,24 +953,24 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div style="font-size:10px;color:var(--t2);margin-bottom:8px">NT_HIGH + NT_LOW both at ±barrier. Both win on gap loss. 1 always wins on breakout.</div>
                   <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
                     <span style="font-size:10px;color:var(--t2);white-space:nowrap">NT barrier:</span>
-                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="var v=parseFloat(document.getElementById('nt-barrier-val').value||0.36);v=Math.max(0.36,v-0.02).toFixed(2);document.getElementById('nt-barrier-val').value=v;GM._ntBarrierOverride='+'+v;document.getElementById('nt-barrier-disp').textContent='±'+v">-</div>
-                    <input type="number" id="nt-barrier-val" value="0.36" min="0.36" max="1.00" step="0.02" style="width:58px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM._ntBarrierOverride='+'+parseFloat(this.value).toFixed(2);document.getElementById('nt-barrier-disp').textContent='±'+parseFloat(this.value).toFixed(2)">
-                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="var v=parseFloat(document.getElementById('nt-barrier-val').value||0.36);v=Math.min(1.00,v+0.02).toFixed(2);document.getElementById('nt-barrier-val').value=v;GM._ntBarrierOverride='+'+v;document.getElementById('nt-barrier-disp').textContent='±'+v">+</div>
-                    <span style="font-size:12px;font-weight:700;font-family:var(--mo);color:#3b82f6" id="nt-barrier-disp">±0.36</span>
-                    <button onclick="GM._ntBarrierOverride=null;document.getElementById('nt-barrier-val').value='0.36';document.getElementById('nt-barrier-disp').textContent='±0.36 (auto)'" style="font-size:10px;padding:3px 7px;border-radius:4px;border:1px solid var(--bo);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fn)">auto</div>
+                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="var v=parseFloat(document.getElementById('nt-barrier-val').value||0.40);v=Math.max(0.36,v-0.02).toFixed(2);document.getElementById('nt-barrier-val').value=v;GM._ntBarrierOverride='+'+v;document.getElementById('nt-barrier-disp').textContent='±'+v">-</div>
+                    <input type="number" id="nt-barrier-val" value="0.40" min="0.36" max="1.00" step="0.02" style="width:58px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM._ntBarrierOverride='+'+parseFloat(this.value).toFixed(2);document.getElementById('nt-barrier-disp').textContent='±'+parseFloat(this.value).toFixed(2)">
+                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="var v=parseFloat(document.getElementById('nt-barrier-val').value||0.40);v=Math.min(1.00,v+0.02).toFixed(2);document.getElementById('nt-barrier-val').value=v;GM._ntBarrierOverride='+'+v;document.getElementById('nt-barrier-disp').textContent='±'+v">+</div>
+                    <span style="font-size:12px;font-weight:700;font-family:var(--mo);color:#3b82f6" id="nt-barrier-disp">±0.40</span>
+                    <button onclick="GM._ntBarrierOverride=null;document.getElementById('nt-barrier-val').value='0.40';document.getElementById('nt-barrier-disp').textContent='±0.40 (auto)'" style="font-size:10px;padding:3px 7px;border-radius:4px;border:1px solid var(--bo);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fn)">auto</button>
                   </div>
-                  <div style="font-size:10px;color:var(--t3)">If Deriv rejects ±0.36, bot auto-steps up (0.40 → 0.44 → 0.48...) and remembers the valid barrier.</div>
+                  <div style="font-size:10px;color:var(--t3)">If Deriv rejects ±0.40, bot auto-steps up (0.44 → 0.44 → 0.48...) and remembers the valid barrier.</div>
                 </div>
                 <!-- Barrier Offset — STATIC 0.36 -->
                 <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.25);border-radius:var(--rs);padding:10px;margin-bottom:11px">
                   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
                     <div style="font-size:11px;font-weight:700">Barrier Offset <span style="color:var(--go);font-size:9px">STATIC</span></div>
-                    <span style="font-size:15px;font-weight:800;font-family:var(--mo);color:var(--ac)" id="gm-effective-offset">±0.36</span>
+                    <span style="font-size:15px;font-weight:800;font-family:var(--mo);color:var(--ac)" id="gm-effective-offset">±0.40</span>
                   </div>
-                  <input type="hidden" id="gm-offset" value="0.36">
+                  <input type="hidden" id="gm-offset" value="0.40">
                   <input type="hidden" id="gm-adaptive-offset-sw" value="off">
-                  <div style="font-size:10px;color:var(--t2)">HIGHER barrier = entry + <b style="color:var(--ac)">0.36</b> &nbsp;|&nbsp; LOWER barrier = entry − <b style="color:var(--re)">0.36</b></div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Gap zone ±0.36 covered by EXPIRYRANGE insurance — wins if price ends inside.</div>
+                  <div style="font-size:10px;color:var(--t2)">HIGHER barrier = entry + <b style="color:var(--ac)">0.40</b> &nbsp;|&nbsp; LOWER barrier = entry − <b style="color:var(--re)">0.40</b></div>
+                  <div style="font-size:10px;color:var(--t3);margin-top:3px">±0.40 absorbs entry spot drift. NT insurance covers the gap zone.</div>
                 </div>
                 <!-- Duration (TICKS) -->
                 <div class="ig" style="margin-bottom:11px">
@@ -1466,7 +1466,7 @@ function handleMsg(d) {
        (msg&&msg.toLowerCase().indexOf('barrier')!==-1)){
       // Try stepping up the barrier by 0.04 each attempt, max 5 tries
       var _prevBarrier=Math.abs(pend._barrierVal||parseFloat(pend.touchBarrier)||0.36);
-      var _retrySteps=[0.36,0.40,0.44,0.48,0.52,0.56];
+      var _retrySteps=[0.40,0.44,0.48,0.52,0.56,0.60];
       var _nextIdx=_retrySteps.indexOf(parseFloat(_prevBarrier.toFixed(2)))+1;
       if(_nextIdx>0&&_nextIdx<_retrySteps.length){
         var _nextBarrier=_retrySteps[_nextIdx];
@@ -5137,7 +5137,7 @@ function gmCalc(){
     '3-CONTRACT SYSTEM (ticks)\n'
    +'━━━━━━━━━━━━━━━━━━━━━━━\n'
    +'Duration:         '+GM.dur+'T (ticks)\n'
-   +'Barrier:          ±0.36 (STATIC)\n'
+   +'Barrier:          ±0.40 (STATIC)\n'
    +'Budget per round: $'+budget.toFixed(2)+'\n'
    +'Each side stake:  $'+stake.toFixed(2)+'\n'
    +'Total risk(2c):   $'+totalRisk.toFixed(2)+'\n'
@@ -5146,7 +5146,7 @@ function gmCalc(){
    +'  Payout: $'+(cPay?cPay.toFixed(2):'--')+'\n'
    +'CONTRACT 2 — LOWER (entry-0.36):\n'
    +'  Payout: $'+(pPay?pPay.toFixed(2):'--')+'\n'
-   +'CONTRACT 3 — TOUCH (±0.36 zone):\n'
+   +'CONTRACT 3 — TOUCH (±0.40 zone):\n'
    +'  Fires if price touches barrier\n'
    +'  Insurance when gap loss occurs\n\n'
    +'Gate: each payout > $'+totalRisk.toFixed(2)+'\n'
@@ -5472,7 +5472,7 @@ function gmLoop(){
 
 // ── Static offset: always 0.36 ──────────────────────────────────
 function gmAdaptiveOffset(){
-  return 0.36;
+  return 0.40;
 }
 
 function gmFetchProposals(){
@@ -5670,7 +5670,9 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   //          a minimum barrier distance (e.g. +0.40 or +0.42). If +0.36 fails with
   //          "Invalid barrier" the error handler auto-retries with larger values.
   if(GM.touchEnabled){
-    var touchStake=parseFloat((stake*0.5).toFixed(2));
+    // NT stake = same as main stake per side (not half)
+    // Full stake means: in a gap loss, both NTs win → full recovery of both main losses
+    var touchStake=parseFloat(stake.toFixed(2));
     if(touchStake<0.35)touchStake=0.35;
     GM.touchStake=touchStake;
     var dp3=entry>100?2:5;
@@ -5678,7 +5680,7 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
     var _ntBarrierBase=GM._ntBarrierOverride?
       parseFloat(GM._ntBarrierOverride.replace('+','')):
       parseFloat((document.getElementById('nt-barrier-val')||{value:offset}).value||offset);
-    if(!_ntBarrierBase||_ntBarrierBase<0.36)_ntBarrierBase=offset;
+    if(!_ntBarrierBase||_ntBarrierBase<0.40)_ntBarrierBase=offset;
     var _ntBarrier='+'+_ntBarrierBase.toFixed(2);
     var _ntBarrierLow='-'+_ntBarrierBase.toFixed(2);
     var _ntHighAbs=parseFloat((entry+offset).toFixed(dp3));
