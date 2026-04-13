@@ -953,13 +953,13 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div style="font-size:10px;color:var(--t2);margin-bottom:8px">NT_HIGH + NT_LOW both at ±barrier. Both win on gap loss. 1 always wins on breakout.</div>
                   <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
                     <span style="font-size:10px;color:var(--t2);white-space:nowrap">NT barrier:</span>
-                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="var v=parseFloat(document.getElementById('nt-barrier-val').value||0.40);v=Math.max(0.36,v-0.02).toFixed(2);document.getElementById('nt-barrier-val').value=v;GM._ntBarrierOverride='+'+v;document.getElementById('nt-barrier-disp').textContent='±'+v">-</div>
-                    <input type="number" id="nt-barrier-val" value="0.40" min="0.36" max="1.00" step="0.02" style="width:58px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM._ntBarrierOverride='+'+parseFloat(this.value).toFixed(2);document.getElementById('nt-barrier-disp').textContent='±'+parseFloat(this.value).toFixed(2)">
-                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="var v=parseFloat(document.getElementById('nt-barrier-val').value||0.40);v=Math.min(1.00,v+0.02).toFixed(2);document.getElementById('nt-barrier-val').value=v;GM._ntBarrierOverride='+'+v;document.getElementById('nt-barrier-disp').textContent='±'+v">+</div>
-                    <span style="font-size:12px;font-weight:700;font-family:var(--mo);color:#3b82f6" id="nt-barrier-disp">±0.40</span>
-                    <button onclick="GM._ntBarrierOverride=null;document.getElementById('nt-barrier-val').value='0.40';document.getElementById('nt-barrier-disp').textContent='±0.40 (auto)'" style="font-size:10px;padding:3px 7px;border-radius:4px;border:1px solid var(--bo);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fn)">auto</button>
+                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="var v=parseFloat(document.getElementById('nt-barrier-val').value||0.22);v=Math.max(0.20,v-0.02).toFixed(2);document.getElementById('nt-barrier-val').value=v;GM._ntBarrierOverride='+'+v;document.getElementById('nt-barrier-disp').textContent='±'+v">-</div>
+                    <input type="number" id="nt-barrier-val" value="0.22" min="0.20" max="0.34" step="0.02" style="width:58px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM._ntBarrierOverride='+'+parseFloat(this.value).toFixed(2);document.getElementById('nt-barrier-disp').textContent='±'+parseFloat(this.value).toFixed(2)">
+                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="var v=parseFloat(document.getElementById('nt-barrier-val').value||0.22);v=Math.min(0.34,v+0.02).toFixed(2);document.getElementById('nt-barrier-val').value=v;GM._ntBarrierOverride='+'+v;document.getElementById('nt-barrier-disp').textContent='±'+v">+</div>
+                    <span style="font-size:12px;font-weight:700;font-family:var(--mo);color:#3b82f6" id="nt-barrier-disp">±0.22</span>
+                    <button onclick="GM._ntBarrierOverride=null;document.getElementById('nt-barrier-val').value='0.22';document.getElementById('nt-barrier-disp').textContent='±0.22 (auto)'" style="font-size:10px;padding:3px 7px;border-radius:4px;border:1px solid var(--bo);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fn)">auto</button>
                   </div>
-                  <div style="font-size:10px;color:var(--t3)">If Deriv rejects ±0.40, bot auto-steps up (0.44 → 0.44 → 0.48...) and remembers the valid barrier.</div>
+                  <div style="font-size:10px;color:var(--ac);font-weight:600">✅ GAP FIX: NT barrier (±0.22) is INSIDE the gap (±0.36). Price staying flat = barrier never touched = NOTOUCH wins = gap loss recovered.</div>
                 </div>
                 <!-- Barrier Offset — STATIC 0.36 -->
                 <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.25);border-radius:var(--rs);padding:10px;margin-bottom:11px">
@@ -1464,10 +1464,10 @@ function handleMsg(d) {
     var _ntRound=pend.gmRound?GM.pending[pend.gmRound]:null;
     if(code==='ContractBuyValidationError'||code==='BarrierValidationError'||
        (msg&&msg.toLowerCase().indexOf('barrier')!==-1)){
-      // Try stepping up the barrier by 0.04 each attempt, max 5 tries
-      var _prevBarrier=Math.abs(pend._barrierVal||parseFloat(pend.touchBarrier)||0.36);
-      var _retrySteps=[0.40,0.44,0.48,0.52,0.56,0.60];
-      var _nextIdx=_retrySteps.indexOf(parseFloat(_prevBarrier.toFixed(2)))+1;
+      // Try stepping up the barrier by 0.02 each attempt, staying inside the gap (below 0.36)
+      var _prevBarrier=Math.abs(pend._barrierVal||parseFloat(pend.touchBarrier)||0.22);
+      var _retrySteps=[0.22,0.24,0.26,0.28,0.30,0.32,0.34];
+      var _nextIdx=_retrySteps.findIndex(function(v){return Math.abs(v-_prevBarrier)<0.001;})+1;
       if(_nextIdx>0&&_nextIdx<_retrySteps.length){
         var _nextBarrier=_retrySteps[_nextIdx];
         var _nextRel=(_ntSideErr==='low'?'-':'+')+_nextBarrier.toFixed(2);
@@ -5124,13 +5124,13 @@ function gmCalc(){
   var momOk=true,momNet=0;
   if(n>=10){momNet=Math.abs(prices[n-1]-prices[n-11]);momOk=momNet>=(offset*0.6);}
 
-  var _ntB=GM._ntBarrierOverride?parseFloat(GM._ntBarrierOverride.replace('+','')):0.36;
+  var _ntB=GM._ntBarrierOverride?parseFloat(GM._ntBarrierOverride.replace('+','')):parseFloat((offset*0.62).toFixed(2));
   var touchNote=GM.touchEnabled
-    ?'NT insurance:     2× NOTOUCH at ±'+_ntB.toFixed(2)+'\n'
+    ?'NT insurance:     2× NOTOUCH at ±'+_ntB.toFixed(2)+' (inside ±'+offset.toFixed(2)+' gap)\n'
      +'NT duration:      '+GM.dur+'T (ticks)\n'
      +'NT stake each:    $'+Math.max(0.35,parseFloat((stake*0.5).toFixed(2))).toFixed(2)+'\n'
-     +'Gap loss cover:   NT_H wins + NT_L wins = both pay\n'
-     +'Auto-retry:       steps up barrier if Deriv rejects\n'
+     +'Gap loss cover:   price stays flat → NT barrier not hit → NOTOUCH wins\n'
+     +'Auto-retry:       steps barrier up within gap if Deriv rejects\n'
     :'NOTOUCH insurance: OFF\n';
 
   if(el)el.textContent=
@@ -5676,11 +5676,16 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
     if(touchStake<0.35)touchStake=0.35;
     GM.touchStake=touchStake;
     var dp3=entry>100?2:5;
-    // Use manually set barrier or auto-discovered valid barrier, default to offset
+    // Use manually set barrier or auto-discovered valid barrier
+    // KEY FIX: NT barrier must be TIGHTER than the gap (offset) so that when price
+    // stays inside the gap it never touches the NT barrier → NOTOUCH wins → gap loss recovered.
+    // Default = 62% of offset (e.g. 0.22 when offset=0.36). Manual override via UI still works.
     var _ntBarrierBase=GM._ntBarrierOverride?
       parseFloat(GM._ntBarrierOverride.replace('+','')):
       parseFloat((document.getElementById('nt-barrier-val')||{value:offset}).value||offset);
-    if(!_ntBarrierBase||_ntBarrierBase<0.40)_ntBarrierBase=offset;
+    var _gapInnerDefault=parseFloat((offset*0.62).toFixed(2));
+    if(!_ntBarrierBase||_ntBarrierBase>=offset)_ntBarrierBase=_gapInnerDefault;
+    if(_ntBarrierBase<0.20)_ntBarrierBase=0.20; // Deriv minimum viable barrier
     var _ntBarrier='+'+_ntBarrierBase.toFixed(2);
     var _ntBarrierLow='-'+_ntBarrierBase.toFixed(2);
     var _ntHighAbs=parseFloat((entry+offset).toFixed(dp3));
