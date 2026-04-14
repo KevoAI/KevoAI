@@ -1678,29 +1678,32 @@ function onProposal(proposal, reqId){
     }
     var _tAsk=parseFloat(proposal.ask_price||0);
     var _tPay=parseFloat(proposal.payout||0);
-    console.log('[GM NOTOUCH] '+_ntSide.toUpperCase()+' OK: id='+proposal.id+' ask=$'+_tAsk.toFixed(2)+' payout=$'+_tPay.toFixed(2)+' barrier='+p.touchBarrier);
+    var _isEB=p._isER||_ntSide==='eb';
+    console.log('[GM '+(_isEB?'EB':'NOTOUCH')+'] '+_ntSide.toUpperCase()+' OK: id='+proposal.id+' ask=$'+_tAsk.toFixed(2)+' payout=$'+_tPay.toFixed(2)+' barrier='+p.touchBarrier);
     if(_tAsk>0){
       var _tRid=wsSend({buy:proposal.id,price:_tAsk});
       if(_tRid) S.pending[_tRid]={
-        dir:'NOTOUCH_'+_ntSide.toUpperCase(),stake:_tAsk,asset:GM.asset,
+        dir:(_isEB?'EXPIRYRANGE':'NOTOUCH_'+_ntSide.toUpperCase()),stake:_tAsk,asset:GM.asset,
         isBot:true,isGM:true,isGMTouch:true,gmNTSide:_ntSide,
         gmRound:p.gmRound,entryPrice:p.touchEntry,
-        durVal:GM.dur,durUnit:GM.durUnit||'t'
+        durVal:(_isEB?1:GM.dur),durUnit:(_isEB?'m':GM.durUnit||'t')
       };
       // Track both NT contracts in the pending round
       var _pr3=GM.pending[p.gmRound];
       if(_pr3){
         if(_ntSide==='high'){_pr3.ntHighStake=_tAsk;_pr3.ntHighPay=_tPay;}
-        else{_pr3.ntLowStake=_tAsk;_pr3.ntLowPay=_tPay;}
-        // Update UI once both are tracked
+        else if(_ntSide==='low'){_pr3.ntLowStake=_tAsk;_pr3.ntLowPay=_tPay;}
+        else if(_ntSide==='eb'){_pr3.ntEbStake=_tAsk;_pr3.ntEbPay=_tPay;}
+        // Update UI once placed
         var _bothPlaced=_pr3.ntHighStake&&_pr3.ntLowStake;
-        if(_tInfoEl2)_tInfoEl2.textContent=
-          'NT_H ask:$'+(_pr3.ntHighStake||'?').toFixed?(_pr3.ntHighStake||0).toFixed(2):'?' +
-          ' | NT_L ask:$'+(_pr3.ntLowStake||0).toFixed(2)+
-          ' | pays each: $'+_tPay.toFixed(2);
+        if(_tInfoEl2){
+          var _infoNT='NT_H:$'+((_pr3.ntHighStake||0).toFixed(2))+' NT_L:$'+((_pr3.ntLowStake||0).toFixed(2));
+          var _infoEB=_pr3.ntEbStake?(' | EB:$'+_pr3.ntEbStake.toFixed(2)):'';
+          _tInfoEl2.textContent=_infoNT+_infoEB+' | pay:$'+_tPay.toFixed(2);
+        }
         var _rsEl=document.getElementById('gm-round-status');
         if(_rsEl&&(_rsEl.textContent==='2 ACTIVE'||_rsEl.textContent==='BUYING...'))
-          _rsEl.textContent=_bothPlaced?'4 ACTIVE (NT×2 ✛)':'3 ACTIVE (NT ✛)';
+          _rsEl.textContent='+'+((_pr3.ntHighStake?1:0)+(_pr3.ntLowStake?1:0)+(_pr3.ntEbStake?1:0))+' insurance active';
       }
     }
     return;
@@ -5707,6 +5710,20 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
       symbol:GM.asset,barrier:_ntBarrierLow});
     if(ntLowReq)S.pending[ntLowReq]={type:'gm_touch_probe',gmRound:rid,gmNTSide:'low',
       touchStake:touchStake,touchBarrier:_ntBarrierLow,touchEntry:entry,_barrierVal:parseFloat(_ntBarrier)};
+
+    // ── EXPIRYRANGE (Ends Between) ±0.36 for 1 minute ───────────────────────────
+    // Wins when price ends INSIDE the gap after 1 minute — pure gap loss coverage.
+    // Runs independently of the tick-based NOTOUCH above.
+    var _erBarrierH='+'+offset.toFixed(2);  // e.g. +0.40
+    var _erBarrierL='-'+offset.toFixed(2);  // e.g. -0.40
+    console.log('[GM EB] Requesting EXPIRYRANGE '+_erBarrierL+' to '+_erBarrierH+' 1m stake=$'+touchStake);
+    var erReq=wsSend({proposal:1,amount:touchStake,basis:'stake',
+      contract_type:'EXPIRYRANGE',
+      currency:S.currency,duration:1,duration_unit:'m',
+      symbol:GM.asset,barrier:_erBarrierH,barrier2:_erBarrierL});
+    if(erReq)S.pending[erReq]={type:'gm_touch_probe',gmRound:rid,gmNTSide:'eb',
+      touchStake:touchStake,touchBarrier:_erBarrierH,touchEntry:entry,_barrierVal:offset,_isER:true};
+
     var cStakeEl=document.getElementById('gm-call-stake');
     var pStakeEl=document.getElementById('gm-put-stake');
     if(cStakeEl)cStakeEl.textContent='stake: $'+stake.toFixed(2)+' | pays: $'+callPay.toFixed(2)+' | barrier: +'+offset.toFixed(2);
