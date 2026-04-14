@@ -953,13 +953,13 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div style="font-size:10px;color:var(--t2);margin-bottom:8px">NT_HIGH + NT_LOW both at ±barrier. Both win on gap loss. 1 always wins on breakout.</div>
                   <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
                     <span style="font-size:10px;color:var(--t2);white-space:nowrap">NT barrier:</span>
-                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="var v=parseFloat(document.getElementById('nt-barrier-val').value||0.22);v=Math.max(0.20,v-0.02).toFixed(2);document.getElementById('nt-barrier-val').value=v;GM._ntBarrierOverride='+'+v;document.getElementById('nt-barrier-disp').textContent='±'+v">-</div>
-                    <input type="number" id="nt-barrier-val" value="0.22" min="0.20" max="0.34" step="0.02" style="width:58px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM._ntBarrierOverride='+'+parseFloat(this.value).toFixed(2);document.getElementById('nt-barrier-disp').textContent='±'+parseFloat(this.value).toFixed(2)">
-                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="var v=parseFloat(document.getElementById('nt-barrier-val').value||0.22);v=Math.min(0.34,v+0.02).toFixed(2);document.getElementById('nt-barrier-val').value=v;GM._ntBarrierOverride='+'+v;document.getElementById('nt-barrier-disp').textContent='±'+v">+</div>
-                    <span style="font-size:12px;font-weight:700;font-family:var(--mo);color:#3b82f6" id="nt-barrier-disp">±0.22</span>
-                    <button onclick="GM._ntBarrierOverride=null;document.getElementById('nt-barrier-val').value='0.22';document.getElementById('nt-barrier-disp').textContent='±0.22 (auto)'" style="font-size:10px;padding:3px 7px;border-radius:4px;border:1px solid var(--bo);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fn)">auto</button>
+                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="var v=parseFloat(document.getElementById('nt-barrier-val').value||0.80);v=Math.max(0.40,v-0.10).toFixed(2);document.getElementById('nt-barrier-val').value=v;GM._ntBarrierOverride='+'+v;document.getElementById('nt-barrier-disp').textContent='±'+v">-</div>
+                    <input type="number" id="nt-barrier-val" value="0.80" min="0.40" max="3.00" step="0.10" style="width:58px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:4px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM._ntBarrierOverride='+'+parseFloat(this.value).toFixed(2);document.getElementById('nt-barrier-disp').textContent='±'+parseFloat(this.value).toFixed(2)">
+                    <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="var v=parseFloat(document.getElementById('nt-barrier-val').value||0.80);v=Math.min(3.00,v+0.10).toFixed(2);document.getElementById('nt-barrier-val').value=v;GM._ntBarrierOverride='+'+v;document.getElementById('nt-barrier-disp').textContent='±'+v">+</div>
+                    <span style="font-size:12px;font-weight:700;font-family:var(--mo);color:#3b82f6" id="nt-barrier-disp">±auto</span>
+                    <button onclick="GM._ntBarrierOverride=null;document.getElementById('nt-barrier-val').value='0.80';document.getElementById('nt-barrier-disp').textContent='±auto'" style="font-size:10px;padding:3px 7px;border-radius:4px;border:1px solid var(--bo);background:var(--bg3);color:var(--t2);cursor:pointer;font-family:var(--fn)">auto</button>
                   </div>
-                  <div style="font-size:10px;color:var(--ac);font-weight:600">✅ GAP FIX v12: EXPIRYRANGE (Ends Between) insurance. Wins when price ENDS INSIDE ±0.36 gap = exact gap loss scenario = full recovery.</div>
+                  <div style="font-size:10px;color:var(--ac)">Auto: barrier = 1.5× range20 at entry (e.g. ±0.80–1.50). Wide enough price can't reach it = NOTOUCH wins on every gap loss.</div>
                 </div>
                 <!-- Barrier Offset — STATIC 0.36 -->
                 <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.25);border-radius:var(--rs);padding:10px;margin-bottom:11px">
@@ -1464,10 +1464,11 @@ function handleMsg(d) {
     var _ntRound=pend.gmRound?GM.pending[pend.gmRound]:null;
     if(code==='ContractBuyValidationError'||code==='BarrierValidationError'||
        (msg&&msg.toLowerCase().indexOf('barrier')!==-1)){
-      // Try stepping up the barrier by 0.02 each attempt, staying inside the gap (below 0.36)
-      var _prevBarrier=Math.abs(pend._barrierVal||parseFloat(pend.touchBarrier)||0.22);
-      var _retrySteps=[0.22,0.24,0.26,0.28,0.30,0.32,0.34];
-      var _nextIdx=_retrySteps.findIndex(function(v){return Math.abs(v-_prevBarrier)<0.001;})+1;
+      // Step up barrier in large increments — wide barrier means price can't reach it
+      var _prevBarrier=Math.abs(pend._barrierVal||parseFloat(pend.touchBarrier)||0.40);
+      var _retrySteps=[0.40,0.60,0.80,1.00,1.20,1.50];
+      var _nextIdx=_retrySteps.findIndex(function(v){return v>_prevBarrier;});
+      if(_nextIdx<0)_nextIdx=_retrySteps.length;
       if(_nextIdx>0&&_nextIdx<_retrySteps.length){
         var _nextBarrier=_retrySteps[_nextIdx];
         var _nextRel=(_ntSideErr==='low'?'-':'+')+_nextBarrier.toFixed(2);
@@ -1662,13 +1663,14 @@ function onProposal(proposal, reqId){
   if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
   if(p.type==='gm_probe'){onGMProbe(proposal,p);delete S.pending[reqId];return;}
 
-  // ── EXPIRYRANGE (Ends Between) gap insurance proposal handler ──
+  // ── NOTOUCH dual insurance proposal handler ──
   if(p.type==='gm_touch_probe'){
     var _tInfoEl2=document.getElementById('gm-touch-info');
     var _tPnlEl2=document.getElementById('gm-touch-pnl');
+    var _ntSide=p.gmNTSide||'high'; // 'high' or 'low'
     if(!proposal||!proposal.id){
-      console.warn('[GM EXPIRYRANGE] proposal failed — gap insurance unavailable');
-      if(_tInfoEl2)_tInfoEl2.textContent='⚠ Ends-Between unavailable for this asset/duration';
+      console.warn('[GM NOTOUCH] '+_ntSide.toUpperCase()+' proposal failed — insurance unavailable');
+      if(_tInfoEl2)_tInfoEl2.textContent='⚠ NOTOUCH_'+_ntSide.toUpperCase()+' unavailable';
       if(_tPnlEl2){_tPnlEl2.textContent='N/A';_tPnlEl2.style.color='var(--t3)';}
       var _pr2=GM.pending[p.gmRound];
       if(_pr2&&!_pr2.touchResult)_pr2.touchResult={profit:0,win:false,unavailable:true};
@@ -1676,22 +1678,29 @@ function onProposal(proposal, reqId){
     }
     var _tAsk=parseFloat(proposal.ask_price||0);
     var _tPay=parseFloat(proposal.payout||0);
-    console.log('[GM EXPIRYRANGE] OK: id='+proposal.id+' ask=$'+_tAsk.toFixed(2)+' payout=$'+_tPay.toFixed(2)+' barrier='+p.touchBarrier);
+    console.log('[GM NOTOUCH] '+_ntSide.toUpperCase()+' OK: id='+proposal.id+' ask=$'+_tAsk.toFixed(2)+' payout=$'+_tPay.toFixed(2)+' barrier='+p.touchBarrier);
     if(_tAsk>0){
       var _tRid=wsSend({buy:proposal.id,price:_tAsk});
       if(_tRid) S.pending[_tRid]={
-        dir:'EXPIRYRANGE',stake:_tAsk,asset:GM.asset,
-        isBot:true,isGM:true,isGMTouch:true,gmNTSide:'high',
+        dir:'NOTOUCH_'+_ntSide.toUpperCase(),stake:_tAsk,asset:GM.asset,
+        isBot:true,isGM:true,isGMTouch:true,gmNTSide:_ntSide,
         gmRound:p.gmRound,entryPrice:p.touchEntry,
         durVal:GM.dur,durUnit:GM.durUnit||'t'
       };
+      // Track both NT contracts in the pending round
       var _pr3=GM.pending[p.gmRound];
       if(_pr3){
-        _pr3.ntHighStake=_tAsk;_pr3.ntHighPay=_tPay;
-        if(_tInfoEl2)_tInfoEl2.textContent='EB ask:$'+_tAsk.toFixed(2)+' | payout:$'+_tPay.toFixed(2)+' | wins if price ends inside gap';
+        if(_ntSide==='high'){_pr3.ntHighStake=_tAsk;_pr3.ntHighPay=_tPay;}
+        else{_pr3.ntLowStake=_tAsk;_pr3.ntLowPay=_tPay;}
+        // Update UI once both are tracked
+        var _bothPlaced=_pr3.ntHighStake&&_pr3.ntLowStake;
+        if(_tInfoEl2)_tInfoEl2.textContent=
+          'NT_H ask:$'+(_pr3.ntHighStake||'?').toFixed?(_pr3.ntHighStake||0).toFixed(2):'?' +
+          ' | NT_L ask:$'+(_pr3.ntLowStake||0).toFixed(2)+
+          ' | pays each: $'+_tPay.toFixed(2);
         var _rsEl=document.getElementById('gm-round-status');
         if(_rsEl&&(_rsEl.textContent==='2 ACTIVE'||_rsEl.textContent==='BUYING...'))
-          _rsEl.textContent='3 ACTIVE (+EB ✛)';
+          _rsEl.textContent=_bothPlaced?'4 ACTIVE (NT×2 ✛)':'3 ACTIVE (NT ✛)';
       }
     }
     return;
@@ -5116,13 +5125,13 @@ function gmCalc(){
   var momOk=true,momNet=0;
   if(n>=10){momNet=Math.abs(prices[n-1]-prices[n-11]);momOk=momNet>=(offset*0.6);}
 
-  var _ntB=GM._ntBarrierOverride?parseFloat(GM._ntBarrierOverride.replace('+','')):parseFloat((offset*0.62).toFixed(2));
+  var _ntB=GM._ntBarrierOverride?parseFloat(GM._ntBarrierOverride.replace('+','')):0.36;
   var touchNote=GM.touchEnabled
-    ?'NT insurance:     2× NOTOUCH at ±'+_ntB.toFixed(2)+' (inside ±'+offset.toFixed(2)+' gap)\n'
+    ?'NT insurance:     2× NOTOUCH at ±'+_ntB.toFixed(2)+'\n'
      +'NT duration:      '+GM.dur+'T (ticks)\n'
      +'NT stake each:    $'+Math.max(0.35,parseFloat((stake*0.5).toFixed(2))).toFixed(2)+'\n'
-     +'Gap loss cover:   price stays flat → NT barrier not hit → NOTOUCH wins\n'
-     +'Auto-retry:       steps barrier up within gap if Deriv rejects\n'
+     +'Gap loss cover:   NT_H wins + NT_L wins = both pay\n'
+     +'Auto-retry:       steps up barrier if Deriv rejects\n'
     :'NOTOUCH insurance: OFF\n';
 
   if(el)el.textContent=
@@ -5558,7 +5567,7 @@ function onGMProbe(proposal,pendInfo){
   // Update total risk display (2 sides + touch)
   var _trEl=document.getElementById('gm-total-risk');
   var _touchSt=GM.touchEnabled?stake:0;
-  if(_trEl)_trEl.textContent='$'+parseFloat((stake*2+_touchSt).toFixed(2))+(GM.touchEnabled?' (incl. EB insurance)':'');
+  if(_trEl)_trEl.textContent='$'+parseFloat((stake*2+_touchSt).toFixed(2))+(GM.touchEnabled?' (incl. TOUCH)':'');
 
   if(!passes){
     var rs=document.getElementById('gm-round-status');
@@ -5654,28 +5663,50 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
     isBot:true,isGM:true,gmRound:rid,gmSide:'put',
     entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit||'t'};
 
-  // ── EXPIRYRANGE (Ends Between) gap insurance ─────────────────────────────
-  // ONE contract that wins when price ENDS INSIDE the gap (between -offset and +offset).
-  // This is the exact gap-loss scenario. No timing risk, no barrier-touch ambiguity.
-  // barrier  = upper gap edge e.g. +0.36
-  // barrier2 = lower gap edge e.g. -0.36
+  // ── TWO NOTOUCH insurance contracts — the correct gap coverage ──────────────
+  // NOTOUCH HIGH (+barrier): wins when price never hits the top
+  // NOTOUCH LOW  (-barrier): wins when price never hits the bottom
+  // Duration: TICKS (confirmed supported by Deriv platform screenshot)
+  // Barrier: relative format (+X.XX) — start at gap edge ±0.36, Deriv may require
+  //          a minimum barrier distance (e.g. +0.40 or +0.42). If +0.36 fails with
+  //          "Invalid barrier" the error handler auto-retries with larger values.
   if(GM.touchEnabled){
+    // NT stake = same as main stake per side (not half)
+    // Full stake means: in a gap loss, both NTs win → full recovery of both main losses
     var touchStake=parseFloat(stake.toFixed(2));
     if(touchStake<0.35)touchStake=0.35;
     GM.touchStake=touchStake;
-    var _erHigh='+'+offset.toFixed(2);
-    var _erLow ='-'+offset.toFixed(2);
+    var dp3=entry>100?2:5;
+    // NT barrier = 1.5× range20 so price can't reach it during the round.
+    // Wide barrier = NOTOUCH always wins on gap loss (price stays inside the gap).
+    // Floor: 0.40 (Deriv minimum). Manual override via UI still respected.
+    var _range20=GM._cache.range20||0;
+    var _autoBarrier=parseFloat(Math.max(0.40, _range20*1.5).toFixed(2));
+    var _ntBarrierBase=GM._ntBarrierOverride?
+      parseFloat(GM._ntBarrierOverride.replace('+','')):
+      _autoBarrier;
+    if(!_ntBarrierBase||_ntBarrierBase<0.40)_ntBarrierBase=_autoBarrier;
+    var _ntBarrier='+'+_ntBarrierBase.toFixed(2);
+    var _ntBarrierLow='-'+_ntBarrierBase.toFixed(2);
+    var _ntHighAbs=parseFloat((entry+offset).toFixed(dp3));
+    var _ntLowAbs =parseFloat((entry-offset).toFixed(dp3));
     var _tInfoEl=document.getElementById('gm-touch-info');
     var _tPnlEl=document.getElementById('gm-touch-pnl');
-    if(_tInfoEl)_tInfoEl.textContent='EB ['+_erLow+'\u2192'+_erHigh+'] '+GM.dur+'t stake:$'+touchStake.toFixed(2)+' — fetching...';
+    if(_tInfoEl)_tInfoEl.textContent='NT_H('+_ntBarrier+') NT_L('+_ntBarrierLow+') '+GM.dur+'t stake:$'+touchStake.toFixed(2)+' — fetching...';
     if(_tPnlEl){_tPnlEl.textContent='...';_tPnlEl.style.color='#3b82f6';}
-    console.log('[GM EXPIRYRANGE] EB barrier='+_erHigh+' barrier2='+_erLow+' dur='+GM.dur+'t stake=$'+touchStake);
-    var erReq=wsSend({proposal:1,amount:touchStake,basis:'stake',
-      contract_type:'EXPIRYRANGE',
+    console.log('[GM NOTOUCH] Requesting NT_HIGH='+_ntBarrier+' NT_LOW='+_ntBarrierLow+' dur='+GM.dur+'t stake=$'+touchStake);
+    var ntHighReq=wsSend({proposal:1,amount:touchStake,basis:'stake',
+      contract_type:'NOTOUCH',
       currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit||'t',
-      symbol:GM.asset,barrier:_erHigh,barrier2:_erLow});
-    if(erReq)S.pending[erReq]={type:'gm_touch_probe',gmRound:rid,gmNTSide:'high',
-      touchStake:touchStake,touchBarrier:_erHigh,touchEntry:entry,_barrierVal:offset,_isER:true};
+      symbol:GM.asset,barrier:_ntBarrier});
+    if(ntHighReq)S.pending[ntHighReq]={type:'gm_touch_probe',gmRound:rid,gmNTSide:'high',
+      touchStake:touchStake,touchBarrier:_ntBarrier,touchEntry:entry,_barrierVal:parseFloat(_ntBarrier)};
+    var ntLowReq=wsSend({proposal:1,amount:touchStake,basis:'stake',
+      contract_type:'NOTOUCH',
+      currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit||'t',
+      symbol:GM.asset,barrier:_ntBarrierLow});
+    if(ntLowReq)S.pending[ntLowReq]={type:'gm_touch_probe',gmRound:rid,gmNTSide:'low',
+      touchStake:touchStake,touchBarrier:_ntBarrierLow,touchEntry:entry,_barrierVal:parseFloat(_ntBarrier)};
     var cStakeEl=document.getElementById('gm-call-stake');
     var pStakeEl=document.getElementById('gm-put-stake');
     if(cStakeEl)cStakeEl.textContent='stake: $'+stake.toFixed(2)+' | pays: $'+callPay.toFixed(2)+' | barrier: +'+offset.toFixed(2);
@@ -5769,26 +5800,37 @@ function gmForceSettle(rid){
   gmSettle(rid);
 }
 
-// ── EXPIRYRANGE (Ends Between) gap insurance result handler ────────────────
+// ── NOTOUCH dual insurance result handler ───────────────────────
 function onGMTouchResult(rid, profit, exitPrice, ntSide){
   var round=GM.pending[rid];
   var pnl=parseFloat(profit)||0;
-  console.log('[GM EXPIRYRANGE RESULT] R'+rid+' pnl:$'+pnl.toFixed(2)+(pnl>0?' WIN':'  loss'));
+  var side=ntSide||'unknown';
+  console.log('[GM NOTOUCH RESULT] R'+rid+' side='+side+' pnl:$'+pnl.toFixed(2)+(pnl>0?' WIN':'  loss'));
 
-  // Remove EB contract from active trades
-  S.activeTrades=S.activeTrades.filter(function(t){return !(t.isGMTouch&&t.gmRound===rid);});
+  // Remove this specific NT contract from active trades
+  S.activeTrades=S.activeTrades.filter(function(t){return !(t.isGMTouch&&t.gmRound===rid&&t.gmNTSide===side);});
 
-  // Single contract — result is final
+  // Accumulate into round's combined touch PnL
   if(round){
-    round.touchResult={profit:parseFloat(pnl.toFixed(2)),win:pnl>0};
+    if(!round._ntResults)round._ntResults={};
+    round._ntResults[side]={profit:pnl,win:pnl>0};
+    // Recompute combined touch PnL
+    var combined=0;
+    Object.keys(round._ntResults).forEach(function(k){combined+=round._ntResults[k].profit;});
+    var combinedWin=combined>0;
+    round.touchResult={profit:parseFloat(combined.toFixed(2)),win:combinedWin};
+    // Update UI
     var _tInfoEl=document.getElementById('gm-touch-info');
     var _tPnlEl=document.getElementById('gm-touch-pnl');
-    var _infoTxt='EB '+(pnl>0?'WIN — price ended inside gap':'loss — price broke out')+ ' | $'+pnl.toFixed(2);
+    var _ntH=round._ntResults['high'];var _ntL=round._ntResults['low'];
+    var _infoTxt='NT_H:'+((_ntH)?(((_ntH.win?'WIN+$':'loss-$')+Math.abs(_ntH.profit).toFixed(2))):'wait')+
+                ' | NT_L:'+((_ntL)?(((_ntL.win?'WIN+$':'loss-$')+Math.abs(_ntL.profit).toFixed(2))):'wait');
     if(_tInfoEl)_tInfoEl.textContent=_infoTxt;
     if(_tPnlEl){
-      _tPnlEl.textContent=(pnl>=0?'+':'')+'$'+Math.abs(pnl).toFixed(2);
-      _tPnlEl.style.color=pnl>0?'var(--ac)':pnl<0?'var(--re)':'#3b82f6';
+      _tPnlEl.textContent=(combined>=0?'+':'')+'$'+Math.abs(combined).toFixed(2);
+      _tPnlEl.style.color=combined>0?'var(--ac)':combined<0?'var(--re)':'#3b82f6';
     }
+    // If main contracts not yet settled, touchResult stored for gmSettle to include
     if(!round._settled) return;
   }
   // Main contracts already settled — patch history
@@ -5811,8 +5853,8 @@ function onGMTouchResult(rid, profit, exitPrice, ntSide){
     gmUpdateStats();
     gmRenderHistory();
   }
-  notify('EB '+(pnl>0?'WIN ✅':'loss'),
-    pnl>0?'Ends-Between paid +$'+pnl.toFixed(2):'Ends-Between lost — price broke out of gap',
+  notify('NT_'+side.toUpperCase()+' '+(pnl>0?'WIN ✅':'miss'),
+    pnl>0?'NOTOUCH_'+side.toUpperCase()+' paid +$'+pnl.toFixed(2):'NOTOUCH_'+side.toUpperCase()+' lost (barrier was touched)',
     pnl>0?'win':'loss');
 }
 
