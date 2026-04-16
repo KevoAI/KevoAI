@@ -957,22 +957,22 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px">
                     <div style="background:var(--bg3);border-radius:var(--rs);padding:6px;border:1px solid rgba(167,139,250,0.3)">
                       <div style="font-size:9px;color:#a78bfa;margin-bottom:3px">H1/L1</div>
-                      <input type="number" id="ov-s1" value="0.25" min="0.25" step="0.05" style="width:100%;background:var(--bg4);border:1px solid var(--bo);border-radius:4px;padding:4px 5px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="ovUpdateCalc()">
+                      <input type="number" id="ov-s1" value="0.35" min="0.35" step="0.05" style="width:100%;background:var(--bg4);border:1px solid var(--bo);border-radius:4px;padding:4px 5px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="ovUpdateCalc()">
                       <div style="font-size:9px;color:var(--t3);margin-top:2px">flat win</div>
                     </div>
                     <div style="background:var(--bg3);border-radius:var(--rs);padding:6px;border:1px solid rgba(167,139,250,0.2)">
                       <div style="font-size:9px;color:#a78bfa;margin-bottom:3px">H2/L2</div>
-                      <input type="number" id="ov-s2" value="0.25" min="0.25" step="0.05" style="width:100%;background:var(--bg4);border:1px solid var(--bo);border-radius:4px;padding:4px 5px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="ovUpdateCalc()">
+                      <input type="number" id="ov-s2" value="0.35" min="0.35" step="0.05" style="width:100%;background:var(--bg4);border:1px solid var(--bo);border-radius:4px;padding:4px 5px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="ovUpdateCalc()">
                       <div style="font-size:9px;color:var(--t3);margin-top:2px">guard</div>
                     </div>
                     <div style="background:var(--bg3);border-radius:var(--rs);padding:6px;border:1px solid rgba(245,166,35,0.2)">
                       <div style="font-size:9px;color:var(--go);margin-bottom:3px">H3/L3</div>
-                      <input type="number" id="ov-s3" value="0.25" min="0.25" step="0.05" style="width:100%;background:var(--bg4);border:1px solid var(--bo);border-radius:4px;padding:4px 5px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="ovUpdateCalc()">
+                      <input type="number" id="ov-s3" value="0.35" min="0.35" step="0.05" style="width:100%;background:var(--bg4);border:1px solid var(--bo);border-radius:4px;padding:4px 5px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="ovUpdateCalc()">
                       <div style="font-size:9px;color:var(--t3);margin-top:2px">mid</div>
                     </div>
                     <div style="background:var(--bg3);border-radius:var(--rs);padding:6px;border:1px solid rgba(245,166,35,0.3)">
                       <div style="font-size:9px;color:var(--go);margin-bottom:3px">H4/L4</div>
-                      <input type="number" id="ov-s4" value="0.25" min="0.25" step="0.05" style="width:100%;background:var(--bg4);border:1px solid var(--bo);border-radius:4px;padding:4px 5px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="ovUpdateCalc()">
+                      <input type="number" id="ov-s4" value="0.35" min="0.35" step="0.05" style="width:100%;background:var(--bg4);border:1px solid var(--bo);border-radius:4px;padding:4px 5px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="ovUpdateCalc()">
                       <div style="font-size:9px;color:var(--t3);margin-top:2px">profit</div>
                     </div>
                   </div>
@@ -1187,7 +1187,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <!-- ── Manual Trade (1 round, fires immediately) ── -->
                 <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:var(--rs);padding:11px;margin-bottom:11px">
                   <div style="font-size:11px;font-weight:700;color:var(--go);margin-bottom:8px">⚡ Manual Trade — fire 1 round now</div>
-                  <div style="font-size:10px;color:var(--t2);margin-bottom:9px">Places HIGHER + LOWER + TOUCH using current config at live price.</div>
+                  <div style="font-size:10px;color:var(--t2);margin-bottom:9px">Places all 8 overlap legs at live price. ATR/RSI gates bypassed for manual fire.</div>
                   <button onclick="gmManualFire()" style="width:100%;padding:11px;border-radius:var(--rs);border:1px solid rgba(245,166,35,0.4);background:rgba(245,166,35,0.15);color:var(--go);font-family:var(--fn);font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.03em" id="gm-manual-btn">⚡ FIRE TRADE NOW</button>
                   <div style="font-size:10px;color:var(--t3);margin-top:6px;font-family:var(--mo)" id="gm-manual-status">Ready — bot can run alongside</div>
                 </div>
@@ -5202,62 +5202,40 @@ function gmExportData(){
 
 
 function gmCalc(){
-  var stake=gmStake();
+  var s1=ovStake(1),s2=ovStake(2),s3=ovStake(3),s4=ovStake(4);
+  var b1=ovBarrier(1),b2=ovBarrier(2),b3=ovBarrier(3),b4=ovBarrier(4);
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
-  var offset=0.36; // static
-  var totalRisk=stake*2;  // HIGHER + LOWER
-  var totalRisk3=stake*3; // HIGHER + LOWER + TOUCH
-  // Use last known payouts if available
-  var cPay=GM.lastCallPay||0;
-  var pPay=GM.lastPutPay||0;
-  var combined=cPay+pPay;
-  var passes=combined>0&&gmGatePasses(cPay,pPay,stake);
-  var bestProfit=combined>0?parseFloat((Math.max(cPay,pPay)-totalRisk).toFixed(2)):null;
-  var worstProfit=combined>0?parseFloat((Math.min(cPay,pPay)-totalRisk).toFixed(2)):null;
+  var totalRisk=(s1+s2+s3+s4)*2;
   var el=document.getElementById('gm-calc-display');
-  var budget=stake*2;
+
   // Update stake display
   var stakeDisp=document.getElementById('gm-stake-display');
-  if(stakeDisp)stakeDisp.textContent=stake.toFixed(2);
-  // Momentum check live display
-  var prices=getInd(GM.asset).prices;
-  var n=prices.length;
-  var momOk=true,momNet=0;
-  if(n>=10){momNet=Math.abs(prices[n-1]-prices[n-11]);momOk=momNet>=(offset*0.6);}
-
-  var _ntB=GM._ntBarrierOverride?parseFloat(GM._ntBarrierOverride.replace('+','')):0.36;
-  var touchNote=GM.touchEnabled
-    ?'NT insurance:     2× NOTOUCH at ±'+_ntB.toFixed(2)+'\n'
-     +'NT duration:      '+GM.dur+'T (ticks)\n'
-     +'NT stake each:    $'+Math.max(0.35,parseFloat((stake*0.5).toFixed(2))).toFixed(2)+'\n'
-     +'Gap loss cover:   NT_H wins + NT_L wins = both pay\n'
-     +'Auto-retry:       steps up barrier if Deriv rejects\n'
-    :'NOTOUCH insurance: OFF\n';
+  if(stakeDisp)stakeDisp.textContent=s1.toFixed(2);
+  var trEl=document.getElementById('ov-total-risk');
+  if(trEl)trEl.textContent=totalRisk.toFixed(2);
 
   if(el)el.textContent=
-    '3-CONTRACT SYSTEM (ticks)\n'
-   +'━━━━━━━━━━━━━━━━━━━━━━━\n'
-   +'Duration:         '+GM.dur+'T (ticks)\n'
-   +'Barrier:          ±0.40 (STATIC)\n'
-   +'Budget per round: $'+budget.toFixed(2)+'\n'
-   +'Each side stake:  $'+stake.toFixed(2)+'\n'
-   +'Total risk(2c):   $'+totalRisk.toFixed(2)+'\n'
-   +touchNote+'\n'
-   +'CONTRACT 1 — HIGHER (entry+0.36):\n'
-   +'  Payout: $'+(cPay?cPay.toFixed(2):'--')+'\n'
-   +'CONTRACT 2 — LOWER (entry-0.36):\n'
-   +'  Payout: $'+(pPay?pPay.toFixed(2):'--')+'\n'
-   +'CONTRACT 3 — TOUCH (±0.40 zone):\n'
-   +'  Fires if price touches barrier\n'
-   +'  Insurance when gap loss occurs\n\n'
-   +'Gate: each payout > $'+totalRisk.toFixed(2)+'\n'
-   +'Status: '+(combined?(passes?'✅ PASS — will trade':'❌ SKIP — payout too low'):'Fetching...')+'\n\n'
-   +'Best net: '+(bestProfit!==null?(bestProfit>=0?'+$'+bestProfit.toFixed(2):'-$'+Math.abs(bestProfit).toFixed(2)):'--')+'\n'
+    '8-LEG OVERLAP SYSTEM (ticks)\n'
+   +'━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+   +'Duration:     '+GM.dur+'T (ticks)\n'
+   +'Total risk:   $'+totalRisk.toFixed(2)+'/round\n\n'
+   +'LEG   TYPE   BARRIER   STAKE   FLAT?\n'
+   +'H1    CALL   −'+b1.toFixed(2)+'     $'+s1.toFixed(2)+'   ✅ wins\n'
+   +'L1    PUT    +'+b1.toFixed(2)+'     $'+s1.toFixed(2)+'   ✅ wins\n'
+   +'H2    CALL   −'+b2.toFixed(2)+'     $'+s2.toFixed(2)+'   ✅ wins\n'
+   +'L2    PUT    +'+b2.toFixed(2)+'     $'+s2.toFixed(2)+'   ✅ wins\n'
+   +'H3    CALL   +'+b3.toFixed(2)+'     $'+s3.toFixed(2)+'   ❌ miss\n'
+   +'L3    PUT    −'+b3.toFixed(2)+'     $'+s3.toFixed(2)+'   ❌ miss\n'
+   +'H4    CALL   +'+b4.toFixed(2)+'     $'+s4.toFixed(2)+'   ❌ miss\n'
+   +'L4    PUT    −'+b4.toFixed(2)+'     $'+s4.toFixed(2)+'   ❌ miss\n\n'
+   +'Flat guarantee: H1+L1+H2+L2 all win\n'
+   +'Breakout bonus: H3/H4 or L3/L4 add profit\n'
+   +'No gap loss zone exists in this system\n\n'
    +'Daily SL: $'+sl+' | Daily TP: $'+tp;
 }
 
-// ── Manual trade: fire one round immediately, regardless of bot state ──
+// ── Manual trade: fetch 8 proposals and place immediately ──
 function gmManualFire(){
   if(!S.connected){notify('!','Connect first','loss');return;}
   var entry=S.prices[GM.asset]||0;
@@ -5267,58 +5245,22 @@ function gmManualFire(){
 
   var btn=document.getElementById('gm-manual-btn');
   var st=document.getElementById('gm-manual-status');
-  if(btn){btn.style.opacity='0.5';btn.textContent='⏳ Placing...';}
-  if(st)st.textContent='Fetching proposals at entry '+entry.toFixed(entry>100?2:5)+'...';
+  if(btn){btn.style.opacity='0.5';btn.textContent='⏳ Placing 8 legs...';}
+  if(st)st.textContent='Fetching 8 proposals at entry '+entry.toFixed(entry>100?2:5)+'...';
 
-  // Fetch proposals then fire — re-uses the normal proposal → gmGatePasses → gmPlace pipeline
+  // Set manual flag so onGMProbe skips ATR/RSI gates
   GM._manualPending=true;
-  var stake=gmStake();
-  var offset=0.36;
-  var dp=entry>100?2:5;
-  var callBarrier='+'+offset.toFixed(2);
-  var putBarrier ='-'+offset.toFixed(2);
 
-  var p1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
-    currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit||'t',
-    symbol:GM.asset,barrier:callBarrier});
-  if(p1)S.pending[p1]={type:'gm_probe',gmSide:'call',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:callBarrier,_manual:true};
+  // Use normal 8-leg fetch path — gate will be bypassed via _manualPending flag
+  gmFetchProposals();
 
-  var p2=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'PUT',
-    currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit||'t',
-    symbol:GM.asset,barrier:putBarrier});
-  if(p2)S.pending[p2]={type:'gm_probe',gmSide:'put',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:putBarrier,_manual:true};
-
-  // Reset button after 8s regardless
+  // Reset button after 12s regardless
   setTimeout(function(){
     GM._manualPending=false;
     if(btn){btn.style.opacity='1';btn.textContent='⚡ FIRE TRADE NOW';}
     if(st)st.textContent='Ready — bot can run alongside';
-  },8000);
+  },12000);
 }
-
-// Patch onGMProbe to handle manual flag
-var _gmOrigProbe=onGMProbe;
-onGMProbe=function(proposal,pendInfo){
-  if(pendInfo&&pendInfo._manual){
-    // Force gate pass for manual trades — skip auto gate check
-    var _manualStake=pendInfo.probeStake;
-    var payout=parseFloat(proposal.payout||0);
-    var ask=parseFloat(proposal.ask_price||0);
-    if(pendInfo.gmSide==='call'){_gmProbe.call=payout;_gmProbe.callId=proposal.id;_gmProbe.callAsk=ask;}
-    else{_gmProbe.put=payout;_gmProbe.putId=proposal.id;_gmProbe.putAsk=ask;}
-    _gmProbe.stake=_manualStake;_gmProbe.entry=pendInfo.probeEntry;_gmProbe.barrier=pendInfo.probeBarrier;
-    if(_gmProbe.call&&_gmProbe.put){
-      var btn=document.getElementById('gm-manual-btn');
-      var st=document.getElementById('gm-manual-status');
-      if(btn){btn.style.opacity='1';btn.textContent='⚡ FIRE TRADE NOW';}
-      if(st)st.textContent='Placing... payouts: $'+_gmProbe.call.toFixed(2)+' / $'+_gmProbe.put.toFixed(2);
-      gmPlace(_gmProbe.callId,_gmProbe.putId,_gmProbe.callAsk,_gmProbe.putAsk,_manualStake,_gmProbe.entry,_gmProbe.barrier,_gmProbe.call,_gmProbe.put);
-      _gmProbe.call=null;_gmProbe.put=null;
-    }
-    return;
-  }
-  _gmOrigProbe(proposal,pendInfo);
-};
 
 function gmToggle(){
   GM.running=!GM.running;
@@ -5580,7 +5522,7 @@ function gmAdaptiveOffset(){
 // ── Helper: read leg stake from UI ───────────────────────────────
 function ovStake(n){
   var el=document.getElementById('ov-s'+n);
-  return el?Math.max(0.25,parseFloat(el.value)||0.25):0.25;
+  return el?Math.max(0.35,parseFloat(el.value)||0.35):0.35;
 }
 function ovBarrier(n){
   var el=document.getElementById('ov-b'+n);
@@ -5675,12 +5617,12 @@ function onGMProbe(proposal,pendInfo){
 
   if(_ovReady<8)return; // wait for all 8
 
-  // ── ATR filter (Phase 2 — Gate 1) ────────────────────────────
+  // ── ATR filter (Phase 2 — Gate 1) — skip for manual trades ────
   var prices=getInd(GM.asset).prices;
   var atr14=0;
   if(prices.length>=15){for(var i=prices.length-14;i<prices.length;i++)atr14+=Math.abs(prices[i]-prices[i-1]);atr14=atr14/14;}
   var atrMin=parseFloat((document.getElementById('ov-atr-min')||{value:'0.12'}).value)||0.12;
-  if(atr14<atrMin){
+  if(!GM._manualPending && atr14<atrMin){
     var rs2=document.getElementById('gm-round-status');
     if(rs2)rs2.textContent='SKIP: ATR14='+atr14.toFixed(4)+' < '+atrMin;
     GM._skipped=(GM._skipped||0)+1;GM._skipReasons.atr=(GM._skipReasons.atr||0)+1;
@@ -5688,12 +5630,12 @@ function onGMProbe(proposal,pendInfo){
     _ovProbe={};_ovReady=0;return;
   }
 
-  // ── RSI filter (Phase 2 — Gate 2) ────────────────────────────
+  // ── RSI filter (Phase 2 — Gate 2) — skip for manual trades ───
   var rsiVal=gmCalcRSI(prices,7);
   var rsiOB=parseFloat((document.getElementById('ov-rsi-ob')||{value:'70'}).value)||70;
   var rsiOS=parseFloat((document.getElementById('ov-rsi-os')||{value:'30'}).value)||30;
   var rsiOk=rsiVal>=rsiOB||rsiVal<=rsiOS;
-  if(!rsiOk){
+  if(!GM._manualPending && !rsiOk){
     var rs3=document.getElementById('gm-round-status');
     if(rs3)rs3.textContent='SKIP: RSI='+rsiVal.toFixed(1)+' (need >'+rsiOB+' or <'+rsiOS+')';
     GM._skipped=(GM._skipped||0)+1;GM._skipReasons.score=(GM._skipReasons.score||0)+1;
@@ -5776,6 +5718,7 @@ function gmPlace(callId,putId,callAsk,putAsk,stakeIgnored,entry,barrier,callPay,
     GM.pending[rid][side+'Pay']=p.payout;
   });
   _ovProbe={};_ovReady=0;
+  GM._manualPending=false;
   setTimeout(function(){GM._placing=false;},200);
   var _durUnit=GM.durUnit||'t';
   var _forceMs=_durUnit==='t'?(GM.dur*2000)+20000:(GM.dur*1000)+15000;
