@@ -1191,16 +1191,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <button onclick="gmManualFire()" style="width:100%;padding:11px;border-radius:var(--rs);border:1px solid rgba(245,166,35,0.4);background:rgba(245,166,35,0.15);color:var(--go);font-family:var(--fn);font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.03em" id="gm-manual-btn">⚡ FIRE TRADE NOW</button>
                   <div style="font-size:10px;color:var(--t3);margin-top:6px;font-family:var(--mo)" id="gm-manual-status">Ready — bot can run alongside</div>
                 </div>
-                <!-- Gap between rounds (already inserted above) -->
-                <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Min Gap Between Rounds</div>
-                  <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db" onclick="GM.minGap=15;gmSetActive(this)">15s</div>
-                    <div class="db active" onclick="GM.minGap=30;gmSetActive(this)">30s</div>
-                    <div class="db" onclick="GM.minGap=45;gmSetActive(this)">45s</div>
-                    <div class="db" onclick="GM.minGap=60;gmSetActive(this)">60s</div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -1212,25 +1202,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               </div>
             </div>
 
-            <!-- Stats -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px">
-              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;text-align:center">
-                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Session P&L</div>
-                <div style="font-size:18px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-pnl">$0.00</div>
-              </div>
-              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;text-align:center">
-                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Rounds</div>
-                <div style="font-size:18px;font-weight:700;font-family:var(--mo);color:var(--bl)" id="gm-rounds">0</div>
-              </div>
-              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;text-align:center">
-                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Profitable</div>
-                <div style="font-size:18px;font-weight:700;font-family:var(--mo);color:var(--go)" id="gm-wr">0%</div>
-              </div>
-              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;text-align:center">
-                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">W / L</div>
-                <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--t2)" id="gm-wl">0 / 0</div>
-              </div>
-            </div>
+
 
             <button id="gm-toggle-btn" onclick="gmToggle()" style="width:100%;padding:14px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--fn);font-size:14px;font-weight:800;background:var(--ac);color:var(--bg0);margin-bottom:6px">START GMILLI</button>
             <button onclick="gmReset()" style="width:100%;padding:8px;border-radius:var(--rs);border:1px solid var(--bo);background:var(--bg3);color:var(--t2);font-family:var(--fn);font-size:11px;cursor:pointer">Reset Session</button>
