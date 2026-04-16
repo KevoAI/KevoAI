@@ -1570,40 +1570,44 @@ function handleMsg(d) {
     if(d.req_id)delete S.pending[d.req_id];
     return; // always suppress the red toast for NT errors
   }
-      // Handle PriceMoved error for GM contracts
+      // Handle PriceMoved error for GM contracts (8-leg system)
   if(code==='PriceMoved'&&pend&&pend.isGM){
     var _gmRid=pend.gmRound;
     var _gmRound=GM.pending[_gmRid];
     if(_gmRound){
-      console.log('[GM] PriceMoved on '+pend.gmSide+' - marking as not placed');
-      if(pend.gmSide==='call')_gmRound.callPlaced=false;
-      else _gmRound.putPlaced=false;
-      // If the other side was already settled (won/lost), settle the round now
-      var _otherSettled=pend.gmSide==='call'?
-        _gmRound.results.put!==null:_gmRound.results.call!==null;
-      if(_otherSettled){gmSettle(_gmRid);return;}
-      // If NEITHER side was placed (both got PriceMoved), cancel the round entirely
-      // so the force-settle timeout does NOT fire a -$3 ghost loss
-      var _neitherPlaced=!_gmRound.callPlaced&&!_gmRound.putPlaced;
-      var _noBuysConfirmed=!_gmRound.callCid&&!_gmRound.putCid;
-      if(_neitherPlaced&&_noBuysConfirmed){
-        console.log('[GM] Both sides PriceMoved on R'+_gmRid+' — cancelling round and re-fetching fresh proposals');
+      var _pmSide=pend.gmSide; // e.g. 'h1','h2','l3' etc.
+      console.log('[GM] PriceMoved on '+_pmSide+' — marking leg as not placed');
+      _gmRound[_pmSide+'Placed']=false;
+      // Check if this leg's result was already settled — if yes, just let the rest finish
+      var _thisSettled=_gmRound.results[_pmSide]!==null&&_gmRound.results[_pmSide]!==undefined;
+      if(_thisSettled){if(d.req_id)delete S.pending[d.req_id];return;}
+      // Count how many legs were confirmed (have a cid) vs how many got PriceMoved
+      var _allSides=['h1','h2','h3','h4','l1','l2','l3','l4'];
+      var _confirmedAny=_allSides.some(function(s){return !!_gmRound[s+'Cid'];});
+      if(!_confirmedAny){
+        // No legs were placed at all — cancel round cleanly and retry
+        console.log('[GM] All legs PriceMoved on R'+_gmRid+' — cancelling round, re-fetching');
         clearTimeout(_gmRound._timeout);
-        GM.rounds=Math.max(0,GM.rounds-1); // don't count this as a real round
-        GM._placing=false; // release placing lock if held
+        GM.rounds=Math.max(0,GM.rounds-1);
+        GM._placing=false;
         delete GM.pending[_gmRid];
-        GM.lastRoundTime=0; // allow immediate retry
+        GM.lastRoundTime=0;
         var rs=document.getElementById('gm-round-status');
         if(rs)rs.textContent='PRICE MOVED — re-fetching...';
-        // Re-fetch proposals immediately with the current live price
-        // Small delay to let the market settle after the move
         setTimeout(function(){
-          if(GM.running&&S.connected&&gmActiveCount()===0){
-            gmFetchProposals();
-          }
-        }, 300);
+          if(S.connected&&gmActiveCount()===0){gmFetchProposals();}
+        },300);
+      } else {
+        // Some legs already placed — treat this leg as a loss and let round complete normally
+        if(_gmRound.results[_pmSide]===null||_gmRound.results[_pmSide]===undefined){
+          var _pmStake=_gmRound[_pmSide+'Stake']||_gmRound.stake||0.35;
+          _gmRound.results[_pmSide]={profit:-_pmStake,win:false};
+          _gmRound.settled=(_gmRound.settled||0)+1;
+          if(_gmRound.settled>=8)gmSettle(_gmRid);
+        }
       }
     }
+    if(d.req_id)delete S.pending[d.req_id];
     return;
   }
   // Handle InvalidContractProposal for GM buy requests
@@ -1612,17 +1616,30 @@ function handleMsg(d) {
   if(code==='InvalidContractProposal'&&pend&&pend.isGM){
     var _icpRid=pend.gmRound;
     var _icpRound=GM.pending[_icpRid];
-    if(_icpRound&&!_icpRound.callCid&&!_icpRound.putCid){
-      // No buys were confirmed at all — this round never reached Deriv, cancel it
-      console.log('[GM] InvalidContractProposal on R'+_icpRid+' with no confirmed buys — cancelling ghost round');
-      clearTimeout(_icpRound._timeout);
-      GM.rounds=Math.max(0,GM.rounds-1);
-      GM._placing=false;
-      delete GM.pending[_icpRid];
-      GM.lastRoundTime=0;
-      var _rs=document.getElementById('gm-round-status');
-      if(_rs)_rs.textContent='INVALID — skipped';
-      notify('Skip','Duplicate/invalid round cancelled — no real trade','info');
+    if(_icpRound){
+      var _icpSides=['h1','h2','h3','h4','l1','l2','l3','l4'];
+      var _icpAnyConfirmed=_icpSides.some(function(s){return !!_icpRound[s+'Cid'];});
+      if(!_icpAnyConfirmed){
+        // No legs confirmed at all — cancel ghost round
+        console.log('[GM] InvalidContractProposal on R'+_icpRid+' — no confirmed legs, cancelling ghost round');
+        clearTimeout(_icpRound._timeout);
+        GM.rounds=Math.max(0,GM.rounds-1);
+        GM._placing=false;
+        delete GM.pending[_icpRid];
+        GM.lastRoundTime=0;
+        var _rs=document.getElementById('gm-round-status');
+        if(_rs)_rs.textContent='INVALID — skipped';
+        notify('Skip','Invalid round cancelled — no real trade','info');
+      } else {
+        // Some legs already placed — treat this leg as a loss and let round settle
+        var _icpSide=pend.gmSide;
+        if(_icpSide&&(_icpRound.results[_icpSide]===null||_icpRound.results[_icpSide]===undefined)){
+          var _icpStake=_icpRound[_icpSide+'Stake']||_icpRound.stake||0.35;
+          _icpRound.results[_icpSide]={profit:-_icpStake,win:false};
+          _icpRound.settled=(_icpRound.settled||0)+1;
+          if(_icpRound.settled>=8)gmSettle(_icpRid);
+        }
+      }
       if(d.req_id) delete S.pending[d.req_id];
       return;
     }
