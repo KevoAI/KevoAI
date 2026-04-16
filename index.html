@@ -5645,7 +5645,7 @@ function onGMProbe(proposal,pendInfo){
   var _trEl=document.getElementById('gm-total-risk');
   if(_trEl)_trEl.textContent='$'+totalRisk.toFixed(2)+' (8 legs)';
 
-  if(flatNet<=0){
+  if(flatNet<=0&&!GM._manualPending){
     if(gEl){gEl.textContent='❌ SKIP flat net=$'+flatNet.toFixed(2);gEl.style.color='var(--re)';}
     if(epEl){epEl.textContent='Flat net negative — skipping';epEl.style.color='var(--re)';}
     GM._skipped=(GM._skipped||0)+1;GM._skipReasons.gate=(GM._skipReasons.gate||0)+1;
@@ -5666,7 +5666,7 @@ function gmPlace(callId,putId,callAsk,putAsk,stakeIgnored,entry,barrier,callPay,
     var rs0=document.getElementById('gm-round-status');
     if(rs0)rs0.textContent='STALE — re-fetching...';
     _ovProbe={};_ovReady=0;
-    setTimeout(function(){if(GM.running&&S.connected&&gmActiveCount()===0)gmFetchProposals();},150);
+    setTimeout(function(){if((GM.running||GM._manualPending)&&S.connected&&gmActiveCount()===0)gmFetchProposals();},150);
     return;
   }
   if(GM._placing){console.warn('[GM] Already placing — suppressed');return;}
