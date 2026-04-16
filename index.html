@@ -5796,7 +5796,7 @@ function gmSettle(rid){
   legs.forEach(function(k){snap[k+'Pnl']=legPnls[k];snap[k+'Won']=r.results[k]&&r.results[k].win;});
   var hT=legPnls.h1+legPnls.h2+legPnls.h3+legPnls.h4;
   var lT=legPnls.l1+legPnls.l2+legPnls.l3+legPnls.l4;
-  GM.history.unshift({rid:rid,total:total,win:isWin,callPnl:hT,putPnl:lT,touchPnl:0,touchWon:false,callWon:hT>0,putWon:lT>0,time:r.time,asset:r.asset,stake:r.stake,callPay:r.callPay||0,putPay:r.putPay||0,combinedPay:r.combinedPay||0,entry:r.entry,offset:r.outer||0.35,winners:winners,overlapWins:overlapWins,snap:snap});
+  GM.history.unshift({rid:rid,total:total,win:isWin,callPnl:hT,putPnl:lT,callWon:hT>0,putWon:lT>0,time:r.time,asset:r.asset,stake:r.stake,callPay:r.callPay||0,putPay:r.putPay||0,combinedPay:r.combinedPay||0,entry:r.entry,offset:r.outer||0.35,winners:winners,overlapWins:overlapWins,legPnls:legPnls,snap:snap});
   gmUpdateStats();gmRenderHistory();
   var net=document.getElementById('gm-round-net');
   if(net){net.textContent=(total>=0?'+':'')+'$'+Math.abs(total).toFixed(2);net.style.color=total>0?'var(--ac)':'var(--re)';}
@@ -5875,6 +5875,9 @@ function gmRenderHistory(){
   var rows=slice.map(function(r){
     var s=r.snap||{};
     var gapLoss=s.gapLoss||(!r.callWon&&!r.putWon);
+    var lp=r.legPnls||{};
+    var ovWins=(lp.h1>0?1:0)+(lp.h2>0?1:0)+(lp.l1>0?1:0)+(lp.l2>0?1:0);
+    var bkWins=(lp.h3>0?1:0)+(lp.h4>0?1:0)+(lp.l3>0?1:0)+(lp.l4>0?1:0);
     var winSide=r.callWon?'↑ HIGHER':'↓ LOWER';
     var loseSide=r.callWon?'↓ LOWER':'↑ HIGHER';
     var resultBg=gapLoss?'rgba(245,166,35,0.2)':r.win?'var(--ad)':'var(--rd)';
@@ -5905,10 +5908,10 @@ function gmRenderHistory(){
       +'<div style="display:flex;gap:8px;font-size:10px;font-family:var(--mo);flex-wrap:wrap;margin-bottom:2px">'
       +(gapLoss
         ?'<span style="color:var(--go)">⚠ GAP — price inside ±'+parseFloat(r.offset||0.36).toFixed(2)+'</span>'
-        :'<span style="color:'+(r.callWon?'var(--ac)':'var(--re)')+'">'+winSide+' WON +$'+parseFloat(winnerNet||0).toFixed(2)+'</span>'
-         +'<span style="color:var(--re)">'+loseSide+' -$'+parseFloat(r.stake||0).toFixed(2)+'</span>'
+        :'<span style="color:'+(r.callWon?'var(--ac)':'var(--re)')+'">'+winSide+' '+(winnerNet>=0?'+':'')+parseFloat(winnerNet||0).toFixed(2)+'</span>'
+         +'<span style="color:var(--re)">'+loseSide+' '+(r.callWon?parseFloat(r.putPnl||0).toFixed(2):parseFloat(r.callPnl||0).toFixed(2))+'</span>'
+         +'<span style="color:var(--t3)">OV:'+ovWins+'/4 BK:'+bkWins+'/4</span>'
       )
-      +(r.touchPnl!==undefined?'<span style="color:'+(r.touchWon?'#3b82f6':'var(--t3)')+'">🛡 Touch:'+(r.touchWon?'+$'+r.touchPnl.toFixed(2):'miss')+'</span>':'')
       +'<span style="color:var(--t3)">stake:$'+parseFloat(r.stake||0).toFixed(2)+' each</span>'
       +'<span style="color:var(--t3)">pay:$'+parseFloat(r.combinedPay||0).toFixed(2)+'</span>'
       +'</div>'
