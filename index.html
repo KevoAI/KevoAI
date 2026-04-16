@@ -962,8 +962,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     </div>
                     <div style="background:var(--bg3);border-radius:var(--rs);padding:6px;border:1px solid rgba(167,139,250,0.2)">
                       <div style="font-size:9px;color:#a78bfa;margin-bottom:3px">H2/L2</div>
-                      <input type="number" id="ov-s2" value="0.35" min="0.35" step="0.05" style="width:100%;background:var(--bg4);border:1px solid var(--bo);border-radius:4px;padding:4px 5px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="ovUpdateCalc()">
-                      <div style="font-size:9px;color:var(--t3);margin-top:2px">guard</div>
+                      <input type="number" id="ov-s2" value="2.00" min="0.35" step="0.05" style="width:100%;background:var(--bg4);border:1px solid var(--bo);border-radius:4px;padding:4px 5px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="ovUpdateCalc()">
+                      <div style="font-size:9px;color:var(--go);margin-top:2px;font-weight:700">⚡ GUARD</div>
                     </div>
                     <div style="background:var(--bg3);border-radius:var(--rs);padding:6px;border:1px solid rgba(245,166,35,0.2)">
                       <div style="font-size:9px;color:var(--go);margin-bottom:3px">H3/L3</div>
@@ -5497,6 +5497,21 @@ function gmLoop(){
     GM.interval=setTimeout(gmLoop,_nextInterval);return;
   }
 
+  // ── GAP / low-vol skip: if ATR is DEAD or BB is squeezed, do not trade ──
+  var _gmCache=GM._cache||{};
+  var _gmAtrLabel=_gmCache.atrLabel||'NORMAL';
+  var _gmBBSqueeze=!!(getInd(GM.asset).bbSqueeze);
+  var _gmAtr5=_gmCache.atr5||0;
+  var _gmBarrier=parseFloat((document.getElementById('ov-b4')||{value:'0.35'}).value)||0.35;
+  // Skip if DEAD ATR (price completely flat) OR BB squeeze AND atr5 < half the outer barrier
+  if(_gmAtrLabel==='DEAD'||(_gmBBSqueeze&&_gmAtr5<_gmBarrier*0.5)){
+    var rs9=document.getElementById('gm-round-status');
+    if(rs9)rs9.textContent='SKIP: '+ (_gmAtrLabel==='DEAD'?'DEAD ATR':'BB SQUEEZE ATR='+_gmAtr5.toFixed(4));
+    GM._skipped=(GM._skipped||0)+1;GM._skipReasons.gap=(GM._skipReasons.gap||0)+1;
+    var _skGapEl=document.getElementById('gm-skipped');if(_skGapEl)_skGapEl.textContent=GM._skipped;
+    GM.interval=setTimeout(gmLoop,_nextInterval);return;
+  }
+
   // Fire a payout check — fetch proposals at current stake
   // Once we get both payouts back, gate decides whether to buy
   gmFetchProposals();
@@ -5530,14 +5545,14 @@ function ovUpdateCalc(){
   if(trEl)trEl.textContent=total.toFixed(2);
   if(el)el.textContent=
     'LEG  BARRIER  TYPE      STAKE  FLAT?\n'
-   +'H1   −'+b1.toFixed(2)+'    CALL      $'+s1.toFixed(2)+'  ✅ wins\n'
-   +'L1   +'+b1.toFixed(2)+'    PUT       $'+s1.toFixed(2)+'  ✅ wins\n'
-   +'H2   −'+b2.toFixed(2)+'    CALL      $'+s2.toFixed(2)+'  ✅ wins\n'
-   +'L2   +'+b2.toFixed(2)+'    PUT       $'+s2.toFixed(2)+'  ✅ wins\n'
-   +'H3   +'+b3.toFixed(2)+'    CALL      $'+s3.toFixed(2)+'  ❌ miss\n'
-   +'L3   −'+b3.toFixed(2)+'    PUT       $'+s3.toFixed(2)+'  ❌ miss\n'
-   +'H4   +'+b4.toFixed(2)+'    CALL      $'+s4.toFixed(2)+'  ❌ miss\n'
-   +'L4   −'+b4.toFixed(2)+'    PUT       $'+s4.toFixed(2)+'  ❌ miss\n'
+   +'H1   −'+b1.toFixed(2)+'  CALL  $'+s1.toFixed(2)+'  flat-win\n'
+   +'L1   +'+b1.toFixed(2)+'  PUT   $'+s1.toFixed(2)+'  flat-win\n'
+   +'H2   −'+b2.toFixed(2)+'  CALL  $'+s2.toFixed(2)+'  ⚡GUARD (heavy)\n'
+   +'L2   +'+b2.toFixed(2)+'  PUT   $'+s2.toFixed(2)+'  ⚡GUARD (heavy)\n'
+   +'H3   +'+b3.toFixed(2)+'  CALL  $'+s3.toFixed(2)+'  mid-breakout\n'
+   +'L3   −'+b3.toFixed(2)+'  PUT   $'+s3.toFixed(2)+'  mid-breakout\n'
+   +'H4   +'+b4.toFixed(2)+'  CALL  $'+s4.toFixed(2)+'  outer-profit\n'
+   +'L4   −'+b4.toFixed(2)+'  PUT   $'+s4.toFixed(2)+'  outer-profit\n'
    +'Total risk: $'+total.toFixed(2)+'/round';
 }
 
@@ -5698,9 +5713,18 @@ function gmPlace(callId,putId,callAsk,putAsk,stakeIgnored,entry,barrier,callPay,
   _gmActiveBarrier={active:true,higher:parseFloat((entry+gmAdaptiveOffset()).toFixed(dp)),lower:parseFloat((entry-gmAdaptiveOffset()).toFixed(dp))};
   gmDrawChart();
   console.log('[GM OVERLAP] R'+rid+' entry:'+entry+' total:$'+totalStake.toFixed(2));
-  ['h1','h2','h3','h4','l1','l2','l3','l4'].forEach(function(side){
+  // ── FULL 8-LEG GUARD: abort if any proposal is missing or invalid ──────
+  var _allLegs=['h1','h2','h3','h4','l1','l2','l3','l4'];
+  var _missingLegs=_allLegs.filter(function(side){var p=_ovProbe[side];return !p||!p.id||p.ask<=0;});
+  if(_missingLegs.length>0){
+    console.warn('[GM] ABORT: missing proposals for '+_missingLegs.join(',')+' — refusing partial grid');
+    var rs0b=document.getElementById('gm-round-status');
+    if(rs0b)rs0b.textContent='ABORT: incomplete proposals ('+_missingLegs.join(',')+')';
+    delete GM.pending[rid];GM.rounds--;GM._placing=false;
+    _ovProbe={};_ovReady=0;return;
+  }
+  _allLegs.forEach(function(side){
     var p=_ovProbe[side];
-    if(!p||!p.id||p.ask<=0)return;
     var bRid=wsSend({buy:p.id,price:p.ask});
     if(bRid)S.pending[bRid]={dir:(side[0]==='h')?'HIGHER':'LOWER',stake:p.stake,asset:GM.asset,isBot:true,isGM:true,gmRound:rid,gmSide:side,entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit||'t'};
     GM.pending[rid][side+'Stake']=p.stake;
@@ -5854,6 +5878,7 @@ function gmUpdateStats(){
   if(sr.stagnant)_parts.push('Stag:'+sr.stagnant);
   if(sr.mom)_parts.push('Mom:'+sr.mom);
   if(sr.atr)_parts.push('ATR:'+sr.atr);
+  if(sr.gap)_parts.push('GAP:'+sr.gap);
   var detailEl=document.getElementById('gm-skip-detail');
   if(detailEl)detailEl.textContent=_parts.length?_parts.join(' | '):'—';
 }
