@@ -5926,7 +5926,6 @@ function gmDrawChart() {
   function yPos(v) { return H - ((v - yLo) / (yHi - yLo)) * (H - 4) - 2; }
 
   var barSlot = (W - 12) / n;
-  var barW = Math.max(2, Math.floor(barSlot * 0.72));
 
   var out = '';
 
@@ -5938,25 +5937,31 @@ function gmDrawChart() {
     out += '<text x="4" y="' + (gy - 2) + '" fill="#4a5568" font-size="9" font-family="monospace">' + gv.toFixed(gv > 100 ? 2 : 4) + '</text>';
   }
 
-  // Tick bars
+  // Line chart — build polyline points + gradient fill
+  var pts = '';
+  var fillPts = '';
   for (var i = 0; i < n; i++) {
     var xc = 6 + i * barSlot + barSlot / 2;
-    var x1 = xc - barW / 2;
-    var cur = prices[i];
-    var prev = i > 0 ? prices[i - 1] : cur;
-    var isUp = cur >= prev;
-    var color = isUp ? 'rgba(0,229,160,0.85)' : 'rgba(255,77,106,0.85)';
-    var yTop = yPos(Math.max(cur, prev));
-    var yBot = yPos(Math.min(cur, prev));
-    var barH = Math.max(2, yBot - yTop);
-
-    // Bar body
-    out += '<rect x="' + x1.toFixed(1) + '" y="' + yTop.toFixed(1) + '" width="' + barW + '" height="' + barH.toFixed(1) + '" fill="' + color + '" rx="1"/>';
-
-    // Wick line
-    var yCur = yPos(cur);
-    out += '<line x1="' + xc.toFixed(1) + '" y1="' + yTop.toFixed(1) + '" x2="' + xc.toFixed(1) + '" y2="' + (yTop - 3).toFixed(1) + '" stroke="' + color + '" stroke-width="1" opacity="0.5"/>';
+    var yc = yPos(prices[i]);
+    pts += xc.toFixed(1) + ',' + yc.toFixed(1) + ' ';
+    fillPts += xc.toFixed(1) + ',' + yc.toFixed(1) + ' ';
   }
+  // Close fill path along bottom
+  var xFirst = (6 + 0 * barSlot + barSlot / 2).toFixed(1);
+  var xLast  = (6 + (n-1) * barSlot + barSlot / 2).toFixed(1);
+  var gradId = 'gmGrad' + Date.now();
+  out += '<defs><linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">'
+       + '<stop offset="0%" stop-color="rgba(0,229,160,0.25)"/>'
+       + '<stop offset="100%" stop-color="rgba(0,229,160,0)"/>'
+       + '</linearGradient></defs>';
+  // Fill area
+  out += '<polygon points="' + xFirst + ',' + H + ' ' + fillPts + xLast + ',' + H + '" fill="url(#' + gradId + ')"/>';
+  // Line
+  out += '<polyline points="' + pts + '" fill="none" stroke="rgba(0,229,160,0.9)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  // Dot on latest tick
+  var xDot = parseFloat(xLast);
+  var yDot = yPos(prices[n-1]);
+  out += '<circle cx="' + xDot + '" cy="' + yDot.toFixed(1) + '" r="3.5" fill="var(--ac)" stroke="#070a0f" stroke-width="1.5"/>';
 
   // Barrier lines (if active round)
   if (_gmActiveBarrier && _gmActiveBarrier.active) {
