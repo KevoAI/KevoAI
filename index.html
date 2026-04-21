@@ -1761,20 +1761,24 @@ function onTick(tick) {
     if(GM.tickTimes.length>100)GM.tickTimes.shift();
 
     // ── TICK VELOCITY ENGINE ──────────────────────────────────────────
-    // Measures price-change per millisecond. High velocity = explosive move
-    // that is likely to clear the barrier and stay there.
-    if(!GM._vel) GM._vel={lastPrice:q,lastTime:_tNow,current:0,avg:0,history:[]};
-    var _vDt=_tNow-GM._vel.lastTime;
-    var _vDp=Math.abs(q-GM._vel.lastPrice);
-    if(_vDt>0){
-      GM._vel.current=_vDp/_vDt;         // velocity = Δprice / Δtime (per ms)
-      GM._vel.history.push(GM._vel.current);
-      if(GM._vel.history.length>20)GM._vel.history.shift();
-      // rolling average velocity over last 20 ticks
-      GM._vel.avg=GM._vel.history.reduce(function(s,v){return s+v;},0)/GM._vel.history.length;
+    // Measures price-change per millisecond using high-precision timestamps
+    if(!GM._vel) {
+      // First tick — initialize with sentinel values; skip first measurement
+      GM._vel = {lastPrice:q, lastTime:_tNow, current:0, avg:0, history:[], ready:false};
+    } else {
+      var _vDt = _tNow - GM._vel.lastTime;
+      var _vDp = Math.abs(q - GM._vel.lastPrice);
+      if(_vDt > 10) { // ignore same-ms duplicate ticks
+        var _vCur = _vDp / _vDt;
+        GM._vel.current = _vCur;
+        GM._vel.history.push(_vCur);
+        if(GM._vel.history.length > 20) GM._vel.history.shift();
+        GM._vel.avg = GM._vel.history.reduce(function(s,v){return s+v;},0) / GM._vel.history.length;
+        GM._vel.ready = GM._vel.history.length >= 8;
+      }
+      GM._vel.lastPrice = q;
+      GM._vel.lastTime = _tNow;
     }
-    GM._vel.lastPrice=q;
-    GM._vel.lastTime=_tNow;
     // ── END VELOCITY ENGINE ───────────────────────────────────────────
 
     // SVG chart redraw — throttled to 4fps
@@ -4823,6 +4827,8 @@ function gmToggle(){
   var btn=document.getElementById('gm-toggle-btn');
   if(GM.running){
     if(!S.connected){notify('!','Connect first!','loss');GM.running=false;return;}
+    GM._startTime = Date.now(); // track how long we've been scanning
+    GM._vel = null; // reset velocity on fresh start
     if(btn){btn.textContent='STOP GMILLI';btn.style.background='var(--re)';btn.style.color='#fff';}
     gmLoop();
   } else {
@@ -5065,28 +5071,25 @@ function gmLoop(){
     GM.interval = setTimeout(gmLoop, _nextInterval); return;
   }
 
-  // ── GUARDRAIL 1b: Bollinger Band SQUEEZE guard ───────────────────
-  // BB squeeze = price compressed between tight bands → gap loss territory
-  var _ind = getInd(GM.asset);
-  if (_ind.bbSqueeze) {
-    var rs5b = document.getElementById('gm-round-status');
-    if (rs5b) rs5b.textContent = 'BB SQUEEZE — waiting for expansion';
-    GM._skipReasons.mf = (GM._skipReasons.mf || 0) + 1;
-    GM.interval = setTimeout(gmLoop, _nextInterval); return;
-  }
+  // ── GUARDRAIL 1b: Bollinger Band SQUEEZE — warning only, not a hard block ─
+  // On Volatility indices bbWidth is nearly always <0.003, so we use it as
+  // a display indicator only. It does NOT block trades.
+  // (bbSqueeze is still shown in the Vol+BB panel for awareness)
 
   // ── GUARDRAIL 1c: Tick Velocity Filter ───────────────────────────
-  // Only trade when current tick velocity is ≥ threshold × avg velocity
-  // This catches explosive momentum and avoids slow-drift gap losses
-  var _velThreshSw = document.getElementById('gm-vel-sw');
-  var _useVel = !_velThreshSw || _velThreshSw.classList.contains('on'); // default ON
-  if (_useVel && GM._vel && GM._vel.history.length >= 5) {
+  var _velSw = document.getElementById('gm-vel-sw');
+  var _useVel = _velSw && _velSw.classList.contains('on');
+  // Safety escape: if running >5 mins with 0 trades, skip velocity check
+  var _scanMins = GM.running ? (Date.now() - (GM._startTime||Date.now())) / 60000 : 0;
+  var _velSkip = _scanMins > 5 && GM.rounds === 0;
+  if (_useVel && !_velSkip && GM._vel && GM._vel.history.length >= 8) {
     var _velMultEl = document.getElementById('gm-vel-mult');
     var _velMult = _velMultEl ? (parseFloat(_velMultEl.value) || 1.5) : 1.5;
     var _velMin = GM._vel.avg * _velMult;
-    if (GM._vel.current < _velMin) {
+    // Only block if velocity is genuinely near-zero (flat market), not just below avg
+    if (_velMin > 0 && GM._vel.current < _velMin && GM._vel.current < 0.0001) {
       var rs5c = document.getElementById('gm-round-status');
-      if (rs5c) rs5c.textContent = 'LOW VEL: ' + GM._vel.current.toFixed(5) + ' < ' + _velMin.toFixed(5);
+      if (rs5c) rs5c.textContent = 'FLAT: vel=' + GM._vel.current.toFixed(5);
       GM._skipReasons.mf = (GM._skipReasons.mf || 0) + 1;
       GM.interval = setTimeout(gmLoop, _nextInterval); return;
     }
@@ -6055,23 +6058,31 @@ function gmUpdateVolPanel(vol) {
   if (!el) return;
   if (!vol) vol = gmCheckVolatility();
   var ind = getInd(GM.asset);
-  var squeeze = ind && ind.bbSqueeze ? ' | 🔴 BB SQUEEZE' : ' | 🟢 BB OK';
-  el.textContent = (vol.pass ? '✅ ' : '⛔ ') + vol.label + ' | range: ' + (vol.range || 0).toFixed(4) + ' | ATR: ' + (vol.atr || 0).toFixed(4) + squeeze;
-  el.style.color = vol.pass && !(ind && ind.bbSqueeze) ? 'var(--ac)' : 'var(--re)';
+  // BB squeeze is informational only — does not block trades on Volatility indices
+  var bbInfo = (ind && ind.bbWidth !== undefined) ? ' | BB:' + ((ind.bbWidth||0)*100).toFixed(3)+'%' : '';
+  el.textContent = (vol.pass ? '✅ ' : '⛔ ') + vol.label +
+    ' | range:' + (vol.range||0).toFixed(4) +
+    ' | ATR:' + (vol.atr||0).toFixed(4) + bbInfo;
+  el.style.color = vol.pass ? 'var(--ac)' : 'var(--re)';
 }
 
 // ── Velocity panel update ─────────────────────────────────────────
 function gmUpdateVelPanel() {
   var el = document.getElementById('gm-vel-status');
-  if (!el || !GM._vel) return;
+  if (!el) return;
+  if (!GM._vel || !GM._vel.ready) {
+    el.textContent = '⏳ Calibrating... (' + (GM._vel ? GM._vel.history.length : 0) + '/8 ticks)';
+    el.style.color = 'var(--t3)'; return;
+  }
   var v = GM._vel;
-  var mult = parseFloat((document.getElementById('gm-vel-mult') || {value:'1.5'}).value) || 1.5;
-  var threshold = v.avg * mult;
-  var pass = v.history.length < 5 || v.current >= threshold;
+  var scanMins = GM._startTime ? (Date.now() - GM._startTime) / 60000 : 0;
+  var escaped = scanMins > 5 && GM.rounds === 0;
+  var isFlat = v.current < 0.0001;
+  var pass = !isFlat || escaped;
   el.textContent = (pass ? '✅ ' : '⛔ ') +
-    'vel: ' + v.current.toFixed(5) +
-    ' | avg: ' + v.avg.toFixed(5) +
-    ' | min: ' + threshold.toFixed(5);
+    'vel:' + v.current.toFixed(5) +
+    ' avg:' + v.avg.toFixed(5) +
+    (escaped ? ' [relaxed >5m]' : '');
   el.style.color = pass ? 'var(--ac)' : 'var(--re)';
 }
 
