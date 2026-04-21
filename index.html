@@ -800,9 +800,9 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         <div style="background:linear-gradient(135deg,rgba(0,229,160,0.1),rgba(59,130,246,0.08));border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:16px;margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
             <div style="font-size:18px;font-weight:800;color:var(--ac)">Gmilli Bot</div>
-            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">HIGHER + LOWER — 3 Green Ticks Strategy</div>
+            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">HIGHER + LOWER — Zero Gap Strategy</div>
           </div>
-          <div style="font-size:11px;color:var(--t2)">Waits for 3+ consecutive ticks in one direction before entry. Adaptive barrier scales with ATR — tighter on slow markets. Martingale recovery optional.</div>
+          <div style="font-size:11px;color:var(--t2)">Barrier set at entry spot — one side ALWAYS wins. Only trades when combined payout > 2× stake.</div>
         </div>
         <!-- STALE FEED WARNING — shown by watchdog when ticks stop arriving -->
         <div id="gm-stale-warn" style="display:none;align-items:center;gap:9px;background:rgba(255,77,106,0.12);border:1px solid rgba(255,77,106,0.4);border-radius:var(--rs);padding:9px 13px;margin-bottom:10px;font-size:12px;font-weight:600;color:var(--re)">⚠ Price feed stalled — resubscribing...</div>
@@ -952,126 +952,41 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <div class="db" onclick="GM.dur=120;gmSetActive(this)">2M</div>
                   </div>
                 </div>
-                <!-- ── Unified Confidence Panel (merged 60/40 + composite score) ── -->
-                <div style="background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.22);border-radius:var(--rs);padding:10px;margin-bottom:11px">
-                  <!-- Header row: title + live score badge -->
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                    <div style="font-size:11px;font-weight:700;color:var(--ac)">🎯 Confidence Filter</div>
-                    <div id="gm-conf-score-badge" style="font-size:11px;font-weight:700;font-family:var(--mo);padding:2px 9px;border-radius:99px;background:rgba(0,229,160,0.12);color:var(--ac)">--/100</div>
-                  </div>
-                  <!-- Tick direction row (was 60/40) -->
-                  <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:5px;padding:5px 9px;margin-bottom:7px;font-size:10px;font-family:var(--mo)">
-                    <span style="color:var(--ac)">↑ UP: <b id="gm-conf-up">--</b></span>
-                    <span id="gm-conf-display" style="color:var(--t3);font-size:10px">--</span>
-                    <span style="color:var(--re)">↓ DN: <b id="gm-conf-dn">--</b></span>
-                    <span style="color:var(--t3)"><b id="gm-conf-ticks">20</b>tk</span>
-                  </div>
-                  <!-- Factor mini-grid: 3 columns, 2 rows -->
-                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:7px;font-size:10px;font-family:var(--mo)">
-                    <div style="background:var(--bg3);border-radius:4px;padding:4px 6px;border:1px solid var(--bo)">
-                      <div style="color:var(--t3);font-size:9px">Dir</div>
-                      <div style="font-weight:700" id="gm-cs-dir">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:4px 6px;border:1px solid var(--bo)">
-                      <div style="color:var(--t3);font-size:9px">Vol</div>
-                      <div style="font-weight:700" id="gm-cs-vol">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:4px 6px;border:1px solid var(--bo)">
-                      <div style="color:var(--t3);font-size:9px">Pos</div>
-                      <div style="font-weight:700" id="gm-cs-pos">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:4px 6px;border:1px solid var(--bo)">
-                      <div style="color:var(--t3);font-size:9px">Slope</div>
-                      <div style="font-weight:700" id="gm-cs-slope">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:4px 6px;border:1px solid var(--bo)">
-                      <div style="color:var(--t3);font-size:9px">Flats</div>
-                      <div style="font-weight:700" id="gm-cs-flats">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:4px 6px;border:1px solid var(--bo)">
-                      <div style="color:var(--t3);font-size:9px">Dead?</div>
-                      <div style="font-weight:700" id="gm-cs-dead">--</div>
-                    </div>
-                  </div>
-                  <!-- Score bar -->
-                  <div style="position:relative;height:5px;background:var(--bg4);border-radius:3px;overflow:visible;margin-bottom:5px">
-                    <div id="gm-cs-bar" style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--re),var(--go),var(--ac));width:0%;transition:width 0.35s"></div>
-                    <div id="gm-cs-threshold-line" style="position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,0.6);border-radius:1px;left:65%"></div>
-                  </div>
-                  <!-- Min score threshold buttons (replaces both old button rows) -->
-                  <div style="display:flex;align-items:center;gap:4px;margin-top:6px">
-                    <span style="font-size:9px;color:var(--t3);white-space:nowrap">Min:</span>
-                    <div class="dr" style="grid-template-columns:repeat(5,1fr);flex:1;gap:3px">
-                      <div class="db" onclick="GM.minConfidence=0;GM.confThresh=0;gmSetActive(this)" style="font-size:10px;padding:4px 2px">OFF</div>
-                      <div class="db" onclick="GM.minConfidence=50;GM.confThresh=55;gmSetActive(this)" style="font-size:10px;padding:4px 2px">50</div>
-                      <div class="db active" onclick="GM.minConfidence=65;GM.confThresh=60;gmSetActive(this)" style="font-size:10px;padding:4px 2px">65</div>
-                      <div class="db" onclick="GM.minConfidence=75;GM.confThresh=65;gmSetActive(this)" style="font-size:10px;padding:4px 2px">75</div>
-                      <div class="db" onclick="GM.minConfidence=85;GM.confThresh=75;gmSetActive(this)" style="font-size:10px;padding:4px 2px">85</div>
-                    </div>
-                  </div>
+                <!-- Tick Direction Display (read-only, used by 3-tick filter) -->
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 11px;margin-bottom:11px;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-family:var(--mo);border:1px solid var(--bo)">
+                  <span style="color:var(--ac)">↑ UP: <b id="gm-conf-up">--</b></span>
+                  <span id="gm-conf-display" style="color:var(--t3);font-size:10px">--</span>
+                  <span style="color:var(--re)">↓ DN: <b id="gm-conf-dn">--</b></span>
+                  <span style="color:var(--t3)"><b id="gm-conf-ticks">20</b>tk</span>
                 </div>
                 <!-- Daily limits -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px">
                   <div class="ig"><div class="il">Daily SL ($)</div><input type="number" class="iif" id="gm-daily-sl" value="30" min="1" oninput="gmCalc()"></div>
                   <div class="ig"><div class="il">Daily TP ($)</div><input type="number" class="iif" id="gm-daily-tp" value="60" min="1" oninput="gmCalc()"></div>
                 </div>
-                <!-- ── Entry Score Filter (multi-factor, data-driven) ── -->
-                <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.25);border-radius:var(--rs);padding:11px;margin-bottom:11px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
-                    <div style="font-size:11px;font-weight:700;color:var(--bl)">🎲 Entry Score Filter</div>
-                    <div style="font-size:10px;font-family:var(--mo);font-weight:700;padding:2px 9px;border-radius:99px;background:rgba(59,130,246,0.15);color:var(--bl)" id="gm-entry-score-badge">--/7</div>
+                <!-- 3-Tick Momentum Filter (Gmilli strategy) -->
+                <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.22);border-radius:var(--rs);padding:11px;margin-bottom:11px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                    <div style="font-size:11px;font-weight:700;color:var(--ac)">⚡ 3-Tick Entry Filter</div>
+                    <div id="gm-tick-filter-badge" style="font-size:10px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--t3)">--</div>
                   </div>
-                  <!-- Live factor pills -->
-                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:8px;font-size:9px;font-family:var(--mo)">
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Mom</div><div id="gm-sc-mom" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">ATR5</div><div id="gm-sc-atr" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">PricePos</div><div id="gm-sc-pos" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Slope</div><div id="gm-sc-slope" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Flats</div><div id="gm-sc-flats" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Squeeze</div><div id="gm-sc-squeeze" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">AtrRatio</div><div id="gm-sc-atrratio" style="font-weight:700">--</div>
-                    </div>
-                    <div style="background:var(--bg3);border-radius:4px;padding:3px 5px;border:1px solid var(--bo);text-align:center">
-                      <div style="color:var(--t3)">Dir</div><div id="gm-sc-dir" style="font-weight:700">--</div>
+                  <div style="font-size:10px;color:var(--t2);margin-bottom:8px;line-height:1.6">Only trades when the last <b id="gm-consec-req-display" style="color:var(--ac)">3</b> ticks all move in the same direction. Waits for momentum before entering.</div>
+                  <!-- Live tick pills -->
+                  <div id="gm-tick-pills" style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:8px;min-height:20px"></div>
+                  <!-- Consecutive ticks required -->
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="font-size:10px;color:var(--t3)">Min consecutive ticks:</span>
+                    <div class="dr" style="grid-template-columns:repeat(4,1fr);flex:1;gap:3px">
+                      <div class="db" onclick="GM.consecTicks=2;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='2'" style="font-size:10px;padding:4px 2px">2</div>
+                      <div class="db active" onclick="GM.consecTicks=3;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='3'" style="font-size:10px;padding:4px 2px">3</div>
+                      <div class="db" onclick="GM.consecTicks=4;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='4'" style="font-size:10px;padding:4px 2px">4</div>
+                      <div class="db" onclick="GM.consecTicks=5;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='5'" style="font-size:10px;padding:4px 2px">5</div>
                     </div>
                   </div>
-                  <!-- Score bar -->
-                  <div style="height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-bottom:7px;position:relative">
-                    <div id="gm-sc-bar" style="height:100%;border-radius:3px;background:linear-gradient(90deg,var(--re),var(--go),var(--ac));width:0%;transition:width 0.3s"></div>
-                    <div id="gm-sc-threshold-line" style="position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,0.5);border-radius:1px;left:57%"></div>
-                  </div>
-                  <!-- Min score buttons -->
-                  <div style="display:flex;align-items:center;gap:4px">
-                    <span style="font-size:9px;color:var(--t3);white-space:nowrap">Min score:</span>
-                    <div class="dr" style="grid-template-columns:repeat(5,1fr);flex:1;gap:3px">
-                      <div class="db" onclick="GM.minScore=2;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(2/7*100)+'%'" style="font-size:10px;padding:4px 2px">2</div>
-                      <div class="db" onclick="GM.minScore=3;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(3/7*100)+'%'" style="font-size:10px;padding:4px 2px">3</div>
-                      <div class="db active" onclick="GM.minScore=4;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(4/7*100)+'%'" style="font-size:10px;padding:4px 2px">4</div>
-                      <div class="db" onclick="GM.minScore=5;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(5/7*100)+'%'" style="font-size:10px;padding:4px 2px">5</div>
-                      <div class="db" onclick="GM.minScore=6;gmSetActive(this);document.getElementById('gm-sc-threshold-line').style.left=Math.round(6/7*100)+'%'" style="font-size:10px;padding:4px 2px">6</div>
-                    </div>
-                  </div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:5px">4 = balanced · 5 = conservative · 6 = strict · max 7</div>
                 </div>
-                <!-- ── Momentum Filters ── -->
-                <div style="background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.22);border-radius:var(--rs);padding:11px;margin-bottom:11px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                    <div style="font-size:11px;font-weight:700;color:var(--go)">⚡ Momentum Filters</div>
-                    <div id="gm-mf-status" style="font-size:10px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--t3)">--</div>
-                  </div>
+                <!-- ── Momentum Filters (hidden — logic retained for wall/stall guards) ── -->
+                <div style="display:none">
+                  <div id="gm-mf-status"></div>
 
                   <!-- Slope -->
                   <div style="margin-bottom:8px">
@@ -1117,7 +1032,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                       </div>
                       <div style="display:flex;align-items:center;gap:4px">
                         <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('consMin',-1)">-</div>
-                        <input type="number" id="mf-cons-val" value="3" step="1" min="2" max="5" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('consMin',this.value)">
+                        <input type="number" id="mf-cons-val" value="4" step="1" min="2" max="5" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('consMin',this.value)">
                         <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('consMin',1)">+</div>
                       </div>
                     </div>
@@ -1158,87 +1073,17 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                     <div id="mf-wall-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">dist to wall: --</div>
                   </div>
 
-                  <!-- Price Position Filter (Rule 1) -->
-                  <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(245,166,35,0.2)">
-                    <div style="font-size:10px;font-weight:700;color:var(--go);margin-bottom:8px">📊 Entry Position Filters</div>
-
-                    <div style="margin-bottom:8px">
-                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                        <div style="display:flex;align-items:center;gap:7px">
-                          <div class="tsw on" id="mf-pos-sw" onclick="GM.mf.posOn=this.classList.toggle('on')" style="width:34px;height:18px"></div>
-                          <span style="font-size:10px;font-weight:600;color:var(--t1)">UP at Top</span>
-                          <span style="font-size:10px;color:var(--t3)">block UP bias if pricePos &gt; %</span>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:4px">
-                          <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.posMaxUp=Math.max(10,GM.mf.posMaxUp-5);document.getElementById('mf-pos-val').value=GM.mf.posMaxUp">-</div>
-                          <input type="number" id="mf-pos-val" value="30" step="5" min="10" max="90" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM.mf.posMaxUp=parseInt(this.value)||30">
-                          <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.posMaxUp=Math.min(90,GM.mf.posMaxUp+5);document.getElementById('mf-pos-val').value=GM.mf.posMaxUp">+</div>
-                        </div>
-                      </div>
-                      <div id="mf-pos-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">pricePos: --</div>
-                    </div>
-
-                    <!-- Stall Filter (Rule 2) -->
-                    <div>
-                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                        <div style="display:flex;align-items:center;gap:7px">
-                          <div class="tsw on" id="mf-stall-sw" onclick="GM.mf.stallOn=this.classList.toggle('on')" style="width:34px;height:18px"></div>
-                          <span style="font-size:10px;font-weight:600;color:var(--t1)">Stall Guard</span>
-                          <span style="font-size:10px;color:var(--t3)">UP + LOW ATR + flats ≥</span>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:4px">
-                          <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.stallFlats=Math.max(1,GM.mf.stallFlats-1);document.getElementById('mf-stall-val').value=GM.mf.stallFlats">-</div>
-                          <input type="number" id="mf-stall-val" value="2" step="1" min="1" max="5" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM.mf.stallFlats=parseInt(this.value)||2">
-                          <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.mf.stallFlats=Math.min(5,GM.mf.stallFlats+1);document.getElementById('mf-stall-val').value=GM.mf.stallFlats">+</div>
-                        </div>
-                      </div>
-                      <div id="mf-stall-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">atr: -- | flats: --</div>
-                    </div>
-                  </div>
+                  <div id="mf-pos-sw" style="display:none"></div>
+                  <div id="mf-stall-sw" style="display:none"></div>
+                  <div id="mf-pos-live" style="display:none"></div>
+                  <div id="mf-stall-live" style="display:none"></div>
+                  <div id="mf-slope-live" style="display:none"></div>
+                  <div id="mf-range-live" style="display:none"></div>
+                  <div id="mf-cons-live" style="display:none"></div>
+                  <div id="mf-atr-live" style="display:none"></div>
+                  <div id="mf-wall-live" style="display:none"></div>
                 </div>
                 <!-- Gap between rounds -->
-                <!-- ── Martingale Risk Management ── -->
-                <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.28);border-radius:var(--rs);padding:11px;margin-bottom:11px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
-                    <div>
-                      <div style="font-size:11px;font-weight:700;color:var(--go)">🎲 Martingale Recovery</div>
-                      <div style="font-size:9px;color:var(--t3);margin-top:2px">Double stake after each loss — resets on win</div>
-                    </div>
-                    <div class="tsw" id="gm-mart-sw" style="width:34px;height:18px" onclick="GM.useMartingale=this.classList.toggle('on');GM.martStep=0;GM.martBaseStake=0;gmUpdateMartingaleUI()"></div>
-                  </div>
-                  <!-- Multiplier -->
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
-                    <span style="font-size:10px;color:var(--t2)">Loss Multiplier</span>
-                    <div style="display:flex;align-items:center;gap:4px">
-                      <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.martMultiplier=Math.max(1.5,parseFloat((GM.martMultiplier-0.5).toFixed(1)));document.getElementById('gm-mart-mult').value=GM.martMultiplier;gmUpdateMartingaleUI()">-</div>
-                      <input type="number" id="gm-mart-mult" value="2.0" step="0.5" min="1.5" max="4.0" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="GM.martMultiplier=parseFloat(this.value)||2;gmUpdateMartingaleUI()">
-                      <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="GM.martMultiplier=Math.min(4.0,parseFloat((GM.martMultiplier+0.5).toFixed(1)));document.getElementById('gm-mart-mult').value=GM.martMultiplier;gmUpdateMartingaleUI()">+</div>
-                    </div>
-                  </div>
-                  <!-- Max Steps -->
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
-                    <span style="font-size:10px;color:var(--t2)">Max Steps (then reset)</span>
-                    <div class="dr" style="grid-template-columns:repeat(4,1fr);gap:3px">
-                      <div class="db" onclick="GM.martMaxSteps=2;gmSetActive(this);gmUpdateMartingaleUI()" style="font-size:10px;padding:4px">2</div>
-                      <div class="db active" onclick="GM.martMaxSteps=3;gmSetActive(this);gmUpdateMartingaleUI()" style="font-size:10px;padding:4px">3</div>
-                      <div class="db" onclick="GM.martMaxSteps=4;gmSetActive(this);gmUpdateMartingaleUI()" style="font-size:10px;padding:4px">4</div>
-                      <div class="db" onclick="GM.martMaxSteps=5;gmSetActive(this);gmUpdateMartingaleUI()" style="font-size:10px;padding:4px">5</div>
-                    </div>
-                  </div>
-                  <!-- Live status -->
-                  <div style="background:var(--bg3);border-radius:5px;padding:8px 10px;border:1px solid var(--bo);font-size:10px;font-family:var(--mo)">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-                      <span style="color:var(--t3)">Current Step</span>
-                      <span id="gm-mart-step" style="font-weight:700;color:var(--ac)">OFF</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between">
-                      <span style="color:var(--t3)">Next Stake</span>
-                      <span id="gm-mart-next-stake" style="font-weight:700;color:var(--ac)">--</span>
-                    </div>
-                  </div>
-                  <div style="font-size:9px;color:var(--re);margin-top:6px;line-height:1.5">⚠ High risk — ensure sufficient account balance before enabling. A 3-step sequence at 2× = 8× base budget max exposure.</div>
-                </div>
-
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Min Gap Between Rounds</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
@@ -4622,35 +4467,28 @@ var GM = {
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
   _placing:false,  // lock: prevents duplicate gmPlace calls firing simultaneously
-  confThresh:65,  // Min confidence threshold (old single-pct rule)
-  minConfidence:65, // Multi-factor composite score threshold (0-100)
-  minMomentum:3,  // 3 green ticks = minimum momentum required
-  minAtrMult:1.2, // kept for legacy reference — superseded by minScore
-  minScore:4,     // Entry Score threshold (0-7): 4=balanced, 5=conservative, 6=strict
+  confThresh:0,   // disabled
+  minConfidence:0, // disabled
+  minMomentum:3,  // kept for legacy reference
+  minAtrMult:1.2, // kept for legacy reference
+  minScore:0,     // disabled — replaced by 3-tick filter
+  consecTicks:3,  // Gmilli strategy: min consecutive same-direction ticks before entry
+  consecTicksActive:true,
   _skipReasons:{conf:0,mf:0,stagnant:0,mom:0,atr:0,gate:0,score:0}, // skip breakdown by filter
   tickTimes:[],   // Timestamps of recent ticks for dead-zone speed detection
-  // ── Martingale risk management ──
-  useMartingale:false,   // toggle — off by default (safe mode)
-  martMultiplier:2.0,    // stake multiplier on loss (default: 2× = classic Martingale)
-  martMaxSteps:3,        // max consecutive multiplications before reset
-  martStep:0,            // current step (0 = base, 1 = 2×, 2 = 4×, ...)
-  martBaseStake:0,       // locked base budget, set on first round or after win/reset
   // ── Shared metric cache (refreshed once per 400ms, reused everywhere) ──
   _cache:{atr5:0,atr20:0,atrRatio:1,atrLabel:'NORMAL',range20:0,rHigh:0,rLow:0,
           upPct:50,dnPct:50,slope:0,flats:0,pricePos:50,wallDist:1,
           lastScore:null,lastUpdate:0},
   // ── Momentum filters ──
   mf:{
-    slopeOn:true,  slopeMin:0.02,  slopeLook:10,
-    rangeOn:true,  rangeMin:0.20,  rangeLook:20,
-    consOn:true,   consMin:3,      consLook:5,
+    slopeOn:false, slopeMin:0.02,  slopeLook:10,
+    rangeOn:false, rangeMin:0.20,  rangeLook:20,
+    consOn:false,  consMin:4,      consLook:5,
     atrOn:false,   atrMin:0.05,    atrLook:5,
-    wallOn:true,   wallDist:0.05,
-    // 25002500 Entry position filters (data-driven, 2026-03-26) 25002500
-    // Rule 1: skip UP-bias trades when price is at top of range
-    posOn:true,    posMaxUp:30,
-    // Rule 2: skip UP or DN bias when market is stalling (LOW ATR + flat ticks)
-    stallOn:true,  stallFlats:2
+    wallOn:false,  wallDist:0.05,
+    posOn:false,   posMaxUp:30,
+    stallOn:false, stallFlats:1
   }
 };
 
@@ -4769,26 +4607,16 @@ function gmGetConfidence(){
   if(upBar)upBar.style.width=upPct+'%';
   if(dnBar)dnBar.style.width=dnPct+'%';
 
-  var pills=document.getElementById('gm-tick-pills');
+  var pills=document.getElementById('gm-tick-pills-conf');
   if(pills)pills.innerHTML=tickPills;
 
   return{upPct:upPct,dnPct:dnPct,bias:bias,passes:passes};
 }
 
-// ── Helper: get stake per side from budget (with Martingale support) ──
+// ── Helper: get stake per side from budget ──
 function gmStake(){
   var budget=Math.max(0.70,parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value)||3.00);
-  // Lock base budget on first round
-  if(!GM.martBaseStake||GM.martBaseStake<=0) GM.martBaseStake=budget;
-
-  if(!GM.useMartingale){
-    return parseFloat((budget/2).toFixed(2));
-  }
-  // Martingale: multiply budget by 2^step, capped at martMaxSteps
-  var step=Math.min(GM.martStep||0, GM.martMaxSteps||3);
-  var mult=Math.pow(GM.martMultiplier||2, step);
-  var martBudget=parseFloat((GM.martBaseStake*mult).toFixed(2));
-  return parseFloat((martBudget/2).toFixed(2));
+  return parseFloat((budget/2).toFixed(2));
 }
 
 // ── Gate: combined payout must exceed 2× total stake ──
@@ -5007,12 +4835,10 @@ function gmCalc(){
    +'HIGHER payout:    $'+(cPay?cPay.toFixed(2):'--')+'\n'
    +'LOWER payout:     $'+(pPay?pPay.toFixed(2):'--')+'\n'
    +'Combined payout:  $'+(combined?combined.toFixed(2):'--')+'\n\n'
-   +'Momentum check:   net10='+momNet.toFixed(3)+' vs min='+(offset*0.6).toFixed(3)+' '+(n>=10?(momOk?'✅':'❌ STAGNANT'):'--')+'\n'
-   +'Composite score:  '+(_csScore2!==null?_csScore2+'/100 (min '+_csMin+') '+(_csScore2>=_csMin?'✅':'❌'):'--')+'\n'
+   +'3-Tick Filter:   need '+GM.consecTicks+' consec same-dir ticks\n'
    +'Gate: each payout > $'+totalRisk.toFixed(2)+'\n'
    +'Status: '+(combined?(passes?'✅ PASS — will trade':'❌ SKIP — payout too low'):'Fetching...')+'\n\n'
    +'Best profit: '+(bestProfit!==null?(bestProfit>=0?'+$'+bestProfit.toFixed(2):'-$'+Math.abs(bestProfit).toFixed(2)):'--')+'\n'
-   +(GM.useMartingale?'Martingale step: '+GM.martStep+' ('+Math.pow(GM.martMultiplier||2,GM.martStep||0).toFixed(1)+'× base)\n':'')
    +'Daily SL: $'+sl+' | Daily TP: $'+tp;
 }
 
@@ -5137,8 +4963,8 @@ function gmEntryScore(){
   var score=0;
   var points={};
 
-  // ── Factor 1: Momentum strength ≥ 3 consecutive ticks (3 Green Ticks strategy) ──
-  if(momentumStrength>=3){score++;points.mom=1;}else{points.mom=0;}
+  // ── Factor 1: Momentum strength ≥ 4 consecutive ticks ──
+  if(momentumStrength>=4){score++;points.mom=1;}else{points.mom=0;}
 
   // ── Factor 2: ATR5 ≥ offset × 1.2 (enough volatility to exit the gap) ──
   if(atr5>=offset*1.2){score++;points.atr=1;}else{points.atr=0;}
@@ -5149,9 +4975,8 @@ function gmEntryScore(){
     score++;points.pos=1;
   }else{points.pos=0;}
 
-  // ── Factor 4: Slope magnitude > 0.15 (directional net move over last 10 ticks) ──
-  // Research: price must be moving in a clear direction before entry
-  if(Math.abs(slope)>0.15){score++;points.slope=1;}else{points.slope=0;}
+  // ── Factor 4: Slope magnitude > 0.2 (directional net move) ──
+  if(Math.abs(slope)>0.2){score++;points.slope=1;}else{points.slope=0;}
 
   // ── Factor 5: Few flat ticks (market is actively moving) ──
   if(flats<2){score++;points.flats=1;}else{points.flats=0;}
@@ -5254,24 +5079,40 @@ function gmLoop(){
     GM.interval=setTimeout(gmLoop,1000);return;
   }
 
-  // ── Momentum filter checks — still runs for the MF panel UI display ──
-  var mfr=gmMFCheck(_loopPrices);
-  gmMFUpdateLive(mfr);
-  if(!mfr.pass){
-    var rs6=document.getElementById('gm-round-status');
-    if(rs6)rs6.textContent='SKIP: '+mfr.reason;
-    GM._skipReasons.mf=(GM._skipReasons.mf||0)+1;
-    GM.interval=setTimeout(gmLoop,_nextInterval);return;
-  }
-
-  // ── Entry Score — 7-factor confluence filter (replaces conf/stagnant/mom/atr checks) ──
-  var _es=gmEntryScore();
-  gmUpdateEntryScoreUI(_es);
-  if(!_es.pass){
-    var rs7=document.getElementById('gm-round-status');
-    if(rs7)rs7.textContent='SCORE '+_es.score+'/'+(GM.minScore||4)+': '+(_es.reasons.length?_es.reasons.join(' '):'no confluence');
-    GM._skipReasons.score=(GM._skipReasons.score||0)+1;
-    GM.interval=setTimeout(gmLoop,_nextInterval);return;
+  // ── 3-Tick Consecutive Filter (Gmilli strategy) ──
+  // Only trade when last N ticks all move in the same direction
+  if(GM.consecTicksActive){
+    var _cPrices=_loopPrices;
+    var _cn=_cPrices.length;
+    var _req=GM.consecTicks||3;
+    var _upRun=0,_dnRun=0;
+    for(var _ci=_cn-1;_ci>_cn-1-_req&&_ci>0;_ci--){
+      var _cd=_cPrices[_ci]-_cPrices[_ci-1];
+      if(_cd>0)_upRun++;else if(_cd<0)_dnRun++;else{_upRun=0;_dnRun=0;break;}
+    }
+    var _consecDir=_upRun>=_req?'HIGHER':_dnRun>=_req?'LOWER':null;
+    // Update tick pills UI
+    var _pillEl=document.getElementById('gm-tick-pills');
+    if(_pillEl){
+      var _pills='';
+      var _look=Math.min(10,_cn-1);
+      for(var _pi=_cn-_look;_pi<_cn;_pi++){
+        var _pd=_cPrices[_pi]-_cPrices[_pi-1];
+        _pills+='<div style="width:14px;height:14px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;background:'+(_pd>0?'rgba(0,229,160,0.3)':_pd<0?'rgba(255,77,106,0.3)':'rgba(255,255,255,0.05)')+';color:'+(_pd>0?'var(--ac)':_pd<0?'var(--re)':'var(--t3)')+'">'+(_pd>0?'▲':_pd<0?'▼':'—')+'</div>';
+      }
+      _pillEl.innerHTML=_pills;
+    }
+    var _badge=document.getElementById('gm-tick-filter-badge');
+    if(!_consecDir){
+      if(_badge){_badge.textContent='⛔ need '+_req+' consec';_badge.style.color='var(--re)';_badge.style.background='rgba(255,77,106,0.1)';}
+      var rs7=document.getElementById('gm-round-status');
+      if(rs7)rs7.textContent='WAIT: need '+_req+' consec ticks';
+      GM._skipReasons.score=(GM._skipReasons.score||0)+1;
+      GM.interval=setTimeout(gmLoop,_nextInterval);return;
+    }
+    if(_badge){_badge.textContent='✅ '+_req+' '+_consecDir;_badge.style.color='var(--ac)';_badge.style.background='rgba(0,229,160,0.1)';}
+    // Store detected direction for use in gmFetchProposals
+    GM._consecDir=_consecDir;
   }
 
   // Fire a payout check — fetch proposals at current stake
@@ -5305,17 +5146,8 @@ function gmAdaptiveOffset(){
   // We want the barrier at ~1.5× a single ATR tick
   var durFactor=GM.dur/30; // 1.0 at 30s, 0.5 at 15s
   var adaptive=parseFloat((atr5 * 1.5 * durFactor).toFixed(2));
-
-  // ── FLAT MARKET REDUCTION: when ATR is LOW/DEAD, lower barrier to 0.04-0.06
-  // This increases win rate on slow markets at the cost of lower payout per round.
-  // Research: "If the market is slow, try reducing barrier to +0.04 — it lowers payout
-  // but significantly increases win rate" (Gmilli strategy analysis)
-  var atrLabel=c.atrLabel||'NORMAL';
-  if(atrLabel==='DEAD')      adaptive=Math.min(adaptive,0.04);
-  else if(atrLabel==='LOW')  adaptive=Math.min(adaptive,0.06);
-
-  // Clamp: never less than 0.03 or more than 0.30
-  adaptive=Math.min(0.30,Math.max(0.03,adaptive));
+  // Clamp: never less than 0.05 or more than 0.30
+  adaptive=Math.min(0.30,Math.max(0.05,adaptive));
   return adaptive;
 }
 
@@ -5600,21 +5432,7 @@ function gmSettle(rid){
   var putWon=pRes&&pRes.win;
 
   GM.pnl=parseFloat((GM.pnl+total).toFixed(2));
-  if(isWin){
-    GM.won++;
-    // Martingale: reset on win
-    if(GM.useMartingale&&GM.martStep>0){
-      GM.martStep=0;
-      gmUpdateMartingaleUI();
-    }
-  }else{
-    GM.lost++;
-    // Martingale: advance step on loss (up to max)
-    if(GM.useMartingale){
-      GM.martStep=Math.min((GM.martStep||0)+1, GM.martMaxSteps||3);
-      gmUpdateMartingaleUI();
-    }
-  }
+  if(isWin)GM.won++;else GM.lost++;
 
   // Remove from active trades
   S.activeTrades=S.activeTrades.filter(function(t){return !(t.isGM&&t.gmRound===rid);});
@@ -5687,28 +5505,6 @@ function gmSettle(rid){
   gmDrawChart();
   gmUpdateSignalBadge([],0);
   updateStats();renderTrades();renderActive();
-}
-
-function gmUpdateMartingaleUI(){
-  var stepEl=document.getElementById('gm-mart-step');
-  var stakeEl=document.getElementById('gm-mart-next-stake');
-  if(!GM.useMartingale){
-    if(stepEl)stepEl.textContent='OFF';
-    if(stakeEl)stakeEl.textContent='--';
-    return;
-  }
-  var step=Math.min(GM.martStep||0,GM.martMaxSteps||3);
-  var mult=Math.pow(GM.martMultiplier||2,step);
-  var base=GM.martBaseStake||parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value)||3;
-  var nextBudget=parseFloat((base*mult).toFixed(2));
-  if(stepEl){
-    stepEl.textContent='Step '+step+(step>=GM.martMaxSteps?'(MAX)':'');
-    stepEl.style.color=step===0?'var(--ac)':step<(GM.martMaxSteps||3)?'var(--go)':'var(--re)';
-  }
-  if(stakeEl){
-    stakeEl.textContent='$'+(nextBudget/2).toFixed(2)+' each (budget $'+nextBudget+')';
-    stakeEl.style.color=step===0?'var(--ac)':step<(GM.martMaxSteps||3)?'var(--go)':'var(--re)';
-  }
 }
 
 function gmCleanup(rid){
@@ -5831,8 +5627,6 @@ function gmReset(){
   GM.pnl=0;GM.rounds=0;GM.won=0;GM.lost=0;GM._placing=false;
   GM.history=[];GM.activeCids={};GM.pending={};GM.lastRoundTime=0;
   GM.lastCallPay=0;GM.lastPutPay=0;GM.lastCombinedPay=0;GM._skipped=0;GM._histPage=0;GM.tickTimes=[];
-  // Reset Martingale
-  GM.martStep=0;GM.martBaseStake=0;gmUpdateMartingaleUI();
   _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake:0,entry:0,barrier:''};
   gmUpdateStats();gmRenderHistory();
   var net=document.getElementById('gm-round-net');if(net)net.textContent='$0.00';var skEl2=document.getElementById('gm-skipped');if(skEl2)skEl2.textContent='0';
@@ -6211,10 +6005,10 @@ function gmMFCheck(prices){
     result.reason='POS BLOCK: UP bias + pricePos='+c.pricePos.toFixed(0)+'% > '+mf.posMaxUp+'%';
   }
 
-  // ── 7. Stall guard (already in cache) — bidirectional flat market block ──
-  if(result.pass&&mf.stallOn&&c.atrLabel==='LOW'&&c.flats>=mf.stallFlats){
+  // ── 7. Stall guard (already in cache) ──
+  if(result.pass&&mf.stallOn&&c.upPct>50&&c.atrLabel==='LOW'&&c.flats>=mf.stallFlats){
     result.pass=false;
-    result.reason='STALL BLOCK: LOW ATR+'+c.flats+' flats (market flat)';
+    result.reason='STALL BLOCK: UP+LOW ATR+'+c.flats+' flats';
   }
 
   // ── 8. Range-extreme guard (analysis: all gap losses had pricePos=0 during DN trends) ──
@@ -6271,11 +6065,11 @@ function gmMFUpdateLive(mfr){
     ' | limit: UP≤'+mf.posMaxUp+'%',
     mf.posOn?(posBlocked?bad:ok):dim);
 
-  var stallBlocked=mf.stallOn&&mfr.atrLabel==='LOW'&&(mfr.flats||0)>=mf.stallFlats;
+  var stallBlocked=mf.stallOn&&mfr.domDir==='UP'&&mfr.atrLabel==='LOW'&&(mfr.flats||0)>=mf.stallFlats;
   s('mf-stall-live',
     'atr: '+(mfr.atrLabel||'--')+
     ' | flats: '+(mfr.flats!==undefined?mfr.flats:'--')+
-    ' | LOW ATR+≥'+mf.stallFlats+' flats = block (any dir)',
+    ' | UP+LOW+≥'+mf.stallFlats+' flats = block',
     mf.stallOn?(stallBlocked?bad:ok):dim);
 
   var badge=document.getElementById('gm-mf-status');
