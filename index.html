@@ -1409,28 +1409,19 @@ setInterval(function(){
 }, 3000);
 // ── END STALE TICK WATCHDOG ──────────────────────────────────────
 
-// ── Gmilli chart redraw fallback ─────────────────────────────────
-// Keeps the chart live even if getInd() buffer is empty or ticks
-// arrive but the length-guard blocks the in-tick update path.
+// ── Gmilli chart redraw — drives SVG line chart every 500ms ──────
+// Runs regardless of connection state so the placeholder is always visible.
 setInterval(function(){
-  if(!gmChart||!S.connected)return;
-  var prices=getInd(GM.asset).prices.slice(-80);
-  // Seed with live price if buffer still empty
-  if(!prices.length&&S.prices[GM.asset])prices=[S.prices[GM.asset]];
-  if(!prices.length)return;
-  var len=prices.length;
-  gmChart.data.labels=prices.map(function(){return '';});
-  gmChart.data.datasets[0].data=prices.slice();
-  gmChart.data.datasets[1].data=(_gmActiveBarrier&&_gmActiveBarrier.active&&_gmActiveBarrier.higher>0)?Array(len).fill(_gmActiveBarrier.higher):[];
-  gmChart.data.datasets[2].data=(_gmActiveBarrier&&_gmActiveBarrier.active&&_gmActiveBarrier.lower>0)?Array(len).fill(_gmActiveBarrier.lower):[];
-  gmUpdateWalls(prices[len-1]||0);
-  gmChart.data.datasets[3].data=(GM.mf&&GM.mf.wallOn&&_gmWalls.upper>0)?Array(len).fill(_gmWalls.upper):[];
-  gmChart.data.datasets[4].data=(GM.mf&&GM.mf.wallOn&&_gmWalls.lower>0)?Array(len).fill(_gmWalls.lower):[];
-  gmChart.update('none');
-  var priceEl=document.getElementById('gm-chart-price');
-  if(priceEl&&S.prices[GM.asset])priceEl.textContent=S.prices[GM.asset].toFixed(S.prices[GM.asset]>100?2:5);
+  // Always redraw (shows placeholder when not connected, live chart when connected)
+  gmDrawChart();
+  // Also update the live price text if connected
+  if(S.connected && S.prices[GM.asset]){
+    var priceEl=document.getElementById('gm-chart-price');
+    var p=S.prices[GM.asset];
+    if(priceEl && !getInd(GM.asset).prices.length) priceEl.textContent=p.toFixed(p>100?2:5);
+  }
 }, 500);
-// ── END Gmilli chart redraw fallback ─────────────────────────────
+// ── END Gmilli chart redraw ───────────────────────────────────────
 
 // Poll active trades
 setInterval(function(){
@@ -4464,6 +4455,7 @@ function initCharts(){
 window.addEventListener('load',function(){
   S.botMultiplier=100; S.maxBotTrades=1;
   buildAllDDs(); buildTicker(); initCharts(); gmCalc(); setTimeout(gmMFInit,600);
+  setTimeout(gmDrawChart, 200); // draw placeholder immediately on load
   buildDigitGrid(); buildMultInputs(); calcWWDaily(); initWWChart();
   updateStats(); renderTrades();
   updDG();
@@ -5893,7 +5885,7 @@ function gmStakeAdaptive() {
   return parseFloat((budget / 2).toFixed(2));
 }
 
-// ── gmDrawChart — SVG tick-bar chart ────────────────────────────
+// ── gmDrawChart — SVG line chart ────────────────────────────────
 function gmDrawChart() {
   // Keep Chart.js chart silent (canvas is hidden)
   if (gmChart) {
@@ -5903,19 +5895,44 @@ function gmDrawChart() {
   var svg = document.getElementById('gm-tick-svg');
   if (!svg) return;
 
-  var allPrices = getInd(GM.asset).prices;
-  var prices = allPrices.slice(-60);
-  var n = prices.length;
-  if (n < 2) { svg.innerHTML = '<text x="50%" y="50%" fill="#4a5568" font-size="12" text-anchor="middle" dominant-baseline="middle">Waiting for ticks...</text>'; return; }
-
-  // Sync tick buffer
-  _gmTickBuf = allPrices.slice(-_gmTickBufMax);
-
-  var W = svg.parentElement ? (svg.parentElement.clientWidth || 360) : 360;
+  // Robust width — walk up until we find a real width
+  var W = 0;
+  var el = svg.parentElement;
+  while (el && W < 10) { W = el.clientWidth || el.offsetWidth || 0; el = el.parentElement; }
+  if (W < 10) W = 680; // safe fallback
   var H = 200;
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
   svg.setAttribute('width', W);
   svg.setAttribute('height', H);
+
+  var allPrices = getInd(GM.asset).prices;
+  var prices = allPrices.slice(-60);
+  var n = prices.length;
+
+  // ── Placeholder when not yet connected / no ticks ──
+  if (n < 2) {
+    // Draw a gentle flat sine-wave placeholder so the area isn't blank
+    var midY = H / 2;
+    var wavePts = '';
+    for (var wi = 0; wi <= W; wi += 4) {
+      var wy = midY + Math.sin(wi / 28) * 18;
+      wavePts += wi + ',' + wy.toFixed(1) + ' ';
+    }
+    var waitGrad = 'gmWaitGrad';
+    svg.innerHTML =
+      '<defs><linearGradient id="' + waitGrad + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="rgba(0,229,160,0.08)"/>' +
+      '<stop offset="100%" stop-color="rgba(0,229,160,0)"/>' +
+      '</linearGradient></defs>' +
+      '<polygon points="0,' + H + ' ' + wavePts + W + ',' + H + '" fill="url(#' + waitGrad + ')"/>' +
+      '<polyline points="' + wavePts + '" fill="none" stroke="rgba(0,229,160,0.25)" stroke-width="1.5" stroke-dasharray="4,3"/>' +
+      '<text x="' + (W/2) + '" y="' + (H/2 - 14) + '" fill="#4a5568" font-size="13" font-family="monospace" text-anchor="middle">⏳ Connect to load chart</text>' +
+      '<text x="' + (W/2) + '" y="' + (H/2 + 6) + '" fill="#2d3748" font-size="10" font-family="monospace" text-anchor="middle">Waiting for live ticks...</text>';
+    return;
+  }
+
+  // Sync tick buffer
+  _gmTickBuf = allPrices.slice(-_gmTickBufMax);
 
   var hi = Math.max.apply(null, prices);
   var lo = Math.min.apply(null, prices);
