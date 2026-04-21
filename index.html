@@ -42,7 +42,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
 .ti{display:flex;gap:5px;align-items:center;cursor:pointer;padding:2px 5px;border-radius:4px}
 .ti:hover{background:var(--bg3)}
 .ts{color:var(--t2);font-weight:600}.tv{color:var(--t1)}.tc.up{color:var(--ac)}.tc.down{color:var(--re)}
-.content{flex:1;overflow-y:auto;padding:14px 18px}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 18px}
 .page{display:none}.page.active{display:block}
 .sr{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px}
 .sc{background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:13px 15px;position:relative;overflow:hidden}
@@ -812,369 +812,306 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           <div class="sc go"><div class="sl">Win Rate</div><div class="sv go" id="gm-wr">0%</div><div class="ss" id="gm-wl">0W / 0L</div></div>
           <div class="sc r"><div class="sl">Skipped</div><div class="sv r" id="gm-skipped">0</div><div class="ss" id="gm-skip-detail">Gate failed</div></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 320px;gap:12px">
-          <div>
-            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div style="font-size:13px;font-weight:700">Live Entry Preview</div>
-                <div style="font-size:11px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--ac)" id="gm-entry-display">--</div>
+        <!-- ══ GMILLI 3-COLUMN NO-SCROLL LAYOUT ══ -->
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr) 270px;gap:10px;align-items:start;min-width:0">
+
+          <!-- ── COL 1: Live data, barriers, gate, round ── -->
+          <div style="min-width:0;display:flex;flex-direction:column;gap:9px">
+
+            <!-- Session stats bar -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:8px;text-align:center">
+                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">P&L</div>
+                <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-pnl">+$0.00</div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:10px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px">HIGHER barrier</div>
-                  <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-higher-level">--</div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:2px">entry + offset</div>
-                </div>
-                <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:10px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:4px">LOWER barrier</div>
-                  <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-lower-level">--</div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:2px">entry - offset</div>
-                </div>
+              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:8px;text-align:center">
+                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">Rounds</div>
+                <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--bl)" id="gm-rounds">0</div>
               </div>
-              <div style="margin-top:8px;font-size:10px;color:var(--t3);text-align:center;font-family:var(--mo)" id="gm-gap-display">Gap zone shown after connect</div>
+              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:8px;text-align:center">
+                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">Win %</div>
+                <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--go)" id="gm-wr">0%</div>
+              </div>
+              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:8px;text-align:center">
+                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">W / L</div>
+                <div style="font-size:12px;font-weight:700;font-family:var(--mo);color:var(--t2)" id="gm-wl">0/0</div>
+              </div>
             </div>
+
+            <!-- Barriers -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:11px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <div style="font-size:11px;font-weight:700">Live Entry Preview</div>
+                <div style="font-size:10px;font-family:var(--mo);padding:2px 7px;border-radius:99px;background:var(--bg4);color:var(--ac)" id="gm-entry-display">--</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+                <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:9px;text-align:center">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">HIGHER</div>
+                  <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-higher-level">--</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry + offset</div>
+                </div>
+                <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:9px;text-align:center">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">LOWER</div>
+                  <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-lower-level">--</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry − offset</div>
+                </div>
+              </div>
+              <div style="margin-top:7px;font-size:10px;color:var(--t3);text-align:center;font-family:var(--mo)" id="gm-gap-display">Gap zone shown after connect</div>
+            </div>
+
+            <!-- Payout Gate -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:11px">
+              <div style="font-size:11px;font-weight:700;margin-bottom:8px">Payout Gate <span style="font-size:9px;color:var(--t3);font-weight:400">combined > 2× stake</span></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:7px">
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:7px;text-align:center;border:1px solid var(--bo)">
+                  <div style="font-size:9px;color:var(--t3);margin-bottom:2px">↑ HIGHER</div>
+                  <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-call-pay">--</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:7px;text-align:center;border:1px solid var(--bo)">
+                  <div style="font-size:9px;color:var(--t3);margin-bottom:2px">↓ LOWER</div>
+                  <div style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-put-pay">--</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:var(--rs);padding:7px;text-align:center;border:1px solid var(--bo)">
+                  <div style="font-size:9px;color:var(--t3);margin-bottom:2px">Gate</div>
+                  <div style="font-size:11px;font-weight:700;color:var(--go)" id="gm-gate-status">WAIT</div>
+                </div>
+              </div>
+              <div style="background:rgba(0,229,160,0.05);border:1px solid rgba(0,229,160,0.12);border-radius:var(--rs);padding:7px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:10px;color:var(--t2)">Expected profit</span>
+                <span style="font-size:13px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-expected-profit">--</span>
+              </div>
+            </div>
+
+            <!-- This Round -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:11px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <div style="font-size:11px;font-weight:700">This Round</div>
+                <div style="font-size:10px;font-family:var(--mo);font-weight:700;padding:2px 9px;border-radius:99px;background:var(--bg4);color:var(--t3)" id="gm-round-status">IDLE</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+                <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:9px">
+                  <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:4px">↑ HIGHER</div>
+                  <div style="font-size:9px;color:var(--t3);margin-bottom:2px" id="gm-call-barrier-lbl">barrier: +offset</div>
+                  <div style="font-size:16px;font-weight:700;color:var(--ac);font-family:var(--mo)" id="gm-call-pnl">$0.00</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:2px" id="gm-call-stake">stake: --</div>
+                </div>
+                <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:9px">
+                  <div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:4px">↓ LOWER</div>
+                  <div style="font-size:9px;color:var(--t3);margin-bottom:2px" id="gm-put-barrier-lbl">barrier: −offset</div>
+                  <div style="font-size:16px;font-weight:700;color:var(--re);font-family:var(--mo)" id="gm-put-pnl">$0.00</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:2px" id="gm-put-stake">stake: --</div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
+                <span style="font-size:10px;color:var(--t2)">Round Net</span>
+                <span style="font-size:15px;font-weight:700;font-family:var(--mo)" id="gm-round-net">$0.00</span>
+              </div>
+            </div>
+
+            <!-- Round History -->
+            <div class="card">
+              <div class="ch"><div class="ct">Round History</div><span style="font-size:10px;color:var(--t3)" id="gm-streak-display"></span><button class="btn btng" style="font-size:10px;padding:3px 8px;margin-left:auto" onclick="gmExportData()">⬇ Export</button></div>
+              <div class="cb" id="gm-history-list" style="max-height:220px;overflow-y:auto"><div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No rounds yet.</div></div>
+            </div>
+          </div>
+
+          <!-- ── COL 2: Chart ── -->
+          <div style="min-width:0;display:flex;flex-direction:column;gap:9px">
             <!-- Live Tick Chart -->
-            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
-              <!-- Header row -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);overflow:hidden">
               <div style="padding:8px 12px;border-bottom:1px solid var(--bo);display:flex;align-items:center;gap:10px">
                 <span style="font-size:12px;font-weight:700;font-family:var(--mo)" id="gm-chart-sym">R_100</span>
                 <span style="font-size:16px;font-weight:800;font-family:var(--mo);color:var(--ac)" id="gm-chart-price">--</span>
                 <span id="gm-chart-move" style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--t3)">--</span>
                 <span style="flex:1"></span>
-                <span style="font-size:10px;font-family:var(--mo);padding:2px 8px;border-radius:4px;font-weight:700" id="gm-chart-dir" style="background:var(--bg4);color:var(--t3)">--</span>
+                <span style="font-size:10px;font-family:var(--mo);padding:3px 9px;border-radius:6px;font-weight:700;background:var(--bg4);color:var(--t3)" id="gm-chart-dir">--</span>
               </div>
-              <!-- SVG tick chart -->
               <div style="position:relative;background:var(--bg1)">
-                <svg id="gm-tick-svg" width="100%" height="220" style="display:block;overflow:visible"></svg>
-                <!-- Barrier labels overlay -->
+                <svg id="gm-tick-svg" width="100%" height="190" style="display:block"></svg>
                 <div id="gm-barrier-legend" style="position:absolute;top:6px;right:8px;font-size:9px;font-family:var(--mo);line-height:1.8;text-align:right;pointer-events:none"></div>
               </div>
               <!-- Higher / Lower stat row -->
               <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--bo)">
-                <div style="padding:8px 12px;border-right:1px solid var(--bo)">
+                <div style="padding:7px 12px;border-right:1px solid var(--bo)">
                   <div style="font-size:10px;color:var(--t2);margin-bottom:2px">↑ Higher</div>
-                  <div style="font-size:18px;font-weight:800;color:var(--ac);font-family:var(--mo)" id="gm-tick-up-pct">--%</div>
+                  <div style="font-size:16px;font-weight:800;color:var(--ac);font-family:var(--mo)" id="gm-tick-up-pct">--%</div>
                   <div style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="gm-tick-up-cnt">-- ticks</div>
                 </div>
-                <div style="padding:8px 12px">
+                <div style="padding:7px 12px">
                   <div style="font-size:10px;color:var(--t2);margin-bottom:2px">↓ Lower</div>
-                  <div style="font-size:18px;font-weight:800;color:var(--re);font-family:var(--mo)" id="gm-tick-dn-pct">--%</div>
+                  <div style="font-size:16px;font-weight:800;color:var(--re);font-family:var(--mo)" id="gm-tick-dn-pct">--%</div>
                   <div style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="gm-tick-dn-cnt">-- ticks</div>
                 </div>
               </div>
-              <!-- Recent moves strip (H/L pills) -->
-              <div style="padding:8px 12px;border-top:1px solid var(--bo)">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+              <!-- Recent moves strip -->
+              <div style="padding:7px 12px;border-top:1px solid var(--bo)">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
                   <span style="font-size:10px;color:var(--t3);font-weight:600">Recent Moves</span>
-                  <span id="gm-streak-badge" style="font-size:9px;font-family:var(--mo);padding:1px 6px;border-radius:99px;background:var(--bg4);color:var(--t3)"></span>
+                  <span id="gm-streak-badge" style="font-size:9px;font-family:var(--mo);padding:1px 7px;border-radius:99px;background:var(--bg4);color:var(--t3)"></span>
                 </div>
                 <div id="gm-moves-strip" style="display:flex;flex-wrap:wrap;gap:3px"></div>
               </div>
             </div>
-            <!-- hidden canvas still needed by Chart.js init — zero-size -->
             <canvas id="gmChart" style="display:none;width:0;height:0"></canvas>
 
-            <!-- Payout Gate -->
-            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
-              <div style="font-size:12px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px">
-                Payout Gate
-                <span style="font-size:10px;color:var(--t3);font-weight:400">— only trades when combined payout > 2× stake</span>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;text-align:center;border:1px solid var(--bo)">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">HIGHER Payout</div>
-                  <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-call-pay">--</div>
-                </div>
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;text-align:center;border:1px solid var(--bo)">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">LOWER Payout</div>
-                  <div style="font-size:15px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-put-pay">--</div>
-                </div>
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:9px;text-align:center;border:1px solid var(--bo)">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Gate Status</div>
-                  <div style="font-size:12px;font-weight:700;color:var(--go)" id="gm-gate-status">WAITING</div>
-                </div>
-              </div>
-              <!-- Expected profit display -->
-              <div style="margin-top:8px;background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.15);border-radius:var(--rs);padding:9px;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:11px;color:var(--t2)">Expected profit if gate passes</span>
-                <span style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-expected-profit">--</span>
-              </div>
-            </div>
+            <!-- START / RESET buttons -->
+            <button id="gm-toggle-btn" onclick="gmToggle()" style="width:100%;padding:13px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--fn);font-size:14px;font-weight:800;background:var(--ac);color:var(--bg0)">START GMILLI</button>
+            <button onclick="gmReset()" style="width:100%;padding:7px;border-radius:var(--rs);border:1px solid var(--bo);background:var(--bg3);color:var(--t2);font-family:var(--fn);font-size:11px;cursor:pointer">Reset Session</button>
 
-            <!-- This Round -->
-            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <div style="font-size:13px;font-weight:700">This Round</div>
-                <div style="font-size:11px;font-family:var(--mo);font-weight:700;padding:3px 10px;border-radius:99px;background:var(--bg4);color:var(--t3)" id="gm-round-status">IDLE</div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-                <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:12px">
-                  <div style="font-size:10px;color:var(--ac);font-weight:700;margin-bottom:6px">↑ HIGHER</div>
-                  <div style="font-size:10px;color:var(--t3);margin-bottom:2px" id="gm-call-barrier-lbl">barrier: entry + offset</div>
-                  <div style="font-size:18px;font-weight:700;color:var(--ac);font-family:var(--mo)" id="gm-call-pnl">$0.00</div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px" id="gm-call-stake">stake: --</div>
-                </div>
-                <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:12px">
-                  <div style="font-size:10px;color:var(--re);font-weight:700;margin-bottom:6px">↓ LOWER</div>
-                  <div style="font-size:10px;color:var(--t3);margin-bottom:2px" id="gm-put-barrier-lbl">barrier: entry - offset</div>
-                  <div style="font-size:18px;font-weight:700;color:var(--re);font-family:var(--mo)" id="gm-put-pnl">$0.00</div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px" id="gm-put-stake">stake: --</div>
-                </div>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--bo)">
-                <span style="font-size:11px;color:var(--t2)">Round Net</span>
-                <span style="font-size:16px;font-weight:700;font-family:var(--mo)" id="gm-round-net">$0.00</span>
-              </div>
+            <!-- Skipped breakdown -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:9px 11px">
+              <div style="font-size:10px;font-weight:600;color:var(--t2);margin-bottom:3px">Skipped</div>
+              <div style="font-size:10px;font-family:var(--mo);color:var(--t3)" id="gm-skip-detail">—</div>
             </div>
-
-            <!-- Round History -->
-            <div class="card"><div class="ch"><div class="ct">Round History</div><span style="font-size:10px;color:var(--t3)" id="gm-streak-display"></span><button class="btn btng" style="font-size:10px;padding:3px 9px;margin-left:auto" onclick="gmExportData()">⬇ Export Data</button></div><div class="cb" id="gm-history-list"><div style="text-align:center;padding:18px;color:var(--t3);font-size:12px">No rounds yet.</div></div></div>
           </div>
 
-          <!-- RIGHT: Config -->
-          <div>
-            <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct">⚙ Config</div></div>
-              <div class="cb">
-                <!-- Asset -->
-                <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Asset</div>
-                  <div class="aswrap"><div class="assel" onclick="toggleDD('gm-dd')"><div><div style="font-size:13px;font-weight:700" id="gm-asset-n">R_100</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="gm-asset-i">Volatility 100 Index</div></div><span style="color:var(--t3);font-size:11px">v</span></div><div class="asdd" id="gm-dd"></div></div>
+          <!-- ── COL 3: Config (sticky, scrollable internally) ── -->
+          <div style="min-width:0;position:sticky;top:0;max-height:calc(100vh - 110px);overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding-right:2px">
+
+            <!-- Asset -->
+            <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:11px">
+              <div style="font-size:11px;font-weight:700;margin-bottom:8px">⚙ Config</div>
+              <div class="ig" style="margin-bottom:9px">
+                <div class="il">Asset</div>
+                <div class="aswrap"><div class="assel" onclick="toggleDD('gm-dd')"><div><div style="font-size:13px;font-weight:700" id="gm-asset-n">R_100</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="gm-asset-i">Volatility 100 Index</div></div><span style="color:var(--t3);font-size:11px">v</span></div><div class="asdd" id="gm-dd"></div></div>
+              </div>
+              <!-- Budget -->
+              <div class="ig" style="margin-bottom:9px">
+                <div class="il">Budget Per Round ($)</div>
+                <div class="ir">
+                  <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=Math.max(0.70,(parseFloat(e.value)-0.70)).toFixed(2);gmCalc()">-</div>
+                  <input type="number" class="iif" id="gm-budget" value="3.00" min="0.70" step="0.70" oninput="gmCalc()">
+                  <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.70).toFixed(2);gmCalc()">+</div>
                 </div>
-                <!-- Budget Per Round -->
-                <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Budget Per Round ($)</div>
-                  <div class="ir">
-                    <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=Math.max(0.70,(parseFloat(e.value)-0.70)).toFixed(2);gmCalc()">-</div>
-                    <input type="number" class="iif" id="gm-budget" value="3.00" min="0.70" step="0.70" oninput="gmCalc()">
-                    <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.70).toFixed(2);gmCalc()">+</div>
-                  </div>
-                  <div style="font-size:10px;color:var(--t3);margin-top:3px">Split equally — $<span id="gm-stake-display">1.50</span> each side</div>
-                </div>
-                <!-- Barrier Offset -->
-                <div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;margin-bottom:11px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                    <div style="font-size:11px;font-weight:700">Barrier Offset</div>
-                    <div style="display:flex;align-items:center;gap:7px">
-                      <span style="font-size:10px;color:var(--t3)">Auto (ATR×1.5)</span>
-                      <div class="tsw" id="gm-adaptive-offset-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on');gmCalc()"></div>
-                    </div>
-                  </div>
-                  <div class="ir" style="margin-bottom:5px">
-                    <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=Math.max(0.01,(parseFloat(e.value)-0.01)).toFixed(2);gmCalc()">-</div>
-                    <input type="number" class="iif" id="gm-offset" value="0.12" min="0.01" step="0.01" oninput="gmCalc()">
-                    <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=(parseFloat(e.value)+0.01).toFixed(2);gmCalc()">+</div>
-                    <span style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--ac);margin-left:6px" id="gm-effective-offset">±0.12</span>
-                  </div>
-                  <div style="font-size:10px;color:var(--t3)">Manual baseline. Auto scales with ATR×duration.</div>
-                </div>
-                <!-- Duration -->
-                <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Duration</div>
-                  <div class="dr">
-                    <div class="db" onclick="GM.dur=5;gmSetActive(this)">5S</div>
-                    <div class="db" onclick="GM.dur=15;gmSetActive(this)">15S</div>
-                    <div class="db active" onclick="GM.dur=30;gmSetActive(this)">30S</div>
-                    <div class="db" onclick="GM.dur=60;gmSetActive(this)">60S</div>
-                    <div class="db" onclick="GM.dur=120;gmSetActive(this)">2M</div>
-                  </div>
-                </div>
-                <!-- Tick Direction Display (read-only, used by 3-tick filter) -->
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:8px 11px;margin-bottom:11px;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-family:var(--mo);border:1px solid var(--bo)">
-                  <span style="color:var(--ac)">↑ UP: <b id="gm-conf-up">--</b></span>
-                  <span id="gm-conf-display" style="color:var(--t3);font-size:10px">--</span>
-                  <span style="color:var(--re)">↓ DN: <b id="gm-conf-dn">--</b></span>
-                  <span style="color:var(--t3)"><b id="gm-conf-ticks">20</b>tk</span>
-                </div>
-                <!-- Daily limits -->
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px">
-                  <div class="ig"><div class="il">Daily SL ($)</div><input type="number" class="iif" id="gm-daily-sl" value="30" min="1" oninput="gmCalc()"></div>
-                  <div class="ig"><div class="il">Daily TP ($)</div><input type="number" class="iif" id="gm-daily-tp" value="60" min="1" oninput="gmCalc()"></div>
-                </div>
-                <!-- 3-Tick Momentum Filter (Gmilli strategy) -->
-                <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.22);border-radius:var(--rs);padding:11px;margin-bottom:11px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                    <div style="font-size:11px;font-weight:700;color:var(--ac)">⚡ 3-Tick Entry Filter</div>
-                    <div id="gm-tick-filter-badge" style="font-size:10px;font-family:var(--mo);padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--t3)">--</div>
-                  </div>
-                  <div style="font-size:10px;color:var(--t2);margin-bottom:8px;line-height:1.6">Only trades when the last <b id="gm-consec-req-display" style="color:var(--ac)">3</b> ticks all move in the same direction. Waits for momentum before entering.</div>
-                  <!-- Live tick pills -->
-                  <div id="gm-tick-pills" style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:8px;min-height:20px"></div>
-                  <!-- Consecutive ticks required -->
+                <div style="font-size:10px;color:var(--t3);margin-top:2px">Split equally — $<span id="gm-stake-display">1.50</span> each side</div>
+              </div>
+              <!-- Barrier Offset -->
+              <div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:9px;margin-bottom:9px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+                  <div style="font-size:10px;font-weight:700">Barrier Offset</div>
                   <div style="display:flex;align-items:center;gap:6px">
-                    <span style="font-size:10px;color:var(--t3)">Min consecutive ticks:</span>
-                    <div class="dr" style="grid-template-columns:repeat(4,1fr);flex:1;gap:3px">
-                      <div class="db" onclick="GM.consecTicks=2;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='2'" style="font-size:10px;padding:4px 2px">2</div>
-                      <div class="db active" onclick="GM.consecTicks=3;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='3'" style="font-size:10px;padding:4px 2px">3</div>
-                      <div class="db" onclick="GM.consecTicks=4;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='4'" style="font-size:10px;padding:4px 2px">4</div>
-                      <div class="db" onclick="GM.consecTicks=5;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='5'" style="font-size:10px;padding:4px 2px">5</div>
-                    </div>
+                    <span style="font-size:9px;color:var(--t3)">Auto ATR</span>
+                    <div class="tsw" id="gm-adaptive-offset-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on');gmCalc()"></div>
                   </div>
                 </div>
-                <!-- ── Momentum Filters (hidden — logic retained for wall/stall guards) ── -->
-                <div style="display:none">
-                  <div id="gm-mf-status"></div>
-
-                  <!-- Slope -->
-                  <div style="margin-bottom:8px">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                      <div style="display:flex;align-items:center;gap:7px">
-                        <div class="tsw" id="mf-slope-sw" onclick="gmMFToggle('slope')" style="width:34px;height:18px"></div>
-                        <span style="font-size:10px;font-weight:600;color:var(--t1)">Slope</span>
-                        <span style="font-size:10px;color:var(--t3)">min/tick</span>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:4px">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('slopeMin',-0.005)">-</div>
-                        <input type="number" id="mf-slope-val" value="0.02" step="0.005" min="0.005" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('slopeMin',this.value)">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('slopeMin',0.005)">+</div>
-                      </div>
-                    </div>
-                    <div id="mf-slope-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">slope: --</div>
-                  </div>
-
-                  <!-- Range Width -->
-                  <div style="margin-bottom:8px">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                      <div style="display:flex;align-items:center;gap:7px">
-                        <div class="tsw" id="mf-range-sw" onclick="gmMFToggle('range')" style="width:34px;height:18px"></div>
-                        <span style="font-size:10px;font-weight:600;color:var(--t1)">Range</span>
-                        <span style="font-size:10px;color:var(--t3)">min 20-tick H-L</span>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:4px">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('rangeMin',-0.05)">-</div>
-                        <input type="number" id="mf-range-val" value="0.20" step="0.05" min="0.05" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('rangeMin',this.value)">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('rangeMin',0.05)">+</div>
-                      </div>
-                    </div>
-                    <div id="mf-range-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">range: --</div>
-                  </div>
-
-                  <!-- Consecutive -->
-                  <div style="margin-bottom:8px">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                      <div style="display:flex;align-items:center;gap:7px">
-                        <div class="tsw" id="mf-cons-sw" onclick="gmMFToggle('cons')" style="width:34px;height:18px"></div>
-                        <span style="font-size:10px;font-weight:600;color:var(--t1)">Consec</span>
-                        <span style="font-size:10px;color:var(--t3)">of last 5 same dir</span>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:4px">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('consMin',-1)">-</div>
-                        <input type="number" id="mf-cons-val" value="4" step="1" min="2" max="5" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('consMin',this.value)">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('consMin',1)">+</div>
-                      </div>
-                    </div>
-                    <div id="mf-cons-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">consec: --</div>
-                  </div>
-
-                  <!-- ATR -->
-                  <div style="margin-bottom:8px">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                      <div style="display:flex;align-items:center;gap:7px">
-                        <div class="tsw" id="mf-atr-sw" onclick="gmMFToggle('atr')" style="width:34px;height:18px"></div>
-                        <span style="font-size:10px;font-weight:600;color:var(--t1)">ATR</span>
-                        <span style="font-size:10px;color:var(--t3)">min 5-tick avg range</span>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:4px">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('atrMin',-0.01)">-</div>
-                        <input type="number" id="mf-atr-val" value="0.05" step="0.01" min="0.01" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('atrMin',this.value)">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('atrMin',0.01)">+</div>
-                      </div>
-                    </div>
-                    <div id="mf-atr-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">atr: --</div>
-                  </div>
-
-                  <!-- Wall Distance -->
-                  <div>
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                      <div style="display:flex;align-items:center;gap:7px">
-                        <div class="tsw" id="mf-wall-sw" onclick="gmMFToggle('wall')" style="width:34px;height:18px"></div>
-                        <span style="font-size:10px;font-weight:600;color:var(--t1)">Wall Guard</span>
-                        <span style="font-size:10px;color:var(--t3)">skip near integers</span>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:4px">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('wallDist',-0.01)">-</div>
-                        <input type="number" id="mf-wall-val" value="0.05" step="0.01" min="0.01" style="width:52px;background:var(--bg4);border:1px solid var(--bo);border-radius:5px;padding:3px 6px;color:var(--t1);font-family:var(--mo);font-size:11px;outline:none;text-align:center" oninput="gmMFInput('wallDist',this.value)">
-                        <div class="ia" style="width:22px;height:22px;font-size:13px" onclick="gmMFAdj('wallDist',0.01)">+</div>
-                      </div>
-                    </div>
-                    <div id="mf-wall-live" style="font-size:10px;font-family:var(--mo);color:var(--t3);padding-left:41px">dist to wall: --</div>
-                  </div>
-
-                  <div id="mf-pos-sw" style="display:none"></div>
-                  <div id="mf-stall-sw" style="display:none"></div>
-                  <div id="mf-pos-live" style="display:none"></div>
-                  <div id="mf-stall-live" style="display:none"></div>
-                  <div id="mf-slope-live" style="display:none"></div>
-                  <div id="mf-range-live" style="display:none"></div>
-                  <div id="mf-cons-live" style="display:none"></div>
-                  <div id="mf-atr-live" style="display:none"></div>
-                  <div id="mf-wall-live" style="display:none"></div>
+                <div class="ir" style="margin-bottom:4px">
+                  <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=Math.max(0.01,(parseFloat(e.value)-0.01)).toFixed(2);gmCalc()">-</div>
+                  <input type="number" class="iif" id="gm-offset" value="0.12" min="0.01" step="0.01" oninput="gmCalc()">
+                  <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=(parseFloat(e.value)+0.01).toFixed(2);gmCalc()">+</div>
+                  <span style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--ac);margin-left:5px" id="gm-effective-offset">±0.12</span>
                 </div>
-                <!-- Volatility Status (live read-only) -->
-                <div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:9px 11px;margin-bottom:11px">
-                  <div style="font-size:10px;font-weight:700;color:var(--go);margin-bottom:5px">📊 Volatility Gate</div>
-                  <div id="gm-vol-status" style="font-size:10px;font-family:var(--mo);color:var(--t3)">Waiting for data...</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:4px">Requires range ≥ 1.33× barrier. Skips dead markets.</div>
+              </div>
+              <!-- Duration -->
+              <div class="ig" style="margin-bottom:9px">
+                <div class="il">Duration</div>
+                <div class="dr">
+                  <div class="db" onclick="GM.dur=5;gmSetActive(this)">5S</div>
+                  <div class="db" onclick="GM.dur=15;gmSetActive(this)">15S</div>
+                  <div class="db active" onclick="GM.dur=30;gmSetActive(this)">30S</div>
+                  <div class="db" onclick="GM.dur=60;gmSetActive(this)">60S</div>
+                  <div class="db" onclick="GM.dur=120;gmSetActive(this)">2M</div>
                 </div>
-
-                <!-- Martingale Controls -->
-                <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.22);border-radius:var(--rs);padding:11px;margin-bottom:11px">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
-                    <div style="font-size:11px;font-weight:700;color:var(--bl)">💰 Adaptive Stake</div>
-                    <div class="tsw" id="gm-mart-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on');if(this.classList.contains('on'))gmMartInit()"></div>
-                  </div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:8px">
-                    <div class="db active" onclick="gmSetActive(this);_gmMart.mode='limited'" style="font-size:10px;padding:5px 3px">Limited</div>
-                    <div class="db" onclick="gmSetActive(this);_gmMart.mode='anti'" style="font-size:10px;padding:5px 3px">Anti-Mart</div>
-                    <div class="db" onclick="gmSetActive(this);_gmMart.mode='flat'" style="font-size:10px;padding:5px 3px">Flat</div>
-                  </div>
-                  <div style="font-size:9px;color:var(--t3);margin-bottom:6px">Limited: ×1.8 per loss, resets after 3. Anti: ×1.8 per WIN. Flat: no change.</div>
-                  <div id="gm-mart-display" style="font-size:10px;font-family:var(--mo);color:var(--bl);background:rgba(59,130,246,0.08);border-radius:4px;padding:4px 8px">OFF — using fixed budget</div>
-                </div>
-                <div class="ig" style="margin-bottom:11px">
-                  <div class="il">Min Gap Between Rounds</div>
-                  <div class="dr" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="db" onclick="GM.minGap=15;gmSetActive(this)">15s</div>
-                    <div class="db active" onclick="GM.minGap=30;gmSetActive(this)">30s</div>
-                    <div class="db" onclick="GM.minGap=45;gmSetActive(this)">45s</div>
-                    <div class="db" onclick="GM.minGap=60;gmSetActive(this)">60s</div>
-                  </div>
+              </div>
+              <!-- Daily SL/TP -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px">
+                <div class="ig"><div class="il">Daily SL ($)</div><input type="number" class="iif" id="gm-daily-sl" value="30" min="1" oninput="gmCalc()"></div>
+                <div class="ig"><div class="il">Daily TP ($)</div><input type="number" class="iif" id="gm-daily-tp" value="60" min="1" oninput="gmCalc()"></div>
+              </div>
+              <!-- Gap between rounds -->
+              <div class="ig">
+                <div class="il">Min Gap Between Rounds</div>
+                <div class="dr" style="grid-template-columns:repeat(4,1fr)">
+                  <div class="db" onclick="GM.minGap=15;gmSetActive(this)">15s</div>
+                  <div class="db active" onclick="GM.minGap=30;gmSetActive(this)">30s</div>
+                  <div class="db" onclick="GM.minGap=45;gmSetActive(this)">45s</div>
+                  <div class="db" onclick="GM.minGap=60;gmSetActive(this)">60s</div>
                 </div>
               </div>
             </div>
 
-            <!-- Round Math -->
-            <div class="card" style="margin-bottom:12px">
-              <div class="ch"><div class="ct">Round Math</div></div>
-              <div class="cb">
-                <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;border:1px solid var(--bo);font-size:11px;font-family:var(--mo);line-height:1.9;white-space:pre-line" id="gm-calc-display">Calculating...</div>
+            <!-- Tick direction read-out -->
+            <div style="background:var(--bg3);border-radius:var(--rs);padding:7px 10px;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-family:var(--mo);border:1px solid var(--bo)">
+              <span style="color:var(--ac)">↑ <b id="gm-conf-up">--</b></span>
+              <span id="gm-conf-display" style="color:var(--t3);font-size:10px">--</span>
+              <span style="color:var(--re)">↓ <b id="gm-conf-dn">--</b></span>
+              <span style="color:var(--t3);font-size:10px"><b id="gm-conf-ticks">20</b>tk</span>
+            </div>
+
+            <!-- 3-Tick Filter -->
+            <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.22);border-radius:var(--rs);padding:10px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <div style="font-size:11px;font-weight:700;color:var(--ac)">⚡ 3-Tick Filter</div>
+                <div id="gm-tick-filter-badge" style="font-size:10px;font-family:var(--mo);padding:2px 7px;border-radius:99px;background:var(--bg4);color:var(--t3)">--</div>
+              </div>
+              <div id="gm-tick-pills" style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:7px;min-height:18px"></div>
+              <div style="display:flex;align-items:center;gap:5px">
+                <span style="font-size:9px;color:var(--t3)">Min ticks:</span>
+                <div class="dr" style="grid-template-columns:repeat(4,1fr);flex:1;gap:3px">
+                  <div class="db" onclick="GM.consecTicks=2;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='2'" style="font-size:10px;padding:4px 2px">2</div>
+                  <div class="db active" onclick="GM.consecTicks=3;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='3'" style="font-size:10px;padding:4px 2px">3</div>
+                  <div class="db" onclick="GM.consecTicks=4;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='4'" style="font-size:10px;padding:4px 2px">4</div>
+                  <div class="db" onclick="GM.consecTicks=5;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='5'" style="font-size:10px;padding:4px 2px">5</div>
+                </div>
+              </div>
+              <span id="gm-consec-req-display" style="display:none">3</span>
+            </div>
+
+            <!-- Volatility Gate -->
+            <div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:9px">
+              <div style="font-size:10px;font-weight:700;color:var(--go);margin-bottom:4px">📊 Vol + BB Gate</div>
+              <div id="gm-vol-status" style="font-size:10px;font-family:var(--mo);color:var(--t3)">Waiting...</div>
+            </div>
+
+            <!-- Tick Velocity Filter -->
+            <div style="background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.22);border-radius:var(--rs);padding:10px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <div style="font-size:11px;font-weight:700;color:var(--go)">🚀 Velocity Filter</div>
+                <div class="tsw on" id="gm-vel-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on')"></div>
+              </div>
+              <div style="font-size:9px;color:var(--t3);margin-bottom:6px">Only trades on price spikes. Filters slow drift → fewer gap losses.</div>
+              <div id="gm-vel-status" style="font-size:10px;font-family:var(--mo);color:var(--t3);margin-bottom:6px">Waiting for ticks...</div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:9px;color:var(--t3);white-space:nowrap">Spike mult:</span>
+                <div class="dr" style="grid-template-columns:repeat(4,1fr);flex:1;gap:3px">
+                  <div class="db" onclick="gmSetActive(this);document.getElementById('gm-vel-mult').value='1.2'" style="font-size:10px;padding:4px 2px">1.2×</div>
+                  <div class="db active" onclick="gmSetActive(this);document.getElementById('gm-vel-mult').value='1.5'" style="font-size:10px;padding:4px 2px">1.5×</div>
+                  <div class="db" onclick="gmSetActive(this);document.getElementById('gm-vel-mult').value='2.0'" style="font-size:10px;padding:4px 2px">2.0×</div>
+                  <div class="db" onclick="gmSetActive(this);document.getElementById('gm-vel-mult').value='3.0'" style="font-size:10px;padding:4px 2px">3.0×</div>
+                </div>
+                <input id="gm-vel-mult" type="number" value="1.5" step="0.1" min="1.0" style="display:none">
               </div>
             </div>
 
-            <!-- Stats -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px">
-              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;text-align:center">
-                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Session P&L</div>
-                <div style="font-size:18px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-pnl">$0.00</div>
+            <!-- Adaptive Stake / Martingale -->
+            <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.22);border-radius:var(--rs);padding:10px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+                <div style="font-size:11px;font-weight:700;color:var(--bl)">💰 Adaptive Stake</div>
+                <div class="tsw" id="gm-mart-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on');if(this.classList.contains('on'))gmMartInit()"></div>
               </div>
-              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;text-align:center">
-                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Rounds</div>
-                <div style="font-size:18px;font-weight:700;font-family:var(--mo);color:var(--bl)" id="gm-rounds">0</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:6px">
+                <div class="db active" onclick="gmSetActive(this);_gmMart.mode='limited'" style="font-size:10px;padding:4px 2px">Limited</div>
+                <div class="db" onclick="gmSetActive(this);_gmMart.mode='anti'" style="font-size:10px;padding:4px 2px">Anti</div>
+                <div class="db" onclick="gmSetActive(this);_gmMart.mode='flat'" style="font-size:10px;padding:4px 2px">Flat</div>
               </div>
-              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;text-align:center">
-                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">Profitable</div>
-                <div style="font-size:18px;font-weight:700;font-family:var(--mo);color:var(--go)" id="gm-wr">0%</div>
-              </div>
-              <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;text-align:center">
-                <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">W / L</div>
-                <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--t2)" id="gm-wl">0 / 0</div>
-              </div>
+              <div id="gm-mart-display" style="font-size:10px;font-family:var(--mo);color:var(--bl);background:rgba(59,130,246,0.08);border-radius:4px;padding:4px 7px">OFF — fixed budget</div>
             </div>
 
-            <button id="gm-toggle-btn" onclick="gmToggle()" style="width:100%;padding:14px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--fn);font-size:14px;font-weight:800;background:var(--ac);color:var(--bg0);margin-bottom:6px">START GMILLI</button>
-            <button onclick="gmReset()" style="width:100%;padding:8px;border-radius:var(--rs);border:1px solid var(--bo);background:var(--bg3);color:var(--t2);font-family:var(--fn);font-size:11px;cursor:pointer">Reset Session</button>
+            <!-- Hidden MF elements (logic only) -->
+            <div style="display:none">
+              <div id="gm-mf-status"></div><div id="mf-slope-sw"></div><div id="mf-range-sw"></div>
+              <div id="mf-cons-sw"></div><div id="mf-atr-sw"></div><div id="mf-wall-sw"></div>
+              <input id="mf-slope-val" value="0.02"><input id="mf-range-val" value="0.20">
+              <input id="mf-cons-val" value="4"><input id="mf-atr-val" value="0.05">
+              <input id="mf-wall-val" value="0.05">
+              <div id="mf-pos-sw"></div><div id="mf-stall-sw"></div>
+              <div id="mf-pos-live"></div><div id="mf-stall-live"></div>
+              <div id="mf-slope-live"></div><div id="mf-range-live"></div>
+              <div id="mf-cons-live"></div><div id="mf-atr-live"></div><div id="mf-wall-live"></div>
+              <div id="gm-calc-display"></div>
+            </div>
           </div>
-        </div>
+
+        </div><!-- end 3-col grid -->
       </div>
       <!-- END GMILLI PAGE -->
       <div class="page" id="page-history">
@@ -1819,31 +1756,32 @@ function onTick(tick) {
   if(sym===GM.asset){
     // Record tick time for dead-zone speed detection
     if(!GM.tickTimes)GM.tickTimes=[];
-    GM.tickTimes.push(Date.now());
+    var _tNow=Date.now();
+    GM.tickTimes.push(_tNow);
     if(GM.tickTimes.length>100)GM.tickTimes.shift();
 
-    // ── Gmilli chart — Chart.js, same pattern as wwChart ──
-    if(gmChart){
-      var _gmNow=Date.now();
-      if(!GM._lastDraw||(_gmNow-GM._lastDraw)>250){
-        GM._lastDraw=_gmNow;
-        var _gmD=getInd(GM.asset).prices.slice(-80);
-        // Fallback: if indicator buffer is empty, seed with the current price
-        if(!_gmD.length&&S.prices[GM.asset])_gmD=[S.prices[GM.asset]];
-        if(_gmD.length>0){
-          var _gmLen=_gmD.length;
-          gmChart.data.labels=_gmD.map(function(){return '';});
-          gmChart.data.datasets[0].data=_gmD.slice();
-          gmChart.data.datasets[1].data=(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0)?Array(_gmLen).fill(_gmActiveBarrier.higher):[];
-          gmChart.data.datasets[2].data=(_gmActiveBarrier.active&&_gmActiveBarrier.lower>0)?Array(_gmLen).fill(_gmActiveBarrier.lower):[];
-          gmUpdateWalls(q);
-          gmChart.data.datasets[3].data=(GM.mf.wallOn&&_gmWalls.upper>0)?Array(_gmLen).fill(_gmWalls.upper):[];
-          gmChart.data.datasets[4].data=(GM.mf.wallOn&&_gmWalls.lower>0)?Array(_gmLen).fill(_gmWalls.lower):[];
-          gmChart.update('none');
-        }
-        var _gmPriceEl=document.getElementById('gm-chart-price');
-        if(_gmPriceEl)_gmPriceEl.textContent=q.toFixed(q>100?2:5);
-      }
+    // ── TICK VELOCITY ENGINE ──────────────────────────────────────────
+    // Measures price-change per millisecond. High velocity = explosive move
+    // that is likely to clear the barrier and stay there.
+    if(!GM._vel) GM._vel={lastPrice:q,lastTime:_tNow,current:0,avg:0,history:[]};
+    var _vDt=_tNow-GM._vel.lastTime;
+    var _vDp=Math.abs(q-GM._vel.lastPrice);
+    if(_vDt>0){
+      GM._vel.current=_vDp/_vDt;         // velocity = Δprice / Δtime (per ms)
+      GM._vel.history.push(GM._vel.current);
+      if(GM._vel.history.length>20)GM._vel.history.shift();
+      // rolling average velocity over last 20 ticks
+      GM._vel.avg=GM._vel.history.reduce(function(s,v){return s+v;},0)/GM._vel.history.length;
+    }
+    GM._vel.lastPrice=q;
+    GM._vel.lastTime=_tNow;
+    // ── END VELOCITY ENGINE ───────────────────────────────────────────
+
+    // SVG chart redraw — throttled to 4fps
+    var _gmNow=Date.now();
+    if(!GM._lastDraw||(_gmNow-GM._lastDraw)>250){
+      GM._lastDraw=_gmNow;
+      gmDrawChart();
     }
 
     // ── Heavy UI (confidence, filters, entry preview) — 2fps, page-visible only ──
@@ -1852,18 +1790,10 @@ function onTick(tick) {
       var _gmHeavyNow=Date.now();
       if(!GM._lastHeavy||(_gmHeavyNow-GM._lastHeavy)>500){
         GM._lastHeavy=_gmHeavyNow;
-        var _gmDir=document.getElementById('gm-chart-dir');
-        if(_gmDir){
-          var _gmp=getInd(GM.asset).prices,_gmn=_gmp.length,_gmu=0,_gmd=0,_gml=Math.min(20,_gmn-1);
-          for(var _gmi=_gmn-_gml;_gmi<_gmn;_gmi++){var _gmdiff=_gmp[_gmi]-_gmp[_gmi-1];if(_gmdiff>0)_gmu++;else if(_gmdiff<0)_gmd++;}
-          var _gmt=_gmu+_gmd||1;
-          _gmDir.textContent='UP:'+Math.round(_gmu/_gmt*100)+'% DN:'+Math.round(_gmd/_gmt*100)+'%';
-        }
         gmGetConfidence();
         var _mfPrices2=getInd(GM.asset).prices;
         if(_mfPrices2.length>10){gmMFUpdateLive(gmMFCheck(_mfPrices2));}
         gmUpdateConfScoreUI();
-        // ── Live Entry Score panel update ──
         gmUpdateEntryScoreUI(gmEntryScore());
         var _curP2=S.prices[GM.asset]||0;
         if(_curP2>0){
@@ -1880,6 +1810,8 @@ function onTick(tick) {
           if(_gapEl)_gapEl.textContent='Gap zone: '+_lB2+' → '+_hB2+' (±'+_off2.toFixed(2)+')';
           if(_offEl)_offEl.textContent='±'+_off2.toFixed(2);
         }
+        // ── Velocity panel update ──
+        gmUpdateVelPanel();
         gmUpdateSignalBadge(getInd(GM.asset).prices.slice(-80),q);
         GM._tickCount=(GM._tickCount||0)+1;
         if(GM._tickCount%2===0) gmCalc();
@@ -5133,6 +5065,33 @@ function gmLoop(){
     GM.interval = setTimeout(gmLoop, _nextInterval); return;
   }
 
+  // ── GUARDRAIL 1b: Bollinger Band SQUEEZE guard ───────────────────
+  // BB squeeze = price compressed between tight bands → gap loss territory
+  var _ind = getInd(GM.asset);
+  if (_ind.bbSqueeze) {
+    var rs5b = document.getElementById('gm-round-status');
+    if (rs5b) rs5b.textContent = 'BB SQUEEZE — waiting for expansion';
+    GM._skipReasons.mf = (GM._skipReasons.mf || 0) + 1;
+    GM.interval = setTimeout(gmLoop, _nextInterval); return;
+  }
+
+  // ── GUARDRAIL 1c: Tick Velocity Filter ───────────────────────────
+  // Only trade when current tick velocity is ≥ threshold × avg velocity
+  // This catches explosive momentum and avoids slow-drift gap losses
+  var _velThreshSw = document.getElementById('gm-vel-sw');
+  var _useVel = !_velThreshSw || _velThreshSw.classList.contains('on'); // default ON
+  if (_useVel && GM._vel && GM._vel.history.length >= 5) {
+    var _velMultEl = document.getElementById('gm-vel-mult');
+    var _velMult = _velMultEl ? (parseFloat(_velMultEl.value) || 1.5) : 1.5;
+    var _velMin = GM._vel.avg * _velMult;
+    if (GM._vel.current < _velMin) {
+      var rs5c = document.getElementById('gm-round-status');
+      if (rs5c) rs5c.textContent = 'LOW VEL: ' + GM._vel.current.toFixed(5) + ' < ' + _velMin.toFixed(5);
+      GM._skipReasons.mf = (GM._skipReasons.mf || 0) + 1;
+      GM.interval = setTimeout(gmLoop, _nextInterval); return;
+    }
+  }
+
   // ── GUARDRAIL 2: 3-Tick Momentum Buffer ─────────────────────────
   var _mom = gmCheckMomentum();
   // Update tick pills UI
@@ -5486,6 +5445,8 @@ function gmSettle(rid){
 
   GM.pnl=parseFloat((GM.pnl+total).toFixed(2));
   if(isWin)GM.won++;else GM.lost++;
+  // ── Gap loss / win tracking for auto-barrier tightening ──
+  if(gapLoss) gmHandleGapLoss(); else if(isWin) gmHandleWin();
   // ── Martingale: adjust next round's budget based on outcome ──
   var _martSw=document.getElementById('gm-mart-sw');
   if(_martSw&&_martSw.classList.contains('on')){
@@ -6093,9 +6054,48 @@ function gmUpdateVolPanel(vol) {
   var el = document.getElementById('gm-vol-status');
   if (!el) return;
   if (!vol) vol = gmCheckVolatility();
-  el.textContent = (vol.pass ? '✅ ' : '⛔ ') + vol.label + ' | range: ' + (vol.range || 0).toFixed(4) + ' | ATR: ' + (vol.atr || 0).toFixed(4);
-  el.style.color = vol.pass ? 'var(--ac)' : 'var(--re)';
+  var ind = getInd(GM.asset);
+  var squeeze = ind && ind.bbSqueeze ? ' | 🔴 BB SQUEEZE' : ' | 🟢 BB OK';
+  el.textContent = (vol.pass ? '✅ ' : '⛔ ') + vol.label + ' | range: ' + (vol.range || 0).toFixed(4) + ' | ATR: ' + (vol.atr || 0).toFixed(4) + squeeze;
+  el.style.color = vol.pass && !(ind && ind.bbSqueeze) ? 'var(--ac)' : 'var(--re)';
 }
+
+// ── Velocity panel update ─────────────────────────────────────────
+function gmUpdateVelPanel() {
+  var el = document.getElementById('gm-vel-status');
+  if (!el || !GM._vel) return;
+  var v = GM._vel;
+  var mult = parseFloat((document.getElementById('gm-vel-mult') || {value:'1.5'}).value) || 1.5;
+  var threshold = v.avg * mult;
+  var pass = v.history.length < 5 || v.current >= threshold;
+  el.textContent = (pass ? '✅ ' : '⛔ ') +
+    'vel: ' + v.current.toFixed(5) +
+    ' | avg: ' + v.avg.toFixed(5) +
+    ' | min: ' + threshold.toFixed(5);
+  el.style.color = pass ? 'var(--ac)' : 'var(--re)';
+}
+
+// ── Auto-tighten barrier after consecutive gap losses ────────────
+// After 2 gap losses in a row, reduce offset by 0.02 (min 0.04)
+// This shrinks the dead zone so it's easier to clear
+var _gmGapStreak = 0;
+function gmHandleGapLoss() {
+  _gmGapStreak++;
+  if (_gmGapStreak >= 2) {
+    var offEl = document.getElementById('gm-offset');
+    if (offEl) {
+      var cur = parseFloat(offEl.value) || 0.12;
+      var next = Math.max(0.04, parseFloat((cur - 0.02).toFixed(2)));
+      if (next !== cur) {
+        offEl.value = next;
+        gmCalc();
+        notify('⚡', 'Auto-tightened barrier to ±' + next + ' after ' + _gmGapStreak + ' gaps', 'info');
+      }
+    }
+    _gmGapStreak = 0;
+  }
+}
+function gmHandleWin() { _gmGapStreak = 0; }
 
 
 function gmUpdateSignalBadge(prices, curP){
