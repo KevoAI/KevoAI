@@ -833,19 +833,46 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               </div>
               <div style="margin-top:8px;font-size:10px;color:var(--t3);text-align:center;font-family:var(--mo)" id="gm-gap-display">Gap zone shown after connect</div>
             </div>
-            <!-- Live Chart -->
+            <!-- Live Tick Chart -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
-              <div style="padding:8px 12px;border-bottom:1px solid var(--bo);display:flex;align-items:center;gap:8px">
+              <!-- Header row -->
+              <div style="padding:8px 12px;border-bottom:1px solid var(--bo);display:flex;align-items:center;gap:10px">
                 <span style="font-size:12px;font-weight:700;font-family:var(--mo)" id="gm-chart-sym">R_100</span>
-                <span style="font-size:13px;font-weight:700;color:var(--ac);font-family:var(--mo)" id="gm-chart-price">--</span>
+                <span style="font-size:16px;font-weight:800;font-family:var(--mo);color:var(--ac)" id="gm-chart-price">--</span>
+                <span id="gm-chart-move" style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--t3)">--</span>
                 <span style="flex:1"></span>
-                <span style="font-size:10px;font-family:var(--mo);padding:2px 7px;border-radius:4px;background:var(--bg4);color:var(--t3)" id="gm-chart-dir">--</span>
+                <span style="font-size:10px;font-family:var(--mo);padding:2px 8px;border-radius:4px;font-weight:700" id="gm-chart-dir" style="background:var(--bg4);color:var(--t3)">--</span>
               </div>
-              <div style="position:relative;height:200px">
-                <canvas id="gmChart"></canvas>
-                <div id="gm-barrier-legend" style="position:absolute;top:6px;right:8px;font-size:9px;font-family:var(--mo);line-height:1.8;text-align:right"></div>
+              <!-- SVG tick chart -->
+              <div style="position:relative;background:var(--bg1)">
+                <svg id="gm-tick-svg" width="100%" height="220" style="display:block;overflow:visible"></svg>
+                <!-- Barrier labels overlay -->
+                <div id="gm-barrier-legend" style="position:absolute;top:6px;right:8px;font-size:9px;font-family:var(--mo);line-height:1.8;text-align:right;pointer-events:none"></div>
+              </div>
+              <!-- Higher / Lower stat row -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--bo)">
+                <div style="padding:8px 12px;border-right:1px solid var(--bo)">
+                  <div style="font-size:10px;color:var(--t2);margin-bottom:2px">↑ Higher</div>
+                  <div style="font-size:18px;font-weight:800;color:var(--ac);font-family:var(--mo)" id="gm-tick-up-pct">--%</div>
+                  <div style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="gm-tick-up-cnt">-- ticks</div>
+                </div>
+                <div style="padding:8px 12px">
+                  <div style="font-size:10px;color:var(--t2);margin-bottom:2px">↓ Lower</div>
+                  <div style="font-size:18px;font-weight:800;color:var(--re);font-family:var(--mo)" id="gm-tick-dn-pct">--%</div>
+                  <div style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="gm-tick-dn-cnt">-- ticks</div>
+                </div>
+              </div>
+              <!-- Recent moves strip (H/L pills) -->
+              <div style="padding:8px 12px;border-top:1px solid var(--bo)">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+                  <span style="font-size:10px;color:var(--t3);font-weight:600">Recent Moves</span>
+                  <span id="gm-streak-badge" style="font-size:9px;font-family:var(--mo);padding:1px 6px;border-radius:99px;background:var(--bg4);color:var(--t3)"></span>
+                </div>
+                <div id="gm-moves-strip" style="display:flex;flex-wrap:wrap;gap:3px"></div>
               </div>
             </div>
+            <!-- hidden canvas still needed by Chart.js init — zero-size -->
+            <canvas id="gmChart" style="display:none;width:0;height:0"></canvas>
 
             <!-- Payout Gate -->
             <div style="background:var(--bg2);border:1px solid var(--bo);border-radius:var(--r);padding:14px;margin-bottom:12px">
@@ -1083,7 +1110,27 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div id="mf-atr-live" style="display:none"></div>
                   <div id="mf-wall-live" style="display:none"></div>
                 </div>
-                <!-- Gap between rounds -->
+                <!-- Volatility Status (live read-only) -->
+                <div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:9px 11px;margin-bottom:11px">
+                  <div style="font-size:10px;font-weight:700;color:var(--go);margin-bottom:5px">📊 Volatility Gate</div>
+                  <div id="gm-vol-status" style="font-size:10px;font-family:var(--mo);color:var(--t3)">Waiting for data...</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:4px">Requires range ≥ 1.33× barrier. Skips dead markets.</div>
+                </div>
+
+                <!-- Martingale Controls -->
+                <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.22);border-radius:var(--rs);padding:11px;margin-bottom:11px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+                    <div style="font-size:11px;font-weight:700;color:var(--bl)">💰 Adaptive Stake</div>
+                    <div class="tsw" id="gm-mart-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on');if(this.classList.contains('on'))gmMartInit()"></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:8px">
+                    <div class="db active" onclick="gmSetActive(this);_gmMart.mode='limited'" style="font-size:10px;padding:5px 3px">Limited</div>
+                    <div class="db" onclick="gmSetActive(this);_gmMart.mode='anti'" style="font-size:10px;padding:5px 3px">Anti-Mart</div>
+                    <div class="db" onclick="gmSetActive(this);_gmMart.mode='flat'" style="font-size:10px;padding:5px 3px">Flat</div>
+                  </div>
+                  <div style="font-size:9px;color:var(--t3);margin-bottom:6px">Limited: ×1.8 per loss, resets after 3. Anti: ×1.8 per WIN. Flat: no change.</div>
+                  <div id="gm-mart-display" style="font-size:10px;font-family:var(--mo);color:var(--bl);background:rgba(59,130,246,0.08);border-radius:4px;padding:4px 8px">OFF — using fixed budget</div>
+                </div>
                 <div class="ig" style="margin-bottom:11px">
                   <div class="il">Min Gap Between Rounds</div>
                   <div class="dr" style="grid-template-columns:repeat(4,1fr)">
@@ -3376,6 +3423,8 @@ function getInd(sym){if(!INDICATORS[sym])INDICATORS[sym]={prices:[],ema9:null,em
 function updateIndicators(sym,price){
   var ind=getInd(sym),prev=ind.prices.length>0?ind.prices[ind.prices.length-1]:price;
   ind.prices.push(price);if(ind.prices.length>200)ind.prices.shift();
+  // ── Feed the GM tick buffer for momentum/volatility filters ──
+  if(sym===GM.asset) gmOnTick(price);
   var n=ind.prices.length,k9=2/(9+1),k21=2/(21+1);
   if(n===1){ind.ema9=price;ind.ema21=price;}
   else{ind.ema9=price*k9+ind.ema9*(1-k9);ind.ema21=price*k21+ind.ema21*(1-k21);}
@@ -4615,7 +4664,10 @@ function gmGetConfidence(){
 
 // ── Helper: get stake per side from budget ──
 function gmStake(){
-  var budget=Math.max(0.70,parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value)||3.00);
+  var martSw=document.getElementById('gm-mart-sw');
+  var useMart=martSw&&martSw.classList.contains('on');
+  var budget=useMart?(_gmMart.currentBudget||_gmMart.baseBudget||3.00)
+    :Math.max(0.70,parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value)||3.00);
   return parseFloat((budget/2).toFixed(2));
 }
 
@@ -5079,41 +5131,50 @@ function gmLoop(){
     GM.interval=setTimeout(gmLoop,1000);return;
   }
 
-  // ── 3-Tick Consecutive Filter (Gmilli strategy) ──
-  // Only trade when last N ticks all move in the same direction
-  if(GM.consecTicksActive){
-    var _cPrices=_loopPrices;
-    var _cn=_cPrices.length;
-    var _req=GM.consecTicks||3;
-    var _upRun=0,_dnRun=0;
-    for(var _ci=_cn-1;_ci>_cn-1-_req&&_ci>0;_ci--){
-      var _cd=_cPrices[_ci]-_cPrices[_ci-1];
-      if(_cd>0)_upRun++;else if(_cd<0)_dnRun++;else{_upRun=0;_dnRun=0;break;}
-    }
-    var _consecDir=_upRun>=_req?'HIGHER':_dnRun>=_req?'LOWER':null;
-    // Update tick pills UI
-    var _pillEl=document.getElementById('gm-tick-pills');
-    if(_pillEl){
-      var _pills='';
-      var _look=Math.min(10,_cn-1);
-      for(var _pi=_cn-_look;_pi<_cn;_pi++){
-        var _pd=_cPrices[_pi]-_cPrices[_pi-1];
-        _pills+='<div style="width:14px;height:14px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;background:'+(_pd>0?'rgba(0,229,160,0.3)':_pd<0?'rgba(255,77,106,0.3)':'rgba(255,255,255,0.05)')+';color:'+(_pd>0?'var(--ac)':_pd<0?'var(--re)':'var(--t3)')+'">'+(_pd>0?'▲':_pd<0?'▼':'—')+'</div>';
-      }
-      _pillEl.innerHTML=_pills;
-    }
-    var _badge=document.getElementById('gm-tick-filter-badge');
-    if(!_consecDir){
-      if(_badge){_badge.textContent='⛔ need '+_req+' consec';_badge.style.color='var(--re)';_badge.style.background='rgba(255,77,106,0.1)';}
-      var rs7=document.getElementById('gm-round-status');
-      if(rs7)rs7.textContent='WAIT: need '+_req+' consec ticks';
-      GM._skipReasons.score=(GM._skipReasons.score||0)+1;
-      GM.interval=setTimeout(gmLoop,_nextInterval);return;
-    }
-    if(_badge){_badge.textContent='✅ '+_req+' '+_consecDir;_badge.style.color='var(--ac)';_badge.style.background='rgba(0,229,160,0.1)';}
-    // Store detected direction for use in gmFetchProposals
-    GM._consecDir=_consecDir;
+  // ── GUARDRAIL 1: Volatility Filter — skip dead markets ──────────
+  var _vol = gmCheckVolatility();
+  gmUpdateVolPanel(_vol);
+  if (!_vol.pass) {
+    var rs5 = document.getElementById('gm-round-status');
+    if (rs5) rs5.textContent = 'LOW VOL: range=' + _vol.range.toFixed(4) + ' need≥' + _vol.minRange.toFixed(4);
+    GM._skipReasons.mf = (GM._skipReasons.mf || 0) + 1;
+    GM.interval = setTimeout(gmLoop, _nextInterval); return;
   }
+
+  // ── GUARDRAIL 2: 3-Tick Momentum Buffer ─────────────────────────
+  var _mom = gmCheckMomentum();
+  // Update tick pills UI
+  var _pillEl = document.getElementById('gm-tick-pills');
+  if (_pillEl) {
+    var _pills = '';
+    var _buf = _gmTickBuf, _bLen = _buf.length, _bShow = Math.min(10, _bLen - 1);
+    for (var _pi = _bLen - _bShow; _pi < _bLen; _pi++) {
+      var _pd = _pi > 0 ? _buf[_pi] - _buf[_pi - 1] : 0;
+      _pills += '<div style="width:16px;height:16px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:' +
+        (_pd > 0 ? 'rgba(0,229,160,0.3)' : _pd < 0 ? 'rgba(255,77,106,0.3)' : 'rgba(255,255,255,0.05)') +
+        ';color:' + (_pd > 0 ? 'var(--ac)' : _pd < 0 ? 'var(--re)' : 'var(--t3)') + '">' +
+        (_pd > 0 ? '▲' : _pd < 0 ? '▼' : '—') + '</div>';
+    }
+    _pillEl.innerHTML = _pills;
+  }
+  var _tfBadge = document.getElementById('gm-tick-filter-badge');
+  if (!_mom.pass) {
+    if (_tfBadge) { _tfBadge.textContent = '⛔ need ' + (GM.consecTicks||3) + ' consec'; _tfBadge.style.color = 'var(--re)'; _tfBadge.style.background = 'rgba(255,77,106,0.1)'; }
+    var rs7 = document.getElementById('gm-round-status');
+    if (rs7) rs7.textContent = 'WAIT: ' + (GM.consecTicks||3) + ' consec ticks';
+    GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
+    GM.interval = setTimeout(gmLoop, _nextInterval); return;
+  }
+  if (_tfBadge) { _tfBadge.textContent = '✅ ' + (GM.consecTicks||3) + ' ' + _mom.direction; _tfBadge.style.color = 'var(--ac)'; _tfBadge.style.background = 'rgba(0,229,160,0.1)'; }
+  GM._consecDir = _mom.direction;
+
+  // ── GUARDRAIL 3: Dynamic Barrier — recalculate before each entry ─
+  // The adaptive offset already exists in gmAdaptiveOffset(); gmDynamicBarrier()
+  // is the fallback when adaptive toggle is OFF. Both are used inside gmFetchProposals.
+  // (no skip here — barrier is adjusted, not blocked)
+
+  // ── GUARDRAIL 4: Martingale init on first round ─────────────────
+  if (!_gmMart.baseBudget) gmMartInit();
 
   // Fire a payout check — fetch proposals at current stake
   // Once we get both payouts back, gate decides whether to buy
@@ -5433,6 +5494,13 @@ function gmSettle(rid){
 
   GM.pnl=parseFloat((GM.pnl+total).toFixed(2));
   if(isWin)GM.won++;else GM.lost++;
+  // ── Martingale: adjust next round's budget based on outcome ──
+  var _martSw=document.getElementById('gm-mart-sw');
+  if(_martSw&&_martSw.classList.contains('on')){
+    gmMartNextBudget(isWin);
+    var _martEl=document.getElementById('gm-mart-display');
+    if(_martEl)_martEl.textContent='Next: $'+(_gmMart.currentBudget||_gmMart.baseBudget).toFixed(2)+' | Streak: '+_gmMart.lossStreak+'L';
+  }
 
   // Remove from active trades
   S.activeTrades=S.activeTrades.filter(function(t){return !(t.isGM&&t.gmRound===rid);});
@@ -5668,24 +5736,343 @@ function gmInitChart(){
 // Track active barriers for chart
 var _gmActiveBarrier={active:false,higher:0,lower:0};
 
-function gmDrawChart(){
-  if(!gmChart)return;
-  var prices=getInd(GM.asset).prices.slice(-80);
-  if(!prices.length)return;
-  var len=prices.length;
-  gmChart.data.labels=prices.map(function(){return '';});
-  gmChart.data.datasets[0].data=prices.slice();
-  gmChart.data.datasets[1].data=(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0)?Array(len).fill(_gmActiveBarrier.higher):[];
-  gmChart.data.datasets[2].data=(_gmActiveBarrier.active&&_gmActiveBarrier.lower>0)?Array(len).fill(_gmActiveBarrier.lower):[];
-  gmUpdateWalls(prices[len-1]||0);
-  gmChart.data.datasets[3].data=(GM.mf.wallOn&&_gmWalls.upper>0)?Array(len).fill(_gmWalls.upper):[];
-  gmChart.data.datasets[4].data=(GM.mf.wallOn&&_gmWalls.lower>0)?Array(len).fill(_gmWalls.lower):[];
-  gmChart.update('none');
-  var leg=document.getElementById('gm-barrier-legend');
-  if(leg){leg.innerHTML=(_gmActiveBarrier.active&&_gmActiveBarrier.higher>0)?'<span style="color:rgba(0,229,160,0.9);font-weight:700">↑ HIGHER: '+_gmActiveBarrier.higher.toFixed(2)+'</span><br><span style="color:rgba(255,77,106,0.9);font-weight:700">↓ LOWER: '+_gmActiveBarrier.lower.toFixed(2)+'</span>':'';}
-  var p=prices[len-1];
-  var priceEl=document.getElementById('gm-chart-price');
-  if(priceEl)priceEl.textContent=p?p.toFixed(p>100?2:5):'--';
+// ════════════════════════════════════════════════════════════════
+// UPGRADE BLOCK — 4 Elite Execution Guardrails
+// 1. 3-Tick Momentum Buffer  (confirm direction before firing)
+// 2. Volatility Filter       (ATR/range gate — skip dead markets)
+// 3. Dynamic Barrier         (barrier scales with live volatility)
+// 4. Limited Martingale      (adaptive stake, resets after 3 losses)
+// ════════════════════════════════════════════════════════════════
+
+// ── 1. TICK BUFFER — rolling array of last 10 ticks ──────────────
+// Updated on every incoming price tick via gmOnTick()
+var _gmTickBuf = [];          // raw price history (last 10)
+var _gmTickBufMax = 10;
+
+function gmOnTick(price) {
+  if (!price || price <= 0) return;
+  _gmTickBuf.push(price);
+  if (_gmTickBuf.length > _gmTickBufMax) _gmTickBuf.shift();
+}
+
+// ── Momentum check: last N ticks strictly rising or falling ──────
+// Returns { pass, direction, streak }
+// direction: 'HIGHER' | 'LOWER' | null
+function gmCheckMomentum() {
+  var req = GM.consecTicks || 3;
+  var buf = _gmTickBuf;
+  var n = buf.length;
+  if (n < req + 1) return { pass: false, direction: null, streak: 0 };
+
+  var upStreak = 0, dnStreak = 0;
+  for (var i = n - 1; i >= n - req; i--) {
+    var diff = buf[i] - buf[i - 1];
+    if (diff > 0) upStreak++;
+    else if (diff < 0) dnStreak++;
+    else { upStreak = 0; dnStreak = 0; break; } // flat tick breaks streak
+  }
+
+  var dir = upStreak >= req ? 'HIGHER' : dnStreak >= req ? 'LOWER' : null;
+  return { pass: !!dir, direction: dir, streak: Math.max(upStreak, dnStreak) };
+}
+
+// ── 2. VOLATILITY FILTER — 10-tick range gate ────────────────────
+// If range < minRange the barrier is unreachable → skip trade
+// Returns { pass, range, atr, label }
+function gmCheckVolatility() {
+  var buf = _gmTickBuf;
+  var n = buf.length;
+  if (n < 5) return { pass: false, range: 0, atr: 0, label: 'WARMING' };
+
+  var slice10 = buf.slice(Math.max(0, n - 10));
+  var hi = Math.max.apply(null, slice10);
+  var lo = Math.min.apply(null, slice10);
+  var range = parseFloat((hi - lo).toFixed(5));
+
+  // ATR: avg absolute tick-to-tick move over last 5 ticks
+  var atrSum = 0, atrLen = Math.min(5, n - 1);
+  for (var j = n - 1; j >= n - atrLen; j--) atrSum += Math.abs(buf[j] - buf[j-1]);
+  var atr = parseFloat((atrSum / atrLen).toFixed(5));
+
+  // Minimum range rule: range must be at least 1.33× the barrier offset
+  // (so price has room to break the barrier)
+  var offset = gmAdaptiveOffset();
+  var minRange = offset * 1.33;
+  var pass = range >= minRange && atr > 0.005;
+  var label = !pass ? 'DEAD' : atr > offset * 1.5 ? 'HIGH' : 'NORMAL';
+
+  return { pass: pass, range: range, atr: atr, label: label, minRange: minRange };
+}
+
+// ── 3. DYNAMIC BARRIER — scales with live ATR ───────────────────
+// Replaces fixed +0.06 with a market-aware offset
+// Base = ATR × multiplier, clamped between 0.04 and 0.30
+function gmDynamicBarrier() {
+  var buf = _gmTickBuf;
+  var n = buf.length;
+  if (n < 5) return parseFloat((document.getElementById('gm-offset')||{value:'0.06'}).value) || 0.06;
+
+  // Use adaptive offset if toggle is on — otherwise use dynamic ATR calc
+  var adaptSw = document.getElementById('gm-adaptive-offset-sw');
+  if (adaptSw && adaptSw.classList.contains('on')) return gmAdaptiveOffset();
+
+  var atrSum = 0, atrLen = Math.min(5, n - 1);
+  for (var k = n - 1; k >= n - atrLen; k--) atrSum += Math.abs(buf[k] - buf[k-1]);
+  var atr = atrSum / atrLen;
+
+  // Dynamic rule: barrier = ATR × 1.4, snapped to 0.02 steps
+  var raw = atr * 1.4;
+  var snapped = Math.round(raw / 0.02) * 0.02;
+  return Math.min(0.30, Math.max(0.04, parseFloat(snapped.toFixed(2))));
+}
+
+// ── 4. LIMITED MARTINGALE — adaptive stake with hard reset ───────
+// State lives in GM.mart; resets after maxLoss consecutive losses
+var _gmMart = {
+  baseBudget: 0,     // set from UI on first round
+  currentBudget: 0,  // this round's budget
+  lossStreak: 0,     // consecutive net-negative rounds
+  maxLossStreak: 3,  // hard reset after this many losses
+  multiplier: 1.8,   // stake × 1.8 per loss (less aggressive than 2×)
+  mode: 'limited'    // 'limited' | 'anti' | 'flat'
+};
+
+function gmMartInit() {
+  var base = Math.max(0.70, parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value) || 3.00);
+  _gmMart.baseBudget = base;
+  _gmMart.currentBudget = base;
+  _gmMart.lossStreak = 0;
+}
+
+function gmMartNextBudget(lastRoundWon) {
+  if (!_gmMart.baseBudget) gmMartInit();
+
+  if (_gmMart.mode === 'flat') {
+    _gmMart.currentBudget = _gmMart.baseBudget;
+    return _gmMart.currentBudget;
+  }
+
+  if (_gmMart.mode === 'anti') {
+    // Anti-martingale: increase on wins, reset on losses
+    if (lastRoundWon) {
+      _gmMart.currentBudget = parseFloat((_gmMart.currentBudget * _gmMart.multiplier).toFixed(2));
+      _gmMart.currentBudget = Math.min(_gmMart.currentBudget, _gmMart.baseBudget * 4);
+    } else {
+      _gmMart.currentBudget = _gmMart.baseBudget;
+    }
+    _gmMart.lossStreak = 0;
+    return _gmMart.currentBudget;
+  }
+
+  // 'limited' mode — double on loss, hard reset at maxLossStreak
+  if (lastRoundWon) {
+    _gmMart.lossStreak = 0;
+    _gmMart.currentBudget = _gmMart.baseBudget;
+  } else {
+    _gmMart.lossStreak++;
+    if (_gmMart.lossStreak >= _gmMart.maxLossStreak) {
+      // Hard reset — stop chasing losses
+      _gmMart.lossStreak = 0;
+      _gmMart.currentBudget = _gmMart.baseBudget;
+      console.log('[MART] Hard reset after ' + _gmMart.maxLossStreak + ' losses — back to base');
+    } else {
+      _gmMart.currentBudget = parseFloat((_gmMart.currentBudget * _gmMart.multiplier).toFixed(2));
+      // Cap at 8× base to protect capital
+      _gmMart.currentBudget = Math.min(_gmMart.currentBudget, _gmMart.baseBudget * 8);
+    }
+  }
+  return _gmMart.currentBudget;
+}
+
+// ── gmStake override — reads from mart if enabled ───────────────
+function gmStakeAdaptive() {
+  var martSw = document.getElementById('gm-mart-sw');
+  var useMart = martSw && martSw.classList.contains('on');
+  var budget = useMart ? (_gmMart.currentBudget || _gmMart.baseBudget || 3.00)
+                       : Math.max(0.70, parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value) || 3.00);
+  return parseFloat((budget / 2).toFixed(2));
+}
+
+// ── gmDrawChart — SVG tick-bar chart ────────────────────────────
+function gmDrawChart() {
+  // Keep Chart.js chart silent (canvas is hidden)
+  if (gmChart) {
+    try { gmChart.data.datasets.forEach(function(d){d.data=[];}); gmChart.update('none'); } catch(e){}
+  }
+
+  var svg = document.getElementById('gm-tick-svg');
+  if (!svg) return;
+
+  var allPrices = getInd(GM.asset).prices;
+  var prices = allPrices.slice(-60);
+  var n = prices.length;
+  if (n < 2) { svg.innerHTML = '<text x="50%" y="50%" fill="#4a5568" font-size="12" text-anchor="middle" dominant-baseline="middle">Waiting for ticks...</text>'; return; }
+
+  // Sync tick buffer
+  _gmTickBuf = allPrices.slice(-_gmTickBufMax);
+
+  var W = svg.parentElement ? (svg.parentElement.clientWidth || 360) : 360;
+  var H = 200;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+
+  var hi = Math.max.apply(null, prices);
+  var lo = Math.min.apply(null, prices);
+  var rng = hi - lo || 0.0001;
+  var pad = rng * 0.20;
+  var yHi = hi + pad, yLo = lo - pad;
+
+  function yPos(v) { return H - ((v - yLo) / (yHi - yLo)) * (H - 4) - 2; }
+
+  var barSlot = (W - 12) / n;
+  var barW = Math.max(2, Math.floor(barSlot * 0.72));
+
+  var out = '';
+
+  // Grid lines
+  for (var g = 0; g <= 3; g++) {
+    var gy = Math.round((H - 4) * g / 3) + 2;
+    var gv = yHi - (yHi - yLo) * g / 3;
+    out += '<line x1="0" y1="' + gy + '" x2="' + W + '" y2="' + gy + '" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>';
+    out += '<text x="4" y="' + (gy - 2) + '" fill="#4a5568" font-size="9" font-family="monospace">' + gv.toFixed(gv > 100 ? 2 : 4) + '</text>';
+  }
+
+  // Tick bars
+  for (var i = 0; i < n; i++) {
+    var xc = 6 + i * barSlot + barSlot / 2;
+    var x1 = xc - barW / 2;
+    var cur = prices[i];
+    var prev = i > 0 ? prices[i - 1] : cur;
+    var isUp = cur >= prev;
+    var color = isUp ? 'rgba(0,229,160,0.85)' : 'rgba(255,77,106,0.85)';
+    var yTop = yPos(Math.max(cur, prev));
+    var yBot = yPos(Math.min(cur, prev));
+    var barH = Math.max(2, yBot - yTop);
+
+    // Bar body
+    out += '<rect x="' + x1.toFixed(1) + '" y="' + yTop.toFixed(1) + '" width="' + barW + '" height="' + barH.toFixed(1) + '" fill="' + color + '" rx="1"/>';
+
+    // Wick line
+    var yCur = yPos(cur);
+    out += '<line x1="' + xc.toFixed(1) + '" y1="' + yTop.toFixed(1) + '" x2="' + xc.toFixed(1) + '" y2="' + (yTop - 3).toFixed(1) + '" stroke="' + color + '" stroke-width="1" opacity="0.5"/>';
+  }
+
+  // Barrier lines (if active round)
+  if (_gmActiveBarrier && _gmActiveBarrier.active) {
+    if (_gmActiveBarrier.higher > 0) {
+      var yhb = yPos(_gmActiveBarrier.higher);
+      out += '<line x1="0" y1="' + yhb.toFixed(1) + '" x2="' + W + '" y2="' + yhb.toFixed(1) + '" stroke="rgba(0,229,160,0.9)" stroke-width="1.5" stroke-dasharray="6,3"/>';
+      out += '<rect x="' + (W - 68) + '" y="' + (yhb - 10) + '" width="66" height="13" fill="rgba(0,229,160,0.15)" rx="3"/>';
+      out += '<text x="' + (W - 35) + '" y="' + (yhb + 1) + '" fill="rgba(0,229,160,1)" font-size="9" font-family="monospace" text-anchor="middle">↑ ' + _gmActiveBarrier.higher.toFixed(2) + '</text>';
+    }
+    if (_gmActiveBarrier.lower > 0) {
+      var ylb = yPos(_gmActiveBarrier.lower);
+      out += '<line x1="0" y1="' + ylb.toFixed(1) + '" x2="' + W + '" y2="' + ylb.toFixed(1) + '" stroke="rgba(255,77,106,0.9)" stroke-width="1.5" stroke-dasharray="6,3"/>';
+      out += '<rect x="' + (W - 68) + '" y="' + (ylb - 1) + '" width="66" height="13" fill="rgba(255,77,106,0.15)" rx="3"/>';
+      out += '<text x="' + (W - 35) + '" y="' + (ylb + 10) + '" fill="rgba(255,77,106,1)" font-size="9" font-family="monospace" text-anchor="middle">↓ ' + _gmActiveBarrier.lower.toFixed(2) + '</text>';
+    }
+  }
+
+  // Current price line
+  var lastP = prices[n - 1];
+  var yLast = yPos(lastP);
+  var isLastUp = n > 1 && lastP >= prices[n - 2];
+  var lineCol = isLastUp ? 'rgba(0,229,160,0.6)' : 'rgba(255,77,106,0.6)';
+  out += '<line x1="0" y1="' + yLast.toFixed(1) + '" x2="' + W + '" y2="' + yLast.toFixed(1) + '" stroke="' + lineCol + '" stroke-width="0.75" stroke-dasharray="2,4"/>';
+
+  svg.innerHTML = out;
+
+  // Update header stats
+  var dp = lastP > 100 ? 2 : 5;
+  var priceEl = document.getElementById('gm-chart-price');
+  if (priceEl) {
+    priceEl.textContent = lastP.toFixed(dp);
+    priceEl.style.color = isLastUp ? 'var(--ac)' : 'var(--re)';
+  }
+  var moveEl = document.getElementById('gm-chart-move');
+  if (moveEl && n > 1) {
+    var mv = parseFloat((lastP - prices[n - 2]).toFixed(dp));
+    moveEl.textContent = (mv >= 0 ? '+' : '') + mv;
+    moveEl.style.color = mv >= 0 ? 'var(--ac)' : 'var(--re)';
+  }
+
+  // Up/Down stats
+  var ups = 0, dns = 0;
+  for (var s = 1; s < n; s++) { if (prices[s] > prices[s-1]) ups++; else if (prices[s] < prices[s-1]) dns++; }
+  var tot = ups + dns || 1;
+  var upEl = document.getElementById('gm-tick-up-pct'), dnEl = document.getElementById('gm-tick-dn-pct');
+  var upCnt = document.getElementById('gm-tick-up-cnt'), dnCnt = document.getElementById('gm-tick-dn-cnt');
+  if (upEl) upEl.textContent = Math.round(ups / tot * 100) + '%';
+  if (dnEl) dnEl.textContent = Math.round(dns / tot * 100) + '%';
+  if (upCnt) upCnt.textContent = ups + ' ticks';
+  if (dnCnt) dnCnt.textContent = dns + ' ticks';
+
+  // Recent moves strip — last 20 ticks as H/L pills
+  var strip = document.getElementById('gm-moves-strip');
+  if (strip) {
+    var stripN = Math.min(20, n - 1);
+    var stripHtml = '';
+    var streak = 0, streakDir = null;
+    for (var m = n - stripN; m < n; m++) {
+      var isH = prices[m] >= prices[m - 1];
+      var dir = isH ? 'H' : 'L';
+      if (dir === streakDir) streak++;
+      else { streak = 1; streakDir = dir; }
+      stripHtml += '<div style="width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:' +
+        (isH ? 'rgba(0,229,160,0.2)' : 'rgba(255,77,106,0.2)') + ';color:' +
+        (isH ? 'var(--ac)' : 'var(--re)') + ';border:1px solid ' +
+        (isH ? 'rgba(0,229,160,0.35)' : 'rgba(255,77,106,0.35)') + '">' + dir + '</div>';
+    }
+    strip.innerHTML = stripHtml;
+    // Streak badge
+    var sbadge = document.getElementById('gm-streak-badge');
+    if (sbadge && streakDir) {
+      sbadge.textContent = streak + '× ' + streakDir + ' streak';
+      sbadge.style.color = streakDir === 'H' ? 'var(--ac)' : 'var(--re)';
+      sbadge.style.background = streakDir === 'H' ? 'rgba(0,229,160,0.1)' : 'rgba(255,77,106,0.1)';
+    }
+  }
+
+  // Direction badge
+  var dirEl = document.getElementById('gm-chart-dir');
+  if (dirEl) {
+    var mom = gmCheckMomentum();
+    var vol = gmCheckVolatility();
+    if (!vol.pass) {
+      dirEl.textContent = '⚡ LOW VOL';
+      dirEl.style.color = 'var(--go)';
+      dirEl.style.background = 'rgba(245,166,35,0.15)';
+    } else if (mom.pass) {
+      dirEl.textContent = '✅ ' + mom.direction + ' ×' + mom.streak;
+      dirEl.style.color = mom.direction === 'HIGHER' ? 'var(--ac)' : 'var(--re)';
+      dirEl.style.background = mom.direction === 'HIGHER' ? 'rgba(0,229,160,0.12)' : 'rgba(255,77,106,0.12)';
+    } else {
+      dirEl.textContent = '⏳ SCANNING';
+      dirEl.style.color = 'var(--t3)';
+      dirEl.style.background = 'var(--bg4)';
+    }
+  }
+
+  // Barrier legend (text overlay)
+  var leg = document.getElementById('gm-barrier-legend');
+  if (leg) {
+    leg.innerHTML = (_gmActiveBarrier && _gmActiveBarrier.active && _gmActiveBarrier.higher > 0)
+      ? '<span style="color:rgba(0,229,160,0.9);font-weight:700">↑ ' + _gmActiveBarrier.higher.toFixed(2) + '</span><br>'
+        + '<span style="color:rgba(255,77,106,0.9);font-weight:700">↓ ' + _gmActiveBarrier.lower.toFixed(2) + '</span>'
+      : '';
+  }
+
+  // Update volatility info in gmCalc panel
+  gmUpdateVolPanel(vol);
+}
+
+function gmUpdateVolPanel(vol) {
+  var el = document.getElementById('gm-vol-status');
+  if (!el) return;
+  if (!vol) vol = gmCheckVolatility();
+  el.textContent = (vol.pass ? '✅ ' : '⛔ ') + vol.label + ' | range: ' + (vol.range || 0).toFixed(4) + ' | ATR: ' + (vol.atr || 0).toFixed(4);
+  el.style.color = vol.pass ? 'var(--ac)' : 'var(--re)';
 }
 
 
