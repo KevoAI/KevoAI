@@ -1082,18 +1082,23 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               </div>
             </div>
 
-            <!-- Adaptive Stake / Martingale -->
+            <!-- Smart Recovery / Circuit Breaker -->
             <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.22);border-radius:var(--rs);padding:10px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
-                <div style="font-size:11px;font-weight:700;color:var(--bl)">💰 Adaptive Stake</div>
-                <div class="tsw" id="gm-mart-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on');if(this.classList.contains('on'))gmMartInit()"></div>
+                <div style="font-size:11px;font-weight:700;color:var(--bl)">💰 Smart Recovery</div>
+                <div class="tsw" id="gm-mart-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on');if(this.classList.contains('on'))gmRecoveryInit()"></div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:6px">
-                <div class="db active" onclick="gmSetActive(this);_gmMart.mode='limited'" style="font-size:10px;padding:4px 2px">Limited</div>
-                <div class="db" onclick="gmSetActive(this);_gmMart.mode='anti'" style="font-size:10px;padding:4px 2px">Anti</div>
-                <div class="db" onclick="gmSetActive(this);_gmMart.mode='flat'" style="font-size:10px;padding:4px 2px">Flat</div>
+              <div style="font-size:9px;color:var(--t3);margin-bottom:7px;line-height:1.6">After a GAP loss, auto-calculates exact stake to recover in 1 win. Stops bot after 2 consecutive losses.</div>
+              <!-- Circuit breaker threshold -->
+              <div style="display:flex;align-items:center;gap:5px;margin-bottom:7px">
+                <span style="font-size:9px;color:var(--t3);white-space:nowrap">Stop after:</span>
+                <div class="dr" style="grid-template-columns:repeat(3,1fr);flex:1;gap:3px">
+                  <div class="db" onclick="gmSetActive(this);_gmRecovery.maxLosses=1" style="font-size:10px;padding:4px 2px">1 loss</div>
+                  <div class="db active" onclick="gmSetActive(this);_gmRecovery.maxLosses=2" style="font-size:10px;padding:4px 2px">2 losses</div>
+                  <div class="db" onclick="gmSetActive(this);_gmRecovery.maxLosses=3" style="font-size:10px;padding:4px 2px">3 losses</div>
+                </div>
               </div>
-              <div id="gm-mart-display" style="font-size:10px;font-family:var(--mo);color:var(--bl);background:rgba(59,130,246,0.08);border-radius:4px;padding:4px 7px">OFF — fixed budget</div>
+              <div id="gm-mart-display" style="font-size:10px;font-family:var(--mo);color:var(--bl);background:rgba(59,130,246,0.08);border-radius:4px;padding:5px 8px">OFF — fixed budget</div>
             </div>
 
             <!-- Hidden MF elements (logic only) -->
@@ -4592,10 +4597,7 @@ function gmGetConfidence(){
 
 // ── Helper: get stake per side from budget ──
 function gmStake(){
-  var martSw=document.getElementById('gm-mart-sw');
-  var useMart=martSw&&martSw.classList.contains('on');
-  var budget=useMart?(_gmMart.currentBudget||_gmMart.baseBudget||3.00)
-    :Math.max(0.70,parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value)||3.00);
+  var budget = gmRecoveryBudget();
   return parseFloat((budget/2).toFixed(2));
 }
 
@@ -4827,8 +4829,9 @@ function gmToggle(){
   var btn=document.getElementById('gm-toggle-btn');
   if(GM.running){
     if(!S.connected){notify('!','Connect first!','loss');GM.running=false;return;}
-    GM._startTime = Date.now(); // track how long we've been scanning
-    GM._vel = null; // reset velocity on fresh start
+    GM._startTime = Date.now();
+    GM._vel = null;
+    gmRecoveryInit();
     if(btn){btn.textContent='STOP GMILLI';btn.style.background='var(--re)';btn.style.color='#fff';}
     gmLoop();
   } else {
@@ -5079,17 +5082,17 @@ function gmLoop(){
   // ── GUARDRAIL 1c: Tick Velocity Filter ───────────────────────────
   var _velSw = document.getElementById('gm-vel-sw');
   var _useVel = _velSw && _velSw.classList.contains('on');
-  // Safety escape: if running >5 mins with 0 trades, skip velocity check
+  // ALWAYS enforce velocity in recovery mode regardless of toggle
+  var _inRecovery = _gmRecovery.mode === 'recovery';
   var _scanMins = GM.running ? (Date.now() - (GM._startTime||Date.now())) / 60000 : 0;
-  var _velSkip = _scanMins > 5 && GM.rounds === 0;
-  if (_useVel && !_velSkip && GM._vel && GM._vel.history.length >= 8) {
+  var _velSkip = !_inRecovery && _scanMins > 5 && GM.rounds === 0;
+  if ((_useVel || _inRecovery) && !_velSkip && GM._vel && GM._vel.history.length >= 8) {
     var _velMultEl = document.getElementById('gm-vel-mult');
-    var _velMult = _velMultEl ? (parseFloat(_velMultEl.value) || 1.5) : 1.5;
+    var _velMult = _inRecovery ? 2.0 : (_velMultEl ? (parseFloat(_velMultEl.value) || 1.5) : 1.5); // stricter in recovery
     var _velMin = GM._vel.avg * _velMult;
-    // Only block if velocity is genuinely near-zero (flat market), not just below avg
     if (_velMin > 0 && GM._vel.current < _velMin && GM._vel.current < 0.0001) {
       var rs5c = document.getElementById('gm-round-status');
-      if (rs5c) rs5c.textContent = 'FLAT: vel=' + GM._vel.current.toFixed(5);
+      if (rs5c) rs5c.textContent = (_inRecovery ? '⚡ RECOVERY — ' : '') + 'FLAT: vel=' + GM._vel.current.toFixed(5);
       GM._skipReasons.mf = (GM._skipReasons.mf || 0) + 1;
       GM.interval = setTimeout(gmLoop, _nextInterval); return;
     }
@@ -5450,13 +5453,8 @@ function gmSettle(rid){
   if(isWin)GM.won++;else GM.lost++;
   // ── Gap loss / win tracking for auto-barrier tightening ──
   if(gapLoss) gmHandleGapLoss(); else if(isWin) gmHandleWin();
-  // ── Martingale: adjust next round's budget based on outcome ──
-  var _martSw=document.getElementById('gm-mart-sw');
-  if(_martSw&&_martSw.classList.contains('on')){
-    gmMartNextBudget(isWin);
-    var _martEl=document.getElementById('gm-mart-display');
-    if(_martEl)_martEl.textContent='Next: $'+(_gmMart.currentBudget||_gmMart.baseBudget).toFixed(2)+' | Streak: '+_gmMart.lossStreak+'L';
-  }
+  // ── Smart Recovery + Circuit Breaker ──
+  gmRecoveryUpdate(isWin, gapLoss, total, r.callPay, r.putPay, stake);
 
   // Remove from active trades
   S.activeTrades=S.activeTrades.filter(function(t){return !(t.isGM&&t.gmRound===rid);});
@@ -5782,72 +5780,116 @@ function gmDynamicBarrier() {
   return Math.min(0.30, Math.max(0.04, parseFloat(snapped.toFixed(2))));
 }
 
-// ── 4. LIMITED MARTINGALE — adaptive stake with hard reset ───────
-// State lives in GM.mart; resets after maxLoss consecutive losses
-var _gmMart = {
-  baseBudget: 0,     // set from UI on first round
-  currentBudget: 0,  // this round's budget
-  lossStreak: 0,     // consecutive net-negative rounds
-  maxLossStreak: 3,  // hard reset after this many losses
-  multiplier: 1.8,   // stake × 1.8 per loss (less aggressive than 2×)
-  mode: 'limited'    // 'limited' | 'anti' | 'flat'
+// ════════════════════════════════════════════════════════════════
+// SMART RECOVERY + CIRCUIT BREAKER
+// ── How it works ──────────────────────────────────────────────
+// Normal mode:   stake = baseBudget ($3.00 → $1.50/side)
+// Recovery mode: stake is calculated to net exactly the lost amount
+//                on the next win, using the actual last payout %.
+// Circuit breaker: 2 consecutive GAP losses → bot stops hard.
+// ════════════════════════════════════════════════════════════════
+var _gmRecovery = {
+  mode: 'normal',      // 'normal' | 'recovery'
+  baseBudget: 0,       // set from UI
+  recoveryBudget: 0,   // calculated to recover exact loss
+  lossAmount: 0,       // how much we need to recover ($)
+  consecutiveLosses: 0,
+  maxLosses: 2,        // circuit breaker threshold
+  lastPayout: 0        // last known winning payout multiplier
 };
 
-function gmMartInit() {
-  var base = Math.max(0.70, parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value) || 3.00);
-  _gmMart.baseBudget = base;
-  _gmMart.currentBudget = base;
-  _gmMart.lossStreak = 0;
+function gmRecoveryInit() {
+  var base = Math.max(0.70, parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value)||3.00);
+  _gmRecovery.baseBudget = base;
+  _gmRecovery.recoveryBudget = base;
+  _gmRecovery.mode = 'normal';
+  _gmRecovery.lossAmount = 0;
+  _gmRecovery.consecutiveLosses = 0;
 }
 
-function gmMartNextBudget(lastRoundWon) {
-  if (!_gmMart.baseBudget) gmMartInit();
-
-  if (_gmMart.mode === 'flat') {
-    _gmMart.currentBudget = _gmMart.baseBudget;
-    return _gmMart.currentBudget;
-  }
-
-  if (_gmMart.mode === 'anti') {
-    // Anti-martingale: increase on wins, reset on losses
-    if (lastRoundWon) {
-      _gmMart.currentBudget = parseFloat((_gmMart.currentBudget * _gmMart.multiplier).toFixed(2));
-      _gmMart.currentBudget = Math.min(_gmMart.currentBudget, _gmMart.baseBudget * 4);
-    } else {
-      _gmMart.currentBudget = _gmMart.baseBudget;
-    }
-    _gmMart.lossStreak = 0;
-    return _gmMart.currentBudget;
-  }
-
-  // 'limited' mode — double on loss, hard reset at maxLossStreak
-  if (lastRoundWon) {
-    _gmMart.lossStreak = 0;
-    _gmMart.currentBudget = _gmMart.baseBudget;
-  } else {
-    _gmMart.lossStreak++;
-    if (_gmMart.lossStreak >= _gmMart.maxLossStreak) {
-      // Hard reset — stop chasing losses
-      _gmMart.lossStreak = 0;
-      _gmMart.currentBudget = _gmMart.baseBudget;
-      console.log('[MART] Hard reset after ' + _gmMart.maxLossStreak + ' losses — back to base');
-    } else {
-      _gmMart.currentBudget = parseFloat((_gmMart.currentBudget * _gmMart.multiplier).toFixed(2));
-      // Cap at 8× base to protect capital
-      _gmMart.currentBudget = Math.min(_gmMart.currentBudget, _gmMart.baseBudget * 8);
-    }
-  }
-  return _gmMart.currentBudget;
-}
-
-// ── gmStake override — reads from mart if enabled ───────────────
-function gmStakeAdaptive() {
+// Called after each round settles
+function gmRecoveryUpdate(isWin, gapLoss, netLoss, lastCallPay, lastPutPay, stakeUsed) {
   var martSw = document.getElementById('gm-mart-sw');
-  var useMart = martSw && martSw.classList.contains('on');
-  var budget = useMart ? (_gmMart.currentBudget || _gmMart.baseBudget || 3.00)
-                       : Math.max(0.70, parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value) || 3.00);
-  return parseFloat((budget / 2).toFixed(2));
+  if (!martSw || !martSw.classList.contains('on')) return;
+
+  if (isWin) {
+    // WIN — reset everything
+    _gmRecovery.mode = 'normal';
+    _gmRecovery.lossAmount = 0;
+    _gmRecovery.consecutiveLosses = 0;
+    _gmRecovery.recoveryBudget = _gmRecovery.baseBudget;
+  } else {
+    // LOSS (gap or otherwise)
+    _gmRecovery.consecutiveLosses++;
+    _gmRecovery.lossAmount += Math.abs(netLoss);
+
+    // ── CIRCUIT BREAKER ──────────────────────────────────────
+    if (_gmRecovery.consecutiveLosses >= _gmRecovery.maxLosses) {
+      if (GM.running) {
+        gmToggle(); // stop the bot
+        notify('🛑 CIRCUIT BREAKER',
+          _gmRecovery.consecutiveLosses + ' consecutive losses — bot stopped to protect balance.',
+          'loss');
+        var rs = document.getElementById('gm-round-status');
+        if (rs) { rs.textContent = '🛑 STOPPED: ' + _gmRecovery.consecutiveLosses + ' losses'; rs.style.color = 'var(--re)'; }
+      }
+      return;
+    }
+
+    // ── CALCULATE EXACT RECOVERY STAKE ───────────────────────
+    // Net profit per win = winnerPayout - totalStake
+    // We need net profit ≥ lossAmount
+    // So: stake/side = lossAmount / (payoutMultiplier - 1) / 2
+    // payoutMultiplier = winnerPayout / stakeUsed (from last round)
+    var avgPay = ((lastCallPay || 0) + (lastPutPay || 0)) / 2;
+    var payMult = (stakeUsed > 0 && avgPay > 0) ? (avgPay / stakeUsed) : 1.38; // fallback ~138%
+    var netPerWin = payMult - 1; // profit fraction per stake unit
+    // recoveryBudget = total budget needed so that one winning side covers the loss
+    // winner pays: (budget/2) * payMult; loser costs: (budget/2)
+    // net = (budget/2) * payMult - (budget/2) = (budget/2) * (payMult - 1)
+    // so: budget = lossAmount / (payMult - 1) * 2
+    var needed = netPerWin > 0 ? parseFloat((_gmRecovery.lossAmount / netPerWin * 2).toFixed(2)) : _gmRecovery.baseBudget * 4;
+    // Cap at 10× base to prevent runaway
+    _gmRecovery.recoveryBudget = Math.min(needed, _gmRecovery.baseBudget * 10);
+    _gmRecovery.mode = 'recovery';
+  }
+
+  gmRecoveryUpdateUI();
 }
+
+function gmRecoveryBudget() {
+  if (!_gmRecovery.baseBudget) gmRecoveryInit();
+  var martSw = document.getElementById('gm-mart-sw');
+  if (!martSw || !martSw.classList.contains('on')) {
+    return Math.max(0.70, parseFloat((document.getElementById('gm-budget')||{value:'3.00'}).value)||3.00);
+  }
+  return _gmRecovery.mode === 'recovery' ? _gmRecovery.recoveryBudget : _gmRecovery.baseBudget;
+}
+
+function gmRecoveryUpdateUI() {
+  var el = document.getElementById('gm-mart-display');
+  if (!el) return;
+  var r = _gmRecovery;
+  if (r.mode === 'recovery') {
+    el.innerHTML =
+      '<span style="color:var(--re);font-weight:700">⚡ RECOVERY</span>' +
+      ' | Need back: $' + r.lossAmount.toFixed(2) +
+      ' | Next stake: $' + r.recoveryBudget.toFixed(2) +
+      ' | Losses: ' + r.consecutiveLosses + '/' + r.maxLosses;
+    el.style.color = 'var(--re)';
+  } else {
+    el.innerHTML =
+      '<span style="color:var(--ac);font-weight:700">✅ NORMAL</span>' +
+      ' | Base: $' + r.baseBudget.toFixed(2) +
+      ' | Circuit: ' + r.consecutiveLosses + '/' + r.maxLosses + ' losses';
+    el.style.color = 'var(--ac)';
+  }
+}
+
+// ── Legacy stubs (kept so old code refs don't error) ─────────────
+var _gmMart = { baseBudget:0, currentBudget:0, lossStreak:0, maxLossStreak:2, multiplier:1.8, mode:'limited' };
+function gmMartInit() { gmRecoveryInit(); _gmMart.baseBudget = _gmRecovery.baseBudget; _gmMart.currentBudget = _gmRecovery.baseBudget; }
+function gmMartNextBudget(won) { /* handled by gmRecoveryUpdate */ }
 
 // ── gmDrawChart — SVG line chart ────────────────────────────────
 function gmDrawChart() {
