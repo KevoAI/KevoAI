@@ -1041,7 +1041,10 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
             <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.22);border-radius:var(--rs);padding:10px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
                 <div style="font-size:11px;font-weight:700;color:var(--ac)">⚡ 3-Tick Filter</div>
-                <div id="gm-tick-filter-badge" style="font-size:10px;font-family:var(--mo);padding:2px 7px;border-radius:99px;background:var(--bg4);color:var(--t3)">--</div>
+                <div style="display:flex;align-items:center;gap:7px">
+                  <div id="gm-tick-filter-badge" style="font-size:10px;font-family:var(--mo);padding:2px 7px;border-radius:99px;background:var(--bg4);color:var(--t3)">OFF</div>
+                  <div class="tsw" id="gm-tick-filter-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on')"></div>
+                </div>
               </div>
               <div id="gm-tick-pills" style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:7px;min-height:18px"></div>
               <div style="display:flex;align-items:center;gap:5px">
@@ -5082,25 +5085,23 @@ function gmLoop(){
   // ── GUARDRAIL 1c: Tick Velocity Filter ───────────────────────────
   var _velSw = document.getElementById('gm-vel-sw');
   var _useVel = _velSw && _velSw.classList.contains('on');
-  // ALWAYS enforce velocity in recovery mode regardless of toggle
   var _inRecovery = _gmRecovery.mode === 'recovery';
-  var _scanMins = GM.running ? (Date.now() - (GM._startTime||Date.now())) / 60000 : 0;
-  var _velSkip = !_inRecovery && _scanMins > 5 && GM.rounds === 0;
-  if ((_useVel || _inRecovery) && !_velSkip && GM._vel && GM._vel.history.length >= 8) {
-    var _velMultEl = document.getElementById('gm-vel-mult');
-    var _velMult = _inRecovery ? 2.0 : (_velMultEl ? (parseFloat(_velMultEl.value) || 1.5) : 1.5); // stricter in recovery
-    var _velMin = GM._vel.avg * _velMult;
-    if (_velMin > 0 && GM._vel.current < _velMin && GM._vel.current < 0.0001) {
+  // Safety escape: relax after 2 mins of scanning with no trades
+  var _scanMins = GM.running ? (Date.now() - (GM._startTime || Date.now())) / 60000 : 0;
+  var _velRelaxed = _scanMins > 2;
+  if ((_useVel || _inRecovery) && !_velRelaxed && GM._vel && GM._vel.ready) {
+    // Only block when velocity is near-zero AND market has been building avg for a while
+    // This means the market is genuinely frozen, not just between spikes
+    if (GM._vel.avg > 0 && GM._vel.current < GM._vel.avg * 0.1) {
       var rs5c = document.getElementById('gm-round-status');
-      if (rs5c) rs5c.textContent = (_inRecovery ? '⚡ RECOVERY — ' : '') + 'FLAT: vel=' + GM._vel.current.toFixed(5);
+      if (rs5c) rs5c.textContent = 'FLAT MARKET — vel=' + GM._vel.current.toFixed(5);
       GM._skipReasons.mf = (GM._skipReasons.mf || 0) + 1;
       GM.interval = setTimeout(gmLoop, _nextInterval); return;
     }
   }
 
-  // ── GUARDRAIL 2: 3-Tick Momentum Buffer ─────────────────────────
-  var _mom = gmCheckMomentum();
-  // Update tick pills UI
+  // ── GUARDRAIL 2: 3-Tick Momentum Buffer (only when toggle is ON) ─
+  // Update tick pills UI regardless of toggle state
   var _pillEl = document.getElementById('gm-tick-pills');
   if (_pillEl) {
     var _pills = '';
@@ -5114,16 +5115,25 @@ function gmLoop(){
     }
     _pillEl.innerHTML = _pills;
   }
+
+  // Only enforce the 3-tick block when the filter toggle is ON
+  var _tickFilterSw = document.getElementById('gm-tick-filter-sw');
+  var _tickFilterOn = _tickFilterSw && _tickFilterSw.classList.contains('on');
   var _tfBadge = document.getElementById('gm-tick-filter-badge');
-  if (!_mom.pass) {
-    if (_tfBadge) { _tfBadge.textContent = '⛔ need ' + (GM.consecTicks||3) + ' consec'; _tfBadge.style.color = 'var(--re)'; _tfBadge.style.background = 'rgba(255,77,106,0.1)'; }
-    var rs7 = document.getElementById('gm-round-status');
-    if (rs7) rs7.textContent = 'WAIT: ' + (GM.consecTicks||3) + ' consec ticks';
-    GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
-    GM.interval = setTimeout(gmLoop, _nextInterval); return;
+
+  if (_tickFilterOn) {
+    var _mom = gmCheckMomentum();
+    if (!_mom.pass) {
+      if (_tfBadge) { _tfBadge.textContent = '⛔ need ' + (GM.consecTicks||3) + ' consec'; _tfBadge.style.color = 'var(--re)'; _tfBadge.style.background = 'rgba(255,77,106,0.1)'; }
+      var rs7 = document.getElementById('gm-round-status');
+      if (rs7) rs7.textContent = 'WAIT: ' + (GM.consecTicks||3) + ' consec ticks';
+      GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
+      GM.interval = setTimeout(gmLoop, _nextInterval); return;
+    }
+    if (_tfBadge) { _tfBadge.textContent = '✅ ' + (GM.consecTicks||3) + ' consec'; _tfBadge.style.color = 'var(--ac)'; _tfBadge.style.background = 'rgba(0,229,160,0.1)'; }
+  } else {
+    if (_tfBadge) { _tfBadge.textContent = 'OFF'; _tfBadge.style.color = 'var(--t3)'; _tfBadge.style.background = 'var(--bg4)'; }
   }
-  if (_tfBadge) { _tfBadge.textContent = '✅ ' + (GM.consecTicks||3) + ' ' + _mom.direction; _tfBadge.style.color = 'var(--ac)'; _tfBadge.style.background = 'rgba(0,229,160,0.1)'; }
-  GM._consecDir = _mom.direction;
 
   // ── GUARDRAIL 3: Dynamic Barrier — recalculate before each entry ─
   // The adaptive offset already exists in gmAdaptiveOffset(); gmDynamicBarrier()
@@ -5751,8 +5761,8 @@ function gmCheckVolatility() {
   // Minimum range rule: range must be at least 1.33× the barrier offset
   // (so price has room to break the barrier)
   var offset = gmAdaptiveOffset();
-  var minRange = offset * 1.33;
-  var pass = range >= minRange && atr > 0.005;
+  var minRange = offset * 1.0; // reduced from 1.33× — offset×1 is sufficient clearance
+  var pass = range >= minRange;
   var label = !pass ? 'DEAD' : atr > offset * 1.5 ? 'HIGH' : 'NORMAL';
 
   return { pass: pass, range: range, atr: atr, label: label, minRange: minRange };
