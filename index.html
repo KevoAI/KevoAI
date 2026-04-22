@@ -5532,6 +5532,8 @@ function gmPlaceSpread_onResult(rid,side,pnl,exitPrice){
   console.log('[GM SPREAD RESULT] R'+rid+' '+side+' pnl:'+pnl+' settled:'+round.settled+'/4');
   if(round.settled>=4)gmSettleSpread(rid);
 }
+
+function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay){
   if(!S.connected)return;
 
   // ── STALENESS GUARD: if price has moved too far since proposal was fetched, re-fetch ──
