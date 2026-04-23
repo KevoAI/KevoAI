@@ -1061,25 +1061,17 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <span style="color:var(--t3);font-size:10px"><b id="gm-conf-ticks">20</b>tk</span>
             </div>
 
-            <!-- 3-Tick Filter -->
-            <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.22);border-radius:var(--rs);padding:10px">
+            <!-- 3-Tick Filter — ALWAYS ON, LOCKED -->
+            <div style="background:rgba(0,229,160,0.1);border:1px solid rgba(0,229,160,0.35);border-radius:var(--rs);padding:10px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                <div style="font-size:11px;font-weight:700;color:var(--ac)">⚡ 3-Tick Filter</div>
-                <div style="display:flex;align-items:center;gap:7px">
-                  <div id="gm-tick-filter-badge" style="font-size:10px;font-family:var(--mo);padding:2px 7px;border-radius:99px;background:var(--bg4);color:var(--t3)">OFF</div>
-                  <div class="tsw" id="gm-tick-filter-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on')"></div>
-                </div>
+                <div style="font-size:11px;font-weight:700;color:var(--ac)">⚡ 3-Tick Momentum Filter</div>
+                <span style="font-size:10px;font-weight:700;color:var(--ac);background:rgba(0,229,160,0.2);padding:2px 8px;border-radius:99px;border:1px solid rgba(0,229,160,0.4)">ALWAYS ON</span>
+                <!-- hidden toggles kept for JS compatibility -->
+                <div id="gm-tick-filter-sw" class="on" style="display:none"></div>
+                <div id="gm-tick-filter-badge" style="display:none">ON</div>
               </div>
               <div id="gm-tick-pills" style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:7px;min-height:18px"></div>
-              <div style="display:flex;align-items:center;gap:5px">
-                <span style="font-size:9px;color:var(--t3)">Min ticks:</span>
-                <div class="dr" style="grid-template-columns:repeat(4,1fr);flex:1;gap:3px">
-                  <div class="db" onclick="GM.consecTicks=2;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='2'" style="font-size:10px;padding:4px 2px">2</div>
-                  <div class="db active" onclick="GM.consecTicks=3;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='3'" style="font-size:10px;padding:4px 2px">3</div>
-                  <div class="db" onclick="GM.consecTicks=4;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='4'" style="font-size:10px;padding:4px 2px">4</div>
-                  <div class="db" onclick="GM.consecTicks=5;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='5'" style="font-size:10px;padding:4px 2px">5</div>
-                </div>
-              </div>
+              <div style="font-size:10px;color:var(--t2)">Requires <b style="color:var(--ac)">3 consecutive</b> same-direction ticks before entry. Non-negotiable.</div>
               <span id="gm-consec-req-display" style="display:none">3</span>
             </div>
 
@@ -4503,14 +4495,14 @@ var GM = {
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
-  _placing:false,  // lock: prevents duplicate gmPlace calls firing simultaneously
-  confThresh:0,   // disabled
-  minConfidence:0, // disabled
-  minMomentum:3,  // kept for legacy reference
-  minAtrMult:1.2, // kept for legacy reference
-  minScore:0,     // disabled — replaced by 3-tick filter
-  consecTicks:3,  // Gmilli strategy: min consecutive same-direction ticks before entry
-  consecTicksActive:true,
+  _placing:false,
+  confThresh:0,
+  minConfidence:0,
+  minMomentum:3,
+  minAtrMult:1.2,
+  minScore:0,
+  consecTicks:3,        // LOCKED at 3 — strategy requirement
+  consecTicksActive:true, // ALWAYS active
   _skipReasons:{conf:0,mf:0,stagnant:0,mom:0,atr:0,gate:0,score:0}, // skip breakdown by filter
   tickTimes:[],   // Timestamps of recent ticks for dead-zone speed detection
   // ── Shared metric cache (refreshed once per 400ms, reused everywhere) ──
@@ -5131,8 +5123,8 @@ function gmLoop(){
   // Velocity: update display only, never block
   gmUpdateVelPanel();
 
-  // ── GUARDRAIL 2: 3-Tick Momentum Buffer (only when toggle is ON) ─
-  // Update tick pills UI regardless of toggle state
+  // ── GUARDRAIL 2: 3-Tick Momentum Buffer — ALWAYS ENFORCED ──────
+  // Update tick pills UI
   var _pillEl = document.getElementById('gm-tick-pills');
   if (_pillEl) {
     var _pills = '';
@@ -5147,23 +5139,14 @@ function gmLoop(){
     _pillEl.innerHTML = _pills;
   }
 
-  // Only enforce the 3-tick block when the filter toggle is ON
-  var _tickFilterSw = document.getElementById('gm-tick-filter-sw');
-  var _tickFilterOn = _tickFilterSw && _tickFilterSw.classList.contains('on');
-  var _tfBadge = document.getElementById('gm-tick-filter-badge');
-
-  if (_tickFilterOn) {
-    var _mom = gmCheckMomentum();
-    if (!_mom.pass) {
-      if (_tfBadge) { _tfBadge.textContent = '⛔ need ' + (GM.consecTicks||3) + ' consec'; _tfBadge.style.color = 'var(--re)'; _tfBadge.style.background = 'rgba(255,77,106,0.1)'; }
-      var rs7 = document.getElementById('gm-round-status');
-      if (rs7) rs7.textContent = 'WAIT: ' + (GM.consecTicks||3) + ' consec ticks';
-      GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
-      GM.interval = setTimeout(gmLoop, _nextInterval); return;
-    }
-    if (_tfBadge) { _tfBadge.textContent = '✅ ' + (GM.consecTicks||3) + ' consec'; _tfBadge.style.color = 'var(--ac)'; _tfBadge.style.background = 'rgba(0,229,160,0.1)'; }
-  } else {
-    if (_tfBadge) { _tfBadge.textContent = 'OFF'; _tfBadge.style.color = 'var(--t3)'; _tfBadge.style.background = 'var(--bg4)'; }
+  // Always enforce 3-tick consecutive filter (locked strategy requirement)
+  GM.consecTicks = 3; // ensure it can never be changed
+  var _mom = gmCheckMomentum();
+  if (!_mom.pass) {
+    var rs7 = document.getElementById('gm-round-status');
+    if (rs7) rs7.textContent = 'WAIT: need 3 consecutive ' + (_mom.direction || 'ticks');
+    GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
+    GM.interval = setTimeout(gmLoop, _nextInterval); return;
   }
 
   // ── GUARDRAIL 3: Dynamic Barrier — recalculate before each entry ─
@@ -5232,7 +5215,10 @@ function gmFetchProposals(){
     nearOff=Math.round(nearOff/0.02)*0.02;
     farOff =Math.round(farOff /0.02)*0.02;
 
-    var legStake=parseFloat((gmRecoveryBudget()/4).toFixed(2));
+    // Fixed optimized stakes: Near $1.15 × 2 sides + Far $0.35 × 2 sides = $3.00 total
+    var nearStake = 1.15;
+    var farStake  = 0.35;
+    var legStake  = nearStake; // used as fallback reference; actual per-leg below
 
     var rs=document.getElementById('gm-round-status');
     if(rs)rs.textContent='SPREAD PROBE...';
@@ -5241,23 +5227,24 @@ function gmFetchProposals(){
     var dp=entry>100?2:5;
     var cbLbl=document.getElementById('gm-call-barrier-lbl');
     var pbLbl=document.getElementById('gm-put-barrier-lbl');
-    if(cbLbl)cbLbl.textContent='Near +'+nearOff.toFixed(2)+' / Far +'+farOff.toFixed(2);
-    if(pbLbl)pbLbl.textContent='Near -'+nearOff.toFixed(2)+' / Far -'+farOff.toFixed(2);
+    if(cbLbl)cbLbl.textContent='Near $1.15 +'+nearOff.toFixed(2)+' / Far $0.35 +'+farOff.toFixed(2);
+    if(pbLbl)pbLbl.textContent='Near $1.15 -'+nearOff.toFixed(2)+' / Far $0.35 -'+farOff.toFixed(2);
 
-    // Probe all 4 legs
+    // Probe all 4 legs with their correct stakes
     var legs=[
-      {side:'callNear',type:'CALL',barrier:'+'+nearOff.toFixed(2)},
-      {side:'callFar', type:'CALL',barrier:'+'+farOff.toFixed(2)},
-      {side:'putNear', type:'PUT', barrier:'-'+nearOff.toFixed(2)},
-      {side:'putFar',  type:'PUT', barrier:'-'+farOff.toFixed(2)}
+      {side:'callNear',type:'CALL',barrier:'+'+nearOff.toFixed(2),stake:nearStake},
+      {side:'callFar', type:'CALL',barrier:'+'+farOff.toFixed(2), stake:farStake},
+      {side:'putNear', type:'PUT', barrier:'-'+nearOff.toFixed(2), stake:nearStake},
+      {side:'putFar',  type:'PUT', barrier:'-'+farOff.toFixed(2),  stake:farStake}
     ];
     legs.forEach(function(leg){
-      var pid=wsSend({proposal:1,amount:legStake,basis:'stake',contract_type:leg.type,
+      var pid=wsSend({proposal:1,amount:leg.stake,basis:'stake',contract_type:leg.type,
         currency:S.currency,duration:5,duration_unit:'t',
         symbol:GM.asset,barrier:leg.barrier});
       if(pid)S.pending[pid]={type:'gm_probe',gmSide:leg.side,
-        probeEntry:entry,probeStake:legStake,probeOffset:leg.side.indexOf('Far')>=0?farOff:nearOff,
-        probeBarrier:leg.barrier,isSpread:true,nearOff:nearOff,farOff:farOff};
+        probeEntry:entry,probeStake:leg.stake,probeOffset:leg.side.indexOf('Far')>=0?farOff:nearOff,
+        probeBarrier:leg.barrier,isSpread:true,nearOff:nearOff,farOff:farOff,
+        isNearLeg:leg.side.indexOf('Near')>=0,nearStake:nearStake,farStake:farStake};
     });
   } else {
     // ── ORIGINAL 2-LEG HEDGE ──────────────────────────────────────
@@ -5293,7 +5280,7 @@ var _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake
 var _gmSpreadProbe={callNear:null,callFar:null,putNear:null,putFar:null,
   callNearId:null,callFarId:null,putNearId:null,putFarId:null,
   callNearAsk:0,callFarAsk:0,putNearAsk:0,putFarAsk:0,
-  legStake:0,entry:0,nearOff:0,farOff:0};
+  nearStake:1.15,farStake:0.35,entry:0,nearOff:0,farOff:0};
 
 function onGMProbe(proposal,pendInfo){
   if(!proposal||!proposal.id){
@@ -5310,7 +5297,8 @@ function onGMProbe(proposal,pendInfo){
     sp[pendInfo.gmSide]=payout;
     sp[pendInfo.gmSide+'Id']=proposal.id;
     sp[pendInfo.gmSide+'Ask']=ask;
-    sp.legStake=pendInfo.probeStake;
+    sp.nearStake=pendInfo.nearStake||1.15;
+    sp.farStake=pendInfo.farStake||0.35;
     sp.entry=pendInfo.probeEntry;
     sp.nearOff=pendInfo.nearOff;
     sp.farOff=pendInfo.farOff;
@@ -5325,20 +5313,24 @@ function onGMProbe(proposal,pendInfo){
     // Wait for all 4 probes
     if(!sp.callNear||!sp.callFar||!sp.putNear||!sp.putFar)return;
 
-    // Gate: best-case win (near+far same side) must exceed total stake ($budget)
-    var totalStake=sp.legStake*4;
-    var bestWin=Math.max(sp.callNear+sp.callFar, sp.putNear+sp.putFar);
-    var worstWin=Math.min(sp.callNear,sp.callFar,sp.putNear,sp.putFar); // safety leg
-    var netBest=parseFloat((bestWin-totalStake).toFixed(2));
-    var netWorst=parseFloat((worstWin-totalStake).toFixed(2));
+    // Total risk = $1.15×2 (near sides) + $0.35×2 (far sides) = $3.00
+    var totalRisk=(sp.nearStake*2)+(sp.farStake*2);
+    // Near-only win net: nearPayout - totalRisk (e.g. $1.61 - $3.00 = -$1.39 ... acceptable)
+    // Both hit win net: (near+far payout) - totalRisk (best case)
+    var callNearNet=parseFloat((sp.callNear-totalRisk).toFixed(2));
+    var putNearNet=parseFloat((sp.putNear-totalRisk).toFixed(2));
+    var callBothNet=parseFloat((sp.callNear+sp.callFar-totalRisk).toFixed(2));
+    var putBothNet=parseFloat((sp.putNear+sp.putFar-totalRisk).toFixed(2));
+    // Gate: near payout must be at least $1.15 × 1.40 = $1.61 (140% payout check)
+    var nearPayoutOk=sp.callNear>=(sp.nearStake*1.35)&&sp.putNear>=(sp.nearStake*1.35);
+    var passes=nearPayoutOk;
 
     var gEl=document.getElementById('gm-gate-status');
-    var passes=bestWin>totalStake;
     if(gEl){gEl.textContent=passes?'✅ SPREAD':'❌ SKIP';gEl.style.color=passes?'var(--ac)':'var(--re)';}
     if(epEl){
       epEl.textContent=passes
-        ?'Best: +$'+netBest.toFixed(2)+' | Safety: '+netWorst.toFixed(2)
-        :'Payout too low';
+        ?'Near-only: '+callNearNet.toFixed(2)+' | Both: +$'+Math.max(callBothNet,putBothNet).toFixed(2)
+        :'Near payout <135% — skip';
       epEl.style.color=passes?'var(--ac)':'var(--re)';
     }
 
@@ -5348,7 +5340,7 @@ function onGMProbe(proposal,pendInfo){
       _gmSpreadProbe={callNear:null,callFar:null,putNear:null,putFar:null,
         callNearId:null,callFarId:null,putNearId:null,putFarId:null,
         callNearAsk:0,callFarAsk:0,putNearAsk:0,putFarAsk:0,
-        legStake:0,entry:0,nearOff:0,farOff:0};
+        nearStake:1.15,farStake:0.35,entry:0,nearOff:0,farOff:0};
       return;
     }
 
@@ -5357,7 +5349,7 @@ function onGMProbe(proposal,pendInfo){
     _gmSpreadProbe={callNear:null,callFar:null,putNear:null,putFar:null,
       callNearId:null,callFarId:null,putNearId:null,putFarId:null,
       callNearAsk:0,callFarAsk:0,putNearAsk:0,putFarAsk:0,
-      legStake:0,entry:0,nearOff:0,farOff:0};
+      nearStake:1.15,farStake:0.35,entry:0,nearOff:0,farOff:0};
     return;
   }
 
@@ -5434,16 +5426,19 @@ function gmPlaceSpread(sp){
   GM.rounds++;
   GM.lastRoundTime=Date.now();
 
-  var entry=sp.entry, legStake=sp.legStake;
-  var totalStake=legStake*4;
-  var snap=gmSnapshot(entry,sp.farOff,legStake,sp.callNear+sp.callFar,sp.putNear+sp.putFar);
+  var entry=sp.entry;
+  var nearStake=sp.nearStake||1.15;
+  var farStake=sp.farStake||0.35;
+  var totalStake=parseFloat(((nearStake*2)+(farStake*2)).toFixed(2));
+  var snap=gmSnapshot(entry,sp.farOff,nearStake,sp.callNear+sp.callFar,sp.putNear+sp.putFar);
 
   GM.pending[rid]={
     isSpread:true,
     results:{callNear:null,callFar:null,putNear:null,putFar:null},
     settled:0, totalLegs:4,
     entry:entry,nearOff:sp.nearOff,farOff:sp.farOff,
-    stake:legStake,totalStake:totalStake,
+    nearStake:nearStake,farStake:farStake,
+    stake:nearStake,totalStake:totalStake,
     callPay:sp.callNear+sp.callFar,putPay:sp.putNear+sp.putFar,
     combinedPay:sp.callNear+sp.callFar+sp.putNear+sp.putFar,
     callPlaced:false,putPlaced:false,
@@ -5465,22 +5460,22 @@ function gmPlaceSpread(sp){
   gmDrawChart();
 
   var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
-  set('gm-call-stake','Near $'+legStake+' +'+sp.nearOff.toFixed(2)+' | Far $'+legStake+' +'+sp.farOff.toFixed(2));
-  set('gm-put-stake', 'Near $'+legStake+' -'+sp.nearOff.toFixed(2)+' | Far $'+legStake+' -'+sp.farOff.toFixed(2));
+  set('gm-call-stake','Near $'+nearStake+' +'+sp.nearOff.toFixed(2)+' | Far $'+farStake+' +'+sp.farOff.toFixed(2));
+  set('gm-put-stake', 'Near $'+nearStake+' -'+sp.nearOff.toFixed(2)+' | Far $'+farStake+' -'+sp.farOff.toFixed(2));
   set('gm-call-pnl','...');set('gm-put-pnl','...');
   set('gm-round-status','BUYING 4-LEG...');set('gm-round-net','...');
 
-  console.log('[GM SPREAD] R'+rid+' entry:'+entry+' near:±'+sp.nearOff+' far:±'+sp.farOff+' stake:$'+legStake+' ×4');
+  console.log('[GM SPREAD] R'+rid+' entry:'+entry+' near:±'+sp.nearOff+' ($'+nearStake+') far:±'+sp.farOff+' ($'+farStake+') total:$'+totalStake);
 
   var legs=[
-    {id:sp.callNearId,ask:sp.callNearAsk,side:'callNear',dir:'HIGHER',barrier:sp.nearOff},
-    {id:sp.callFarId, ask:sp.callFarAsk, side:'callFar', dir:'HIGHER',barrier:sp.farOff},
-    {id:sp.putNearId, ask:sp.putNearAsk, side:'putNear', dir:'LOWER', barrier:sp.nearOff},
-    {id:sp.putFarId,  ask:sp.putFarAsk,  side:'putFar',  dir:'LOWER', barrier:sp.farOff}
+    {id:sp.callNearId,ask:sp.callNearAsk,side:'callNear',dir:'HIGHER',legStake:nearStake},
+    {id:sp.callFarId, ask:sp.callFarAsk, side:'callFar', dir:'HIGHER',legStake:farStake},
+    {id:sp.putNearId, ask:sp.putNearAsk, side:'putNear', dir:'LOWER', legStake:nearStake},
+    {id:sp.putFarId,  ask:sp.putFarAsk,  side:'putFar',  dir:'LOWER', legStake:farStake}
   ];
   legs.forEach(function(leg){
     var bid=wsSend({buy:leg.id,price:leg.ask});
-    if(bid)S.pending[bid]={dir:leg.dir,stake:legStake,asset:GM.asset,
+    if(bid)S.pending[bid]={dir:leg.dir,stake:leg.legStake,asset:GM.asset,
       isBot:true,isGM:true,gmRound:rid,gmSide:leg.side,
       entryPrice:entry,durVal:5,durUnit:'t'};
   });
@@ -5498,8 +5493,12 @@ function gmPlaceSpread(sp){
 function gmForceSettleSpread(rid){
   var round=GM.pending[rid];
   if(!round)return;
-  var legs=['callNear','callFar','putNear','putFar'];
-  legs.forEach(function(s){if(!round.results[s])round.results[s]={profit:-(round.stake||0),win:false};});
+  var ns=round.nearStake||1.15;
+  var fs=round.farStake||0.35;
+  if(!round.results.callNear)round.results.callNear={profit:-ns,win:false};
+  if(!round.results.callFar) round.results.callFar ={profit:-fs,win:false};
+  if(!round.results.putNear) round.results.putNear ={profit:-ns,win:false};
+  if(!round.results.putFar)  round.results.putFar  ={profit:-fs,win:false};
   gmSettleSpread(rid);
 }
 
@@ -5509,22 +5508,23 @@ function gmSettleSpread(rid){
   r._settled=true;
   clearTimeout(r._timeout);
 
-  var ls=r.stake||0.75;
+  var ns=r.nearStake||1.15;
+  var fs=r.farStake||0.35;
   var cn=r.results.callNear,cf=r.results.callFar,pn=r.results.putNear,pf=r.results.putFar;
-  var cnP=cn?parseFloat(cn.profit||0):-ls;
-  var cfP=cf?parseFloat(cf.profit||0):-ls;
-  var pnP=pn?parseFloat(pn.profit||0):-ls;
-  var pfP=pf?parseFloat(pf.profit||0):-ls;
+  var cnP=cn?parseFloat(cn.profit||0):-ns;
+  var cfP=cf?parseFloat(cf.profit||0):-fs;
+  var pnP=pn?parseFloat(pn.profit||0):-ns;
+  var pfP=pf?parseFloat(pf.profit||0):-fs;
   var total=parseFloat((cnP+cfP+pnP+pfP).toFixed(2));
   var isWin=total>0;
-  var gapLoss=!cn?.win&&!cf?.win&&!pn?.win&&!pf?.win;
+  var gapLoss=!(cn&&cn.win)&&!(cf&&cf.win)&&!(pn&&pn.win)&&!(pf&&pf.win);
 
   console.log('[GM SPREAD SETTLE] R'+rid+' cnP:'+cnP+' cfP:'+cfP+' pnP:'+pnP+' pfP:'+pfP+' total:'+total);
 
   GM.pnl=parseFloat((GM.pnl+total).toFixed(2));
   if(isWin)GM.won++;else GM.lost++;
   if(gapLoss)gmHandleGapLoss();else if(isWin)gmHandleWin();
-  gmRecoveryUpdate(isWin,gapLoss,total,r.callPay,r.putPay,ls);
+  gmRecoveryUpdate(isWin,gapLoss,total,r.callPay,r.putPay,r.totalStake||3.00);
 
   S.activeTrades=S.activeTrades.filter(function(t){return !(t.isGM&&t.gmRound===rid);});
 
@@ -5535,13 +5535,16 @@ function gmSettleSpread(rid){
 
   var callWon=(cn&&cn.win)||(cf&&cf.win);
   var putWon=(pn&&pn.win)||(pf&&pf.win);
+  var nearWon=(cn&&cn.win)||(pn&&pn.win);
+  var bothWon=callWon&&putWon;
 
   GM.history.unshift({
     rid:rid,total:total,win:isWin,isSpread:true,
     callPnl:cnP+cfP,putPnl:pnP+pfP,
     callWon:callWon,putWon:putWon,
     time:r.time,asset:r.asset,
-    stake:ls,callPay:r.callPay,putPay:r.putPay,
+    nearStake:ns,farStake:fs,
+    stake:r.totalStake||3.00,callPay:r.callPay,putPay:r.putPay,
     combinedPay:r.combinedPay,entry:r.entry,
     offset:r.farOff||r.offset||0.12,snap:snap,
     nearOff:r.nearOff,farOff:r.farOff
@@ -5552,18 +5555,19 @@ function gmSettleSpread(rid){
   var net=document.getElementById('gm-round-net');
   if(net){net.textContent=(total>=0?'+':'')+'$'+Math.abs(total).toFixed(2);net.style.color=total>0?'var(--ac)':'var(--re)';}
   var rs=document.getElementById('gm-round-status');
-  var statusTxt=isWin?'WIN ✅':gapLoss?'GAP LOSS ⚠':'PARTIAL ❌';
-  if(rs){rs.textContent=statusTxt;rs.style.color=isWin?'var(--ac)':gapLoss?'var(--go)':'var(--re)';}
+  var winLabel=bothWon?'BOTH HIT ✅✅':nearWon?'NEAR WIN ✅':isWin?'WIN ✅':gapLoss?'GAP LOSS ⚠':'LOSS ❌';
+  var statusCol=isWin?'var(--ac)':gapLoss?'var(--go)':'var(--re)';
+  if(rs){rs.textContent=winLabel;rs.style.color=statusCol;}
 
   var callPnlEl=document.getElementById('gm-call-pnl');
   var putPnlEl=document.getElementById('gm-put-pnl');
   if(callPnlEl){callPnlEl.textContent=(cnP+cfP>=0?'+':'')+'$'+Math.abs(cnP+cfP).toFixed(2);callPnlEl.style.color=(cnP+cfP)>0?'var(--ac)':'var(--re)';}
   if(putPnlEl){putPnlEl.textContent=(pnP+pfP>=0?'+':'')+'$'+Math.abs(pnP+pfP).toFixed(2);putPnlEl.style.color=(pnP+pfP)>0?'var(--ac)':'var(--re)';}
 
-  notify('GM '+(isWin?'WIN ✅':gapLoss?'GAP ⚠':'LOSS ❌'),
-    (isWin?'Spread won':'Spread loss')+' | CN:$'+cnP.toFixed(2)+' CF:$'+cfP.toFixed(2)+
-    ' PN:$'+pnP.toFixed(2)+' PF:$'+pfP.toFixed(2)+' | Net:'+(total>=0?'+':'')+total.toFixed(2),
-    isWin?'win':'loss');
+  var notifMsg=bothWon?'BOTH barriers hit! +$'+total.toFixed(2):
+    nearWon?'Near '+( callWon?'HIGHER':'LOWER')+' hit | Net:'+(total>=0?'+':'')+total.toFixed(2):
+    gapLoss?'Both missed (gap loss) | -$'+Math.abs(total).toFixed(2):'Loss $'+total.toFixed(2);
+  notify('GM '+(isWin?'WIN ✅':gapLoss?'GAP ⚠':'LOSS ❌'),notifMsg,isWin?'win':'loss');
 
   delete GM.pending[rid];
   GM._placing=false;
@@ -6310,9 +6314,9 @@ function gmDrawChart() {
   var yDot = yPos(prices[n-1]);
   out += '<circle cx="' + xDot + '" cy="' + yDot.toFixed(1) + '" r="3.5" fill="var(--ac)" stroke="#070a0f" stroke-width="1.5"/>';
 
-  // Barrier lines (if active round)
+  // Barrier lines — only draw entry (yellow) + 2 outer Far barriers (green/red)
   if (_gmActiveBarrier && _gmActiveBarrier.active) {
-    // Draw entry price line (yellow/amber, solid)
+    // Yellow entry line
     var entryLinePrice = _gmActiveBarrier.entry || 0;
     if (entryLinePrice > 0) {
       var yEntry = yPos(entryLinePrice);
@@ -6320,31 +6324,19 @@ function gmDrawChart() {
       out += '<rect x="4" y="' + (yEntry - 11) + '" width="60" height="13" fill="rgba(245,166,35,0.22)" rx="3"/>';
       out += '<text x="6" y="' + (yEntry - 1) + '" fill="rgba(245,166,35,1)" font-size="9" font-family="monospace">⦿ ' + entryLinePrice.toFixed(entryLinePrice > 100 ? 2 : 4) + '</text>';
     }
-
-    // Draw Near barriers (lighter green/red dashed) — only in spread mode
-    if (_gmActiveBarrier.nearHigher > 0) {
-      var yNH = yPos(_gmActiveBarrier.nearHigher);
-      out += '<line x1="0" y1="' + yNH.toFixed(1) + '" x2="' + W + '" y2="' + yNH.toFixed(1) + '" stroke="rgba(0,229,160,0.45)" stroke-width="1" stroke-dasharray="3,4"/>';
-      out += '<text x="' + (W - 35) + '" y="' + (yNH - 3) + '" fill="rgba(0,229,160,0.7)" font-size="8" font-family="monospace" text-anchor="middle">↑ Near</text>';
-    }
-    if (_gmActiveBarrier.nearLower > 0) {
-      var yNL = yPos(_gmActiveBarrier.nearLower);
-      out += '<line x1="0" y1="' + yNL.toFixed(1) + '" x2="' + W + '" y2="' + yNL.toFixed(1) + '" stroke="rgba(255,77,106,0.45)" stroke-width="1" stroke-dasharray="3,4"/>';
-      out += '<text x="' + (W - 35) + '" y="' + (yNL + 12) + '" fill="rgba(255,77,106,0.7)" font-size="8" font-family="monospace" text-anchor="middle">↓ Near</text>';
-    }
-
-    // Draw Far barriers (solid green/red) — main barriers
+    // Green — outer Far HIGHER barrier (price must end ABOVE this to win HIGHER)
     if (_gmActiveBarrier.higher > 0) {
       var yhb = yPos(_gmActiveBarrier.higher);
-      out += '<line x1="0" y1="' + yhb.toFixed(1) + '" x2="' + W + '" y2="' + yhb.toFixed(1) + '" stroke="rgba(0,229,160,0.95)" stroke-width="2" stroke-dasharray="6,3"/>';
-      out += '<rect x="' + (W - 72) + '" y="' + (yhb - 11) + '" width="70" height="13" fill="rgba(0,229,160,0.18)" rx="3"/>';
-      out += '<text x="' + (W - 37) + '" y="' + (yhb + 0) + '" fill="rgba(0,229,160,1)" font-size="9" font-family="monospace" text-anchor="middle">↑ ' + _gmActiveBarrier.higher.toFixed(_gmActiveBarrier.higher > 100 ? 2 : 4) + '</text>';
+      out += '<line x1="0" y1="' + yhb.toFixed(1) + '" x2="' + W + '" y2="' + yhb.toFixed(1) + '" stroke="rgba(0,229,160,0.95)" stroke-width="2.2" stroke-dasharray="6,3"/>';
+      out += '<rect x="' + (W - 80) + '" y="' + (yhb - 12) + '" width="78" height="14" fill="rgba(0,229,160,0.18)" rx="3"/>';
+      out += '<text x="' + (W - 41) + '" y="' + (yhb - 1) + '" fill="rgba(0,229,160,1)" font-size="9" font-family="monospace" text-anchor="middle">↑ ' + _gmActiveBarrier.higher.toFixed(_gmActiveBarrier.higher > 100 ? 2 : 4) + '</text>';
     }
+    // Red — outer Far LOWER barrier (price must end BELOW this to win LOWER)
     if (_gmActiveBarrier.lower > 0) {
       var ylb = yPos(_gmActiveBarrier.lower);
-      out += '<line x1="0" y1="' + ylb.toFixed(1) + '" x2="' + W + '" y2="' + ylb.toFixed(1) + '" stroke="rgba(255,77,106,0.95)" stroke-width="2" stroke-dasharray="6,3"/>';
-      out += '<rect x="' + (W - 72) + '" y="' + (ylb + 0) + '" width="70" height="13" fill="rgba(255,77,106,0.18)" rx="3"/>';
-      out += '<text x="' + (W - 37) + '" y="' + (ylb + 11) + '" fill="rgba(255,77,106,1)" font-size="9" font-family="monospace" text-anchor="middle">↓ ' + _gmActiveBarrier.lower.toFixed(_gmActiveBarrier.lower > 100 ? 2 : 4) + '</text>';
+      out += '<line x1="0" y1="' + ylb.toFixed(1) + '" x2="' + W + '" y2="' + ylb.toFixed(1) + '" stroke="rgba(255,77,106,0.95)" stroke-width="2.2" stroke-dasharray="6,3"/>';
+      out += '<rect x="' + (W - 80) + '" y="' + (ylb + 0) + '" width="78" height="14" fill="rgba(255,77,106,0.18)" rx="3"/>';
+      out += '<text x="' + (W - 41) + '" y="' + (ylb + 11) + '" fill="rgba(255,77,106,1)" font-size="9" font-family="monospace" text-anchor="middle">↓ ' + _gmActiveBarrier.lower.toFixed(_gmActiveBarrier.lower > 100 ? 2 : 4) + '</text>';
     }
   }
 
@@ -6433,11 +6425,9 @@ function gmDrawChart() {
     if (_gmActiveBarrier && _gmActiveBarrier.active && _gmActiveBarrier.higher > 0) {
       var _dp = _gmActiveBarrier.higher > 100 ? 2 : 4;
       leg.innerHTML =
-        '<span style="color:rgba(0,229,160,0.95);font-weight:700">↑ Far: ' + _gmActiveBarrier.higher.toFixed(_dp) + '</span><br>' +
-        (_gmActiveBarrier.nearHigher > 0 ? '<span style="color:rgba(0,229,160,0.55);font-size:9px">↑ Near: ' + _gmActiveBarrier.nearHigher.toFixed(_dp) + '</span><br>' : '') +
+        '<span style="color:rgba(0,229,160,0.95);font-weight:700">↑ ' + _gmActiveBarrier.higher.toFixed(_dp) + '</span><br>' +
         '<span style="color:rgba(245,166,35,0.95);font-weight:600">⦿ ' + (_gmActiveBarrier.entry||0).toFixed(_dp) + '</span><br>' +
-        (_gmActiveBarrier.nearLower > 0 ? '<span style="color:rgba(255,77,106,0.55);font-size:9px">↓ Near: ' + _gmActiveBarrier.nearLower.toFixed(_dp) + '</span><br>' : '') +
-        '<span style="color:rgba(255,77,106,0.95);font-weight:700">↓ Far: ' + _gmActiveBarrier.lower.toFixed(_dp) + '</span>';
+        '<span style="color:rgba(255,77,106,0.95);font-weight:700">↓ ' + _gmActiveBarrier.lower.toFixed(_dp) + '</span>';
     } else {
       leg.innerHTML = '';
     }
