@@ -929,6 +929,14 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <span style="flex:1"></span>
                 <span style="font-size:10px;font-family:var(--mo);padding:3px 9px;border-radius:6px;font-weight:700;background:var(--bg4);color:var(--t3)" id="gm-chart-dir">--</span>
               </div>
+              <!-- Last Tick Verified Panel -->
+              <div id="gm-last-tick-panel" style="padding:6px 12px;border-bottom:1px solid var(--bo);display:flex;align-items:center;gap:10px;background:var(--bg1);font-family:var(--mo);font-size:10px;flex-wrap:wrap">
+                <span style="color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Last Tick Verified</span>
+                <span style="color:var(--t3)">Entry: <b id="gm-lt-entry" style="color:var(--t1)">--</b></span>
+                <span style="color:var(--t3)">Exit: <b id="gm-lt-exit" style="color:var(--t1)">--</b></span>
+                <span style="color:var(--t3)">Broker: <b id="gm-lt-result" style="color:var(--t3)">--</b></span>
+                <span style="color:var(--t3)">Barrier: <b id="gm-lt-barrier" style="color:var(--t3)">--</b></span>
+              </div>
               <div style="position:relative;background:var(--bg1)">
                 <svg id="gm-tick-svg" width="100%" height="190" style="display:block"></svg>
                 <div id="gm-barrier-legend" style="position:absolute;top:6px;right:8px;font-size:9px;font-family:var(--mo);line-height:1.8;text-align:right;pointer-events:none"></div>
@@ -2057,7 +2065,23 @@ function onContract(c) {
     S.activeTrades=S.activeTrades.filter(function(x){return x.contractId!=c.contract_id;});
     return;
   }
-  if(t.isGM&&t.gmRound){onGMResult(t.gmRound,t.gmSide,profit,exitPrice);return;}
+  if(t.isGM&&t.gmRound){
+    // ── Update "Last Tick Verified" panel from broker's own data ──
+    var _ltEntry=t.price||0;
+    var _ltExit=exitPrice||0;
+    var _ltBarrier=t.barrier||'--';
+    var _ltStatus=c.status||(profit>0?'won':'lost');
+    var _ltColor=(_ltStatus==='won'||profit>0)?'var(--ac)':'var(--re)';
+    var _ltLabel=(_ltStatus==='won'||profit>0)?'✅ WON':'❌ LOST';
+    var _dp=_ltEntry>100?2:5;
+    (function(){
+      var e=document.getElementById('gm-lt-entry');if(e)e.textContent=_ltEntry>0?_ltEntry.toFixed(_dp):'--';
+      var x=document.getElementById('gm-lt-exit');if(x){x.textContent=_ltExit>0?_ltExit.toFixed(_dp):'--';x.style.color=_ltColor;}
+      var r=document.getElementById('gm-lt-result');if(r){r.textContent=_ltLabel;r.style.color=_ltColor;}
+      var b=document.getElementById('gm-lt-barrier');if(b){b.textContent=_ltBarrier;b.style.color='var(--go)';}
+    })();
+    onGMResult(t.gmRound,t.gmSide,profit,exitPrice);return;
+  }
   if(t.isHB&&t.hbRound!==null){
     onHBResult(t.hbRound,t.hbIdx,profit,t.direction,t.exitPrice);
     localStorage.setItem('kevoai_trades',JSON.stringify(S.trades.slice(0,300)));
@@ -5414,7 +5438,7 @@ function gmPlaceSpread(sp){
   };
 
   var dp=entry>100?2:5;
-  _gmActiveBarrier={active:true,
+  _gmActiveBarrier={active:true,entry:entry,
     higher:parseFloat((entry+sp.farOff).toFixed(dp)),
     lower:parseFloat((entry-sp.farOff).toFixed(dp))};
   gmDrawChart();
@@ -5594,7 +5618,7 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   console.log('[GM PLACE] R'+rid+' entry:'+entry+' offset:'+offset.toFixed(2)+' stake:$'+stake.toFixed(2)+' HIGHER pays:$'+callPay.toFixed(2)+' LOWER pays:$'+putPay.toFixed(2));
   // Set active barriers on chart
   var dp2=entry>100?2:5;
-  _gmActiveBarrier={active:true,higher:parseFloat((entry+offset).toFixed(dp2)),lower:parseFloat((entry-offset).toFixed(dp2))};
+  _gmActiveBarrier={active:true,entry:entry,higher:parseFloat((entry+offset).toFixed(dp2)),lower:parseFloat((entry-offset).toFixed(dp2))};
   gmDrawChart();
 
   // Buy both contracts at their proposal prices
@@ -6217,8 +6241,13 @@ function gmDrawChart() {
 
   var hi = Math.max.apply(null, prices);
   var lo = Math.min.apply(null, prices);
+  // FIX: expand scale to include barrier lines so they're always visible and accurate
+  if (_gmActiveBarrier && _gmActiveBarrier.active) {
+    if (_gmActiveBarrier.higher > 0) hi = Math.max(hi, _gmActiveBarrier.higher);
+    if (_gmActiveBarrier.lower > 0) lo = Math.min(lo, _gmActiveBarrier.lower);
+  }
   var rng = hi - lo || 0.0001;
-  var pad = rng * 0.20;
+  var pad = rng * 0.15;
   var yHi = hi + pad, yLo = lo - pad;
 
   function yPos(v) { return H - ((v - yLo) / (yHi - yLo)) * (H - 4) - 2; }
@@ -6263,6 +6292,14 @@ function gmDrawChart() {
 
   // Barrier lines (if active round)
   if (_gmActiveBarrier && _gmActiveBarrier.active) {
+    // Draw entry price line first (amber, solid)
+    var entryLinePrice = _gmActiveBarrier.entry || 0;
+    if (entryLinePrice > 0) {
+      var yEntry = yPos(entryLinePrice);
+      out += '<line x1="0" y1="' + yEntry.toFixed(1) + '" x2="' + W + '" y2="' + yEntry.toFixed(1) + '" stroke="rgba(245,166,35,0.9)" stroke-width="1.5" stroke-dasharray="4,3"/>';
+      out += '<rect x="4" y="' + (yEntry - 11) + '" width="56" height="13" fill="rgba(245,166,35,0.18)" rx="3"/>';
+      out += '<text x="6" y="' + (yEntry - 1) + '" fill="rgba(245,166,35,1)" font-size="9" font-family="monospace">⦿ ' + entryLinePrice.toFixed(entryLinePrice > 100 ? 2 : 4) + '</text>';
+    }
     if (_gmActiveBarrier.higher > 0) {
       var yhb = yPos(_gmActiveBarrier.higher);
       out += '<line x1="0" y1="' + yhb.toFixed(1) + '" x2="' + W + '" y2="' + yhb.toFixed(1) + '" stroke="rgba(0,229,160,0.9)" stroke-width="1.5" stroke-dasharray="6,3"/>';
@@ -6362,6 +6399,7 @@ function gmDrawChart() {
   if (leg) {
     leg.innerHTML = (_gmActiveBarrier && _gmActiveBarrier.active && _gmActiveBarrier.higher > 0)
       ? '<span style="color:rgba(0,229,160,0.9);font-weight:700">↑ ' + _gmActiveBarrier.higher.toFixed(2) + '</span><br>'
+        + '<span style="color:rgba(245,166,35,0.9);font-weight:600">⦿ ' + (_gmActiveBarrier.entry||0).toFixed(2) + '</span><br>'
         + '<span style="color:rgba(255,77,106,0.9);font-weight:700">↓ ' + _gmActiveBarrier.lower.toFixed(2) + '</span>'
       : '';
   }
