@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>KevoAI v5.2</title>
+<title>KevoAI v5.4</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg0:#070a0f;--bg1:#0c1018;--bg2:#111622;--bg3:#181f2e;--bg4:#1e2738;--bo:rgba(255,255,255,0.07);--bo2:rgba(255,255,255,0.13);--ac:#00e5a0;--ac2:#00b87a;--ad:rgba(0,229,160,0.12);--re:#ff4d6a;--rd:rgba(255,77,106,0.12);--bl:#3b82f6;--bd:rgba(59,130,246,0.12);--go:#f5a623;--gd:rgba(245,166,35,0.12);--t1:#f0f4ff;--t2:#8892a4;--t3:#4a5568;--fn:'Syne',sans-serif;--mo:'JetBrains Mono',monospace;--r:12px;--rs:8px;--sw:224px}
@@ -802,8 +802,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
       <div class="page" id="page-gmilli">
         <div style="background:linear-gradient(135deg,rgba(0,229,160,0.1),rgba(59,130,246,0.08));border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:16px;margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-            <div style="font-size:18px;font-weight:800;color:var(--ac)">Gmilli Bot</div>
-            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">HIGHER + LOWER — Zero Gap Strategy</div>
+            <div style="font-size:18px;font-weight:800;color:var(--ac)">Gmilli Bot <span style="font-size:12px;font-weight:600;color:var(--go);background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.3);border-radius:99px;padding:2px 9px;margin-left:6px">⚡ 5-Tick · 4-Leg Spread</span></div>
+            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">4-LEG POWER SPREAD — ALWAYS ON — 5 TICKS FIXED</div>
           </div>
           <div style="font-size:11px;color:var(--t2)">Barrier set at entry spot — one side ALWAYS wins. Only trades when combined payout > 2× stake.</div>
         </div>
@@ -849,14 +849,24 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
                 <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:9px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">HIGHER</div>
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">↑ HIGHER FAR</div>
                   <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-higher-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry + offset</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry + 1.5×ATR</div>
                 </div>
                 <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:9px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">LOWER</div>
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">↓ LOWER FAR</div>
                   <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-lower-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry − offset</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry − 1.5×ATR</div>
+                </div>
+                <div style="background:rgba(0,229,160,0.04);border:1px solid rgba(0,229,160,0.1);border-radius:var(--rs);padding:7px;text-align:center">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">↑ NEAR</div>
+                  <div style="font-size:12px;font-weight:700;font-family:var(--mo);color:rgba(0,229,160,0.7)" id="gm-near-higher-level">--</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry + 0.5×ATR</div>
+                </div>
+                <div style="background:rgba(255,77,106,0.04);border:1px solid rgba(255,77,106,0.1);border-radius:var(--rs);padding:7px;text-align:center">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">↓ NEAR</div>
+                  <div style="font-size:12px;font-weight:700;font-family:var(--mo);color:rgba(255,77,106,0.7)" id="gm-near-lower-level">--</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry − 0.5×ATR</div>
                 </div>
               </div>
               <div style="margin-top:7px;font-size:10px;color:var(--t3);text-align:center;font-family:var(--mo)" id="gm-gap-display">Gap zone shown after connect</div>
@@ -1012,20 +1022,18 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <span style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--ac);margin-left:5px" id="gm-effective-offset">±0.12</span>
                 </div>
               </div>
-              <!-- 4-Leg Power Spread toggle -->
-              <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.25);border-radius:var(--rs);padding:9px 11px;margin-bottom:9px">
+              <!-- 4-Leg Power Spread ALWAYS ON -->
+              <div style="background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.4);border-radius:var(--rs);padding:9px 11px;margin-bottom:9px">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
                   <div style="font-size:11px;font-weight:700;color:var(--go)">⚡ 4-Leg Power Spread</div>
-                  <div class="tsw" id="gm-spread-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on')"></div>
+                  <span style="font-size:10px;font-weight:700;color:var(--go);background:rgba(245,166,35,0.2);padding:2px 8px;border-radius:99px;border:1px solid rgba(245,166,35,0.4)">ALWAYS ON</span>
                 </div>
-                <div style="font-size:9px;color:var(--t3);line-height:1.6">Splits $3 into 4 legs: Near (0.5×ATR) + Far (1.5×ATR) each side. Double-wins possible. Reduces max loss to ~$1.35 on weak moves.</div>
+                <div style="font-size:9px;color:var(--t2);line-height:1.6">Splits $3 into 4 legs: Near (0.5×ATR) + Far (1.5×ATR) each side. Double-wins possible. Reduces max loss to ~$1.35 on weak moves.</div>
+                <div id="gm-spread-sw" class="on" style="display:none"></div>
               </div>
-                <div class="dr">
-                  <div class="db" onclick="GM.dur=5;gmSetActive(this)">5S</div>
-                  <div class="db" onclick="GM.dur=15;gmSetActive(this)">15S</div>
-                  <div class="db active" onclick="GM.dur=30;gmSetActive(this)">30S</div>
-                  <div class="db" onclick="GM.dur=60;gmSetActive(this)">60S</div>
-                  <div class="db" onclick="GM.dur=120;gmSetActive(this)">2M</div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--ad);border:1px solid rgba(0,229,160,0.25);border-radius:var(--rs)">
+                  <span style="font-size:11px;font-weight:700;color:var(--ac)">⏱ 5 Ticks</span>
+                  <span style="font-size:10px;color:var(--t3)">Fixed — strategy locked</span>
                 </div>
               </div>
               <!-- Daily SL/TP -->
@@ -1826,16 +1834,29 @@ function onTick(tick) {
         if(_curP2>0){
           var _off2=gmAdaptiveOffset();
           var _dp2=_curP2>100?2:5;
-          var _hB2=parseFloat((_curP2+_off2).toFixed(_dp2));
-          var _lB2=parseFloat((_curP2-_off2).toFixed(_dp2));
+          // Compute Near and Far offsets for spread display
+          var _atr5tmp=0;
+          var _ptmp=getInd(GM.asset).prices;
+          var _ntmp=_ptmp.length;
+          if(_ntmp>=6){for(var _ii=_ntmp-5;_ii<_ntmp;_ii++)_atr5tmp+=Math.abs(_ptmp[_ii]-_ptmp[_ii-1]);_atr5tmp/=5;}
+          if(_atr5tmp<=0)_atr5tmp=_off2;
+          var _nearOff2=Math.max(0.02,Math.round((_atr5tmp*0.5)/0.02)*0.02);
+          var _farOff2=Math.max(_nearOff2+0.02,Math.round((_atr5tmp*1.5)/0.02)*0.02);
+          var _hB2=parseFloat((_curP2+_farOff2).toFixed(_dp2));
+          var _lB2=parseFloat((_curP2-_farOff2).toFixed(_dp2));
+          var _nhB2=parseFloat((_curP2+_nearOff2).toFixed(_dp2));
+          var _nlB2=parseFloat((_curP2-_nearOff2).toFixed(_dp2));
           var _eEl=document.getElementById('gm-entry-display');var _hEl=document.getElementById('gm-higher-level');
           var _lEl=document.getElementById('gm-lower-level');var _gapEl=document.getElementById('gm-gap-display');
+          var _nhEl=document.getElementById('gm-near-higher-level');var _nlEl=document.getElementById('gm-near-lower-level');
           var _offEl=document.getElementById('gm-effective-offset');
           if(_eEl)_eEl.textContent='Entry: '+_curP2.toFixed(_dp2);
           if(_hEl)_hEl.textContent=_hB2;
           if(_lEl)_lEl.textContent=_lB2;
-          if(_gapEl)_gapEl.textContent='Gap zone: '+_lB2+' → '+_hB2+' (±'+_off2.toFixed(2)+')';
-          if(_offEl)_offEl.textContent='±'+_off2.toFixed(2);
+          if(_nhEl)_nhEl.textContent=_nhB2;
+          if(_nlEl)_nlEl.textContent=_nlB2;
+          if(_gapEl)_gapEl.textContent='Near: ±'+_nearOff2.toFixed(2)+' | Far: ±'+_farOff2.toFixed(2);
+          if(_offEl)_offEl.textContent='±'+_farOff2.toFixed(2);
         }
         // ── Velocity panel update ──
         gmUpdateVelPanel();
@@ -4478,7 +4499,7 @@ switchAcc(S.accType);
 //   - Winner covers loser stake + delivers profit
 // ================================================================
 var GM = {
-  running:false, interval:null, asset:'R_100', dur:30, minGap:30,
+  running:false, interval:null, asset:'R_100', dur:5, durUnit:'t', minGap:30,
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
@@ -5180,10 +5201,8 @@ function gmAdaptiveOffset(){
   }
   if(atr5<=0) return Math.max(0.01,manualOffset);
 
-  // Scale: for a 15s contract, expected move ≈ atr5 × 7-8 ticks
-  // We want the barrier at ~1.5× a single ATR tick
-  var durFactor=GM.dur/30; // 1.0 at 30s, 0.5 at 15s
-  var adaptive=parseFloat((atr5 * 1.5 * durFactor).toFixed(2));
+  // Scale: for 5-tick contracts, offset = atr5 × 1.5 (no time scaling needed)
+  var adaptive=parseFloat((atr5 * 1.5).toFixed(2));
   // Clamp: never less than 0.05 or more than 0.30
   adaptive=Math.min(0.30,Math.max(0.05,adaptive));
   return adaptive;
@@ -5234,7 +5253,7 @@ function gmFetchProposals(){
     ];
     legs.forEach(function(leg){
       var pid=wsSend({proposal:1,amount:legStake,basis:'stake',contract_type:leg.type,
-        currency:S.currency,duration:GM.dur,duration_unit:'s',
+        currency:S.currency,duration:5,duration_unit:'t',
         symbol:GM.asset,barrier:leg.barrier});
       if(pid)S.pending[pid]={type:'gm_probe',gmSide:leg.side,
         probeEntry:entry,probeStake:legStake,probeOffset:leg.side.indexOf('Far')>=0?farOff:nearOff,
@@ -5257,12 +5276,12 @@ function gmFetchProposals(){
     if(pbLbl)pbLbl.textContent='barrier: '+parseFloat((entry-offset).toFixed(dp))+' (entry-'+offset.toFixed(2)+')';
 
     var p1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
-      currency:S.currency,duration:GM.dur,duration_unit:'s',
+      currency:S.currency,duration:5,duration_unit:'t',
       symbol:GM.asset,barrier:callBarrier});
     if(p1)S.pending[p1]={type:'gm_probe',gmSide:'call',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:callBarrier};
 
     var p2=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'PUT',
-      currency:S.currency,duration:GM.dur,duration_unit:'s',
+      currency:S.currency,duration:5,duration_unit:'t',
       symbol:GM.asset,barrier:putBarrier});
     if(p2)S.pending[p2]={type:'gm_probe',gmSide:'put',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:putBarrier};
   }
@@ -5440,7 +5459,9 @@ function gmPlaceSpread(sp){
   var dp=entry>100?2:5;
   _gmActiveBarrier={active:true,entry:entry,
     higher:parseFloat((entry+sp.farOff).toFixed(dp)),
-    lower:parseFloat((entry-sp.farOff).toFixed(dp))};
+    lower:parseFloat((entry-sp.farOff).toFixed(dp)),
+    nearHigher:parseFloat((entry+sp.nearOff).toFixed(dp)),
+    nearLower:parseFloat((entry-sp.nearOff).toFixed(dp))};
   gmDrawChart();
 
   var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
@@ -5461,11 +5482,11 @@ function gmPlaceSpread(sp){
     var bid=wsSend({buy:leg.id,price:leg.ask});
     if(bid)S.pending[bid]={dir:leg.dir,stake:legStake,asset:GM.asset,
       isBot:true,isGM:true,gmRound:rid,gmSide:leg.side,
-      entryPrice:entry,durVal:GM.dur,durUnit:'s'};
+      entryPrice:entry,durVal:5,durUnit:'t'};
   });
 
   setTimeout(function(){GM._placing=false;},300);
-  var _forceMs=(GM.dur*1000)+20000;
+  var _forceMs=15000;
   GM.pending[rid]._timeout=setTimeout(function(){
     if(GM.pending[rid]&&GM.pending[rid].settled<4){
       console.warn('[GM] Spread R'+rid+' timed out — force settling');
@@ -5625,20 +5646,17 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   var b1=wsSend({buy:callId,price:callAsk});
   if(b1)S.pending[b1]={dir:'HIGHER',stake:stake,asset:GM.asset,
     isBot:true,isGM:true,gmRound:rid,gmSide:'call',
-    entryPrice:entry,durVal:GM.dur,durUnit:'s'};
+    entryPrice:entry,durVal:5,durUnit:'t'};
 
   var b2=wsSend({buy:putId,price:putAsk});
   if(b2)S.pending[b2]={dir:'LOWER',stake:stake,asset:GM.asset,
     isBot:true,isGM:true,gmRound:rid,gmSide:'put',
-    entryPrice:entry,durVal:GM.dur,durUnit:'s'};
+    entryPrice:entry,durVal:5,durUnit:'t'};
 
-  // Clear placing lock — both buy requests are now queued to WS
-  // Use setTimeout(0) so the lock is released after this call stack unwinds,
-  // giving the WS send queue time to process before another gmPlace could fire
   setTimeout(function(){ GM._placing=false; }, 200);
 
-  // Force-settle timeout: duration + 15s buffer (not flat 120s which causes stuck trades)
-  var _forceMs=(GM.dur*1000)+15000;
+  // Force-settle timeout: 5 ticks ≈ ~15s buffer
+  var _forceMs=15000;
   GM.pending[rid]._timeout=setTimeout(function(){
     if(GM.pending[rid]&&GM.pending[rid].settled<2){
       console.warn('[GM] Round '+rid+' timed out after '+(_forceMs/1000)+'s — force settling');
@@ -6245,6 +6263,8 @@ function gmDrawChart() {
   if (_gmActiveBarrier && _gmActiveBarrier.active) {
     if (_gmActiveBarrier.higher > 0) hi = Math.max(hi, _gmActiveBarrier.higher);
     if (_gmActiveBarrier.lower > 0) lo = Math.min(lo, _gmActiveBarrier.lower);
+    if (_gmActiveBarrier.nearHigher > 0) hi = Math.max(hi, _gmActiveBarrier.nearHigher);
+    if (_gmActiveBarrier.nearLower > 0) lo = Math.min(lo, _gmActiveBarrier.nearLower);
   }
   var rng = hi - lo || 0.0001;
   var pad = rng * 0.15;
@@ -6292,25 +6312,39 @@ function gmDrawChart() {
 
   // Barrier lines (if active round)
   if (_gmActiveBarrier && _gmActiveBarrier.active) {
-    // Draw entry price line first (amber, solid)
+    // Draw entry price line (yellow/amber, solid)
     var entryLinePrice = _gmActiveBarrier.entry || 0;
     if (entryLinePrice > 0) {
       var yEntry = yPos(entryLinePrice);
-      out += '<line x1="0" y1="' + yEntry.toFixed(1) + '" x2="' + W + '" y2="' + yEntry.toFixed(1) + '" stroke="rgba(245,166,35,0.9)" stroke-width="1.5" stroke-dasharray="4,3"/>';
-      out += '<rect x="4" y="' + (yEntry - 11) + '" width="56" height="13" fill="rgba(245,166,35,0.18)" rx="3"/>';
+      out += '<line x1="0" y1="' + yEntry.toFixed(1) + '" x2="' + W + '" y2="' + yEntry.toFixed(1) + '" stroke="rgba(245,166,35,0.95)" stroke-width="1.8" stroke-dasharray="4,3"/>';
+      out += '<rect x="4" y="' + (yEntry - 11) + '" width="60" height="13" fill="rgba(245,166,35,0.22)" rx="3"/>';
       out += '<text x="6" y="' + (yEntry - 1) + '" fill="rgba(245,166,35,1)" font-size="9" font-family="monospace">⦿ ' + entryLinePrice.toFixed(entryLinePrice > 100 ? 2 : 4) + '</text>';
     }
+
+    // Draw Near barriers (lighter green/red dashed) — only in spread mode
+    if (_gmActiveBarrier.nearHigher > 0) {
+      var yNH = yPos(_gmActiveBarrier.nearHigher);
+      out += '<line x1="0" y1="' + yNH.toFixed(1) + '" x2="' + W + '" y2="' + yNH.toFixed(1) + '" stroke="rgba(0,229,160,0.45)" stroke-width="1" stroke-dasharray="3,4"/>';
+      out += '<text x="' + (W - 35) + '" y="' + (yNH - 3) + '" fill="rgba(0,229,160,0.7)" font-size="8" font-family="monospace" text-anchor="middle">↑ Near</text>';
+    }
+    if (_gmActiveBarrier.nearLower > 0) {
+      var yNL = yPos(_gmActiveBarrier.nearLower);
+      out += '<line x1="0" y1="' + yNL.toFixed(1) + '" x2="' + W + '" y2="' + yNL.toFixed(1) + '" stroke="rgba(255,77,106,0.45)" stroke-width="1" stroke-dasharray="3,4"/>';
+      out += '<text x="' + (W - 35) + '" y="' + (yNL + 12) + '" fill="rgba(255,77,106,0.7)" font-size="8" font-family="monospace" text-anchor="middle">↓ Near</text>';
+    }
+
+    // Draw Far barriers (solid green/red) — main barriers
     if (_gmActiveBarrier.higher > 0) {
       var yhb = yPos(_gmActiveBarrier.higher);
-      out += '<line x1="0" y1="' + yhb.toFixed(1) + '" x2="' + W + '" y2="' + yhb.toFixed(1) + '" stroke="rgba(0,229,160,0.9)" stroke-width="1.5" stroke-dasharray="6,3"/>';
-      out += '<rect x="' + (W - 68) + '" y="' + (yhb - 10) + '" width="66" height="13" fill="rgba(0,229,160,0.15)" rx="3"/>';
-      out += '<text x="' + (W - 35) + '" y="' + (yhb + 1) + '" fill="rgba(0,229,160,1)" font-size="9" font-family="monospace" text-anchor="middle">↑ ' + _gmActiveBarrier.higher.toFixed(2) + '</text>';
+      out += '<line x1="0" y1="' + yhb.toFixed(1) + '" x2="' + W + '" y2="' + yhb.toFixed(1) + '" stroke="rgba(0,229,160,0.95)" stroke-width="2" stroke-dasharray="6,3"/>';
+      out += '<rect x="' + (W - 72) + '" y="' + (yhb - 11) + '" width="70" height="13" fill="rgba(0,229,160,0.18)" rx="3"/>';
+      out += '<text x="' + (W - 37) + '" y="' + (yhb + 0) + '" fill="rgba(0,229,160,1)" font-size="9" font-family="monospace" text-anchor="middle">↑ ' + _gmActiveBarrier.higher.toFixed(_gmActiveBarrier.higher > 100 ? 2 : 4) + '</text>';
     }
     if (_gmActiveBarrier.lower > 0) {
       var ylb = yPos(_gmActiveBarrier.lower);
-      out += '<line x1="0" y1="' + ylb.toFixed(1) + '" x2="' + W + '" y2="' + ylb.toFixed(1) + '" stroke="rgba(255,77,106,0.9)" stroke-width="1.5" stroke-dasharray="6,3"/>';
-      out += '<rect x="' + (W - 68) + '" y="' + (ylb - 1) + '" width="66" height="13" fill="rgba(255,77,106,0.15)" rx="3"/>';
-      out += '<text x="' + (W - 35) + '" y="' + (ylb + 10) + '" fill="rgba(255,77,106,1)" font-size="9" font-family="monospace" text-anchor="middle">↓ ' + _gmActiveBarrier.lower.toFixed(2) + '</text>';
+      out += '<line x1="0" y1="' + ylb.toFixed(1) + '" x2="' + W + '" y2="' + ylb.toFixed(1) + '" stroke="rgba(255,77,106,0.95)" stroke-width="2" stroke-dasharray="6,3"/>';
+      out += '<rect x="' + (W - 72) + '" y="' + (ylb + 0) + '" width="70" height="13" fill="rgba(255,77,106,0.18)" rx="3"/>';
+      out += '<text x="' + (W - 37) + '" y="' + (ylb + 11) + '" fill="rgba(255,77,106,1)" font-size="9" font-family="monospace" text-anchor="middle">↓ ' + _gmActiveBarrier.lower.toFixed(_gmActiveBarrier.lower > 100 ? 2 : 4) + '</text>';
     }
   }
 
@@ -6394,14 +6428,19 @@ function gmDrawChart() {
     }
   }
 
-  // Barrier legend (text overlay)
   var leg = document.getElementById('gm-barrier-legend');
   if (leg) {
-    leg.innerHTML = (_gmActiveBarrier && _gmActiveBarrier.active && _gmActiveBarrier.higher > 0)
-      ? '<span style="color:rgba(0,229,160,0.9);font-weight:700">↑ ' + _gmActiveBarrier.higher.toFixed(2) + '</span><br>'
-        + '<span style="color:rgba(245,166,35,0.9);font-weight:600">⦿ ' + (_gmActiveBarrier.entry||0).toFixed(2) + '</span><br>'
-        + '<span style="color:rgba(255,77,106,0.9);font-weight:700">↓ ' + _gmActiveBarrier.lower.toFixed(2) + '</span>'
-      : '';
+    if (_gmActiveBarrier && _gmActiveBarrier.active && _gmActiveBarrier.higher > 0) {
+      var _dp = _gmActiveBarrier.higher > 100 ? 2 : 4;
+      leg.innerHTML =
+        '<span style="color:rgba(0,229,160,0.95);font-weight:700">↑ Far: ' + _gmActiveBarrier.higher.toFixed(_dp) + '</span><br>' +
+        (_gmActiveBarrier.nearHigher > 0 ? '<span style="color:rgba(0,229,160,0.55);font-size:9px">↑ Near: ' + _gmActiveBarrier.nearHigher.toFixed(_dp) + '</span><br>' : '') +
+        '<span style="color:rgba(245,166,35,0.95);font-weight:600">⦿ ' + (_gmActiveBarrier.entry||0).toFixed(_dp) + '</span><br>' +
+        (_gmActiveBarrier.nearLower > 0 ? '<span style="color:rgba(255,77,106,0.55);font-size:9px">↓ Near: ' + _gmActiveBarrier.nearLower.toFixed(_dp) + '</span><br>' : '') +
+        '<span style="color:rgba(255,77,106,0.95);font-weight:700">↓ Far: ' + _gmActiveBarrier.lower.toFixed(_dp) + '</span>';
+    } else {
+      leg.innerHTML = '';
+    }
   }
 
   // Update volatility info in gmCalc panel
