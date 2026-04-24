@@ -849,24 +849,24 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
                 <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:9px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">↑ HIGHER FAR</div>
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">↑ FAR HIGHER <span style="color:rgba(245,166,35,0.9)">$0.35</span></div>
                   <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-higher-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry + 1.5×ATR</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry + 1.5×ATR (jackpot)</div>
                 </div>
                 <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:9px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">↓ LOWER FAR</div>
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">↓ FAR LOWER <span style="color:rgba(245,166,35,0.9)">$0.35</span></div>
                   <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-lower-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry − 1.5×ATR</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry − 1.5×ATR (jackpot)</div>
                 </div>
-                <div style="background:rgba(0,229,160,0.04);border:1px solid rgba(0,229,160,0.1);border-radius:var(--rs);padding:7px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">↑ NEAR</div>
-                  <div style="font-size:12px;font-weight:700;font-family:var(--mo);color:rgba(0,229,160,0.7)" id="gm-near-higher-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry + 0.5×ATR</div>
+                <div style="background:rgba(0,229,160,0.06);border:1.5px solid rgba(0,229,160,0.25);border-radius:var(--rs);padding:7px;text-align:center">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">↑ NEAR <span style="color:var(--ac);font-weight:700">$1.35</span></div>
+                  <div style="font-size:12px;font-weight:700;font-family:var(--mo);color:rgba(0,229,160,0.85)" id="gm-near-higher-level">--</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">+0.5×ATR (cap ±0.10)</div>
                 </div>
-                <div style="background:rgba(255,77,106,0.04);border:1px solid rgba(255,77,106,0.1);border-radius:var(--rs);padding:7px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">↓ NEAR</div>
-                  <div style="font-size:12px;font-weight:700;font-family:var(--mo);color:rgba(255,77,106,0.7)" id="gm-near-lower-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry − 0.5×ATR</div>
+                <div style="background:rgba(255,77,106,0.06);border:1.5px solid rgba(255,77,106,0.25);border-radius:var(--rs);padding:7px;text-align:center">
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">↓ NEAR <span style="color:var(--re);font-weight:700">$1.35</span></div>
+                  <div style="font-size:12px;font-weight:700;font-family:var(--mo);color:rgba(255,77,106,0.85)" id="gm-near-lower-level">--</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">−0.5×ATR (cap ±0.10)</div>
                 </div>
               </div>
               <div style="margin-top:7px;font-size:10px;color:var(--t3);text-align:center;font-family:var(--mo)" id="gm-gap-display">Gap zone shown after connect</div>
@@ -1028,7 +1028,11 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div style="font-size:11px;font-weight:700;color:var(--go)">⚡ 4-Leg Power Spread</div>
                   <span style="font-size:10px;font-weight:700;color:var(--go);background:rgba(245,166,35,0.2);padding:2px 8px;border-radius:99px;border:1px solid rgba(245,166,35,0.4)">ALWAYS ON</span>
                 </div>
-                <div style="font-size:9px;color:var(--t2);line-height:1.6">Splits $3 into 4 legs: Near (0.5×ATR) + Far (1.5×ATR) each side. Double-wins possible. Reduces max loss to ~$1.35 on weak moves.</div>
+                <div style="font-size:9px;color:var(--t2);line-height:1.7">
+                  <span style="color:var(--ac);font-weight:700">Near $1.35 ×2</span> sides + <span style="color:rgba(245,166,35,0.9);font-weight:700">Far $0.35 ×2</span> sides = <span style="color:var(--re);font-weight:700">$3.40 total risk</span><br>
+                  Gate: Near payout must be <b style="color:var(--ac)">≥152%</b> so any move outside the gap = profit.<br>
+                  Far leg is pure jackpot bonus — only pays on big spikes.
+                </div>
                 <div id="gm-spread-sw" class="on" style="display:none"></div>
               </div>
                 <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--ad);border:1px solid rgba(0,229,160,0.25);border-radius:var(--rs)">
@@ -5201,24 +5205,27 @@ function gmFetchProposals(){
 
   if(useSpread){
     // ── 4-LEG ATR POWER SPREAD ─────────────────────────────────────
-    // Near = 0.5× ATR  (high probability, lower payout)
-    // Far  = 1.5× ATR  (lower probability, high payout — aligns with current barrier)
+    // Near = 0.5×ATR capped at 0.10 to keep payout % high
+    // Far  = 1.5×ATR (jackpot bonus leg, min stake $0.35)
     var prices=getInd(GM.asset).prices;
     var n=prices.length;
     var atr5=0;
     if(n>=6){for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;}
-    if(atr5<=0)atr5=0.12; // fallback
+    if(atr5<=0)atr5=0.10; // fallback
 
     var nearOff=Math.max(0.02,parseFloat((atr5*0.5).toFixed(2)));
-    var farOff =Math.max(nearOff+0.02,parseFloat((atr5*1.5).toFixed(2)));
-    // Snap to 0.02 steps
+    // TIGHTEN: cap Near barrier at 0.10 so Deriv pays a higher % on it
+    nearOff=Math.min(0.10,nearOff);
     nearOff=Math.round(nearOff/0.02)*0.02;
-    farOff =Math.round(farOff /0.02)*0.02;
 
-    // Fixed optimized stakes: Near $1.15 × 2 sides + Far $0.35 × 2 sides = $3.00 total
-    var nearStake = 1.15;
+    var farOff=Math.max(nearOff+0.04,parseFloat((atr5*1.5).toFixed(2)));
+    farOff=Math.round(farOff/0.02)*0.02;
+
+    // Fixed stakes: Near $1.35 × 2 + Far $0.35 × 2 = $3.40 total risk
+    // At 152%+ payout, Near leg returns $1.35 × 2.52 = $3.40 → break-even or better
+    var nearStake = 1.35;
     var farStake  = 0.35;
-    var legStake  = nearStake; // used as fallback reference; actual per-leg below
+    var totalRiskTarget = (nearStake*2)+(farStake*2); // $3.40
 
     var rs=document.getElementById('gm-round-status');
     if(rs)rs.textContent='SPREAD PROBE...';
@@ -5227,8 +5234,8 @@ function gmFetchProposals(){
     var dp=entry>100?2:5;
     var cbLbl=document.getElementById('gm-call-barrier-lbl');
     var pbLbl=document.getElementById('gm-put-barrier-lbl');
-    if(cbLbl)cbLbl.textContent='Near $1.15 +'+nearOff.toFixed(2)+' / Far $0.35 +'+farOff.toFixed(2);
-    if(pbLbl)pbLbl.textContent='Near $1.15 -'+nearOff.toFixed(2)+' / Far $0.35 -'+farOff.toFixed(2);
+    if(cbLbl)cbLbl.textContent='Near $1.35 +'+nearOff.toFixed(2)+' / Far $0.35 +'+farOff.toFixed(2);
+    if(pbLbl)pbLbl.textContent='Near $1.35 -'+nearOff.toFixed(2)+' / Far $0.35 -'+farOff.toFixed(2);
 
     // Probe all 4 legs with their correct stakes
     var legs=[
@@ -5244,7 +5251,8 @@ function gmFetchProposals(){
       if(pid)S.pending[pid]={type:'gm_probe',gmSide:leg.side,
         probeEntry:entry,probeStake:leg.stake,probeOffset:leg.side.indexOf('Far')>=0?farOff:nearOff,
         probeBarrier:leg.barrier,isSpread:true,nearOff:nearOff,farOff:farOff,
-        isNearLeg:leg.side.indexOf('Near')>=0,nearStake:nearStake,farStake:farStake};
+        isNearLeg:leg.side.indexOf('Near')>=0,nearStake:nearStake,farStake:farStake,
+        totalRisk:totalRiskTarget};
     });
   } else {
     // ── ORIGINAL 2-LEG HEDGE ──────────────────────────────────────
@@ -5280,7 +5288,7 @@ var _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake
 var _gmSpreadProbe={callNear:null,callFar:null,putNear:null,putFar:null,
   callNearId:null,callFarId:null,putNearId:null,putFarId:null,
   callNearAsk:0,callFarAsk:0,putNearAsk:0,putFarAsk:0,
-  nearStake:1.15,farStake:0.35,entry:0,nearOff:0,farOff:0};
+  nearStake:1.35,farStake:0.35,entry:0,nearOff:0,farOff:0,totalRisk:3.40};
 
 function onGMProbe(proposal,pendInfo){
   if(!proposal||!proposal.id){
@@ -5297,11 +5305,12 @@ function onGMProbe(proposal,pendInfo){
     sp[pendInfo.gmSide]=payout;
     sp[pendInfo.gmSide+'Id']=proposal.id;
     sp[pendInfo.gmSide+'Ask']=ask;
-    sp.nearStake=pendInfo.nearStake||1.15;
+    sp.nearStake=pendInfo.nearStake||1.35;
     sp.farStake=pendInfo.farStake||0.35;
     sp.entry=pendInfo.probeEntry;
     sp.nearOff=pendInfo.nearOff;
     sp.farOff=pendInfo.farOff;
+    sp.totalRisk=pendInfo.totalRisk||3.40;
 
     // Update payout display
     var cEl=document.getElementById('gm-call-pay');
@@ -5313,34 +5322,52 @@ function onGMProbe(proposal,pendInfo){
     // Wait for all 4 probes
     if(!sp.callNear||!sp.callFar||!sp.putNear||!sp.putFar)return;
 
-    // Total risk = $1.15×2 (near sides) + $0.35×2 (far sides) = $3.00
-    var totalRisk=(sp.nearStake*2)+(sp.farStake*2);
-    // Near-only win net: nearPayout - totalRisk (e.g. $1.61 - $3.00 = -$1.39 ... acceptable)
-    // Both hit win net: (near+far payout) - totalRisk (best case)
-    var callNearNet=parseFloat((sp.callNear-totalRisk).toFixed(2));
-    var putNearNet=parseFloat((sp.putNear-totalRisk).toFixed(2));
-    var callBothNet=parseFloat((sp.callNear+sp.callFar-totalRisk).toFixed(2));
-    var putBothNet=parseFloat((sp.putNear+sp.putFar-totalRisk).toFixed(2));
-    // Gate: near payout must be at least $1.15 × 1.40 = $1.61 (140% payout check)
-    var nearPayoutOk=sp.callNear>=(sp.nearStake*1.35)&&sp.putNear>=(sp.nearStake*1.35);
-    var passes=nearPayoutOk;
+    var ns=sp.nearStake;  // $1.35
+    var fs=sp.farStake;   // $0.35
+    var totalRisk=sp.totalRisk; // $3.40
+
+    // ── 152% PAYOUT GATE ─────────────────────────────────────────
+    // Near payout rate = payout / stake (e.g. $3.44 / $1.35 = 2.55 = 155%)
+    // For break-even on Near-only win: nearPayout >= totalRisk
+    // So required rate >= totalRisk / nearStake = 3.40 / 1.35 = 2.519 (152%)
+    var callNearRate = sp.callNear / ns;
+    var putNearRate  = sp.putNear  / ns;
+    var minRate = totalRisk / ns; // dynamic break-even rate
+
+    var callPayoutOk = callNearRate >= minRate;
+    var putPayoutOk  = putNearRate  >= minRate;
+    var passes = callPayoutOk && putPayoutOk;
+
+    var actualRate = Math.min(callNearRate, putNearRate);
+    var callNetNearOnly = parseFloat((sp.callNear - totalRisk).toFixed(2));
+    var putNetNearOnly  = parseFloat((sp.putNear  - totalRisk).toFixed(2));
+    var callNetBoth     = parseFloat((sp.callNear+sp.callFar - totalRisk).toFixed(2));
+    var putNetBoth      = parseFloat((sp.putNear +sp.putFar  - totalRisk).toFixed(2));
 
     var gEl=document.getElementById('gm-gate-status');
-    if(gEl){gEl.textContent=passes?'✅ SPREAD':'❌ SKIP';gEl.style.color=passes?'var(--ac)':'var(--re)';}
+    if(gEl){
+      gEl.textContent=passes
+        ?'✅ '+(callNearRate*100).toFixed(0)+'%/'+(putNearRate*100).toFixed(0)+'%'
+        :'❌ need '+(minRate*100).toFixed(0)+'% got '+(actualRate*100).toFixed(0)+'%';
+      gEl.style.color=passes?'var(--ac)':'var(--re)';
+    }
     if(epEl){
       epEl.textContent=passes
-        ?'Near-only: '+callNearNet.toFixed(2)+' | Both: +$'+Math.max(callBothNet,putBothNet).toFixed(2)
-        :'Near payout <135% — skip';
+        ?'Near-only: '+(callNetNearOnly>=0?'+':'')+callNetNearOnly.toFixed(2)
+          +' | Both: +'+(Math.max(callNetBoth,putNetBoth)).toFixed(2)
+        :'Payout '+(actualRate*100).toFixed(0)+'%<'+(minRate*100).toFixed(0)+'% — skip';
       epEl.style.color=passes?'var(--ac)':'var(--re)';
     }
 
     if(!passes){
       GM._skipped=(GM._skipped||0)+1;
       GM._skipReasons.gate=(GM._skipReasons.gate||0)+1;
+      var rs2=document.getElementById('gm-round-status');
+      if(rs2)rs2.textContent='SKIP payout '+(actualRate*100).toFixed(0)+'%<'+(minRate*100).toFixed(0)+'% min';
       _gmSpreadProbe={callNear:null,callFar:null,putNear:null,putFar:null,
         callNearId:null,callFarId:null,putNearId:null,putFarId:null,
         callNearAsk:0,callFarAsk:0,putNearAsk:0,putFarAsk:0,
-        nearStake:1.15,farStake:0.35,entry:0,nearOff:0,farOff:0};
+        nearStake:1.35,farStake:0.35,entry:0,nearOff:0,farOff:0,totalRisk:3.40};
       return;
     }
 
@@ -5349,7 +5376,7 @@ function onGMProbe(proposal,pendInfo){
     _gmSpreadProbe={callNear:null,callFar:null,putNear:null,putFar:null,
       callNearId:null,callFarId:null,putNearId:null,putFarId:null,
       callNearAsk:0,callFarAsk:0,putNearAsk:0,putFarAsk:0,
-      nearStake:1.15,farStake:0.35,entry:0,nearOff:0,farOff:0};
+      nearStake:1.35,farStake:0.35,entry:0,nearOff:0,farOff:0,totalRisk:3.40};
     return;
   }
 
@@ -5427,7 +5454,7 @@ function gmPlaceSpread(sp){
   GM.lastRoundTime=Date.now();
 
   var entry=sp.entry;
-  var nearStake=sp.nearStake||1.15;
+  var nearStake=sp.nearStake||1.35;
   var farStake=sp.farStake||0.35;
   var totalStake=parseFloat(((nearStake*2)+(farStake*2)).toFixed(2));
   var snap=gmSnapshot(entry,sp.farOff,nearStake,sp.callNear+sp.callFar,sp.putNear+sp.putFar);
@@ -5493,7 +5520,7 @@ function gmPlaceSpread(sp){
 function gmForceSettleSpread(rid){
   var round=GM.pending[rid];
   if(!round)return;
-  var ns=round.nearStake||1.15;
+  var ns=round.nearStake||1.35;
   var fs=round.farStake||0.35;
   if(!round.results.callNear)round.results.callNear={profit:-ns,win:false};
   if(!round.results.callFar) round.results.callFar ={profit:-fs,win:false};
@@ -5508,7 +5535,7 @@ function gmSettleSpread(rid){
   r._settled=true;
   clearTimeout(r._timeout);
 
-  var ns=r.nearStake||1.15;
+  var ns=r.nearStake||1.35;
   var fs=r.farStake||0.35;
   var cn=r.results.callNear,cf=r.results.callFar,pn=r.results.putNear,pf=r.results.putFar;
   var cnP=cn?parseFloat(cn.profit||0):-ns;
