@@ -1028,9 +1028,9 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div style="font-size:11px;font-weight:700;color:var(--go)">⚡ 4-Leg Power Spread</div>
                   <span style="font-size:10px;font-weight:700;color:var(--go);background:rgba(245,166,35,0.2);padding:2px 8px;border-radius:99px;border:1px solid rgba(245,166,35,0.4)">ALWAYS ON</span>
                 </div>
-                <div style="font-size:9px;color:var(--t2);line-height:1.7">
+              <div style="font-size:9px;color:var(--t2);line-height:1.7">
                   <span style="color:var(--ac);font-weight:700">Near $1.35 ×2</span> sides + <span style="color:rgba(245,166,35,0.9);font-weight:700">Far $0.35 ×2</span> sides = <span style="color:var(--re);font-weight:700">$3.40 total risk</span><br>
-                  Gate: Near payout must be <b style="color:var(--ac)">≥152%</b> so any move outside the gap = profit.<br>
+                  Gate: Near ≥<b style="color:var(--ac)">210%</b> floor · Near-only loss ≤<b style="color:var(--ac)">$0.41</b> · Combined must beat $3.57.<br>
                   Far leg is pure jackpot bonus — only pays on big spikes.
                 </div>
                 <div id="gm-spread-sw" class="on" style="display:none"></div>
@@ -5326,36 +5326,55 @@ function onGMProbe(proposal,pendInfo){
     var fs=sp.farStake;   // $0.35
     var totalRisk=sp.totalRisk; // $3.40
 
-    // ── 152% PAYOUT GATE ─────────────────────────────────────────
-    // Near payout rate = payout / stake (e.g. $3.44 / $1.35 = 2.55 = 155%)
-    // For break-even on Near-only win: nearPayout >= totalRisk
-    // So required rate >= totalRisk / nearStake = 3.40 / 1.35 = 2.519 (152%)
+    // ── REALISTIC PAYOUT GATE ─────────────────────────────────────
+    // R_100 Vol180 typically pays 225-235% on Near legs — strict break-even
+    // at 252% would NEVER trade. Instead use a tiered gate:
+    //
+    // Tier 1 — IDEAL (Near-only = profit): nearPayout > totalRisk
+    // Tier 2 — ACCEPTABLE (Near-only = small loss, Far covers over time):
+    //           nearPayout > totalRisk * 0.88  (at most ~$0.41 loss on near-only win)
+    //           AND combined (near+far) > totalRisk * 1.05 (at least 5% profit if both hit)
+    // Tier 3 — SKIP: payout too weak to justify any entry
+    //
+    // Hard floor: never trade below 210% on Near leg
+    var HARD_FLOOR = 2.10; // 210% — absolute minimum, market too weak
+    var SOFT_MIN   = totalRisk * 0.88; // near-only loss tolerance: ~$0.41 max loss
+    var COMBO_MIN  = totalRisk * 1.05; // combined near+far must beat risk by 5%
+
     var callNearRate = sp.callNear / ns;
     var putNearRate  = sp.putNear  / ns;
-    var minRate = totalRisk / ns; // dynamic break-even rate
+    var actualRate   = Math.min(callNearRate, putNearRate);
 
-    var callPayoutOk = callNearRate >= minRate;
-    var putPayoutOk  = putNearRate  >= minRate;
-    var passes = callPayoutOk && putPayoutOk;
+    // Combined payout on the winning side (Near + Far same direction)
+    var callCombo = sp.callNear + sp.callFar;
+    var putCombo  = sp.putNear  + sp.putFar;
+    var bestCombo = Math.max(callCombo, putCombo);
 
-    var actualRate = Math.min(callNearRate, putNearRate);
+    var hardFloorOk  = actualRate >= HARD_FLOOR;
+    var softNearOk   = sp.callNear >= SOFT_MIN && sp.putNear >= SOFT_MIN;
+    var comboOk      = bestCombo >= COMBO_MIN;
+    var passes       = hardFloorOk && softNearOk && comboOk;
+
+    // Compute P&L scenarios for display
     var callNetNearOnly = parseFloat((sp.callNear - totalRisk).toFixed(2));
     var putNetNearOnly  = parseFloat((sp.putNear  - totalRisk).toFixed(2));
-    var callNetBoth     = parseFloat((sp.callNear+sp.callFar - totalRisk).toFixed(2));
-    var putNetBoth      = parseFloat((sp.putNear +sp.putFar  - totalRisk).toFixed(2));
+    var callNetBoth     = parseFloat((callCombo   - totalRisk).toFixed(2));
+    var putNetBoth      = parseFloat((putCombo    - totalRisk).toFixed(2));
 
     var gEl=document.getElementById('gm-gate-status');
-    if(gEl){
-      gEl.textContent=passes
-        ?'✅ '+(callNearRate*100).toFixed(0)+'%/'+(putNearRate*100).toFixed(0)+'%'
-        :'❌ need '+(minRate*100).toFixed(0)+'% got '+(actualRate*100).toFixed(0)+'%';
-      gEl.style.color=passes?'var(--ac)':'var(--re)';
-    }
+    var gateLabel = !hardFloorOk
+      ? '❌ floor '+(actualRate*100).toFixed(0)+'%<210%'
+      : !softNearOk
+        ? '❌ near $'+Math.min(sp.callNear,sp.putNear).toFixed(2)+'<$'+SOFT_MIN.toFixed(2)
+        : !comboOk
+          ? '❌ combo $'+bestCombo.toFixed(2)+'<$'+COMBO_MIN.toFixed(2)
+          : '✅ '+(callNearRate*100).toFixed(0)+'%/'+(putNearRate*100).toFixed(0)+'%';
+    if(gEl){gEl.textContent=gateLabel;gEl.style.color=passes?'var(--ac)':'var(--re)';}
     if(epEl){
       epEl.textContent=passes
-        ?'Near-only: '+(callNetNearOnly>=0?'+':'')+callNetNearOnly.toFixed(2)
+        ?'Near: '+(callNetNearOnly>=0?'+':'')+callNetNearOnly.toFixed(2)
           +' | Both: +'+(Math.max(callNetBoth,putNetBoth)).toFixed(2)
-        :'Payout '+(actualRate*100).toFixed(0)+'%<'+(minRate*100).toFixed(0)+'% — skip';
+        :gateLabel+' — skip';
       epEl.style.color=passes?'var(--ac)':'var(--re)';
     }
 
@@ -5363,7 +5382,7 @@ function onGMProbe(proposal,pendInfo){
       GM._skipped=(GM._skipped||0)+1;
       GM._skipReasons.gate=(GM._skipReasons.gate||0)+1;
       var rs2=document.getElementById('gm-round-status');
-      if(rs2)rs2.textContent='SKIP payout '+(actualRate*100).toFixed(0)+'%<'+(minRate*100).toFixed(0)+'% min';
+      if(rs2)rs2.textContent='SKIP: '+gateLabel;
       _gmSpreadProbe={callNear:null,callFar:null,putNear:null,putFar:null,
         callNearId:null,callFarId:null,putNearId:null,putFarId:null,
         callNearAsk:0,callFarAsk:0,putNearAsk:0,putFarAsk:0,
