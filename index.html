@@ -277,6 +277,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
       <div class="ni" onclick="showPage('bot',this)">Auto Bot</div>
       <div class="ni" onclick="showPage('barrier',this)">WinWin Hybrid</div>
       <div class="ni" onclick="showPage('gmilli',this)">&#9889; Gmilli</div>
+      <div class="ni" onclick="showPage('barrierlab',this)">&#128300; Barrier Lab</div>
       <div class="ns">Analysis</div>
       <div class="ni" onclick="showPage('history',this)">Trade History</div>
       <div class="ni" onclick="showPage('journal',this)">Journal</div>
@@ -1238,6 +1239,148 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         </div></div>
       </div>
 
+      <!-- ══ BARRIER LAB PAGE ══════════════════════════════════════ -->
+      <div class="page" id="page-barrierlab">
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div>
+            <div style="font-size:18px;font-weight:800;color:var(--t1)">🔬 Barrier Lab</div>
+            <div style="font-size:11px;color:var(--t2);margin-top:2px">Find which barrier gives you $282.52 return on $125 stake — live from Deriv</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div id="bl-conn-warn" style="font-size:11px;color:var(--re);display:none">⚠ Connect to Deriv first</div>
+            <button class="btn btnp" id="bl-run-btn" onclick="blRun()" style="padding:9px 20px;font-size:13px;font-weight:700">▶ Run Scan</button>
+            <button class="btn btng" onclick="blClear()" style="padding:9px 14px;font-size:12px">Clear</button>
+          </div>
+        </div>
+
+        <!-- Config strip -->
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:14px">
+          <div class="card" style="padding:12px">
+            <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Asset</div>
+            <select id="bl-asset" style="width:100%;background:var(--bg3);border:1px solid var(--bo2);color:var(--t1);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--fn)">
+              <option value="R_100">Volatility 100</option>
+              <option value="1HZ100V">Volatility 100 (1s)</option>
+              <option value="R_75">Volatility 75</option>
+              <option value="1HZ75V">Volatility 75 (1s)</option>
+              <option value="R_50">Volatility 50</option>
+              <option value="1HZ50V">Volatility 50 (1s)</option>
+              <option value="R_25">Volatility 25</option>
+              <option value="R_10">Volatility 10</option>
+            </select>
+          </div>
+          <div class="card" style="padding:12px">
+            <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Stake per side ($)</div>
+            <input type="number" id="bl-stake" value="125" step="1" min="0.35" style="width:100%;background:var(--bg3);border:1px solid var(--bo2);color:var(--t1);border-radius:6px;padding:6px 8px;font-size:13px;font-family:var(--mo);font-weight:700">
+          </div>
+          <div class="card" style="padding:12px">
+            <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Target profit ($)</div>
+            <input type="number" id="bl-target" value="32.52" step="0.01" min="0.01" style="width:100%;background:var(--bg3);border:1px solid var(--bo2);color:var(--t1);border-radius:6px;padding:6px 8px;font-size:13px;font-family:var(--mo);font-weight:700">
+          </div>
+          <div class="card" style="padding:12px">
+            <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Duration</div>
+            <select id="bl-dur" style="width:100%;background:var(--bg3);border:1px solid var(--bo2);color:var(--t1);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--fn)">
+              <option value="5t">5 Ticks</option>
+              <option value="10t">10 Ticks</option>
+              <option value="15t">15 Ticks</option>
+              <option value="1m">1 Minute</option>
+              <option value="5m">5 Minutes</option>
+            </select>
+          </div>
+          <div class="card" style="padding:12px">
+            <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Barrier range</div>
+            <div style="font-size:11px;color:var(--t2);font-family:var(--mo);margin-top:6px">0.50 → 12.00</div>
+            <div style="font-size:9px;color:var(--t3);margin-top:2px">24 steps × 0.50</div>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div id="bl-progress-wrap" style="display:none;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+            <span style="font-size:11px;color:var(--t2)" id="bl-progress-label">Scanning barriers...</span>
+            <span style="font-size:11px;color:var(--ac);font-family:var(--mo)" id="bl-progress-pct">0%</span>
+          </div>
+          <div style="background:var(--bg3);border-radius:99px;height:6px;overflow:hidden">
+            <div id="bl-progress-bar" style="height:100%;background:var(--ac);border-radius:99px;width:0%;transition:width .3s"></div>
+          </div>
+        </div>
+
+        <!-- Summary strip (shown after scan) -->
+        <div id="bl-summary" style="display:none;display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px">
+          <div class="card sc g" style="padding:12px">
+            <div class="sl">Best Barrier</div>
+            <div class="sv g" id="bl-best-barrier">--</div>
+            <div class="ss" id="bl-best-payout">-- return</div>
+          </div>
+          <div class="card sc g" style="padding:12px">
+            <div class="sl">Net Profit</div>
+            <div class="sv g" id="bl-best-net">--</div>
+            <div class="ss">on 1 winning side</div>
+          </div>
+          <div class="card sc b" style="padding:12px">
+            <div class="sl">Barriers ≥ target</div>
+            <div class="sv b" id="bl-pass-count">--</div>
+            <div class="ss" id="bl-pass-range">of 24 scanned</div>
+          </div>
+          <div class="card sc go" style="padding:12px">
+            <div class="sl">Recommended</div>
+            <div class="sv go" id="bl-recommended">--</div>
+            <div class="ss">tightest passing barrier</div>
+          </div>
+        </div>
+
+        <!-- Results table -->
+        <div class="card">
+          <div class="ch">
+            <div class="ct">📊 Barrier Scan Results — live payouts from Deriv</div>
+            <div style="font-size:10px;color:var(--t3)" id="bl-scan-time"></div>
+          </div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:12px" id="bl-table">
+              <thead>
+                <tr style="border-bottom:1px solid var(--bo)">
+                  <th style="padding:9px 14px;text-align:left;color:var(--t2);font-weight:600;font-size:10px;text-transform:uppercase">Barrier</th>
+                  <th style="padding:9px 14px;text-align:right;color:var(--ac);font-weight:600;font-size:10px;text-transform:uppercase">↑ HIGHER Return</th>
+                  <th style="padding:9px 14px;text-align:right;color:var(--re);font-weight:600;font-size:10px;text-transform:uppercase">↓ LOWER Return</th>
+                  <th style="padding:9px 14px;text-align:right;color:var(--t2);font-weight:600;font-size:10px;text-transform:uppercase">Avg Return</th>
+                  <th style="padding:9px 14px;text-align:right;color:var(--t2);font-weight:600;font-size:10px;text-transform:uppercase">Net Profit</th>
+                  <th style="padding:9px 14px;text-align:right;color:var(--t2);font-weight:600;font-size:10px;text-transform:uppercase">Payout %</th>
+                  <th style="padding:9px 14px;text-align:center;color:var(--t2);font-weight:600;font-size:10px;text-transform:uppercase">Status</th>
+                </tr>
+              </thead>
+              <tbody id="bl-tbody">
+                <tr><td colspan="7" style="padding:40px;text-align:center;color:var(--t3)">Connect to Deriv and click Run Scan to fetch live payouts</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Math explainer -->
+        <div class="card" style="margin-top:12px">
+          <div class="ch"><div class="ct">📐 The Math — why $282.52?</div></div>
+          <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:12px">
+            <div>
+              <div style="color:var(--t2);font-size:10px;text-transform:uppercase;margin-bottom:7px">Total Risk</div>
+              <div style="font-family:var(--mo);color:var(--re);font-size:16px;font-weight:700" id="bl-math-risk">$250.00</div>
+              <div style="color:var(--t3);font-size:10px;margin-top:3px">$125 HIGHER + $125 LOWER</div>
+            </div>
+            <div>
+              <div style="color:var(--t2);font-size:10px;text-transform:uppercase;margin-bottom:7px">Required Return</div>
+              <div style="font-family:var(--mo);color:var(--go);font-size:16px;font-weight:700" id="bl-math-required">$282.52</div>
+              <div style="color:var(--t3);font-size:10px;margin-top:3px">total risk + target profit</div>
+            </div>
+            <div>
+              <div style="color:var(--t2);font-size:10px;text-transform:uppercase;margin-bottom:7px">Required Payout %</div>
+              <div style="font-family:var(--mo);color:var(--ac);font-size:16px;font-weight:700" id="bl-math-pct">126.01%</div>
+              <div style="color:var(--t3);font-size:10px;margin-top:3px">required / stake per side</div>
+            </div>
+          </div>
+          <div style="padding:0 16px 14px;font-size:11px;color:var(--t2);line-height:1.7;border-top:1px solid var(--bo);padding-top:12px">
+            <b style="color:var(--t1)">How it works:</b> You place $<span id="bl-explain-stake">125</span> on HIGHER and $<span id="bl-explain-stake2">125</span> on LOWER simultaneously at the same barrier offset. One side always wins. The winning side must return more than <b style="color:var(--go)">$<span id="bl-explain-required">282.52</span></b> to cover both stakes and pocket the target profit. The only losing scenario is a GAP — price stays between the barriers and both sides lose.
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -1559,6 +1702,13 @@ function onProposal(proposal, reqId){
 
   // Route HB proposals to dual-trade handler
   if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
+  // Barrier Lab intercept
+  if(BL.pending[reqId]){
+    var _ask=parseFloat(proposal.ask_price||proposal.spot||0);
+    var _pay=parseFloat(proposal.payout||0);
+    blOnProposal(reqId,proposal,_ask,_pay);
+    delete S.pending[reqId];return;
+  }
   if(p.type==='gm_probe'){onGMProbe(proposal,p);delete S.pending[reqId];return;}
 }
 
@@ -6947,6 +7097,309 @@ function gmUpdateWalls(price){
 
 // END GMILLI BOT
 
+// ══════════════════════════════════════════════════════════════
+// BARRIER LAB — live barrier scanner
+// Tests barriers 0.05 → 1.20 (step 0.05) via real Deriv proposals
+// Finds which offset gives winning return > stake + target profit
+// ══════════════════════════════════════════════════════════════
+
+var BL = {
+  running: false,
+  pending: {},      // reqId → {barrier, side}
+  results: {},      // barrier → {call:payout, put:payout}
+  barriers: [],     // list of offsets to test
+  total: 0,
+  done: 0
+};
+
+// Generate barrier steps 0.50 → 12.00 in 0.50 increments (24 steps)
+function blBarriers() {
+  var list = [];
+  for (var v = 0.50; v <= 12.01; v = Math.round((v + 0.50) * 100) / 100) {
+    list.push(parseFloat(v.toFixed(2)));
+  }
+  return list; // 24 values: 0.50, 1.00, 1.50 ... 12.00
+}
+
+function blParseDur(val) {
+  // Returns {dur, unit} from select value like "5t", "1m"
+  if (!val) return {dur:5, unit:'t'};
+  if (val.endsWith('t')) return {dur:parseInt(val), unit:'t'};
+  if (val.endsWith('m')) return {dur:parseInt(val)*60, unit:'s'};
+  return {dur:5, unit:'t'};
+}
+
+function blUpdateMath() {
+  var stake  = parseFloat(document.getElementById('bl-stake').value)  || 125;
+  var target = parseFloat(document.getElementById('bl-target').value) || 32.52;
+  var totalRisk = stake * 2;
+  var required  = totalRisk + target;
+  var pct       = (required / stake * 100).toFixed(2);
+  var set = function(id, v){ var e=document.getElementById(id); if(e) e.textContent=v; };
+  set('bl-math-risk',     '$' + totalRisk.toFixed(2));
+  set('bl-math-required', '$' + required.toFixed(2));
+  set('bl-math-pct',      pct + '%');
+  set('bl-explain-stake',    stake.toFixed(2));
+  set('bl-explain-stake2',   stake.toFixed(2));
+  set('bl-explain-required', required.toFixed(2));
+}
+
+function blRun() {
+  if (!S.ws || S.ws.readyState !== 1) {
+    document.getElementById('bl-conn-warn').style.display = 'block';
+    notify('Barrier Lab', 'Connect to Deriv first', 'loss');
+    return;
+  }
+  document.getElementById('bl-conn-warn').style.display = 'none';
+
+  if (BL.running) {
+    notify('Barrier Lab', 'Scan already running...', 'loss');
+    return;
+  }
+
+  blUpdateMath();
+  BL.running = true;
+  BL.pending = {};
+  BL.results = {};
+  BL.done    = 0;
+  BL.barriers = blBarriers();
+  BL.total    = BL.barriers.length * 2; // CALL + PUT per barrier
+
+  var btn = document.getElementById('bl-run-btn');
+  if (btn) { btn.textContent = '⏳ Scanning...'; btn.disabled = true; }
+
+  var pw = document.getElementById('bl-progress-wrap');
+  if (pw) pw.style.display = 'block';
+  blSetProgress(0, 'Sending ' + BL.barriers.length + ' barrier probes...');
+
+  // Clear table
+  var tbody = document.getElementById('bl-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding:30px;text-align:center;color:var(--t3)">⏳ Fetching live payouts...</td></tr>';
+
+  var sumEl = document.getElementById('bl-summary');
+  if (sumEl) sumEl.style.display = 'none';
+
+  var asset  = document.getElementById('bl-asset').value || 'R_100';
+  var stake  = parseFloat(document.getElementById('bl-stake').value) || 125;
+  var durSel = document.getElementById('bl-dur').value || '5t';
+  var durObj = blParseDur(durSel);
+
+  // Fire all proposals
+  BL.barriers.forEach(function(offset) {
+    BL.results[offset] = {call: null, put: null, callAsk: 0, putAsk: 0};
+
+    var cp = wsSend({
+      proposal: 1, amount: stake, basis: 'stake',
+      contract_type: 'CALL', currency: S.currency,
+      duration: durObj.dur, duration_unit: durObj.unit,
+      symbol: asset, barrier: '+' + offset.toFixed(2)
+    });
+    if (cp) BL.pending[cp] = {barrier: offset, side: 'call'};
+
+    var pp = wsSend({
+      proposal: 1, amount: stake, basis: 'stake',
+      contract_type: 'PUT', currency: S.currency,
+      duration: durObj.dur, duration_unit: durObj.unit,
+      symbol: asset, barrier: '-' + offset.toFixed(2)
+    });
+    if (pp) BL.pending[pp] = {barrier: offset, side: 'put'};
+  });
+
+  // Safety timeout — render whatever we have after 18s
+  setTimeout(function() {
+    if (BL.running) {
+      BL.running = false;
+      blRender();
+      blFinish('⚠ Timeout — partial results');
+    }
+  }, 18000);
+}
+
+function blOnProposal(reqId, proposal, ask, payout) {
+  if (!BL.running) return;
+  var info = BL.pending[reqId];
+  if (!info) return;
+
+  var r = BL.results[info.barrier];
+  if (!r) return;
+
+  if (info.side === 'call') {
+    r.call    = payout;
+    r.callAsk = ask;
+  } else {
+    r.put    = payout;
+    r.putAsk = ask;
+  }
+
+  BL.done++;
+  var pct = Math.round(BL.done / BL.total * 100);
+  blSetProgress(pct, 'Received ' + BL.done + ' / ' + BL.total + ' quotes...');
+
+  // Both sides received for this barrier — render its row immediately
+  if (r.call !== null && r.put !== null) {
+    blRenderRow(info.barrier, r);
+  }
+
+  if (BL.done >= BL.total) {
+    BL.running = false;
+    blRender();     // full re-render with sorting
+    blFinish('✅ Scan complete — ' + BL.barriers.length + ' barriers tested');
+  }
+}
+
+function blSetProgress(pct, label) {
+  var bar = document.getElementById('bl-progress-bar');
+  var lbl = document.getElementById('bl-progress-label');
+  var num = document.getElementById('bl-progress-pct');
+  if (bar) bar.style.width = pct + '%';
+  if (lbl) lbl.textContent = label;
+  if (num) num.textContent = pct + '%';
+}
+
+function blFinish(msg) {
+  var btn = document.getElementById('bl-run-btn');
+  if (btn) { btn.textContent = '▶ Run Scan'; btn.disabled = false; }
+  blSetProgress(100, msg);
+  document.getElementById('bl-scan-time').textContent = 'Scanned ' + new Date().toLocaleTimeString();
+}
+
+function blRenderRow(barrier, r) {
+  // Live row update — adds/updates a single row while scan is running
+  var stake  = parseFloat(document.getElementById('bl-stake').value)  || 125;
+  var target = parseFloat(document.getElementById('bl-target').value) || 32.52;
+  var totalRisk = stake * 2;
+  var required  = totalRisk + target;
+
+  var tbody = document.getElementById('bl-tbody');
+  if (!tbody) return;
+
+  // Remove placeholder row if present
+  var placeholder = tbody.querySelector('tr[data-placeholder]');
+  if (placeholder) placeholder.remove();
+
+  var callPay = r.call || 0;
+  var putPay  = r.put  || 0;
+  var avgPay  = (callPay + putPay) / 2;
+  var net     = avgPay - totalRisk;
+  var pct     = (avgPay / stake * 100).toFixed(1);
+  var passes  = callPay > required && putPay > required;
+  var partial = (callPay > required || putPay > required) && !passes;
+
+  var rowId = 'bl-row-' + (barrier * 100).toFixed(0);
+  var existing = document.getElementById(rowId);
+
+  var statusHtml = passes
+    ? '<span style="color:var(--ac);font-weight:700;background:var(--ad);padding:2px 8px;border-radius:99px;font-size:10px">✅ PASS</span>'
+    : partial
+      ? '<span style="color:var(--go);font-weight:700;background:var(--gd);padding:2px 8px;border-radius:99px;font-size:10px">⚡ PARTIAL</span>'
+      : '<span style="color:var(--re);font-weight:700;background:var(--rd);padding:2px 8px;border-radius:99px;font-size:10px">❌ LOW</span>';
+
+  var rowStyle = passes
+    ? 'background:rgba(0,229,160,0.06);border-left:3px solid var(--ac)'
+    : partial
+      ? 'background:rgba(245,166,35,0.05);border-left:3px solid var(--go)'
+      : '';
+
+  var html = '<tr id="' + rowId + '" style="border-bottom:1px solid var(--bo);' + rowStyle + '">'
+    + '<td style="padding:9px 14px;font-family:var(--mo);font-weight:700;font-size:13px">±' + barrier.toFixed(2) + '</td>'
+    + '<td style="padding:9px 14px;text-align:right;font-family:var(--mo);color:' + (callPay > required ? 'var(--ac)' : 'var(--t2)') + '">'
+      + (callPay > 0 ? '$' + callPay.toFixed(2) : '…') + '</td>'
+    + '<td style="padding:9px 14px;text-align:right;font-family:var(--mo);color:' + (putPay > required ? 'var(--ac)' : 'var(--t2)') + '">'
+      + (putPay > 0 ? '$' + putPay.toFixed(2) : '…') + '</td>'
+    + '<td style="padding:9px 14px;text-align:right;font-family:var(--mo);color:var(--t1)">'
+      + (avgPay > 0 ? '$' + avgPay.toFixed(2) : '…') + '</td>'
+    + '<td style="padding:9px 14px;text-align:right;font-family:var(--mo);font-weight:700;color:' + (net >= target ? 'var(--ac)' : net > 0 ? 'var(--go)' : 'var(--re)') + '">'
+      + (avgPay > 0 ? (net >= 0 ? '+' : '') + '$' + net.toFixed(2) : '…') + '</td>'
+    + '<td style="padding:9px 14px;text-align:right;font-family:var(--mo);color:var(--t2)">'
+      + (avgPay > 0 ? pct + '%' : '…') + '</td>'
+    + '<td style="padding:9px 14px;text-align:center">' + statusHtml + '</td>'
+    + '</tr>';
+
+  if (existing) {
+    existing.outerHTML = html;
+  } else {
+    tbody.insertAdjacentHTML('beforeend', html);
+  }
+}
+
+function blRender() {
+  // Full re-render sorted by barrier (ascending) with summary
+  var stake  = parseFloat(document.getElementById('bl-stake').value)  || 125;
+  var target = parseFloat(document.getElementById('bl-target').value) || 32.52;
+  var totalRisk = stake * 2;
+  var required  = totalRisk + target;
+
+  var rows = [];
+  BL.barriers.forEach(function(b) {
+    var r = BL.results[b];
+    if (!r || r.call === null || r.put === null) return;
+    rows.push({barrier: b, call: r.call, put: r.put});
+  });
+
+  rows.sort(function(a,b){ return a.barrier - b.barrier; });
+
+  var tbody = document.getElementById('bl-tbody');
+  if (tbody) {
+    tbody.innerHTML = '';
+    rows.forEach(function(row){ blRenderRow(row.barrier, {call:row.call, put:row.put}); });
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr data-placeholder="1"><td colspan="7" style="padding:30px;text-align:center;color:var(--t3)">No results yet</td></tr>';
+    }
+  }
+
+  // Build summary
+  var passing = rows.filter(function(r){ return r.call > required && r.put > required; });
+  var bestNet = -999, bestBarrier = null, bestCall = 0, bestPut = 0;
+  rows.forEach(function(r){
+    var avg = (r.call + r.put) / 2;
+    var net = avg - totalRisk;
+    if (net > bestNet) { bestNet = net; bestBarrier = r.barrier; bestCall = r.call; bestPut = r.put; }
+  });
+
+  var set = function(id, v){ var e=document.getElementById(id); if(e) e.textContent=v; };
+  var sumEl = document.getElementById('bl-summary');
+  if (sumEl) sumEl.style.display = 'grid';
+
+  if (bestBarrier !== null) {
+    set('bl-best-barrier', '±' + bestBarrier.toFixed(2));
+    set('bl-best-payout',  '$' + ((bestCall+bestPut)/2).toFixed(2) + ' avg return');
+    set('bl-best-net',     (bestNet >= 0 ? '+' : '') + '$' + bestNet.toFixed(2));
+    set('bl-pass-count',   passing.length);
+    set('bl-pass-range',   'of ' + rows.length + ' scanned');
+    // Recommended = tightest (smallest) barrier that passes
+    var rec = passing.length > 0
+      ? passing.reduce(function(a,b){ return a.barrier < b.barrier ? a : b; })
+      : null;
+    set('bl-recommended', rec ? '±' + rec.barrier.toFixed(2) : 'None — raise stake');
+  }
+}
+
+function blClear() {
+  BL.running = false;
+  BL.pending = {};
+  BL.results = {};
+  BL.done    = 0;
+  var tbody = document.getElementById('bl-tbody');
+  if (tbody) tbody.innerHTML = '<tr data-placeholder="1"><td colspan="7" style="padding:40px;text-align:center;color:var(--t3)">Connect to Deriv and click Run Scan to fetch live payouts</td></tr>';
+  var sumEl = document.getElementById('bl-summary');
+  if (sumEl) sumEl.style.display = 'none';
+  var pw = document.getElementById('bl-progress-wrap');
+  if (pw) pw.style.display = 'none';
+  blSetProgress(0, '');
+  var btn = document.getElementById('bl-run-btn');
+  if (btn) { btn.textContent = '▶ Run Scan'; btn.disabled = false; }
+  document.getElementById('bl-scan-time').textContent = '';
+}
+
+// Hook into the WS proposal handler — called from existing onProposal handler
+function blHandleProposal(reqId, proposal, ask, payout) {
+  if (BL.pending[reqId]) {
+    blOnProposal(reqId, proposal, ask, payout);
+    delete S.pending[reqId]; // don't let main handler also process it
+  }
+}
+
+// ══ END BARRIER LAB ══════════════════════════════════════════
 
 
 </script>
