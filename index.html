@@ -1689,6 +1689,16 @@ function onContractsFor(data){
 
 function onProposal(proposal, reqId){
   if(!proposal) return;
+
+  // ── Barrier Lab intercept — check FIRST before S.pending lookup ──
+  // BL stores its own reqIds in BL.pending; route directly if matched
+  if(BL.pending[reqId]){
+    var _ask=parseFloat(proposal.ask_price||proposal.spot||0);
+    var _pay=parseFloat(proposal.payout||0);
+    blOnProposal(reqId,proposal,_ask,_pay);
+    return;
+  }
+
   var p = S.pending[reqId];
   if(!p) return;
   delete S.pending[reqId];
@@ -1702,14 +1712,7 @@ function onProposal(proposal, reqId){
 
   // Route HB proposals to dual-trade handler
   if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
-  // Barrier Lab intercept
-  if(BL.pending[reqId]){
-    var _ask=parseFloat(proposal.ask_price||proposal.spot||0);
-    var _pay=parseFloat(proposal.payout||0);
-    blOnProposal(reqId,proposal,_ask,_pay);
-    delete S.pending[reqId];return;
-  }
-  if(p.type==='gm_probe'){onGMProbe(proposal,p);delete S.pending[reqId];return;}
+  if(p.type==='gm_probe'){onGMProbe(proposal,p);return;}
 }
 
 function onAuth(a) {
