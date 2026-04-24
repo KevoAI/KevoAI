@@ -1289,8 +1289,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           </div>
           <div class="card" style="padding:12px">
             <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Barrier range</div>
-            <div style="font-size:11px;color:var(--t2);font-family:var(--mo);margin-top:6px">0.50 → 12.00</div>
-            <div style="font-size:9px;color:var(--t3);margin-top:2px">24 steps × 0.50 · ~14s scan</div>
+            <div style="font-size:11px;color:var(--t2);font-family:var(--mo);margin-top:6px">0.05 → 0.50</div>
+            <div style="font-size:9px;color:var(--t3);margin-top:2px">10 steps × 0.05 · ~8s scan</div>
           </div>
         </div>
 
@@ -1320,7 +1320,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           <div class="card sc b" style="padding:12px">
             <div class="sl">Barriers ≥ target</div>
             <div class="sv b" id="bl-pass-count">--</div>
-            <div class="ss" id="bl-pass-range">of 24 scanned</div>
+            <div class="ss" id="bl-pass-range">of 10 scanned</div>
           </div>
           <div class="card sc go" style="padding:12px">
             <div class="sl">Recommended</div>
@@ -1333,11 +1333,14 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         <div class="card">
           <div class="ch">
             <div class="ct">📊 Barrier Scan Results — live payouts from Deriv</div>
-            <div style="font-size:10px;color:var(--t3)" id="bl-scan-time"></div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:10px;color:var(--t3)" id="bl-scan-time"></div>
+              <div style="font-size:10px;color:var(--t2)">Tight barriers 0.05–0.50 · real payout data only</div>
+            </div>
           </div>
-          <div style="overflow-x:auto">
+          <div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 420px);min-height:260px">
             <table style="width:100%;border-collapse:collapse;font-size:12px" id="bl-table">
-              <thead>
+              <thead style="position:sticky;top:0;background:var(--bg2);z-index:10">
                 <tr style="border-bottom:1px solid var(--bo)">
                   <th style="padding:9px 14px;text-align:left;color:var(--t2);font-weight:600;font-size:10px;text-transform:uppercase">Barrier</th>
                   <th style="padding:9px 14px;text-align:right;color:var(--ac);font-weight:600;font-size:10px;text-transform:uppercase">↑ HIGHER Return</th>
@@ -7116,13 +7119,13 @@ var BL = {
   done: 0
 };
 
-// Generate barrier steps 0.50 → 12.00 in 0.50 increments (24 steps)
+// Generate barrier steps 0.05 → 0.50 in 0.05 increments (10 steps)
 function blBarriers() {
   var list = [];
-  for (var v = 0.50; v <= 12.01; v = Math.round((v + 0.50) * 100) / 100) {
+  for (var v = 0.05; v <= 0.51; v = Math.round((v + 0.05) * 100) / 100) {
     list.push(parseFloat(v.toFixed(2)));
   }
-  return list; // 24 values: 0.50, 1.00, 1.50 ... 12.00
+  return list; // 10 values: 0.05, 0.10, 0.15 ... 0.50
 }
 
 function blParseDur(val) {
