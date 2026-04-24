@@ -1290,7 +1290,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           <div class="card" style="padding:12px">
             <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Barrier range</div>
             <div style="font-size:11px;color:var(--t2);font-family:var(--mo);margin-top:6px">0.50 → 12.00</div>
-            <div style="font-size:9px;color:var(--t3);margin-top:2px">24 steps × 0.50</div>
+            <div style="font-size:9px;color:var(--t3);margin-top:2px">24 steps × 0.50 · ~14s scan</div>
           </div>
         </div>
 
@@ -3656,9 +3656,10 @@ function showPage(id,navEl){if(id==='gmilli'){setTimeout(function(){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
   document.getElementById('page-'+id).classList.add('active');
   if(navEl)navEl.classList.add('active');
-  var T={dashboard:'Dashboard',trade:'Trade',bot:'Auto Bot',barrier:'WinWin Hybrid',gmilli:'Gmilli Bot',differs:'Differs Bot',vbot:'Volatility Bot',history:'Trade History',journal:'Journal',analytics:'Analytics',settings:'Settings'};
-  var Sub={dashboard:'Overview',trade:'Manual Trading',bot:'Automated Trading',barrier:'WinWin 2-Contract Strategy',differs:'Digit Prediction',history:'All Trades',journal:'Detailed Log',analytics:'Performance',settings:'Configuration'};
-  document.getElementById('ptitle').innerHTML=T[id]+' <span>'+(Sub[id]||'')+'</span>';
+  var T={dashboard:'Dashboard',trade:'Trade',bot:'Auto Bot',barrier:'WinWin Hybrid',gmilli:'Gmilli Bot',differs:'Differs Bot',vbot:'Volatility Bot',history:'Trade History',journal:'Journal',analytics:'Analytics',settings:'Settings',barrierlab:'Barrier Lab'};
+  var Sub={dashboard:'Overview',trade:'Manual Trading',bot:'Automated Trading',barrier:'WinWin 2-Contract Strategy',differs:'Digit Prediction',history:'All Trades',journal:'Detailed Log',analytics:'Performance',settings:'Configuration',barrierlab:'Live Payout Scanner'};
+  document.getElementById('ptitle').innerHTML=(T[id]||id)+' <span>'+(Sub[id]||'')+'</span>';
+  if(id==='barrierlab'){blUpdateMath();}
   if(id==='analytics')updAnalytics();
   if(id==='history')rendHist('all');
   if(id==='journal')renderJournal('all');
@@ -7170,7 +7171,7 @@ function blRun() {
 
   var pw = document.getElementById('bl-progress-wrap');
   if (pw) pw.style.display = 'block';
-  blSetProgress(0, 'Sending ' + BL.barriers.length + ' barrier probes...');
+  blSetProgress(0, 'Starting scan — sending probes in batches of 4 (450ms apart)...');
 
   // Clear table
   var tbody = document.getElementById('bl-tbody');
@@ -7184,35 +7185,56 @@ function blRun() {
   var durSel = document.getElementById('bl-dur').value || '5t';
   var durObj = blParseDur(durSel);
 
-  // Fire all proposals
+  // Build the full list of requests [{barrier, side, barrierStr}]
+  var allRequests = [];
   BL.barriers.forEach(function(offset) {
     BL.results[offset] = {call: null, put: null, callAsk: 0, putAsk: 0};
-
-    var cp = wsSend({
-      proposal: 1, amount: stake, basis: 'stake',
-      contract_type: 'CALL', currency: S.currency,
-      duration: durObj.dur, duration_unit: durObj.unit,
-      symbol: asset, barrier: '+' + offset.toFixed(2)
-    });
-    if (cp) BL.pending[cp] = {barrier: offset, side: 'call'};
-
-    var pp = wsSend({
-      proposal: 1, amount: stake, basis: 'stake',
-      contract_type: 'PUT', currency: S.currency,
-      duration: durObj.dur, duration_unit: durObj.unit,
-      symbol: asset, barrier: '-' + offset.toFixed(2)
-    });
-    if (pp) BL.pending[pp] = {barrier: offset, side: 'put'};
+    allRequests.push({barrier: offset, side: 'call', barrierStr: '+' + offset.toFixed(2)});
+    allRequests.push({barrier: offset, side: 'put',  barrierStr: '-' + offset.toFixed(2)});
   });
 
-  // Safety timeout — render whatever we have after 18s
+  // Send in batches of 4 with 450ms gap — prevents Deriv WS from dropping proposals
+  var BATCH_SIZE = 4;
+  var BATCH_DELAY = 450; // ms between batches
+  var batchIndex = 0;
+
+  function sendNextBatch() {
+    if (!BL.running) return; // scan was cancelled
+    var batch = allRequests.slice(batchIndex, batchIndex + BATCH_SIZE);
+    if (batch.length === 0) return;
+
+    batch.forEach(function(req) {
+      var contractType = req.side === 'call' ? 'CALL' : 'PUT';
+      var pid = wsSend({
+        proposal: 1, amount: stake, basis: 'stake',
+        contract_type: contractType, currency: S.currency,
+        duration: durObj.dur, duration_unit: durObj.unit,
+        symbol: asset, barrier: req.barrierStr
+      });
+      if (pid) BL.pending[pid] = {barrier: req.barrier, side: req.side};
+    });
+
+    batchIndex += BATCH_SIZE;
+    var pct = Math.round(batchIndex / allRequests.length * 50); // first 50% = sending phase
+    blSetProgress(pct, 'Sent ' + Math.min(batchIndex, allRequests.length) + ' / ' + allRequests.length + ' probes...');
+
+    if (batchIndex < allRequests.length) {
+      setTimeout(sendNextBatch, BATCH_DELAY);
+    } else {
+      blSetProgress(50, 'All probes sent — waiting for Deriv quotes...');
+    }
+  }
+
+  sendNextBatch();
+
+  // Safety timeout — render whatever we have after 30s (longer to allow batching)
   setTimeout(function() {
     if (BL.running) {
       BL.running = false;
       blRender();
-      blFinish('⚠ Timeout — partial results');
+      blFinish('⚠ Timeout — partial results (' + BL.done + '/' + BL.total + ')');
     }
-  }, 18000);
+  }, 30000);
 }
 
 function blOnProposal(reqId, proposal, ask, payout) {
@@ -7232,7 +7254,7 @@ function blOnProposal(reqId, proposal, ask, payout) {
   }
 
   BL.done++;
-  var pct = Math.round(BL.done / BL.total * 100);
+  var pct = 50 + Math.round(BL.done / BL.total * 50); // receive phase = 50→100%
   blSetProgress(pct, 'Received ' + BL.done + ' / ' + BL.total + ' quotes...');
 
   // Both sides received for this barrier — render its row immediately
