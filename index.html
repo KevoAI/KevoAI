@@ -5087,16 +5087,17 @@ function gmStakeGrid(changed){
   gmCalc();
 }
 
-
-  // Shield stake formula
-  var budget=parseFloat(document.getElementById('gm-budget').value)||4.60;
-  var FAR_MIN=0.35;
-  var farStake=FAR_MIN;
-  var nearStake=parseFloat(((budget/2)-farStake).toFixed(2));
-  if(nearStake<FAR_MIN)nearStake=FAR_MIN;
-  var totalRisk=parseFloat(((nearStake+farStake)*2).toFixed(2));
-
-  var stake=gmStake(); // kept for 2-leg path compat
+function gmCalc(){
+  // Read stakes from grid
+  var h1Stake = parseFloat((document.getElementById('gm-h1-stake')||{value:'1.95'}).value)||1.95;
+  var h2Stake = parseFloat((document.getElementById('gm-h2-stake')||{value:'0.35'}).value)||0.35;
+  var l1Stake = parseFloat((document.getElementById('gm-l1-stake')||{value:'1.95'}).value)||1.95;
+  var l2Stake = parseFloat((document.getElementById('gm-l2-stake')||{value:'0.35'}).value)||0.35;
+  var nearStake = h1Stake;
+  var farStake  = h2Stake;
+  var budget    = parseFloat(((h1Stake+h2Stake+l1Stake+l2Stake)).toFixed(2));
+  var totalRisk = budget;
+  var stake     = gmStake();
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
   var offset=gmAdaptiveOffset();
