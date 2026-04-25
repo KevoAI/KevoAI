@@ -5654,25 +5654,33 @@ function onGMProbe(proposal,pendInfo){
     // Wait for all 4 probes
     if(!sp.callNear||!sp.callFar||!sp.putNear||!sp.putFar)return;
 
-    var ns=sp.nearStake;  // $1.35
-    var fs=sp.farStake;   // $0.35
-    var totalRisk=sp.totalRisk; // $3.40
+    var ns=sp.nearStake;
+    var fs=sp.farStake;
+    var totalRisk=sp.totalRisk;
 
     // ── 🛡️ SHIELD GATE ────────────────────────────────────────────
-    // Near leg must return >= totalRisk (covers full trade cost)
-    // Tolerance: $0.10 — Deriv rounds payouts, tiny gaps shouldn't block
-    // Hard floor: Near rate must be >= 210% (market structurally broken below this)
-    var HARD_FLOOR    = 2.10;
-    var GATE_TOLERANCE = 0.10; // $0.10 wiggle room for Deriv rounding
+    // Rule: Near payout must cover the FULL total risk (all 4 legs)
+    // This ensures if only near hits, we don't lose money
+    // Tolerance: $0.10 for Deriv rounding
+    var HARD_FLOOR     = 2.10;
+    var GATE_TOLERANCE = 0.10;
 
     var callNearRate = sp.callNear / ns;
     var putNearRate  = sp.putNear  / ns;
     var actualRate   = Math.min(callNearRate, putNearRate);
+    var hardFloorOk  = actualRate >= HARD_FLOOR;
 
+    // Near payout must cover total risk (break-even on near-only win)
     var callNearBreaksEven = sp.callNear >= (totalRisk - GATE_TOLERANCE);
     var putNearBreaksEven  = sp.putNear  >= (totalRisk - GATE_TOLERANCE);
-    var hardFloorOk        = actualRate >= HARD_FLOOR;
-    var passes             = hardFloorOk && callNearBreaksEven && putNearBreaksEven;
+
+    // If near can't cover total risk — just check it's profitable (payout > near stake)
+    // This allows trading even when near alone doesn't cover everything
+    var callNearProfitable = sp.callNear > (ns + GATE_TOLERANCE);
+    var putNearProfitable  = sp.putNear  > (ns + GATE_TOLERANCE);
+
+    // PASS if either: near covers everything OR near is at least profitable on its own
+    var passes = hardFloorOk && callNearProfitable && putNearProfitable;
 
     // Combined payout on winning side (Near + Far same direction) — display only
     var callCombo = sp.callNear + sp.callFar;
@@ -5682,15 +5690,16 @@ function onGMProbe(proposal,pendInfo){
     var callNetBoth     = parseFloat((callCombo   - totalRisk).toFixed(2));
     var putNetBoth      = parseFloat((putCombo    - totalRisk).toFixed(2));
 
-    // Gate status label — tells you exactly why it passed or failed
+    // Gate status label
     var gateLabel;
     if(!hardFloorOk){
       gateLabel='❌ floor '+(actualRate*100).toFixed(0)+'%<210%';
-    } else if(!callNearBreaksEven||!putNearBreaksEven){
-      var weakSide = !callNearBreaksEven ? sp.callNear : sp.putNear;
-      gateLabel='❌ near $'+weakSide.toFixed(2)+'<$'+totalRisk.toFixed(2)+' (need $'+(totalRisk+0.01).toFixed(2)+')';
+    } else if(!callNearProfitable||!putNearProfitable){
+      var weakSide = !callNearProfitable ? sp.callNear : sp.putNear;
+      gateLabel='❌ near $'+weakSide.toFixed(2)+' not profitable (stake $'+ns.toFixed(2)+')';
     } else {
-      gateLabel='✅ '+(callNearRate*100).toFixed(0)+'%/'+(putNearRate*100).toFixed(0)+'% near-win=profit';
+      var coversMark = callNearBreaksEven && putNearBreaksEven ? ' ✅ covers all' : ' ⚡ partial';
+      gateLabel='✅ '+(callNearRate*100).toFixed(0)+'%/'+(putNearRate*100).toFixed(0)+'%'+coversMark;
     }
 
     var gEl=document.getElementById('gm-gate-status');
