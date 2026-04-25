@@ -1259,7 +1259,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         </div>
 
         <!-- Config strip -->
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:14px">
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:14px">
           <div class="card" style="padding:12px">
             <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Asset</div>
             <select id="bl-asset" style="width:100%;background:var(--bg3);border:1px solid var(--bo2);color:var(--t1);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--fn)">
@@ -1271,6 +1271,14 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <option value="1HZ50V">Volatility 50 (1s)</option>
               <option value="R_25">Volatility 25</option>
               <option value="R_10">Volatility 10</option>
+            </select>
+          </div>
+          <div class="card" style="padding:12px">
+            <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Contract Type</div>
+            <select id="bl-contract-type" style="width:100%;background:var(--bg3);border:1px solid var(--bo2);color:var(--t1);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--fn)">
+              <option value="HL">Higher/Lower</option>
+              <option value="OUT">Outside (Ends Outside)</option>
+              <option value="IN">Inside (Ends Between)</option>
             </select>
           </div>
           <div class="card" style="padding:12px">
@@ -7261,14 +7269,43 @@ function blRun() {
     if (batch.length === 0) return;
 
     batch.forEach(function(req) {
-      var contractType = req.side === 'call' ? 'CALL' : 'PUT';
-      var pid = wsSend({
-        proposal: 1, amount: stake, basis: 'stake',
-        contract_type: contractType, currency: S.currency,
-        duration: durObj.dur, duration_unit: durObj.unit,
-        symbol: asset, barrier: req.barrierStr
-      });
-      if (pid) BL.pending[pid] = {barrier: req.barrier, side: req.side};
+      var ctSel = (document.getElementById('bl-contract-type')||{value:'HL'}).value;
+      var contractType;
+      if(ctSel === 'OUT'){
+        // Ends Outside — price must close outside the barrier range
+        contractType = req.side === 'call' ? 'EXPIRYMISS' : 'EXPIRYMISS';
+      } else if(ctSel === 'IN'){
+        // Ends Between — price must close inside the barrier range
+        contractType = 'EXPIRYRANGE';
+      } else {
+        contractType = req.side === 'call' ? 'CALL' : 'PUT';
+      }
+
+      // OUT/IN contracts need both barriers (high + low) in a single proposal
+      // We send as EXPIRYMISS with high_barrier and low_barrier
+      var proposalObj;
+      if(ctSel === 'OUT' || ctSel === 'IN'){
+        if(req.side === 'put') return; // skip — OUT/IN sent once per barrier via 'call' iteration
+        proposalObj = {
+          proposal: 1, amount: stake, basis: 'stake',
+          contract_type: ctSel === 'OUT' ? 'EXPIRYMISS' : 'EXPIRYRANGE',
+          currency: S.currency,
+          duration: durObj.dur, duration_unit: durObj.unit,
+          symbol: asset,
+          high_barrier: '+' + req.barrier.toFixed(2),
+          low_barrier:  '-' + req.barrier.toFixed(2)
+        };
+      } else {
+        proposalObj = {
+          proposal: 1, amount: stake, basis: 'stake',
+          contract_type: contractType, currency: S.currency,
+          duration: durObj.dur, duration_unit: durObj.unit,
+          symbol: asset, barrier: req.barrierStr
+        };
+      }
+
+      var pid = wsSend(proposalObj);
+      if (pid) BL.pending[pid] = {barrier: req.barrier, side: req.side, ctSel: ctSel};
     });
 
     batchIndex += BATCH_SIZE;
@@ -7302,19 +7339,27 @@ function blOnProposal(reqId, proposal, ask, payout) {
   var r = BL.results[info.barrier];
   if (!r) return;
 
-  if (info.side === 'call') {
+  if(info.ctSel === 'OUT' || info.ctSel === 'IN'){
+    // Single proposal covers both sides — store same payout for call and put
     r.call    = payout;
+    r.put     = payout;
     r.callAsk = ask;
+    r.putAsk  = ask;
+    BL.done += 2; // counts as both sides
   } else {
-    r.put    = payout;
-    r.putAsk = ask;
+    if (info.side === 'call') {
+      r.call    = payout;
+      r.callAsk = ask;
+    } else {
+      r.put    = payout;
+      r.putAsk = ask;
+    }
+    BL.done++;
   }
 
-  BL.done++;
-  var pct = 50 + Math.round(BL.done / BL.total * 50); // receive phase = 50→100%
+  var pct = 50 + Math.round(BL.done / BL.total * 50);
   blSetProgress(pct, 'Received ' + BL.done + ' / ' + BL.total + ' quotes...');
 
-  // Both sides received for this barrier — render its row immediately
   if (r.call !== null && r.put !== null) {
     blRenderRow(info.barrier, r);
   }
