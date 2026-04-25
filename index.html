@@ -997,51 +997,87 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div class="il">Asset</div>
                 <div class="aswrap"><div class="assel" onclick="toggleDD('gm-dd')"><div><div style="font-size:13px;font-weight:700" id="gm-asset-n">R_100</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="gm-asset-i">Volatility 100 Index</div></div><span style="color:var(--t3);font-size:11px">v</span></div><div class="asdd" id="gm-dd"></div></div>
               </div>
-              <!-- Budget -->
-              <div class="ig" style="margin-bottom:9px">
-                <div class="il">Budget Per Round ($)</div>
-                <div class="ir">
-                  <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=Math.max(0.70,(parseFloat(e.value)-0.70)).toFixed(2);gmCalc()">-</div>
-                  <input type="number" class="iif" id="gm-budget" value="4.60" min="0.70" step="0.46" oninput="gmCalc()">
-                  <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.70).toFixed(2);gmCalc()">+</div>
+              <!-- Manual Stake Grid -->
+              <div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;margin-bottom:9px">
+                <div style="font-size:11px;font-weight:700;margin-bottom:8px">💰 Stake Grid</div>
+
+                <!-- Total Risk -->
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+                  <div style="font-size:10px;color:var(--t2);white-space:nowrap">Total Risk ($)</div>
+                  <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=Math.max(1.40,(parseFloat(e.value)-0.10)).toFixed(2);gmStakeGrid()">-</div>
+                  <input type="number" class="iif" id="gm-budget" value="4.60" min="1.40" step="0.10" oninput="gmStakeGrid()" style="flex:1">
+                  <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.10).toFixed(2);gmStakeGrid()">+</div>
                 </div>
-              <div style="font-size:10px;color:var(--t3);margin-top:2px">🛡️ Shield: Near=42.4% Far=7.6% — <span id="gm-stake-display">$1.95</span>+<span id="gm-far-stake-display">$0.35</span> each side</div>
-              </div>
-              <!-- Barrier Offset -->
-              <div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:9px;margin-bottom:9px">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
-                  <div style="font-size:10px;font-weight:700">Barrier Offset</div>
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <span style="font-size:9px;color:var(--t3)">Auto ATR</span>
-                    <div class="tsw" id="gm-adaptive-offset-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on');gmCalc()"></div>
+
+                <!-- H1 / L1 row -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+                  <div>
+                    <div style="font-size:9px;color:var(--ac);font-weight:700;margin-bottom:3px">H1 Stake ($)</div>
+                    <input type="number" class="iif" id="gm-h1-stake" value="1.95" min="0.35" step="0.05" oninput="gmStakeGrid('h1')" style="width:100%">
+                  </div>
+                  <div>
+                    <div style="font-size:9px;color:var(--re);font-weight:700;margin-bottom:3px">L1 Stake ($)</div>
+                    <input type="number" class="iif" id="gm-l1-stake" value="1.95" min="0.35" step="0.05" oninput="gmStakeGrid('l1')" style="width:100%">
                   </div>
                 </div>
-                <div class="ir" style="margin-bottom:4px">
-                  <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=Math.max(0.01,(parseFloat(e.value)-0.01)).toFixed(2);gmCalc()">-</div>
-                  <input type="number" class="iif" id="gm-offset" value="0.12" min="0.01" step="0.01" oninput="gmCalc()">
-                  <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=(parseFloat(e.value)+0.01).toFixed(2);gmCalc()">+</div>
-                  <span style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--ac);margin-left:5px" id="gm-effective-offset">±0.12</span>
+
+                <!-- H1 / L1 barrier row -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+                  <div>
+                    <div style="font-size:9px;color:var(--t3);margin-bottom:3px">H1 Barrier</div>
+                    <input type="number" class="iif" id="gm-h1-barrier" value="0.09" min="0.01" step="0.01" oninput="gmCalc()" style="width:100%">
+                  </div>
+                  <div>
+                    <div style="font-size:9px;color:var(--t3);margin-bottom:3px">L1 Barrier</div>
+                    <input type="number" class="iif" id="gm-l1-barrier" value="0.09" min="0.01" step="0.01" oninput="gmCalc()" style="width:100%">
+                  </div>
+                </div>
+
+                <!-- H2 / L2 row -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+                  <div>
+                    <div style="font-size:9px;color:var(--ac);font-weight:700;margin-bottom:3px">H2 Stake ($)</div>
+                    <input type="number" class="iif" id="gm-h2-stake" value="0.35" min="0.35" step="0.05" oninput="gmStakeGrid('h2')" style="width:100%">
+                  </div>
+                  <div>
+                    <div style="font-size:9px;color:var(--re);font-weight:700;margin-bottom:3px">L2 Stake ($)</div>
+                    <input type="number" class="iif" id="gm-l2-stake" value="0.35" min="0.35" step="0.05" oninput="gmStakeGrid('l2')" style="width:100%">
+                  </div>
+                </div>
+
+                <!-- H2 / L2 barrier row -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+                  <div>
+                    <div style="font-size:9px;color:var(--t3);margin-bottom:3px">H2 Barrier</div>
+                    <input type="number" class="iif" id="gm-h2-barrier" value="0.15" min="0.01" step="0.01" oninput="gmCalc()" style="width:100%">
+                  </div>
+                  <div>
+                    <div style="font-size:9px;color:var(--t3);margin-bottom:3px">L2 Barrier</div>
+                    <input type="number" class="iif" id="gm-l2-barrier" value="0.15" min="0.01" step="0.01" oninput="gmCalc()" style="width:100%">
+                  </div>
+                </div>
+
+                <!-- Total display -->
+                <div style="display:flex;justify-content:space-between;padding:7px 10px;background:var(--bg2);border-radius:var(--rs);font-size:11px">
+                  <span style="color:var(--t2)">Total Risk</span>
+                  <span style="font-weight:700;color:var(--re);font-family:var(--mo)" id="gm-grid-total">$4.60</span>
                 </div>
               </div>
-              <!-- 4-Leg Power Spread ALWAYS ON -->
-              <div style="background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.4);border-radius:var(--rs);padding:9px 11px;margin-bottom:9px">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                  <div style="font-size:11px;font-weight:700;color:var(--go)">⚡ 4-Leg Power Spread</div>
-                  <span style="font-size:10px;font-weight:700;color:var(--go);background:rgba(245,166,35,0.2);padding:2px 8px;border-radius:99px;border:1px solid rgba(245,166,35,0.4)">ALWAYS ON</span>
-                </div>
-              <div style="font-size:9px;color:var(--t2);line-height:1.7">
-                  <span style="color:var(--ac);font-weight:700">Near ±0.09 <span id="gm-near-stake-lbl">$1.95</span>×2</span> + <span style="color:rgba(245,166,35,0.9);font-weight:700">Far ±0.15 $0.35×2</span> = <span style="color:var(--re);font-weight:700"><span id="gm-total-risk-lbl">$4.60</span> total risk</span><br>
-                  Near wins → returns full stake. Far wins → <b style="color:var(--ac)">jackpot bonus</b>.<br>
-                  Only loss = <b style="color:var(--re)">GAP</b> (price stays inside ±0.09 all 5 ticks).
-                </div>
-                <div id="gm-spread-sw" class="on" style="display:none"></div>
+
+              <!-- Barrier Offset (kept for display/chart only) -->
+              <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--ad);border:1px solid rgba(0,229,160,0.25);border-radius:var(--rs);margin-bottom:9px">
+                <span style="font-size:11px;font-weight:700;color:var(--ac)">⏱ 5 Ticks</span>
+                <span style="font-size:10px;color:var(--t3)">Fixed — strategy locked</span>
               </div>
-                <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--ad);border:1px solid rgba(0,229,160,0.25);border-radius:var(--rs)">
-                  <span style="font-size:11px;font-weight:700;color:var(--ac)">⏱ 5 Ticks</span>
-                  <span style="font-size:10px;color:var(--t3)">Fixed — strategy locked</span>
-                </div>
-              </div>
-              <!-- Daily SL/TP -->
+              <div id="gm-spread-sw" class="on" style="display:none"></div>
+              <input type="hidden" id="gm-offset" value="0.09">
+              <div style="display:none" id="gm-adaptive-offset-sw"></div>
+              <span style="display:none" id="gm-stake-display">1.95</span>
+              <span style="display:none" id="gm-far-stake-display">0.35</span>
+              <span style="display:none" id="gm-near-stake-lbl">$1.95</span>
+              <span style="display:none" id="gm-total-risk-lbl">$4.60</span>
+              <span style="display:none" id="gm-near-stake-preview">$1.95</span>
+              <span style="display:none" id="gm-near-stake-preview2">$1.95</span>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px">
                 <div class="ig"><div class="il">Daily SL ($)</div><input type="number" class="iif" id="gm-daily-sl" value="30" min="1" oninput="gmCalc()"></div>
                 <div class="ig"><div class="il">Daily TP ($)</div><input type="number" class="iif" id="gm-daily-tp" value="60" min="1" oninput="gmCalc()"></div>
@@ -4991,7 +5027,67 @@ function gmExportData(){
 // ════════════════════════════════════════════════════════════════
 
 
-function gmCalc(){
+function gmStakeGrid(changed){
+  var MIN = 0.35;
+  var budget = parseFloat(document.getElementById('gm-budget').value)||4.60;
+
+  var h1 = parseFloat(document.getElementById('gm-h1-stake').value)||MIN;
+  var h2 = parseFloat(document.getElementById('gm-h2-stake').value)||MIN;
+  var l1 = parseFloat(document.getElementById('gm-l1-stake').value)||MIN;
+  var l2 = parseFloat(document.getElementById('gm-l2-stake').value)||MIN;
+
+  if(changed === 'h1'){
+    // H1 changed → H2 = remaining on high side, mirror to L1, L2
+    h2 = Math.max(MIN, parseFloat(((budget/2) - h1).toFixed(2)));
+    l1 = h1;
+    l2 = h2;
+    document.getElementById('gm-h2-stake').value = h2.toFixed(2);
+    document.getElementById('gm-l1-stake').value = l1.toFixed(2);
+    document.getElementById('gm-l2-stake').value = l2.toFixed(2);
+  } else if(changed === 'h2'){
+    // H2 changed → H1 = remaining, mirror to L2, L1
+    h1 = Math.max(MIN, parseFloat(((budget/2) - h2).toFixed(2)));
+    l1 = h1;
+    l2 = h2;
+    document.getElementById('gm-h1-stake').value = h1.toFixed(2);
+    document.getElementById('gm-l1-stake').value = l1.toFixed(2);
+    document.getElementById('gm-l2-stake').value = l2.toFixed(2);
+  } else if(changed === 'l1'){
+    // L1 changed → L2 = remaining, mirror to H1, H2
+    l2 = Math.max(MIN, parseFloat(((budget/2) - l1).toFixed(2)));
+    h1 = l1;
+    h2 = l2;
+    document.getElementById('gm-l2-stake').value = l2.toFixed(2);
+    document.getElementById('gm-h1-stake').value = h1.toFixed(2);
+    document.getElementById('gm-h2-stake').value = h2.toFixed(2);
+  } else if(changed === 'l2'){
+    l1 = Math.max(MIN, parseFloat(((budget/2) - l2).toFixed(2)));
+    h1 = l1;
+    h2 = l2;
+    document.getElementById('gm-l1-stake').value = l1.toFixed(2);
+    document.getElementById('gm-h1-stake').value = h1.toFixed(2);
+    document.getElementById('gm-h2-stake').value = h2.toFixed(2);
+  } else {
+    // Budget changed → keep H1 fixed, recalculate H2, mirror
+    h2 = Math.max(MIN, parseFloat(((budget/2) - h1).toFixed(2)));
+    l1 = h1;
+    l2 = h2;
+    document.getElementById('gm-h2-stake').value = h2.toFixed(2);
+    document.getElementById('gm-l1-stake').value = l1.toFixed(2);
+    document.getElementById('gm-l2-stake').value = l2.toFixed(2);
+  }
+
+  var total = parseFloat((h1 + h2 + l1 + l2).toFixed(2));
+  var totalEl = document.getElementById('gm-grid-total');
+  if(totalEl) totalEl.textContent = '$'+total.toFixed(2);
+
+  // Sync hidden budget to actual total
+  document.getElementById('gm-budget').value = total.toFixed(2);
+
+  gmCalc();
+}
+
+
   // Shield stake formula
   var budget=parseFloat(document.getElementById('gm-budget').value)||4.60;
   var FAR_MIN=0.35;
@@ -5435,16 +5531,23 @@ function gmFetchProposals(){
 
     var budget = parseFloat(document.getElementById('gm-budget').value)||4.60;
 
-    // Shield stake formula (percentage-based, scales with any budget)
-    var FAR_STAKE_MIN = 0.35;
-    var farStake  = FAR_STAKE_MIN;                          // always $0.35
-    var nearStake = parseFloat(((budget/2) - farStake).toFixed(2)); // e.g. $4.60/2 - $0.35 = $1.95
-    if(nearStake < FAR_STAKE_MIN) nearStake = FAR_STAKE_MIN; // safety floor
+    // Read stakes and barriers from manual grid
+    var MIN_STAKE = 0.35;
+    var h1Stake = Math.max(MIN_STAKE, parseFloat(document.getElementById('gm-h1-stake').value)||1.95);
+    var h2Stake = Math.max(MIN_STAKE, parseFloat(document.getElementById('gm-h2-stake').value)||0.35);
+    var l1Stake = Math.max(MIN_STAKE, parseFloat(document.getElementById('gm-l1-stake').value)||1.95);
+    var l2Stake = Math.max(MIN_STAKE, parseFloat(document.getElementById('gm-l2-stake').value)||0.35);
 
-    var nearOff = 0.09; // FIXED — 236% payout covers full round
-    var farOff  = 0.15; // FIXED — 273% payout jackpot
+    var h1Barrier = parseFloat(document.getElementById('gm-h1-barrier').value)||0.09;
+    var h2Barrier = parseFloat(document.getElementById('gm-h2-barrier').value)||0.15;
+    var l1Barrier = parseFloat(document.getElementById('gm-l1-barrier').value)||0.09;
+    var l2Barrier = parseFloat(document.getElementById('gm-l2-barrier').value)||0.15;
 
-    var totalRiskTarget = parseFloat(((nearStake + farStake) * 2).toFixed(2));
+    var nearStake = h1Stake; // H1/L1 = near
+    var farStake  = h2Stake; // H2/L2 = far
+    var nearOff   = h1Barrier;
+    var farOff    = h2Barrier;
+    var totalRiskTarget = parseFloat((h1Stake + h2Stake + l1Stake + l2Stake).toFixed(2));
 
     // Update UI labels
     var nearLbl = document.getElementById('gm-near-stake-lbl');
@@ -5465,12 +5568,12 @@ function gmFetchProposals(){
     if(cbLbl)cbLbl.textContent='Near $'+nearStake.toFixed(2)+' +'+nearOff.toFixed(2)+' / Far $'+farStake.toFixed(2)+' +'+farOff.toFixed(2);
     if(pbLbl)pbLbl.textContent='Near $'+nearStake.toFixed(2)+' -'+nearOff.toFixed(2)+' / Far $'+farStake.toFixed(2)+' -'+farOff.toFixed(2);
 
-    // Probe all 4 legs
+    // Probe all 4 legs using grid values
     var legs=[
-      {side:'callNear',type:'CALL',barrier:'+'+nearOff.toFixed(2),stake:nearStake},
-      {side:'callFar', type:'CALL',barrier:'+'+farOff.toFixed(2), stake:farStake},
-      {side:'putNear', type:'PUT', barrier:'-'+nearOff.toFixed(2), stake:nearStake},
-      {side:'putFar',  type:'PUT', barrier:'-'+farOff.toFixed(2),  stake:farStake}
+      {side:'callNear',type:'CALL',barrier:'+'+h1Barrier.toFixed(2),stake:h1Stake},
+      {side:'callFar', type:'CALL',barrier:'+'+h2Barrier.toFixed(2), stake:h2Stake},
+      {side:'putNear', type:'PUT', barrier:'-'+l1Barrier.toFixed(2), stake:l1Stake},
+      {side:'putFar',  type:'PUT', barrier:'-'+l2Barrier.toFixed(2),  stake:l2Stake}
     ];
     legs.forEach(function(leg){
       var pid=wsSend({proposal:1,amount:leg.stake,basis:'stake',contract_type:leg.type,
