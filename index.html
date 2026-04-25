@@ -804,7 +804,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         <div style="background:linear-gradient(135deg,rgba(0,229,160,0.1),rgba(59,130,246,0.08));border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:16px;margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
             <div style="font-size:18px;font-weight:800;color:var(--ac)">Gmilli Bot <span style="font-size:12px;font-weight:600;color:var(--go);background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.3);border-radius:99px;padding:2px 9px;margin-left:6px">⚡ 5-Tick · 4-Leg Spread</span></div>
-            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">4-LEG POWER SPREAD — ALWAYS ON — 5 TICKS FIXED</div>
+            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">🛡️ SHIELD PROTOCOL — TURBO-TREND ENTRY — 5 TICKS FIXED</div>
           </div>
           <div style="font-size:11px;color:var(--t2)">Barrier set at entry spot — one side ALWAYS wins. Only trades when combined payout > 2× stake.</div>
         </div>
@@ -1066,17 +1066,21 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <span style="color:var(--t3);font-size:10px"><b id="gm-conf-ticks">20</b>tk</span>
             </div>
 
-            <!-- 3-Tick Filter — ALWAYS ON, LOCKED -->
+            <!-- Turbo-Trend Entry — ALWAYS ON, LOCKED -->
             <div style="background:rgba(0,229,160,0.1);border:1px solid rgba(0,229,160,0.35);border-radius:var(--rs);padding:10px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                <div style="font-size:11px;font-weight:700;color:var(--ac)">⚡ 3-Tick Momentum Filter</div>
+                <div style="font-size:11px;font-weight:700;color:var(--ac)">🚀 Turbo-Trend Entry</div>
                 <span style="font-size:10px;font-weight:700;color:var(--ac);background:rgba(0,229,160,0.2);padding:2px 8px;border-radius:99px;border:1px solid rgba(0,229,160,0.4)">ALWAYS ON</span>
                 <!-- hidden toggles kept for JS compatibility -->
                 <div id="gm-tick-filter-sw" class="on" style="display:none"></div>
                 <div id="gm-tick-filter-badge" style="display:none">ON</div>
               </div>
               <div id="gm-tick-pills" style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:7px;min-height:18px"></div>
-              <div style="font-size:10px;color:var(--t2)">Requires <b style="color:var(--ac)">3 consecutive</b> same-direction ticks before entry. Non-negotiable.</div>
+              <div style="font-size:10px;color:var(--t2);line-height:1.7">
+                <b style="color:var(--ac)">1. Direction</b> — 3 consecutive same-direction ticks<br>
+                <b style="color:var(--go)">2. Acceleration</b> — current move &gt; previous move<br>
+                <b style="color:var(--re)">3. Breakout</b> — price breaking 20-tick high or low
+              </div>
               <span id="gm-consec-req-display" style="display:none">3</span>
             </div>
 
@@ -5291,7 +5295,12 @@ function gmLoop(){
   // Velocity: update display only, never block
   gmUpdateVelPanel();
 
-  // ── GUARDRAIL 2: 3-Tick Momentum Buffer — ALWAYS ENFORCED ──────
+  // ── TURBO-TREND ENTRY MODULE ────────────────────────────────────
+  // 3 conditions must ALL pass before firing:
+  // 1. Direction    — 3 consecutive same-direction ticks
+  // 2. Acceleration — current move > previous move (momentum building)
+  // 3. Breakout     — price breaking 20-tick high or low (not trapped in gap)
+
   // Update tick pills UI
   var _pillEl = document.getElementById('gm-tick-pills');
   if (_pillEl) {
@@ -5307,22 +5316,62 @@ function gmLoop(){
     _pillEl.innerHTML = _pills;
   }
 
-  // Always enforce 3-tick consecutive filter (locked strategy requirement)
-  GM.consecTicks = 3; // ensure it can never be changed
-  var _mom = gmCheckMomentum();
-  if (!_mom.pass) {
+  var _prices = _loopPrices;
+  var _pLen = _prices.length;
+
+  // Need at least 21 prices (20 for breakout window + 1 current)
+  if (_pLen < 21) {
+    var rs6 = document.getElementById('gm-round-status');
+    if (rs6) rs6.textContent = 'WAIT: building history ('+_pLen+'/21)';
+    GM.interval = setTimeout(gmLoop, _nextInterval); return;
+  }
+
+  var t0 = _prices[_pLen - 1];
+  var t1 = _prices[_pLen - 2];
+  var t2 = _prices[_pLen - 3];
+  var t3 = _prices[_pLen - 4];
+
+  // 1. DIRECTION — 3 consecutive ticks same way
+  var _isUp   = t0 > t1 && t1 > t2 && t2 > t3;
+  var _isDown = t0 < t1 && t1 < t2 && t2 < t3;
+
+  if (!_isUp && !_isDown) {
     var rs7 = document.getElementById('gm-round-status');
-    if (rs7) rs7.textContent = 'WAIT: need 3 consecutive ' + (_mom.direction || 'ticks');
+    if (rs7) rs7.textContent = 'WAIT: need 3 consecutive ticks';
     GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
     GM.interval = setTimeout(gmLoop, _nextInterval); return;
   }
 
-  // ── GUARDRAIL 3: Dynamic Barrier — recalculate before each entry ─
-  // The adaptive offset already exists in gmAdaptiveOffset(); gmDynamicBarrier()
-  // is the fallback when adaptive toggle is OFF. Both are used inside gmFetchProposals.
-  // (no skip here — barrier is adjusted, not blocked)
+  // 2. ACCELERATION — current move must be larger than previous move
+  var _curMove  = Math.abs(t0 - t1);
+  var _prevMove = Math.abs(t1 - t2);
 
-  // ── GUARDRAIL 4: Martingale init on first round ─────────────────
+  if (_curMove <= _prevMove) {
+    var rs8 = document.getElementById('gm-round-status');
+    if (rs8) rs8.textContent = 'WAIT: exhaustion (move slowing '+_curMove.toFixed(3)+'<'+_prevMove.toFixed(3)+')';
+    GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
+    GM.interval = setTimeout(gmLoop, _nextInterval); return;
+  }
+
+  // 3. BREAKOUT — price must be breaking 20-tick high or low
+  var _window20 = _prices.slice(_pLen - 20);
+  var _high20   = Math.max.apply(null, _window20);
+  var _low20    = Math.min.apply(null, _window20);
+  var _breaking = (_isUp && t0 >= _high20) || (_isDown && t0 <= _low20);
+
+  if (!_breaking) {
+    var rs9 = document.getElementById('gm-round-status');
+    if (rs9) rs9.textContent = 'WAIT: no breakout (trapped in range H:'+_high20.toFixed(2)+' L:'+_low20.toFixed(2)+')';
+    GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
+    GM.interval = setTimeout(gmLoop, _nextInterval); return;
+  }
+
+  // ✅ ALL 3 CONDITIONS MET — fire Shield spread
+  var _turboDir = _isUp ? 'UP 🚀' : 'DOWN 🚀';
+  var rs10 = document.getElementById('gm-round-status');
+  if (rs10) rs10.textContent = 'TURBO '+_turboDir+' — FIRING SHIELD';
+
+  // ── GUARDRAIL: Martingale init on first round ─────────────────
   if (!_gmMart.baseBudget) gmMartInit();
 
   // Fire a payout check — fetch proposals at current stake
