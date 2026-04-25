@@ -852,22 +852,22 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:9px;text-align:center">
                   <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">↑ FAR HIGHER <span style="color:rgba(245,166,35,0.9)">$0.35</span></div>
                   <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-higher-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry + 1.5×ATR (jackpot)</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry + 0.15 (jackpot)</div>
                 </div>
                 <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:9px;text-align:center">
                   <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">↓ FAR LOWER <span style="color:rgba(245,166,35,0.9)">$0.35</span></div>
                   <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-lower-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry − 1.5×ATR (jackpot)</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry − 0.15 (jackpot)</div>
                 </div>
                 <div style="background:rgba(0,229,160,0.06);border:1.5px solid rgba(0,229,160,0.25);border-radius:var(--rs);padding:7px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">↑ NEAR <span style="color:var(--ac);font-weight:700">$1.35</span></div>
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">↑ NEAR <span style="color:var(--ac);font-weight:700" id="gm-near-stake-preview">$1.95</span></div>
                   <div style="font-size:12px;font-weight:700;font-family:var(--mo);color:rgba(0,229,160,0.85)" id="gm-near-higher-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">+0.5×ATR (cap ±0.10)</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry + 0.09 (shield)</div>
                 </div>
                 <div style="background:rgba(255,77,106,0.06);border:1.5px solid rgba(255,77,106,0.25);border-radius:var(--rs);padding:7px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">↓ NEAR <span style="color:var(--re);font-weight:700">$1.35</span></div>
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">↓ NEAR <span style="color:var(--re);font-weight:700" id="gm-near-stake-preview2">$1.95</span></div>
                   <div style="font-size:12px;font-weight:700;font-family:var(--mo);color:rgba(255,77,106,0.85)" id="gm-near-lower-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">−0.5×ATR (cap ±0.10)</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry − 0.09 (shield)</div>
                 </div>
               </div>
               <div style="margin-top:7px;font-size:10px;color:var(--t3);text-align:center;font-family:var(--mo)" id="gm-gap-display">Gap zone shown after connect</div>
@@ -1988,31 +1988,32 @@ function onTick(tick) {
         gmUpdateEntryScoreUI(gmEntryScore());
         var _curP2=S.prices[GM.asset]||0;
         if(_curP2>0){
-          var _off2=gmAdaptiveOffset();
           var _dp2=_curP2>100?2:5;
-          // Compute Near and Far offsets for spread display
-          var _atr5tmp=0;
-          var _ptmp=getInd(GM.asset).prices;
-          var _ntmp=_ptmp.length;
-          if(_ntmp>=6){for(var _ii=_ntmp-5;_ii<_ntmp;_ii++)_atr5tmp+=Math.abs(_ptmp[_ii]-_ptmp[_ii-1]);_atr5tmp/=5;}
-          if(_atr5tmp<=0)_atr5tmp=_off2;
-          var _nearOff2=Math.max(0.02,Math.round((_atr5tmp*0.5)/0.02)*0.02);
-          var _farOff2=Math.max(_nearOff2+0.02,Math.round((_atr5tmp*1.5)/0.02)*0.02);
-          var _hB2=parseFloat((_curP2+_farOff2).toFixed(_dp2));
-          var _lB2=parseFloat((_curP2-_farOff2).toFixed(_dp2));
-          var _nhB2=parseFloat((_curP2+_nearOff2).toFixed(_dp2));
-          var _nlB2=parseFloat((_curP2-_nearOff2).toFixed(_dp2));
+          // Fixed Shield barriers — no ATR calculation needed
+          var _nearOff2 = 0.09;
+          var _farOff2  = 0.15;
+          var _hB2  = parseFloat((_curP2+_farOff2).toFixed(_dp2));
+          var _lB2  = parseFloat((_curP2-_farOff2).toFixed(_dp2));
+          var _nhB2 = parseFloat((_curP2+_nearOff2).toFixed(_dp2));
+          var _nlB2 = parseFloat((_curP2-_nearOff2).toFixed(_dp2));
+          // Near stake from budget
+          var _budget2 = parseFloat((document.getElementById('gm-budget')||{value:'4.60'}).value)||4.60;
+          var _nearStake2 = parseFloat(((_budget2/2)-0.35).toFixed(2));
           var _eEl=document.getElementById('gm-entry-display');var _hEl=document.getElementById('gm-higher-level');
           var _lEl=document.getElementById('gm-lower-level');var _gapEl=document.getElementById('gm-gap-display');
           var _nhEl=document.getElementById('gm-near-higher-level');var _nlEl=document.getElementById('gm-near-lower-level');
           var _offEl=document.getElementById('gm-effective-offset');
+          var _nsp=document.getElementById('gm-near-stake-preview');
+          var _nsp2=document.getElementById('gm-near-stake-preview2');
           if(_eEl)_eEl.textContent='Entry: '+_curP2.toFixed(_dp2);
           if(_hEl)_hEl.textContent=_hB2;
           if(_lEl)_lEl.textContent=_lB2;
           if(_nhEl)_nhEl.textContent=_nhB2;
           if(_nlEl)_nlEl.textContent=_nlB2;
-          if(_gapEl)_gapEl.textContent='Near: ±'+_nearOff2.toFixed(2)+' | Far: ±'+_farOff2.toFixed(2);
-          if(_offEl)_offEl.textContent='±'+_farOff2.toFixed(2);
+          if(_nsp)_nsp.textContent='$'+_nearStake2.toFixed(2);
+          if(_nsp2)_nsp2.textContent='$'+_nearStake2.toFixed(2);
+          if(_gapEl)_gapEl.textContent='Near: ±0.09 | Far: ±0.15 (Shield fixed)';
+          if(_offEl)_offEl.textContent='Near ±0.09 / Far ±0.15';
         }
         // ── Velocity panel update ──
         gmUpdateVelPanel();
@@ -5342,13 +5343,14 @@ function gmLoop(){
     GM.interval = setTimeout(gmLoop, _nextInterval); return;
   }
 
-  // 2. ACCELERATION — current move must be larger than previous move
+  // 2. ACCELERATION — only block severe exhaustion (current move < 30% of previous)
+  // 50% was too strict — natural tick variation causes false exhaustion signals
   var _curMove  = Math.abs(t0 - t1);
   var _prevMove = Math.abs(t1 - t2);
 
-  if (_curMove <= _prevMove) {
+  if (_prevMove > 0 && _curMove < _prevMove * 0.30) {
     var rs8 = document.getElementById('gm-round-status');
-    if (rs8) rs8.textContent = 'WAIT: exhaustion (move slowing '+_curMove.toFixed(3)+'<'+_prevMove.toFixed(3)+')';
+    if (rs8) rs8.textContent = 'WAIT: exhaustion ('+_curMove.toFixed(3)+'<30% of '+_prevMove.toFixed(3)+')';
     GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
     GM.interval = setTimeout(gmLoop, _nextInterval); return;
   }
@@ -5545,18 +5547,18 @@ function onGMProbe(proposal,pendInfo){
     var totalRisk=sp.totalRisk; // $3.40
 
     // ── 🛡️ SHIELD GATE ────────────────────────────────────────────
-    // Near leg (±0.09) must return > totalRisk to cover the full trade
-    // Far leg ($0.35 × ±0.15) is pure bonus — never counted in gate
-    // Only loss = GAP (price trapped inside ±0.09 all 5 ticks)
-    var HARD_FLOOR = 2.10; // 210% absolute minimum
+    // Near leg must return >= totalRisk (covers full trade cost)
+    // Tolerance: $0.10 — Deriv rounds payouts, tiny gaps shouldn't block
+    // Hard floor: Near rate must be >= 210% (market structurally broken below this)
+    var HARD_FLOOR    = 2.10;
+    var GATE_TOLERANCE = 0.10; // $0.10 wiggle room for Deriv rounding
 
     var callNearRate = sp.callNear / ns;
     var putNearRate  = sp.putNear  / ns;
     var actualRate   = Math.min(callNearRate, putNearRate);
 
-    // Shield rule: Near payout must beat totalRisk on BOTH sides
-    var callNearBreaksEven = sp.callNear > totalRisk;
-    var putNearBreaksEven  = sp.putNear  > totalRisk;
+    var callNearBreaksEven = sp.callNear >= (totalRisk - GATE_TOLERANCE);
+    var putNearBreaksEven  = sp.putNear  >= (totalRisk - GATE_TOLERANCE);
     var hardFloorOk        = actualRate >= HARD_FLOOR;
     var passes             = hardFloorOk && callNearBreaksEven && putNearBreaksEven;
 
