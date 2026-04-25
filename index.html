@@ -1289,8 +1289,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
           </div>
           <div class="card" style="padding:12px">
             <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Barrier range</div>
-            <div style="font-size:11px;color:var(--t2);font-family:var(--mo);margin-top:6px">0.05 → 0.50</div>
-            <div style="font-size:9px;color:var(--t3);margin-top:2px">10 steps × 0.05 · ~8s scan</div>
+            <div style="font-size:11px;color:var(--t2);font-family:var(--mo);margin-top:6px">0.05 → 0.20</div>
+            <div style="font-size:9px;color:var(--t3);margin-top:2px">10 steps incl. 0.06 · ~8s scan</div>
           </div>
         </div>
 
@@ -7119,13 +7119,9 @@ var BL = {
   done: 0
 };
 
-// Generate barrier steps 0.05 → 0.50 in 0.05 increments (10 steps)
+// Specific barrier values to scan including 0.06 and 0.10
 function blBarriers() {
-  var list = [];
-  for (var v = 0.05; v <= 0.51; v = Math.round((v + 0.05) * 100) / 100) {
-    list.push(parseFloat(v.toFixed(2)));
-  }
-  return list; // 10 values: 0.05, 0.10, 0.15 ... 0.50
+  return [0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.15, 0.20];
 }
 
 function blParseDur(val) {
