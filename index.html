@@ -1021,11 +1021,11 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div style="font-size:9px;color:var(--t3);line-height:1.6">Splits $3 into 4 legs: Near (0.5×ATR) + Far (1.5×ATR) each side. Double-wins possible. Reduces max loss to ~$1.35 on weak moves.</div>
               </div>
                 <div class="dr">
-                  <div class="db" onclick="GM.dur=5;gmSetActive(this)">5S</div>
-                  <div class="db" onclick="GM.dur=15;gmSetActive(this)">15S</div>
-                  <div class="db active" onclick="GM.dur=30;gmSetActive(this)">30S</div>
-                  <div class="db" onclick="GM.dur=60;gmSetActive(this)">60S</div>
-                  <div class="db" onclick="GM.dur=120;gmSetActive(this)">2M</div>
+                  <div class="db active" onclick="GM.dur=5;GM.durUnit='t';gmSetActive(this)">5T</div>
+                  <div class="db" onclick="GM.dur=10;GM.durUnit='t';gmSetActive(this)">10T</div>
+                  <div class="db" onclick="GM.dur=15;GM.durUnit='t';gmSetActive(this)">15T</div>
+                  <div class="db" onclick="GM.dur=20;GM.durUnit='t';gmSetActive(this)">20T</div>
+                  <div class="db" onclick="GM.dur=30;GM.durUnit='t';gmSetActive(this)">30T</div>
                 </div>
               </div>
               <!-- Daily SL/TP -->
@@ -4478,7 +4478,7 @@ switchAcc(S.accType);
 //   - Winner covers loser stake + delivers profit
 // ================================================================
 var GM = {
-  running:false, interval:null, asset:'R_100', dur:30, minGap:30,
+  running:false, interval:null, asset:'R_100', dur:5, durUnit:'t', minGap:30,
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
@@ -5234,7 +5234,7 @@ function gmFetchProposals(){
     ];
     legs.forEach(function(leg){
       var pid=wsSend({proposal:1,amount:legStake,basis:'stake',contract_type:leg.type,
-        currency:S.currency,duration:GM.dur,duration_unit:'s',
+        currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit||'t',
         symbol:GM.asset,barrier:leg.barrier});
       if(pid)S.pending[pid]={type:'gm_probe',gmSide:leg.side,
         probeEntry:entry,probeStake:legStake,probeOffset:leg.side.indexOf('Far')>=0?farOff:nearOff,
@@ -5257,12 +5257,12 @@ function gmFetchProposals(){
     if(pbLbl)pbLbl.textContent='barrier: '+parseFloat((entry-offset).toFixed(dp))+' (entry-'+offset.toFixed(2)+')';
 
     var p1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
-      currency:S.currency,duration:GM.dur,duration_unit:'s',
+      currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit||'t',
       symbol:GM.asset,barrier:callBarrier});
     if(p1)S.pending[p1]={type:'gm_probe',gmSide:'call',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:callBarrier};
 
     var p2=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'PUT',
-      currency:S.currency,duration:GM.dur,duration_unit:'s',
+      currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit||'t',
       symbol:GM.asset,barrier:putBarrier});
     if(p2)S.pending[p2]={type:'gm_probe',gmSide:'put',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:putBarrier};
   }
@@ -5461,11 +5461,11 @@ function gmPlaceSpread(sp){
     var bid=wsSend({buy:leg.id,price:leg.ask});
     if(bid)S.pending[bid]={dir:leg.dir,stake:legStake,asset:GM.asset,
       isBot:true,isGM:true,gmRound:rid,gmSide:leg.side,
-      entryPrice:entry,durVal:GM.dur,durUnit:'s'};
+      entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit||'t'};
   });
 
   setTimeout(function(){GM._placing=false;},300);
-  var _forceMs=(GM.dur*1000)+20000;
+  var _forceMs = GM.durUnit==='t' ? (GM.dur*2000)+20000 : (GM.dur*1000)+20000;
   GM.pending[rid]._timeout=setTimeout(function(){
     if(GM.pending[rid]&&GM.pending[rid].settled<4){
       console.warn('[GM] Spread R'+rid+' timed out — force settling');
@@ -5625,12 +5625,12 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   var b1=wsSend({buy:callId,price:callAsk});
   if(b1)S.pending[b1]={dir:'HIGHER',stake:stake,asset:GM.asset,
     isBot:true,isGM:true,gmRound:rid,gmSide:'call',
-    entryPrice:entry,durVal:GM.dur,durUnit:'s'};
+    entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit||'t'};
 
   var b2=wsSend({buy:putId,price:putAsk});
   if(b2)S.pending[b2]={dir:'LOWER',stake:stake,asset:GM.asset,
     isBot:true,isGM:true,gmRound:rid,gmSide:'put',
-    entryPrice:entry,durVal:GM.dur,durUnit:'s'};
+    entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit||'t'};
 
   // Clear placing lock — both buy requests are now queued to WS
   // Use setTimeout(0) so the lock is released after this call stack unwinds,
@@ -5638,7 +5638,7 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   setTimeout(function(){ GM._placing=false; }, 200);
 
   // Force-settle timeout: duration + 15s buffer (not flat 120s which causes stuck trades)
-  var _forceMs=(GM.dur*1000)+15000;
+  var _forceMs = GM.durUnit==='t' ? (GM.dur*2000)+15000 : (GM.dur*1000)+15000;
   GM.pending[rid]._timeout=setTimeout(function(){
     if(GM.pending[rid]&&GM.pending[rid].settled<2){
       console.warn('[GM] Round '+rid+' timed out after '+(_forceMs/1000)+'s — force settling');
