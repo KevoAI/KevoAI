@@ -5337,17 +5337,15 @@ function gmUpdateEntryScoreUI(es){
 
 function gmLoop(){
   if(!GM.running)return;
-  gmUpdateStats(); // keep skip breakdown live on every cycle
+  gmUpdateStats();
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
   if(GM.pnl<=-sl){gmToggle();notify('STOP','Gmilli daily SL hit','loss');return;}
   if(GM.pnl>=tp){gmToggle();notify('DONE','Gmilli daily target hit!','win');return;}
 
-  // ── Refresh shared metric cache ONCE here — all filters below are cache reads ──
   var _loopPrices=getInd(GM.asset).prices;
-  gmRefreshCache(_loopPrices, true); // force=true ensures loop always has fresh data
+  gmRefreshCache(_loopPrices, true);
 
-  // ── Adaptive interval: scan faster when market is moving, slower when slow ──
   var _tickSpeed=0;
   var _tArr=GM.tickTimes;
   if(_tArr&&_tArr.length>=3){
@@ -5356,10 +5354,9 @@ function gmLoop(){
   }
   var _nextInterval=_tickSpeed>8?300:_tickSpeed>3?500:800;
 
-  // Clean stale activeCids before checking
   gmCleanActiveCids();
 
-  // Wait for active round to finish — hard timeout: if pending round is >90s old, force settle it
+  // Force-settle stuck rounds >90s
   var now=Date.now();
   Object.keys(GM.pending).forEach(function(rid){
     var round=GM.pending[rid];
@@ -5369,102 +5366,99 @@ function gmLoop(){
     }
   });
 
-  // Clean up stale pending rounds older than 30s
-  var _now2 = Date.now();
+  // Clean stale pending >30s
+  var _now2=Date.now();
   Object.keys(GM.pending).forEach(function(rid){
-    var r = GM.pending[rid];
-    if(r && r.lastRoundTime && (_now2 - r.lastRoundTime) > 30000){
-      console.warn('[GM] Cleaning stale pending round', rid);
+    var r=GM.pending[rid];
+    if(r&&r.lastRoundTime&&(_now2-r.lastRoundTime)>30000){
+      console.warn('[GM] Stale pending cleared:',rid);
       delete GM.pending[rid];
     }
   });
 
-  if(gmActiveCount()>0){
+  // LOG: active count
+  var _ac=gmActiveCount();
+  if(_ac>0){
+    console.log('[GM BLOCK] active='+_ac+' pending keys:'+Object.keys(GM.pending).join(','));
     var rs=document.getElementById('gm-round-status');
-    if(rs)rs.textContent='ACTIVE';
+    if(rs)rs.textContent='ACTIVE ('+_ac+')';
     GM.interval=setTimeout(gmLoop,_nextInterval);return;
   }
 
-  // Enforce gap between rounds
-  var now=Date.now();
-  var gap=(GM.minGap||30)*1000;
-  if(now-GM.lastRoundTime<gap){
-    var wait=Math.ceil((GM.lastRoundTime+gap-now)/1000);
+  // LOG: gap check
+  var _gap=(GM.minGap||30)*1000;
+  var _gapWait=GM.lastRoundTime+_gap-Date.now();
+  if(_gapWait>0){
+    var wait=Math.ceil(_gapWait/1000);
+    console.log('[GM BLOCK] gap wait='+wait+'s lastRound='+GM.lastRoundTime);
     var rs2=document.getElementById('gm-round-status');
     if(rs2)rs2.textContent='GAP '+wait+'s';
     GM.interval=setTimeout(gmLoop,1000);return;
   }
 
-  // ── Volatility + Velocity: display-only, never block ─────────────
-  var _vol = gmCheckVolatility();
-  gmUpdateVolPanel(_vol);
-  // Only hard-stop if absolutely no price data at all
-  if (!_loopPrices.length && !S.prices[GM.asset]) {
-    var rs5 = document.getElementById('gm-round-status');
-    if (rs5) rs5.textContent = 'WAITING — no price data';
-    GM.interval = setTimeout(gmLoop, _nextInterval); return;
+  // Price data check
+  if(!_loopPrices.length&&!S.prices[GM.asset]){
+    console.log('[GM BLOCK] no price data');
+    var rs5=document.getElementById('gm-round-status');
+    if(rs5)rs5.textContent='WAITING — no price data';
+    GM.interval=setTimeout(gmLoop,_nextInterval);return;
   }
-  // Velocity: update display only, never block
+
+  var _vol=gmCheckVolatility();
+  gmUpdateVolPanel(_vol);
   gmUpdateVelPanel();
 
-  // ── TURBO-TREND ENTRY MODULE ────────────────────────────────────
-  // 3 conditions must ALL pass before firing:
-  // 1. Direction    — 3 consecutive same-direction ticks
-  // 2. Acceleration — current move > previous move (momentum building)
-  // 3. Breakout     — price breaking 20-tick high or low (not trapped in gap)
-
-  // Update tick pills UI
-  var _pillEl = document.getElementById('gm-tick-pills');
-  if (_pillEl) {
-    var _pills = '';
-    var _buf = _gmTickBuf, _bLen = _buf.length, _bShow = Math.min(10, _bLen - 1);
-    for (var _pi = _bLen - _bShow; _pi < _bLen; _pi++) {
-      var _pd = _pi > 0 ? _buf[_pi] - _buf[_pi - 1] : 0;
-      _pills += '<div style="width:16px;height:16px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:' +
-        (_pd > 0 ? 'rgba(0,229,160,0.3)' : _pd < 0 ? 'rgba(255,77,106,0.3)' : 'rgba(255,255,255,0.05)') +
-        ';color:' + (_pd > 0 ? 'var(--ac)' : _pd < 0 ? 'var(--re)' : 'var(--t3)') + '">' +
-        (_pd > 0 ? '▲' : _pd < 0 ? '▼' : '—') + '</div>';
+  // Tick pills
+  var _pillEl=document.getElementById('gm-tick-pills');
+  if(_pillEl){
+    var _pills='';
+    var _buf=_gmTickBuf,_bLen=_buf.length,_bShow=Math.min(10,_bLen-1);
+    for(var _pi=_bLen-_bShow;_pi<_bLen;_pi++){
+      var _pd=_pi>0?_buf[_pi]-_buf[_pi-1]:0;
+      _pills+='<div style="width:16px;height:16px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:'+
+        (_pd>0?'rgba(0,229,160,0.3)':_pd<0?'rgba(255,77,106,0.3)':'rgba(255,255,255,0.05)')+
+        ';color:'+(_pd>0?'var(--ac)':_pd<0?'var(--re)':'var(--t3)')+'">'+
+        (_pd>0?'▲':_pd<0?'▼':'—')+'</div>';
     }
-    _pillEl.innerHTML = _pills;
+    _pillEl.innerHTML=_pills;
   }
 
-  // Use _gmTickBuf for direction — same source as topbar LOWER×3 display
-  var _buf2 = _gmTickBuf;
-  var _bLen2 = _buf2.length;
+  // Direction check using _gmTickBuf
+  var _buf2=_gmTickBuf;
+  var _bLen2=_buf2.length;
 
-  // Need at least 4 prices
-  if (_bLen2 < 4) {
-    var rs6 = document.getElementById('gm-round-status');
-    if (rs6) rs6.textContent = 'WAIT: building history ('+_bLen2+'/4)';
-    GM.interval = setTimeout(gmLoop, _nextInterval); return;
+  if(_bLen2<4){
+    console.log('[GM BLOCK] buf too short='+_bLen2);
+    var rs6=document.getElementById('gm-round-status');
+    if(rs6)rs6.textContent='WAIT: building history ('+_bLen2+'/4)';
+    GM.interval=setTimeout(gmLoop,_nextInterval);return;
   }
 
-  var t0 = _buf2[_bLen2 - 1];
-  var t1 = _buf2[_bLen2 - 2];
-  var t2 = _buf2[_bLen2 - 3];
-  var t3 = _buf2[_bLen2 - 4];
+  var t0=_buf2[_bLen2-1];
+  var t1=_buf2[_bLen2-2];
+  var t2=_buf2[_bLen2-3];
+  var t3=_buf2[_bLen2-4];
 
-  // DIRECTION — 3 consecutive ticks same way (restored)
-  var _isUp   = t0 > t1 && t1 > t2 && t2 > t3;
-  var _isDown = t0 < t1 && t1 < t2 && t2 < t3;
+  var _isUp  =t0>t1&&t1>t2&&t2>t3;
+  var _isDown=t0<t1&&t1<t2&&t2<t3;
 
-  if (!_isUp && !_isDown) {
-    var rs7 = document.getElementById('gm-round-status');
-    if (rs7) rs7.textContent = 'WAIT: need 3 consecutive ticks';
-    GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
-    GM.interval = setTimeout(gmLoop, _nextInterval); return;
+  if(!_isUp&&!_isDown){
+    // Only log once every 10 cycles to avoid spam
+    if(!gmLoop._logCount)gmLoop._logCount=0;
+    if(++gmLoop._logCount%10===0)
+      console.log('[GM BLOCK] direction fail t0='+t0+' t1='+t1+' t2='+t2+' t3='+t3);
+    var rs7=document.getElementById('gm-round-status');
+    if(rs7)rs7.textContent='WAIT: need 3 consecutive ticks';
+    GM._skipReasons.score=(GM._skipReasons.score||0)+1;
+    GM.interval=setTimeout(gmLoop,_nextInterval);return;
   }
 
-  // ✅ 3 consecutive ticks confirmed — fire
-  var _turboDir = _isUp ? 'UP 🚀' : 'DOWN 🚀';
-  var rs10 = document.getElementById('gm-round-status');
-  if (rs10) rs10.textContent = _turboDir+' — FIRING';
+  console.log('[GM FIRE] direction='+(_isUp?'UP':'DOWN')+' t0='+t0+' t1='+t1+' t2='+t2+' t3='+t3);
+  var _turboDir=_isUp?'UP 🚀':'DOWN 🚀';
+  var rs10=document.getElementById('gm-round-status');
+  if(rs10)rs10.textContent=_turboDir+' — FIRING';
 
-  // ── GUARDRAIL: Martingale init on first round ─────────────────
-  if (!_gmMart.baseBudget) gmMartInit();
-
-  // Fire a payout check — fetch proposals at current stake
-  // Once we get both payouts back, gate decides whether to buy
+  if(!_gmMart.baseBudget)gmMartInit();
   gmFetchProposals();
   GM.interval=setTimeout(gmLoop,_nextInterval);
 }
