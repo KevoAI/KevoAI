@@ -1756,7 +1756,25 @@ function onProposal(proposal, reqId){
 
   // Route HB proposals to dual-trade handler
   if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
-  if(p.type==='gm_probe'){onGMProbe(proposal,p);return;}
+  if(p.type==='gm_8leg_buy'){
+    // Immediately buy this proposal
+    var _8rid=p.rid; var _8side=p.side;
+    var _8ask=parseFloat(proposal.ask_price||0);
+    var _8id=proposal.id;
+    if(!_8id||!_8ask){return;}
+    var _8bid=wsSend({buy:_8id,price:_8ask});
+    if(_8bid)S.pending[_8bid]={
+      type:'gm_8leg_confirm',
+      rid:_8rid,side:_8side,
+      dir:p.dir,stake:p.legStake,asset:p.asset
+    };
+    return;
+  }
+
+  if(p.type==='gm_8leg_confirm'){
+    // Buy confirmed — record it
+    return; // handled by onBuyConfirm
+  }
 }
 
 function onAuth(a) {
@@ -5788,60 +5806,79 @@ function gmPlaceSpread(sp){
   GM.rounds++;
   GM.lastRoundTime=Date.now();
 
-  var entry=sp.entry;
-  var nearStake=sp.nearStake||1.35;
-  var farStake=sp.farStake||0.35;
-  var totalStake=parseFloat(((nearStake*2)+(farStake*2)).toFixed(2));
-  var snap=gmSnapshot(entry,sp.farOff,nearStake,sp.callNear+sp.callFar,sp.putNear+sp.putFar);
+  var leg = parseFloat((document.getElementById('gm-leg-stake')||{value:'0.35'}).value)||0.35;
+  var barrier = parseFloat((document.getElementById('gm-h1-barrier')||{value:'0.06'}).value)||0.06;
+  var totalStake = parseFloat((leg * 8).toFixed(2));
+  var nearStake = leg;
+  var farStake  = leg;
 
   GM.pending[rid]={
     isSpread:true,
-    results:{callNear:null,callFar:null,putNear:null,putFar:null},
-    settled:0, totalLegs:4,
-    entry:entry,nearOff:sp.nearOff,farOff:sp.farOff,
+    results:{callNear:null,callFar:null,putNear:null,putFar:null,
+             callNear2:null,callNear3:null,callNear4:null,
+             putNear2:null,putNear3:null,putNear4:null},
+    settled:0, totalLegs:8,
+    entry:entry,nearOff:barrier,farOff:barrier,
     nearStake:nearStake,farStake:farStake,
     stake:nearStake,totalStake:totalStake,
-    callPay:sp.callNear+sp.callFar,putPay:sp.putNear+sp.putFar,
-    combinedPay:sp.callNear+sp.callFar+sp.putNear+sp.putFar,
+    callPay:sp.callNear,putPay:sp.putNear,
+    combinedPay:(sp.callNear||0)+(sp.putNear||0),
     callPlaced:false,putPlaced:false,
     callCid:null,putCid:null,
     callNearCid:null,callFarCid:null,putNearCid:null,putFarCid:null,
     time:snap.time,asset:GM.asset,
     lastRoundTime:Date.now(),
     snap:snap,
-    barrier:'±'+sp.nearOff.toFixed(2)+'/±'+sp.farOff.toFixed(2),
-    offset:sp.farOff
+    barrier:'±'+barrier.toFixed(2),
+    offset:barrier
   };
 
   var dp=entry>100?2:5;
   _gmActiveBarrier={active:true,entry:entry,
-    higher:parseFloat((entry+sp.farOff).toFixed(dp)),
-    lower:parseFloat((entry-sp.farOff).toFixed(dp)),
-    nearHigher:parseFloat((entry+sp.nearOff).toFixed(dp)),
-    nearLower:parseFloat((entry-sp.nearOff).toFixed(dp))};
+    higher:parseFloat((entry+barrier).toFixed(dp)),
+    lower:parseFloat((entry-barrier).toFixed(dp)),
+    nearHigher:parseFloat((entry+barrier).toFixed(dp)),
+    nearLower:parseFloat((entry-barrier).toFixed(dp))};
   gmDrawChart();
 
   var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
-  set('gm-call-stake','Near $'+nearStake+' +'+sp.nearOff.toFixed(2)+' | Far $'+farStake+' +'+sp.farOff.toFixed(2));
-  set('gm-put-stake', 'Near $'+nearStake+' -'+sp.nearOff.toFixed(2)+' | Far $'+farStake+' -'+sp.farOff.toFixed(2));
+  set('gm-call-stake','8×$'+leg.toFixed(2)+' ±'+barrier.toFixed(2));
+  set('gm-put-stake', '8×$'+leg.toFixed(2)+' ±'+barrier.toFixed(2));
   set('gm-call-pnl','...');set('gm-put-pnl','...');
-  set('gm-round-status','BUYING 4-LEG...');set('gm-round-net','...');
+  set('gm-round-status','BUYING 8-LEG...');set('gm-round-net','...');
 
-  console.log('[GM SPREAD] R'+rid+' entry:'+entry+' near:±'+sp.nearOff+' ($'+nearStake+') far:±'+sp.farOff+' ($'+farStake+') total:$'+totalStake);
+  console.log('[GM SPREAD] R'+rid+' entry:'+entry+' barrier:±'+barrier+' stake:$'+leg+'×8 total:$'+totalStake);
 
-  var legs=[
-    {id:sp.callNearId,ask:sp.callNearAsk,side:'callNear',dir:'HIGHER',legStake:nearStake},
-    {id:sp.callFarId, ask:sp.callFarAsk, side:'callFar', dir:'HIGHER',legStake:farStake},
-    {id:sp.putNearId, ask:sp.putNearAsk, side:'putNear', dir:'LOWER', legStake:nearStake},
-    {id:sp.putFarId,  ask:sp.putFarAsk,  side:'putFar',  dir:'LOWER', legStake:farStake}
+  // Build 8 legs — 4 HIGHER + 4 LOWER
+  // Stagger by 120ms each to avoid Deriv duplicate rejection
+  var allLegs = [
+    {side:'callNear', type:'CALL', barrier:'+'+barrier.toFixed(2)},
+    {side:'putNear',  type:'PUT',  barrier:'-'+barrier.toFixed(2)},
+    {side:'callNear2',type:'CALL', barrier:'+'+barrier.toFixed(2)},
+    {side:'putNear2', type:'PUT',  barrier:'-'+barrier.toFixed(2)},
+    {side:'callNear3',type:'CALL', barrier:'+'+barrier.toFixed(2)},
+    {side:'putNear3', type:'PUT',  barrier:'-'+barrier.toFixed(2)},
+    {side:'callFar',  type:'CALL', barrier:'+'+barrier.toFixed(2)},
+    {side:'putFar',   type:'PUT',  barrier:'-'+barrier.toFixed(2)}
   ];
-  legs.forEach(function(leg){
-    var bid=wsSend({buy:leg.id,price:leg.ask});
-    if(bid)S.pending[bid]={dir:leg.dir,stake:leg.legStake,asset:GM.asset,
-      isBot:true,isGM:true,gmRound:rid,gmSide:leg.side,
-      entryPrice:entry,durVal:5,durUnit:'t'};
-  });
 
+  allLegs.forEach(function(leg, idx){
+    setTimeout(function(){
+      if(!GM.pending[rid]) return; // round cancelled
+      // Request fresh proposal then immediately buy
+      var pid = wsSend({proposal:1, amount:nearStake, basis:'stake',
+        contract_type:leg.type, currency:S.currency,
+        duration:5, duration_unit:'t',
+        symbol:GM.asset, barrier:leg.barrier});
+      if(pid) S.pending[pid] = {
+        type:'gm_8leg_buy',
+        rid:rid, side:leg.side,
+        legStake:nearStake,
+        dir:leg.type==='CALL'?'HIGHER':'LOWER',
+        asset:GM.asset
+      };
+    }, idx * 120); // 120ms stagger between each leg
+  });
   setTimeout(function(){GM._placing=false;},300);
   var _forceMs=15000;
   GM.pending[rid]._timeout=setTimeout(function(){
@@ -5943,8 +5980,8 @@ function gmPlaceSpread_onResult(rid,side,pnl,exitPrice){
   if(!round||!round.isSpread)return;
   round.results[side]={profit:pnl,win:pnl>0,exitPrice:exitPrice||0};
   round.settled=(round.settled||0)+1;
-  console.log('[GM SPREAD RESULT] R'+rid+' '+side+' pnl:'+pnl+' settled:'+round.settled+'/4');
-  if(round.settled>=4)gmSettleSpread(rid);
+  console.log('[GM SPREAD RESULT] R'+rid+' '+side+' pnl:'+pnl+' settled:+round.settled+/2');
+  if(round.settled>=8)gmSettleSpread(rid);
 }
 
 function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay){
@@ -6062,8 +6099,8 @@ function onGMResult(rid,side,profit,exitPrice){
       // Clean up activeCids for this leg
       var _legCidKey=side+'Cid';
       if(round[_legCidKey])delete GM.activeCids[round[_legCidKey]];
-      console.log('[GM SPREAD RESULT] R'+rid+' '+side+' pnl:'+spnl+' settled:'+round.settled+'/4');
-      if(round.settled>=4)gmSettleSpread(rid);
+      console.log('[GM SPREAD RESULT] R'+rid+' '+side+' pnl:'+spnl+' settled:+round.settled+/2');
+      if(round.settled>=8)gmSettleSpread(rid);
       return;
     }
   }
@@ -6092,7 +6129,7 @@ function onGMResult(rid,side,profit,exitPrice){
   if(el){el.textContent=(pnl>=0?'+':'')+'$'+Math.abs(pnl).toFixed(2);el.style.color=pnl>0?'var(--ac)':'var(--re)';}
 
   console.log('[GM RESULT] R'+rid+' side:'+side+' pnl:'+pnl+' settled:'+round.settled);
-  if(round.settled>=2)gmSettle(rid);
+  if(round.settled>=8)gmSettle(rid);
 }
 
 function gmForceSettle(rid){
