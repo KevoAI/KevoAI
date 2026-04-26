@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>KevoAI v5.4</title>
+<title>KevoAI v5.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg0:#070a0f;--bg1:#0c1018;--bg2:#111622;--bg3:#181f2e;--bg4:#1e2738;--bo:rgba(255,255,255,0.07);--bo2:rgba(255,255,255,0.13);--ac:#00e5a0;--ac2:#00b87a;--ad:rgba(0,229,160,0.12);--re:#ff4d6a;--rd:rgba(255,77,106,0.12);--bl:#3b82f6;--bd:rgba(59,130,246,0.12);--go:#f5a623;--gd:rgba(245,166,35,0.12);--t1:#f0f4ff;--t2:#8892a4;--t3:#4a5568;--fn:'Syne',sans-serif;--mo:'JetBrains Mono',monospace;--r:12px;--rs:8px;--sw:224px}
@@ -277,7 +277,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
       <div class="ni" onclick="showPage('bot',this)">Auto Bot</div>
       <div class="ni" onclick="showPage('barrier',this)">WinWin Hybrid</div>
       <div class="ni" onclick="showPage('gmilli',this)">&#9889; Gmilli</div>
-      <div class="ni" onclick="showPage('barrierlab',this)">&#128300; Barrier Lab</div>
       <div class="ns">Analysis</div>
       <div class="ni" onclick="showPage('history',this)">Trade History</div>
       <div class="ni" onclick="showPage('journal',this)">Journal</div>
@@ -412,7 +411,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <div class="aswrap"><div class="assel" onclick="toggleDD('dd2')"><div><div style="font-size:13px;font-weight:700" id="a2n">R_25</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="a2i">Volatility 25 Index</div></div><span style="color:var(--t3);font-size:11px">v</span></div><div class="asdd" id="dd2"></div></div>
               <div class="ttr"><div class="ttb ab"><span class="ttl up">HIGHER</span></div><div class="ttb"><span class="ttl dn">LOWER</span></div></div>
               <div class="ig"><div class="il">Stake (USD)</div><div class="ir"><div class="ia" onclick="adj('s2',-0.5)">-</div><input type="number" class="iif" id="s2" value="1.00" min="0.35" step="0.5"><div class="ia" onclick="adj('s2',0.5)">+</div></div></div>
-              <div class="ig"><div class="il">Duration</div><div class="dr"><div class="db active" onclick="setDur(this,'1','t')">1T</div><div class="db" onclick="setDur(this,'5','t')">5T</div><div class="db" onclick="setDur(this,'1','m')">1M</div><div class="db" onclick="setDur(this,'5','m')">5M</div><div class="db" onclick="setDur(this,'15','m')">15M</div></div></div>
+              <div class="ig"><div class="il">Duration</div><div class="dr"><div class="db" onclick="setDur(this,'1','t')">1T</div><div class="db active" onclick="setDur(this,'5','t')">5T</div><div class="db" onclick="setDur(this,'1','m')">1M</div><div class="db" onclick="setDur(this,'5','m')">5M</div><div class="db" onclick="setDur(this,'15','m')">15M</div></div></div>
               <div class="pr"><div class="pl">Payout if win</div><div class="pv">$1.95</div></div>
               <div class="tbs"><button class="tb2 tb2b" onclick="placeTrade('CALL')">HIGHER</button><button class="tb2 tb2s" onclick="placeTrade('PUT')">LOWER</button></div>
             </div>
@@ -803,8 +802,8 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
       <div class="page" id="page-gmilli">
         <div style="background:linear-gradient(135deg,rgba(0,229,160,0.1),rgba(59,130,246,0.08));border:1px solid rgba(0,229,160,0.25);border-radius:var(--r);padding:16px;margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-            <div style="font-size:18px;font-weight:800;color:var(--ac)">Gmilli Bot <span style="font-size:12px;font-weight:600;color:var(--go);background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.3);border-radius:99px;padding:2px 9px;margin-left:6px">⚡ 5-Tick · 4-Leg Spread</span></div>
-            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">🛡️ SHIELD PROTOCOL — TURBO-TREND ENTRY — 5 TICKS FIXED</div>
+            <div style="font-size:18px;font-weight:800;color:var(--ac)">Gmilli Bot</div>
+            <div style="font-size:11px;color:var(--t2);font-family:var(--mo)">HIGHER + LOWER — Zero Gap Strategy</div>
           </div>
           <div style="font-size:11px;color:var(--t2)">Barrier set at entry spot — one side ALWAYS wins. Only trades when combined payout > 2× stake.</div>
         </div>
@@ -850,24 +849,14 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
                 <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:var(--rs);padding:9px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">↑ FAR HIGHER <span style="color:rgba(245,166,35,0.9)">$0.35</span></div>
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">HIGHER</div>
                   <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--ac)" id="gm-higher-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry + 0.15 (jackpot)</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry + offset</div>
                 </div>
                 <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:var(--rs);padding:9px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">↓ FAR LOWER <span style="color:rgba(245,166,35,0.9)">$0.35</span></div>
+                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px">LOWER</div>
                   <div style="font-size:14px;font-weight:700;font-family:var(--mo);color:var(--re)" id="gm-lower-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry − 0.15 (jackpot)</div>
-                </div>
-                <div style="background:rgba(0,229,160,0.06);border:1.5px solid rgba(0,229,160,0.25);border-radius:var(--rs);padding:7px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">↑ NEAR <span style="color:var(--ac);font-weight:700" id="gm-near-stake-preview">$1.95</span></div>
-                  <div style="font-size:12px;font-weight:700;font-family:var(--mo);color:rgba(0,229,160,0.85)" id="gm-near-higher-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry + 0.09 (shield)</div>
-                </div>
-                <div style="background:rgba(255,77,106,0.06);border:1.5px solid rgba(255,77,106,0.25);border-radius:var(--rs);padding:7px;text-align:center">
-                  <div style="font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:2px">↓ NEAR <span style="color:var(--re);font-weight:700" id="gm-near-stake-preview2">$1.95</span></div>
-                  <div style="font-size:12px;font-weight:700;font-family:var(--mo);color:rgba(255,77,106,0.85)" id="gm-near-lower-level">--</div>
-                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry − 0.09 (shield)</div>
+                  <div style="font-size:9px;color:var(--t3);margin-top:1px">entry − offset</div>
                 </div>
               </div>
               <div style="margin-top:7px;font-size:10px;color:var(--t3);text-align:center;font-family:var(--mo)" id="gm-gap-display">Gap zone shown after connect</div>
@@ -971,7 +960,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <span style="font-size:10px;color:var(--t3);font-weight:600">Recent Moves</span>
                   <span id="gm-streak-badge" style="font-size:9px;font-family:var(--mo);padding:1px 7px;border-radius:99px;background:var(--bg4);color:var(--t3)"></span>
                 </div>
-                <div id="gm-moves-strip" style="display:flex;flex-wrap:wrap;gap:3px"></div>
+                <div id="gm-moves-strip" style="display:grid;grid-template-columns:repeat(20,1fr);gap:3px"></div>
               </div>
             </div>
             <canvas id="gmChart" style="display:none;width:0;height:0"></canvas>
@@ -997,80 +986,49 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div class="il">Asset</div>
                 <div class="aswrap"><div class="assel" onclick="toggleDD('gm-dd')"><div><div style="font-size:13px;font-weight:700" id="gm-asset-n">R_100</div><div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="gm-asset-i">Volatility 100 Index</div></div><span style="color:var(--t3);font-size:11px">v</span></div><div class="asdd" id="gm-dd"></div></div>
               </div>
-              <!-- 8-Leg Grid -->
-              <div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:10px;margin-bottom:9px">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                  <div style="font-size:11px;font-weight:700">💰 8-Leg Grid</div>
-                  <div style="font-size:9px;color:var(--ac);font-family:var(--mo)" id="gm-grid-math">4H + 4L @ ±0.06</div>
+              <!-- Budget -->
+              <div class="ig" style="margin-bottom:9px">
+                <div class="il">Budget Per Round ($)</div>
+                <div class="ir">
+                  <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=Math.max(0.70,(parseFloat(e.value)-0.70)).toFixed(2);gmCalc()">-</div>
+                  <input type="number" class="iif" id="gm-budget" value="3.00" min="0.70" step="0.70" oninput="gmCalc()">
+                  <div class="ia" onclick="var e=document.getElementById('gm-budget');e.value=(parseFloat(e.value)+0.70).toFixed(2);gmCalc()">+</div>
                 </div>
-                <!-- Stake per leg -->
-                <div style="margin-bottom:8px">
-                  <div style="font-size:9px;color:var(--t2);margin-bottom:4px">Stake per leg ($) — all 8 equal</div>
+                <div style="font-size:10px;color:var(--t3);margin-top:2px">Split equally — $<span id="gm-stake-display">1.50</span> each side</div>
+              </div>
+              <!-- Barrier Offset -->
+              <div style="background:var(--bg3);border:1px solid var(--bo);border-radius:var(--rs);padding:9px;margin-bottom:9px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+                  <div style="font-size:10px;font-weight:700">Barrier Offset</div>
                   <div style="display:flex;align-items:center;gap:6px">
-                    <div class="ia" onclick="var e=document.getElementById('gm-leg-stake');e.value=Math.max(0.35,(parseFloat(e.value)-0.05)).toFixed(2);gmStakeGrid()">-</div>
-                    <input type="number" class="iif" id="gm-leg-stake" value="0.35" min="0.35" step="0.05" oninput="gmStakeGrid()" style="flex:1">
-                    <div class="ia" onclick="var e=document.getElementById('gm-leg-stake');e.value=(parseFloat(e.value)+0.05).toFixed(2);gmStakeGrid()">+</div>
+                    <span style="font-size:9px;color:var(--t3)">Auto ATR</span>
+                    <div class="tsw" id="gm-adaptive-offset-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on');gmCalc()"></div>
                   </div>
                 </div>
-                <!-- Barrier -->
-                <div style="margin-bottom:10px">
-                  <div style="font-size:9px;color:var(--t2);margin-bottom:4px">Barrier — all 8 legs same</div>
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <div class="ia" onclick="var e=document.getElementById('gm-h1-barrier');e.value=Math.max(0.01,(parseFloat(e.value)-0.01)).toFixed(2);gmStakeGrid()">-</div>
-                    <input type="number" class="iif" id="gm-h1-barrier" value="0.06" min="0.01" step="0.01" oninput="gmStakeGrid()" style="flex:1">
-                    <div class="ia" onclick="var e=document.getElementById('gm-h1-barrier');e.value=(parseFloat(e.value)+0.01).toFixed(2);gmStakeGrid()">+</div>
-                  </div>
-                </div>
-                <!-- Stats -->
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
-                  <div style="background:var(--bg2);border-radius:6px;padding:7px;text-align:center">
-                    <div style="font-size:9px;color:var(--t3)">Total Risk</div>
-                    <div style="font-size:12px;font-weight:700;color:var(--re);font-family:var(--mo)" id="gm-grid-total">$2.80</div>
-                  </div>
-                  <div style="background:var(--bg2);border-radius:6px;padding:7px;text-align:center">
-                    <div style="font-size:9px;color:var(--t3)">Win returns</div>
-                    <div style="font-size:12px;font-weight:700;color:var(--ac);font-family:var(--mo)" id="gm-grid-win">$3.09</div>
-                  </div>
-                  <div style="background:var(--bg2);border-radius:6px;padding:7px;text-align:center">
-                    <div style="font-size:9px;color:var(--t3)">Net profit</div>
-                    <div style="font-size:12px;font-weight:700;font-family:var(--mo)" id="gm-grid-net">+$0.29</div>
-                  </div>
-                </div>
-                <!-- Visual -->
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
-                  <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:6px;padding:6px;text-align:center">
-                    <div style="font-size:9px;color:var(--ac);font-weight:700">HIGHER × 4</div>
-                    <div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="gm-h-display">4 × $0.35 = $1.40</div>
-                  </div>
-                  <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:6px;padding:6px;text-align:center">
-                    <div style="font-size:9px;color:var(--re);font-weight:700">LOWER × 4</div>
-                    <div style="font-size:10px;color:var(--t2);font-family:var(--mo)" id="gm-l-display">4 × $0.35 = $1.40</div>
-                  </div>
+                <div class="ir" style="margin-bottom:4px">
+                  <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=Math.max(0.01,(parseFloat(e.value)-0.01)).toFixed(2);gmCalc()">-</div>
+                  <input type="number" class="iif" id="gm-offset" value="0.12" min="0.01" step="0.01" oninput="gmCalc()">
+                  <div class="ia" onclick="var e=document.getElementById('gm-offset');e.value=(parseFloat(e.value)+0.01).toFixed(2);gmCalc()">+</div>
+                  <span style="font-size:11px;font-weight:700;font-family:var(--mo);color:var(--ac);margin-left:5px" id="gm-effective-offset">±0.12</span>
                 </div>
               </div>
-              <!-- 5 Ticks fixed -->
-              <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--ad);border:1px solid rgba(0,229,160,0.25);border-radius:var(--rs);margin-bottom:9px">
-                <span style="font-size:11px;font-weight:700;color:var(--ac)">⏱ 5 Ticks</span>
-                <span style="font-size:10px;color:var(--t3)">Fixed — strategy locked</span>
+              <!-- 4-Leg Power Spread toggle -->
+              <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.25);border-radius:var(--rs);padding:9px 11px;margin-bottom:9px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                  <div style="font-size:11px;font-weight:700;color:var(--go)">⚡ 4-Leg Power Spread</div>
+                  <div class="tsw" id="gm-spread-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on')"></div>
+                </div>
+                <div style="font-size:9px;color:var(--t3);line-height:1.6">Splits $3 into 4 legs: Near (0.5×ATR) + Far (1.5×ATR) each side. Double-wins possible. Reduces max loss to ~$1.35 on weak moves.</div>
               </div>
-              <!-- Hidden inputs for JS compat -->
-              <div id="gm-spread-sw" class="on" style="display:none"></div>
-              <input type="hidden" id="gm-budget" value="2.80">
-              <input type="hidden" id="gm-offset" value="0.06">
-              <input type="hidden" id="gm-h1-stake" value="0.35">
-              <input type="hidden" id="gm-h2-stake" value="0.35">
-              <input type="hidden" id="gm-l1-stake" value="0.35">
-              <input type="hidden" id="gm-l2-stake" value="0.35">
-              <input type="hidden" id="gm-l1-barrier" value="0.06">
-              <input type="hidden" id="gm-h2-barrier" value="0.06">
-              <input type="hidden" id="gm-l2-barrier" value="0.06">
-              <div style="display:none" id="gm-adaptive-offset-sw"></div>
-              <span style="display:none" id="gm-stake-display">0.35</span>
-              <span style="display:none" id="gm-far-stake-display">0.35</span>
-              <span style="display:none" id="gm-near-stake-lbl">$0.35</span>
-              <span style="display:none" id="gm-total-risk-lbl">$2.80</span>
-              <span style="display:none" id="gm-near-stake-preview">$0.35</span>
-              <span style="display:none" id="gm-near-stake-preview2">$0.35</span>
+                <div class="dr">
+                  <div class="db" onclick="GM.dur=5;gmSetActive(this)">5S</div>
+                  <div class="db" onclick="GM.dur=15;gmSetActive(this)">15S</div>
+                  <div class="db active" onclick="GM.dur=30;gmSetActive(this)">30S</div>
+                  <div class="db" onclick="GM.dur=60;gmSetActive(this)">60S</div>
+                  <div class="db" onclick="GM.dur=120;gmSetActive(this)">2M</div>
+                </div>
+              </div>
+              <!-- Daily SL/TP -->
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px">
                 <div class="ig"><div class="il">Daily SL ($)</div><input type="number" class="iif" id="gm-daily-sl" value="30" min="1" oninput="gmCalc()"></div>
                 <div class="ig"><div class="il">Daily TP ($)</div><input type="number" class="iif" id="gm-daily-tp" value="60" min="1" oninput="gmCalc()"></div>
@@ -1095,20 +1053,24 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
               <span style="color:var(--t3);font-size:10px"><b id="gm-conf-ticks">20</b>tk</span>
             </div>
 
-            <!-- Turbo-Trend Entry — ALWAYS ON, LOCKED -->
-            <div style="background:rgba(0,229,160,0.1);border:1px solid rgba(0,229,160,0.35);border-radius:var(--rs);padding:10px">
+            <!-- 3-Tick Filter -->
+            <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.22);border-radius:var(--rs);padding:10px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                <div style="font-size:11px;font-weight:700;color:var(--ac)">🚀 Turbo-Trend Entry</div>
-                <span style="font-size:10px;font-weight:700;color:var(--ac);background:rgba(0,229,160,0.2);padding:2px 8px;border-radius:99px;border:1px solid rgba(0,229,160,0.4)">ALWAYS ON</span>
-                <!-- hidden toggles kept for JS compatibility -->
-                <div id="gm-tick-filter-sw" class="on" style="display:none"></div>
-                <div id="gm-tick-filter-badge" style="display:none">ON</div>
+                <div style="font-size:11px;font-weight:700;color:var(--ac)">⚡ 3-Tick Filter</div>
+                <div style="display:flex;align-items:center;gap:7px">
+                  <div id="gm-tick-filter-badge" style="font-size:10px;font-family:var(--mo);padding:2px 7px;border-radius:99px;background:var(--bg4);color:var(--t3)">OFF</div>
+                  <div class="tsw" id="gm-tick-filter-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on')"></div>
+                </div>
               </div>
               <div id="gm-tick-pills" style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:7px;min-height:18px"></div>
-              <div style="font-size:10px;color:var(--t2);line-height:1.7">
-                <b style="color:var(--ac)">1. Direction</b> — 3 consecutive same-direction ticks<br>
-                <b style="color:var(--go)">2. Acceleration</b> — current move &gt; previous move<br>
-                <b style="color:var(--re)">3. Breakout</b> — price breaking 20-tick high or low
+              <div style="display:flex;align-items:center;gap:5px">
+                <span style="font-size:9px;color:var(--t3)">Min ticks:</span>
+                <div class="dr" style="grid-template-columns:repeat(4,1fr);flex:1;gap:3px">
+                  <div class="db" onclick="GM.consecTicks=2;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='2'" style="font-size:10px;padding:4px 2px">2</div>
+                  <div class="db active" onclick="GM.consecTicks=3;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='3'" style="font-size:10px;padding:4px 2px">3</div>
+                  <div class="db" onclick="GM.consecTicks=4;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='4'" style="font-size:10px;padding:4px 2px">4</div>
+                  <div class="db" onclick="GM.consecTicks=5;GM.consecTicksActive=true;gmSetActive(this);document.getElementById('gm-consec-req-display').textContent='5'" style="font-size:10px;padding:4px 2px">5</div>
+                </div>
               </div>
               <span id="gm-consec-req-display" style="display:none">3</span>
             </div>
@@ -1272,159 +1234,6 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
         </div></div>
       </div>
 
-      <!-- ══ BARRIER LAB PAGE ══════════════════════════════════════ -->
-      <div class="page" id="page-barrierlab">
-        <!-- Header -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <div>
-            <div style="font-size:18px;font-weight:800;color:var(--t1)">🔬 Barrier Lab</div>
-            <div style="font-size:11px;color:var(--t2);margin-top:2px">Find which barrier gives you $282.52 return on $125 stake — live from Deriv</div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <div id="bl-conn-warn" style="font-size:11px;color:var(--re);display:none">⚠ Connect to Deriv first</div>
-            <button class="btn btnp" id="bl-run-btn" onclick="blRun()" style="padding:9px 20px;font-size:13px;font-weight:700">▶ Run Scan</button>
-            <button class="btn btng" onclick="blClear()" style="padding:9px 14px;font-size:12px">Clear</button>
-          </div>
-        </div>
-
-        <!-- Config strip -->
-        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:14px">
-          <div class="card" style="padding:12px">
-            <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Asset</div>
-            <select id="bl-asset" style="width:100%;background:var(--bg3);border:1px solid var(--bo2);color:var(--t1);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--fn)">
-              <option value="R_100">Volatility 100</option>
-              <option value="1HZ100V">Volatility 100 (1s)</option>
-              <option value="R_75">Volatility 75</option>
-              <option value="1HZ75V">Volatility 75 (1s)</option>
-              <option value="R_50">Volatility 50</option>
-              <option value="1HZ50V">Volatility 50 (1s)</option>
-              <option value="R_25">Volatility 25</option>
-              <option value="R_10">Volatility 10</option>
-            </select>
-          </div>
-          <div class="card" style="padding:12px">
-            <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Contract Type</div>
-            <select id="bl-contract-type" style="width:100%;background:var(--bg3);border:1px solid var(--bo2);color:var(--t1);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--fn)">
-              <option value="HL">Higher/Lower</option>
-              <option value="OUT">Outside (Ends Outside)</option>
-              <option value="IN">Inside (Ends Between)</option>
-            </select>
-          </div>
-          <div class="card" style="padding:12px">
-            <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Stake per side ($)</div>
-            <input type="number" id="bl-stake" value="125" step="1" min="0.35" style="width:100%;background:var(--bg3);border:1px solid var(--bo2);color:var(--t1);border-radius:6px;padding:6px 8px;font-size:13px;font-family:var(--mo);font-weight:700">
-          </div>
-          <div class="card" style="padding:12px">
-            <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Target profit ($)</div>
-            <input type="number" id="bl-target" value="32.52" step="0.01" min="0.01" style="width:100%;background:var(--bg3);border:1px solid var(--bo2);color:var(--t1);border-radius:6px;padding:6px 8px;font-size:13px;font-family:var(--mo);font-weight:700">
-          </div>
-          <div class="card" style="padding:12px">
-            <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Duration</div>
-            <select id="bl-dur" style="width:100%;background:var(--bg3);border:1px solid var(--bo2);color:var(--t1);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--fn)">
-              <option value="5t">5 Ticks</option>
-              <option value="10t">10 Ticks</option>
-              <option value="15t">15 Ticks</option>
-              <option value="1m">1 Minute</option>
-              <option value="5m">5 Minutes</option>
-            </select>
-          </div>
-          <div class="card" style="padding:12px">
-            <div style="font-size:9px;color:var(--t2);text-transform:uppercase;margin-bottom:5px">Barrier range</div>
-            <div style="font-size:11px;color:var(--t2);font-family:var(--mo);margin-top:6px">0.05 → 0.20</div>
-            <div style="font-size:9px;color:var(--t3);margin-top:2px">10 steps incl. 0.06 · ~8s scan</div>
-          </div>
-        </div>
-
-        <!-- Progress bar -->
-        <div id="bl-progress-wrap" style="display:none;margin-bottom:12px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-            <span style="font-size:11px;color:var(--t2)" id="bl-progress-label">Scanning barriers...</span>
-            <span style="font-size:11px;color:var(--ac);font-family:var(--mo)" id="bl-progress-pct">0%</span>
-          </div>
-          <div style="background:var(--bg3);border-radius:99px;height:6px;overflow:hidden">
-            <div id="bl-progress-bar" style="height:100%;background:var(--ac);border-radius:99px;width:0%;transition:width .3s"></div>
-          </div>
-        </div>
-
-        <!-- Summary strip (shown after scan) -->
-        <div id="bl-summary" style="display:none;display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px">
-          <div class="card sc g" style="padding:12px">
-            <div class="sl">Best Barrier</div>
-            <div class="sv g" id="bl-best-barrier">--</div>
-            <div class="ss" id="bl-best-payout">-- return</div>
-          </div>
-          <div class="card sc g" style="padding:12px">
-            <div class="sl">Net Profit</div>
-            <div class="sv g" id="bl-best-net">--</div>
-            <div class="ss">on 1 winning side</div>
-          </div>
-          <div class="card sc b" style="padding:12px">
-            <div class="sl">Barriers ≥ target</div>
-            <div class="sv b" id="bl-pass-count">--</div>
-            <div class="ss" id="bl-pass-range">of 10 scanned</div>
-          </div>
-          <div class="card sc go" style="padding:12px">
-            <div class="sl">Recommended</div>
-            <div class="sv go" id="bl-recommended">--</div>
-            <div class="ss">tightest passing barrier</div>
-          </div>
-        </div>
-
-        <!-- Results table -->
-        <div class="card">
-          <div class="ch">
-            <div class="ct">📊 Barrier Scan Results — live payouts from Deriv</div>
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="font-size:10px;color:var(--t3)" id="bl-scan-time"></div>
-              <div style="font-size:10px;color:var(--t2)">Tight barriers 0.05–0.50 · real payout data only</div>
-            </div>
-          </div>
-          <div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 420px);min-height:260px">
-            <table style="width:100%;border-collapse:collapse;font-size:12px" id="bl-table">
-              <thead style="position:sticky;top:0;background:var(--bg2);z-index:10">
-                <tr style="border-bottom:1px solid var(--bo)">
-                  <th style="padding:9px 14px;text-align:left;color:var(--t2);font-weight:600;font-size:10px;text-transform:uppercase">Barrier</th>
-                  <th style="padding:9px 14px;text-align:right;color:var(--ac);font-weight:600;font-size:10px;text-transform:uppercase">↑ HIGHER Return</th>
-                  <th style="padding:9px 14px;text-align:right;color:var(--re);font-weight:600;font-size:10px;text-transform:uppercase">↓ LOWER Return</th>
-                  <th style="padding:9px 14px;text-align:right;color:var(--t2);font-weight:600;font-size:10px;text-transform:uppercase">Avg Return</th>
-                  <th style="padding:9px 14px;text-align:right;color:var(--t2);font-weight:600;font-size:10px;text-transform:uppercase">Net Profit</th>
-                  <th style="padding:9px 14px;text-align:right;color:var(--t2);font-weight:600;font-size:10px;text-transform:uppercase">Payout %</th>
-                  <th style="padding:9px 14px;text-align:center;color:var(--t2);font-weight:600;font-size:10px;text-transform:uppercase">Status</th>
-                </tr>
-              </thead>
-              <tbody id="bl-tbody">
-                <tr><td colspan="7" style="padding:40px;text-align:center;color:var(--t3)">Connect to Deriv and click Run Scan to fetch live payouts</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Math explainer -->
-        <div class="card" style="margin-top:12px">
-          <div class="ch"><div class="ct">📐 The Math — why $282.52?</div></div>
-          <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:12px">
-            <div>
-              <div style="color:var(--t2);font-size:10px;text-transform:uppercase;margin-bottom:7px">Total Risk</div>
-              <div style="font-family:var(--mo);color:var(--re);font-size:16px;font-weight:700" id="bl-math-risk">$250.00</div>
-              <div style="color:var(--t3);font-size:10px;margin-top:3px">$125 HIGHER + $125 LOWER</div>
-            </div>
-            <div>
-              <div style="color:var(--t2);font-size:10px;text-transform:uppercase;margin-bottom:7px">Required Return</div>
-              <div style="font-family:var(--mo);color:var(--go);font-size:16px;font-weight:700" id="bl-math-required">$282.52</div>
-              <div style="color:var(--t3);font-size:10px;margin-top:3px">total risk + target profit</div>
-            </div>
-            <div>
-              <div style="color:var(--t2);font-size:10px;text-transform:uppercase;margin-bottom:7px">Required Payout %</div>
-              <div style="font-family:var(--mo);color:var(--ac);font-size:16px;font-weight:700" id="bl-math-pct">126.01%</div>
-              <div style="color:var(--t3);font-size:10px;margin-top:3px">required / stake per side</div>
-            </div>
-          </div>
-          <div style="padding:0 16px 14px;font-size:11px;color:var(--t2);line-height:1.7;border-top:1px solid var(--bo);padding-top:12px">
-            <b style="color:var(--t1)">How it works:</b> You place $<span id="bl-explain-stake">125</span> on HIGHER and $<span id="bl-explain-stake2">125</span> on LOWER simultaneously at the same barrier offset. One side always wins. The winning side must return more than <b style="color:var(--go)">$<span id="bl-explain-required">282.52</span></b> to cover both stakes and pocket the target profit. The only losing scenario is a GAP — price stays between the barriers and both sides lose.
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
 </div>
@@ -1465,7 +1274,7 @@ const S = {
   accType: localStorage.getItem('kevoai_acct')||'demo',
   balance:0, currency:'USD',
   asset:'R_25', assetName:'Volatility 25 Index',
-  dur:{v:'1',t:'m'}, tradeType:'CALL',
+  dur:{v:'5',t:'t'}, tradeType:'CALL',
   prices:{}, priceHist:[],
   reqId:1, pending:{},
   botW:0, botL:0, botPnl:0, maxBotTrades:1, botMultiplier:100,
@@ -1733,16 +1542,6 @@ function onContractsFor(data){
 
 function onProposal(proposal, reqId){
   if(!proposal) return;
-
-  // ── Barrier Lab intercept — check FIRST before S.pending lookup ──
-  // BL stores its own reqIds in BL.pending; route directly if matched
-  if(BL.pending[reqId]){
-    var _ask=parseFloat(proposal.ask_price||proposal.spot||0);
-    var _pay=parseFloat(proposal.payout||0);
-    blOnProposal(reqId,proposal,_ask,_pay);
-    return;
-  }
-
   var p = S.pending[reqId];
   if(!p) return;
   delete S.pending[reqId];
@@ -1756,29 +1555,7 @@ function onProposal(proposal, reqId){
 
   // Route HB proposals to dual-trade handler
   if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
-  if(p.type==='gm_probe'){
-    console.log('[GM PROBE] received side='+p.gmSide+' payout='+proposal.payout);
-    onGMProbe(proposal,p);return;
-  }
-  if(p.type==='gm_8leg_buy'){
-    // Immediately buy this proposal
-    var _8rid=p.rid; var _8side=p.side;
-    var _8ask=parseFloat(proposal.ask_price||0);
-    var _8id=proposal.id;
-    if(!_8id||!_8ask){return;}
-    var _8bid=wsSend({buy:_8id,price:_8ask});
-    if(_8bid)S.pending[_8bid]={
-      type:'gm_8leg_confirm',
-      rid:_8rid,side:_8side,
-      dir:p.dir,stake:p.legStake,asset:p.asset
-    };
-    return;
-  }
-
-  if(p.type==='gm_8leg_confirm'){
-    // Buy confirmed — record it
-    return; // handled by onBuyConfirm
-  }
+  if(p.type==='gm_probe'){onGMProbe(proposal,p);delete S.pending[reqId];return;}
 }
 
 function onAuth(a) {
@@ -2047,32 +1824,18 @@ function onTick(tick) {
         gmUpdateEntryScoreUI(gmEntryScore());
         var _curP2=S.prices[GM.asset]||0;
         if(_curP2>0){
+          var _off2=gmAdaptiveOffset();
           var _dp2=_curP2>100?2:5;
-          // Fixed Shield barriers — no ATR calculation needed
-          var _nearOff2 = 0.09;
-          var _farOff2  = 0.15;
-          var _hB2  = parseFloat((_curP2+_farOff2).toFixed(_dp2));
-          var _lB2  = parseFloat((_curP2-_farOff2).toFixed(_dp2));
-          var _nhB2 = parseFloat((_curP2+_nearOff2).toFixed(_dp2));
-          var _nlB2 = parseFloat((_curP2-_nearOff2).toFixed(_dp2));
-          // Near stake from budget
-          var _budget2 = parseFloat((document.getElementById('gm-budget')||{value:'4.60'}).value)||4.60;
-          var _nearStake2 = parseFloat(((_budget2/2)-0.35).toFixed(2));
+          var _hB2=parseFloat((_curP2+_off2).toFixed(_dp2));
+          var _lB2=parseFloat((_curP2-_off2).toFixed(_dp2));
           var _eEl=document.getElementById('gm-entry-display');var _hEl=document.getElementById('gm-higher-level');
           var _lEl=document.getElementById('gm-lower-level');var _gapEl=document.getElementById('gm-gap-display');
-          var _nhEl=document.getElementById('gm-near-higher-level');var _nlEl=document.getElementById('gm-near-lower-level');
           var _offEl=document.getElementById('gm-effective-offset');
-          var _nsp=document.getElementById('gm-near-stake-preview');
-          var _nsp2=document.getElementById('gm-near-stake-preview2');
           if(_eEl)_eEl.textContent='Entry: '+_curP2.toFixed(_dp2);
           if(_hEl)_hEl.textContent=_hB2;
           if(_lEl)_lEl.textContent=_lB2;
-          if(_nhEl)_nhEl.textContent=_nhB2;
-          if(_nlEl)_nlEl.textContent=_nlB2;
-          if(_nsp)_nsp.textContent='$'+_nearStake2.toFixed(2);
-          if(_nsp2)_nsp2.textContent='$'+_nearStake2.toFixed(2);
-          if(_gapEl)_gapEl.textContent='Near: ±0.09 | Far: ±0.15 (Shield fixed)';
-          if(_offEl)_offEl.textContent='Near ±0.09 / Far ±0.15';
+          if(_gapEl)_gapEl.textContent='Gap zone: '+_lB2+' → '+_hB2+' (±'+_off2.toFixed(2)+')';
+          if(_offEl)_offEl.textContent='±'+_off2.toFixed(2);
         }
         // ── Velocity panel update ──
         gmUpdateVelPanel();
@@ -3726,10 +3489,9 @@ function showPage(id,navEl){if(id==='gmilli'){setTimeout(function(){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
   document.getElementById('page-'+id).classList.add('active');
   if(navEl)navEl.classList.add('active');
-  var T={dashboard:'Dashboard',trade:'Trade',bot:'Auto Bot',barrier:'WinWin Hybrid',gmilli:'Gmilli Bot',differs:'Differs Bot',vbot:'Volatility Bot',history:'Trade History',journal:'Journal',analytics:'Analytics',settings:'Settings',barrierlab:'Barrier Lab'};
-  var Sub={dashboard:'Overview',trade:'Manual Trading',bot:'Automated Trading',barrier:'WinWin 2-Contract Strategy',differs:'Digit Prediction',history:'All Trades',journal:'Detailed Log',analytics:'Performance',settings:'Configuration',barrierlab:'Live Payout Scanner'};
-  document.getElementById('ptitle').innerHTML=(T[id]||id)+' <span>'+(Sub[id]||'')+'</span>';
-  if(id==='barrierlab'){blUpdateMath();}
+  var T={dashboard:'Dashboard',trade:'Trade',bot:'Auto Bot',barrier:'WinWin Hybrid',gmilli:'Gmilli Bot',differs:'Differs Bot',vbot:'Volatility Bot',history:'Trade History',journal:'Journal',analytics:'Analytics',settings:'Settings'};
+  var Sub={dashboard:'Overview',trade:'Manual Trading',bot:'Automated Trading',barrier:'WinWin 2-Contract Strategy',differs:'Digit Prediction',history:'All Trades',journal:'Detailed Log',analytics:'Performance',settings:'Configuration'};
+  document.getElementById('ptitle').innerHTML=T[id]+' <span>'+(Sub[id]||'')+'</span>';
   if(id==='analytics')updAnalytics();
   if(id==='history')rendHist('all');
   if(id==='journal')renderJournal('all');
@@ -4716,18 +4478,18 @@ switchAcc(S.accType);
 //   - Winner covers loser stake + delivers profit
 // ================================================================
 var GM = {
-  running:false, interval:null, asset:'R_100', dur:5, durUnit:'t', minGap:30,
+  running:false, interval:null, asset:'R_100', dur:30, minGap:30,
   lastRoundTime:0, roundId:0, rounds:0, won:0, lost:0, pnl:0,
   pending:{}, history:[], activeCids:{},
   lastCallPay:0, lastPutPay:0, lastCombinedPay:0,
-  _placing:false,
-  confThresh:0,
-  minConfidence:0,
-  minMomentum:3,
-  minAtrMult:1.2,
-  minScore:0,
-  consecTicks:3,        // LOCKED at 3 — strategy requirement
-  consecTicksActive:true, // ALWAYS active
+  _placing:false,  // lock: prevents duplicate gmPlace calls firing simultaneously
+  confThresh:0,   // disabled
+  minConfidence:0, // disabled
+  minMomentum:3,  // kept for legacy reference
+  minAtrMult:1.2, // kept for legacy reference
+  minScore:0,     // disabled — replaced by 3-tick filter
+  consecTicks:3,  // Gmilli strategy: min consecutive same-direction ticks before entry
+  consecTicksActive:true,
   _skipReasons:{conf:0,mf:0,stagnant:0,mom:0,atr:0,gate:0,score:0}, // skip breakdown by filter
   tickTimes:[],   // Timestamps of recent ticks for dead-zone speed detection
   // ── Shared metric cache (refreshed once per 400ms, reused everywhere) ──
@@ -5042,65 +4804,13 @@ function gmExportData(){
 // ════════════════════════════════════════════════════════════════
 
 
-function gmStakeGrid(changed){
-  var MIN = 0.35;
-  var leg = parseFloat((document.getElementById('gm-leg-stake')||{value:'0.35'}).value)||MIN;
-  if(leg < MIN) leg = MIN;
-  var barrier = parseFloat((document.getElementById('gm-h1-barrier')||{value:'0.06'}).value)||0.06;
-
-  // Update all hidden inputs
-  ['gm-h1-stake','gm-h2-stake','gm-l1-stake','gm-l2-stake'].forEach(function(id){
-    var el = document.getElementById(id); if(el) el.value = leg.toFixed(2);
-  });
-  ['gm-l1-barrier','gm-h2-barrier','gm-l2-barrier'].forEach(function(id){
-    var el = document.getElementById(id); if(el) el.value = barrier.toFixed(2);
-  });
-
-  var total = parseFloat((leg * 8).toFixed(2));
-  var budgetEl = document.getElementById('gm-budget');
-  if(budgetEl) budgetEl.value = total.toFixed(2);
-
-  // Estimate payout from barrier (rough linear interpolation from scan data)
-  // ±0.05=216%, ±0.06=221%, ±0.09=236%, ±0.12=253%, ±0.15=273%, ±0.20=311%
-  var payPct = 216 + (barrier - 0.05) * (311-216)/(0.20-0.05);
-  payPct = Math.max(200, Math.min(400, payPct));
-  var winReturn = parseFloat((leg * 4 * payPct/100).toFixed(2));
-  var net = parseFloat((winReturn - total).toFixed(2));
-
-  // Update display
-  var tot = document.getElementById('gm-grid-total');
-  var win = document.getElementById('gm-grid-win');
-  var netEl = document.getElementById('gm-grid-net');
-  var hDisp = document.getElementById('gm-h-display');
-  var lDisp = document.getElementById('gm-l-display');
-  var math = document.getElementById('gm-grid-math');
-
-  if(tot) tot.textContent = '$'+total.toFixed(2);
-  if(win) win.textContent = '$'+winReturn.toFixed(2);
-  if(netEl){
-    netEl.textContent = (net>=0?'+$':'-$')+Math.abs(net).toFixed(2);
-    netEl.style.color = net>=0?'var(--ac)':'var(--re)';
-  }
-  if(hDisp) hDisp.textContent = '4 × $'+leg.toFixed(2)+' = $'+(leg*4).toFixed(2);
-  if(lDisp) lDisp.textContent = '4 × $'+leg.toFixed(2)+' = $'+(leg*4).toFixed(2);
-  if(math) math.textContent = '4H + 4L @ ±'+barrier.toFixed(2)+' · net '+(net>=0?'+$':'-$')+Math.abs(net).toFixed(2);
-
-  gmCalc();
-}
-
-
 function gmCalc(){
-  // Read stakes from 8-leg grid
-  var leg = parseFloat((document.getElementById('gm-leg-stake')||{value:'0.35'}).value)||0.35;
-  var barrier = parseFloat((document.getElementById('gm-h1-barrier')||{value:'0.06'}).value)||0.06;
-  var nearStake = leg;
-  var farStake  = leg;
-  var budget    = parseFloat((leg * 8).toFixed(2));
-  var totalRisk = budget;
-  var stake     = gmStake();
+  var stake=gmStake();
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
-  var offset=gmAdaptiveOffset();
+  var offset=gmAdaptiveOffset(); // uses adaptive if toggle is on, else manual
+  var totalRisk=stake*2;
+  // Use last known payouts if available
   var cPay=GM.lastCallPay||0;
   var pPay=GM.lastPutPay||0;
   var combined=cPay+pPay;
@@ -5108,43 +4818,42 @@ function gmCalc(){
   var bestProfit=combined>0?parseFloat((Math.max(cPay,pPay)-totalRisk).toFixed(2)):null;
   var worstProfit=combined>0?parseFloat((Math.min(cPay,pPay)-totalRisk).toFixed(2)):null;
   var el=document.getElementById('gm-calc-display');
-
-  // Update Shield stake displays
+  var budget=stake*2;
+  // Update stake display
   var stakeDisp=document.getElementById('gm-stake-display');
-  var farDisp=document.getElementById('gm-far-stake-display');
-  var nearLbl=document.getElementById('gm-near-stake-lbl');
-  var totalLbl=document.getElementById('gm-total-risk-lbl');
-  if(stakeDisp)stakeDisp.textContent='$'+nearStake.toFixed(2);
-  if(farDisp)farDisp.textContent='$'+farStake.toFixed(2);
-  if(nearLbl)nearLbl.textContent='$'+nearStake.toFixed(2);
-  if(totalLbl)totalLbl.textContent='$'+totalRisk.toFixed(2);
-
+  if(stakeDisp)stakeDisp.textContent=stake.toFixed(2);
   // Update effective offset display
   var effOff=document.getElementById('gm-effective-offset');
-  if(effOff)effOff.textContent='Near ±0.09 / Far ±0.15';
+  if(effOff)effOff.textContent='±'+offset.toFixed(2);
   // Momentum check live display
   var prices=getInd(GM.asset).prices;
   var n=prices.length;
   var momOk=true,momNet=0;
-  if(n>=10){momNet=Math.abs(prices[n-1]-prices[n-11]);momOk=momNet>=(0.09*0.6);}
+  if(n>=10){momNet=Math.abs(prices[n-1]-prices[n-11]);momOk=momNet>=(offset*0.6);}
   // Composite confidence score snapshot
   var _csEntry2=S.prices[GM.asset]||0;
-  var _csSnap2=_csEntry2>0?gmConfSnap(_csEntry2,0.09):null;
+  var _csSnap2=_csEntry2>0?gmConfSnap(_csEntry2,offset):null;
   var _csScore2=_csSnap2?gmConfidenceScore(_csSnap2):null;
   var _csMin=GM.minConfidence||65;
 
+  if(el)el.textContent=
+    'Budget per round: $'+budget.toFixed(2)+'\n'
+   +'Each side stake:  $'+stake.toFixed(2)+'\n'
+   +'Barrier offset:   ±'+offset.toFixed(2)+'\n'
+   +'Total risk:       $'+totalRisk.toFixed(2)+'\n\n'
   var _adaptSw=document.getElementById('gm-adaptive-offset-sw');
   var _isAdapt=_adaptSw&&_adaptSw.classList.contains('on');
   if(el)el.textContent=
-    '🛡️ SHIELD SPREAD\n'
-   +'Budget per round: $'+budget.toFixed(2)+'\n'
-   +'Near stake ±0.09: $'+nearStake.toFixed(2)+' ×2 = $'+(nearStake*2).toFixed(2)+'\n'
-   +'Far  stake ±0.15: $'+farStake.toFixed(2)+' ×2 = $'+(farStake*2).toFixed(2)+'\n'
+    'Budget per round: $'+budget.toFixed(2)+'\n'
+   +'Each side stake:  $'+stake.toFixed(2)+'\n'
+   +'Barrier offset:   ±'+offset.toFixed(2)+(_isAdapt?' (AUTO)':' (manual)')+'\n'
    +'Total risk:       $'+totalRisk.toFixed(2)+'\n\n'
-   +'Near wins → returns $'+(nearStake*2.36).toFixed(2)+' (covers $'+totalRisk.toFixed(2)+')\n'
-   +'Far  wins → bonus  +$'+(farStake*2.73).toFixed(2)+'\n'
-   +'Both win  → total  $'+((nearStake*2.36)+(farStake*2.73)).toFixed(2)+'\n\n'
-   +'Only loss = GAP (price inside ±0.09 all 5 ticks)\n'
+   +'HIGHER payout:    $'+(cPay?cPay.toFixed(2):'--')+'\n'
+   +'LOWER payout:     $'+(pPay?pPay.toFixed(2):'--')+'\n'
+   +'Combined payout:  $'+(combined?combined.toFixed(2):'--')+'\n\n'
+   +'3-Tick Filter:   need '+GM.consecTicks+' consec same-dir ticks\n'
+   +'Gate: each payout > $'+totalRisk.toFixed(2)+'\n'
+   +'Status: '+(combined?(passes?'✅ PASS — will trade':'❌ SKIP — payout too low'):'Fetching...')+'\n\n'
    +'Best profit: '+(bestProfit!==null?(bestProfit>=0?'+$'+bestProfit.toFixed(2):'-$'+Math.abs(bestProfit).toFixed(2)):'--')+'\n'
    +'Daily SL: $'+sl+' | Daily TP: $'+tp;
 }
@@ -5341,18 +5050,17 @@ function gmUpdateEntryScoreUI(es){
 
 function gmLoop(){
   if(!GM.running)return;
-  if(GM._probing){
-    GM.interval=setTimeout(gmLoop,300);return;
-  }
-  gmUpdateStats();
+  gmUpdateStats(); // keep skip breakdown live on every cycle
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
   if(GM.pnl<=-sl){gmToggle();notify('STOP','Gmilli daily SL hit','loss');return;}
   if(GM.pnl>=tp){gmToggle();notify('DONE','Gmilli daily target hit!','win');return;}
 
+  // ── Refresh shared metric cache ONCE here — all filters below are cache reads ──
   var _loopPrices=getInd(GM.asset).prices;
-  gmRefreshCache(_loopPrices, true);
+  gmRefreshCache(_loopPrices, true); // force=true ensures loop always has fresh data
 
+  // ── Adaptive interval: scan faster when market is moving, slower when slow ──
   var _tickSpeed=0;
   var _tArr=GM.tickTimes;
   if(_tArr&&_tArr.length>=3){
@@ -5361,9 +5069,10 @@ function gmLoop(){
   }
   var _nextInterval=_tickSpeed>8?300:_tickSpeed>3?500:800;
 
+  // Clean stale activeCids before checking
   gmCleanActiveCids();
 
-  // Force-settle stuck rounds >90s
+  // Wait for active round to finish — hard timeout: if pending round is >90s old, force settle it
   var now=Date.now();
   Object.keys(GM.pending).forEach(function(rid){
     var round=GM.pending[rid];
@@ -5373,102 +5082,79 @@ function gmLoop(){
     }
   });
 
-  // Clean stale pending >30s
-  var _now2=Date.now();
-  Object.keys(GM.pending).forEach(function(rid){
-    var r=GM.pending[rid];
-    if(r&&r.lastRoundTime&&(_now2-r.lastRoundTime)>30000){
-      console.warn('[GM] Stale pending cleared:',rid);
-      delete GM.pending[rid];
-    }
-  });
-
-  // LOG: active count
-  var _ac=gmActiveCount();
-  if(_ac>0){
-    console.log('[GM BLOCK] active='+_ac+' pending keys:'+Object.keys(GM.pending).join(','));
+  if(gmActiveCount()>0){
     var rs=document.getElementById('gm-round-status');
-    if(rs)rs.textContent='ACTIVE ('+_ac+')';
+    if(rs)rs.textContent='ACTIVE';
     GM.interval=setTimeout(gmLoop,_nextInterval);return;
   }
 
-  // LOG: gap check
-  var _gap=(GM.minGap||30)*1000;
-  var _gapWait=GM.lastRoundTime+_gap-Date.now();
-  if(_gapWait>0){
-    var wait=Math.ceil(_gapWait/1000);
-    console.log('[GM BLOCK] gap wait='+wait+'s lastRound='+GM.lastRoundTime);
+  // Enforce gap between rounds
+  var now=Date.now();
+  var gap=(GM.minGap||30)*1000;
+  if(now-GM.lastRoundTime<gap){
+    var wait=Math.ceil((GM.lastRoundTime+gap-now)/1000);
     var rs2=document.getElementById('gm-round-status');
     if(rs2)rs2.textContent='GAP '+wait+'s';
     GM.interval=setTimeout(gmLoop,1000);return;
   }
 
-  // Price data check
-  if(!_loopPrices.length&&!S.prices[GM.asset]){
-    console.log('[GM BLOCK] no price data');
-    var rs5=document.getElementById('gm-round-status');
-    if(rs5)rs5.textContent='WAITING — no price data';
-    GM.interval=setTimeout(gmLoop,_nextInterval);return;
-  }
-
-  var _vol=gmCheckVolatility();
+  // ── Volatility + Velocity: display-only, never block ─────────────
+  var _vol = gmCheckVolatility();
   gmUpdateVolPanel(_vol);
+  // Only hard-stop if absolutely no price data at all
+  if (!_loopPrices.length && !S.prices[GM.asset]) {
+    var rs5 = document.getElementById('gm-round-status');
+    if (rs5) rs5.textContent = 'WAITING — no price data';
+    GM.interval = setTimeout(gmLoop, _nextInterval); return;
+  }
+  // Velocity: update display only, never block
   gmUpdateVelPanel();
 
-  // Tick pills
-  var _pillEl=document.getElementById('gm-tick-pills');
-  if(_pillEl){
-    var _pills='';
-    var _buf=_gmTickBuf,_bLen=_buf.length,_bShow=Math.min(10,_bLen-1);
-    for(var _pi=_bLen-_bShow;_pi<_bLen;_pi++){
-      var _pd=_pi>0?_buf[_pi]-_buf[_pi-1]:0;
-      _pills+='<div style="width:16px;height:16px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:'+
-        (_pd>0?'rgba(0,229,160,0.3)':_pd<0?'rgba(255,77,106,0.3)':'rgba(255,255,255,0.05)')+
-        ';color:'+(_pd>0?'var(--ac)':_pd<0?'var(--re)':'var(--t3)')+'">'+
-        (_pd>0?'▲':_pd<0?'▼':'—')+'</div>';
+  // ── GUARDRAIL 2: 3-Tick Momentum Buffer (only when toggle is ON) ─
+  // Update tick pills UI regardless of toggle state
+  var _pillEl = document.getElementById('gm-tick-pills');
+  if (_pillEl) {
+    var _pills = '';
+    var _buf = _gmTickBuf, _bLen = _buf.length, _bShow = Math.min(10, _bLen - 1);
+    for (var _pi = _bLen - _bShow; _pi < _bLen; _pi++) {
+      var _pd = _pi > 0 ? _buf[_pi] - _buf[_pi - 1] : 0;
+      _pills += '<div style="width:16px;height:16px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;background:' +
+        (_pd > 0 ? 'rgba(0,229,160,0.3)' : _pd < 0 ? 'rgba(255,77,106,0.3)' : 'rgba(255,255,255,0.05)') +
+        ';color:' + (_pd > 0 ? 'var(--ac)' : _pd < 0 ? 'var(--re)' : 'var(--t3)') + '">' +
+        (_pd > 0 ? '▲' : _pd < 0 ? '▼' : '—') + '</div>';
     }
-    _pillEl.innerHTML=_pills;
+    _pillEl.innerHTML = _pills;
   }
 
-  // Direction check using _gmTickBuf
-  var _buf2=_gmTickBuf;
-  var _bLen2=_buf2.length;
+  // Only enforce the 3-tick block when the filter toggle is ON
+  var _tickFilterSw = document.getElementById('gm-tick-filter-sw');
+  var _tickFilterOn = _tickFilterSw && _tickFilterSw.classList.contains('on');
+  var _tfBadge = document.getElementById('gm-tick-filter-badge');
 
-  if(_bLen2<4){
-    console.log('[GM BLOCK] buf too short='+_bLen2);
-    var rs6=document.getElementById('gm-round-status');
-    if(rs6)rs6.textContent='WAIT: building history ('+_bLen2+'/4)';
-    GM.interval=setTimeout(gmLoop,_nextInterval);return;
+  if (_tickFilterOn) {
+    var _mom = gmCheckMomentum();
+    if (!_mom.pass) {
+      if (_tfBadge) { _tfBadge.textContent = '⛔ need ' + (GM.consecTicks||3) + ' consec'; _tfBadge.style.color = 'var(--re)'; _tfBadge.style.background = 'rgba(255,77,106,0.1)'; }
+      var rs7 = document.getElementById('gm-round-status');
+      if (rs7) rs7.textContent = 'WAIT: ' + (GM.consecTicks||3) + ' consec ticks';
+      GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
+      GM.interval = setTimeout(gmLoop, _nextInterval); return;
+    }
+    if (_tfBadge) { _tfBadge.textContent = '✅ ' + (GM.consecTicks||3) + ' consec'; _tfBadge.style.color = 'var(--ac)'; _tfBadge.style.background = 'rgba(0,229,160,0.1)'; }
+  } else {
+    if (_tfBadge) { _tfBadge.textContent = 'OFF'; _tfBadge.style.color = 'var(--t3)'; _tfBadge.style.background = 'var(--bg4)'; }
   }
 
-  var t0=_buf2[_bLen2-1];
-  var t1=_buf2[_bLen2-2];
-  var t2=_buf2[_bLen2-3];
-  var t3=_buf2[_bLen2-4];
+  // ── GUARDRAIL 3: Dynamic Barrier — recalculate before each entry ─
+  // The adaptive offset already exists in gmAdaptiveOffset(); gmDynamicBarrier()
+  // is the fallback when adaptive toggle is OFF. Both are used inside gmFetchProposals.
+  // (no skip here — barrier is adjusted, not blocked)
 
-  var _isUp  =t0>t1&&t1>t2&&t2>t3;
-  var _isDown=t0<t1&&t1<t2&&t2<t3;
+  // ── GUARDRAIL 4: Martingale init on first round ─────────────────
+  if (!_gmMart.baseBudget) gmMartInit();
 
-  if(!_isUp&&!_isDown){
-    // Only log once every 10 cycles to avoid spam
-    if(!gmLoop._logCount)gmLoop._logCount=0;
-    if(++gmLoop._logCount%10===0)
-      console.log('[GM BLOCK] direction fail t0='+t0+' t1='+t1+' t2='+t2+' t3='+t3);
-    var rs7=document.getElementById('gm-round-status');
-    if(rs7)rs7.textContent='WAIT: need 3 consecutive ticks';
-    GM._skipReasons.score=(GM._skipReasons.score||0)+1;
-    GM.interval=setTimeout(gmLoop,_nextInterval);return;
-  }
-
-  console.log('[GM FIRE] direction='+(_isUp?'UP':'DOWN')+' t0='+t0+' t1='+t1+' t2='+t2+' t3='+t3);
-  var _turboDir=_isUp?'UP 🚀':'DOWN 🚀';
-  var rs10=document.getElementById('gm-round-status');
-  if(rs10)rs10.textContent=_turboDir+' — FIRING';
-
-  if(!_gmMart.baseBudget)gmMartInit();
-
-  // Set _placing to prevent re-entry while probe is in flight
-  GM._probing=true;
+  // Fire a payout check — fetch proposals at current stake
+  // Once we get both payouts back, gate decides whether to buy
   gmFetchProposals();
   GM.interval=setTimeout(gmLoop,_nextInterval);
 }
@@ -5494,96 +5180,66 @@ function gmAdaptiveOffset(){
   }
   if(atr5<=0) return Math.max(0.01,manualOffset);
 
-  // Scale: for 5-tick contracts, offset = atr5 × 1.5 (no time scaling needed)
-  var adaptive=parseFloat((atr5 * 1.5).toFixed(2));
+  // Scale: for a 15s contract, expected move ≈ atr5 × 7-8 ticks
+  // We want the barrier at ~1.5× a single ATR tick
+  var durFactor=GM.dur/30; // 1.0 at 30s, 0.5 at 15s
+  var adaptive=parseFloat((atr5 * 1.5 * durFactor).toFixed(2));
   // Clamp: never less than 0.05 or more than 0.30
   adaptive=Math.min(0.30,Math.max(0.05,adaptive));
   return adaptive;
 }
 
 function gmFetchProposals(){
-  console.log('[GM FETCH] connected='+S.connected+' asset='+GM.asset+' price='+S.prices[GM.asset]);
-  if(!S.connected){console.warn('[GM FETCH] not connected');GM._placing=false;return;}
+  if(!S.connected)return;
   var entry=S.prices[GM.asset]||0;
-  if(entry<=0){console.warn('[GM FETCH] no price');GM._placing=false;return;}
-
-  // Safety: always release _placing after 5s in case probe never returns
-  setTimeout(function(){
-    if(GM._placing){
-      console.warn('[GM FETCH] probe timeout — releasing _placing');
-      GM._placing=false;
-    }
-  }, 5000);
+  if(entry<=0)return;
 
   var spreadSw=document.getElementById('gm-spread-sw');
   var useSpread=spreadSw&&spreadSw.classList.contains('on');
 
   if(useSpread){
-    // ── 🛡️ SHIELD SPREAD ────────────────────────────────────────────
-    // Near = ±0.09 FIXED (236% payout — covers full trade on win)
-    // Far  = ±0.15 FIXED (273% payout — jackpot bonus)
-    // Stakes: Near=42.4% of budget, Far=$0.35 minimum (fixed)
-    // Only loss = GAP (price stays inside ±0.09 all 5 ticks)
+    // ── 4-LEG ATR POWER SPREAD ─────────────────────────────────────
+    // Near = 0.5× ATR  (high probability, lower payout)
+    // Far  = 1.5× ATR  (lower probability, high payout — aligns with current barrier)
+    var prices=getInd(GM.asset).prices;
+    var n=prices.length;
+    var atr5=0;
+    if(n>=6){for(var i=n-5;i<n;i++)atr5+=Math.abs(prices[i]-prices[i-1]);atr5/=5;}
+    if(atr5<=0)atr5=0.12; // fallback
 
-    var budget = parseFloat(document.getElementById('gm-budget').value)||4.60;
+    var nearOff=Math.max(0.02,parseFloat((atr5*0.5).toFixed(2)));
+    var farOff =Math.max(nearOff+0.02,parseFloat((atr5*1.5).toFixed(2)));
+    // Snap to 0.02 steps
+    nearOff=Math.round(nearOff/0.02)*0.02;
+    farOff =Math.round(farOff /0.02)*0.02;
 
-    // Read stakes and barriers from manual grid
-    var MIN_STAKE = 0.35;
-    var h1Stake = Math.max(MIN_STAKE, parseFloat(document.getElementById('gm-h1-stake').value)||1.95);
-    var h2Stake = Math.max(MIN_STAKE, parseFloat(document.getElementById('gm-h2-stake').value)||0.35);
-    var l1Stake = Math.max(MIN_STAKE, parseFloat(document.getElementById('gm-l1-stake').value)||1.95);
-    var l2Stake = Math.max(MIN_STAKE, parseFloat(document.getElementById('gm-l2-stake').value)||0.35);
-
-    var h1Barrier = parseFloat(document.getElementById('gm-h1-barrier').value)||0.09;
-    var h2Barrier = parseFloat(document.getElementById('gm-h2-barrier').value)||0.15;
-    var l1Barrier = parseFloat(document.getElementById('gm-l1-barrier').value)||0.09;
-    var l2Barrier = parseFloat(document.getElementById('gm-l2-barrier').value)||0.15;
-
-    var nearStake = h1Stake; // H1/L1 = near
-    var farStake  = h2Stake; // H2/L2 = far
-    var nearOff   = h1Barrier;
-    var farOff    = h2Barrier;
-    var totalRiskTarget = parseFloat((h1Stake + h2Stake + l1Stake + l2Stake).toFixed(2));
-
-    // Update UI labels
-    var nearLbl = document.getElementById('gm-near-stake-lbl');
-    var totalLbl = document.getElementById('gm-total-risk-lbl');
-    var sdLbl = document.getElementById('gm-stake-display');
-    var fdLbl = document.getElementById('gm-far-stake-display');
-    if(nearLbl) nearLbl.textContent = '$'+nearStake.toFixed(2);
-    if(totalLbl) totalLbl.textContent = '$'+totalRiskTarget.toFixed(2);
-    if(sdLbl) sdLbl.textContent = '$'+nearStake.toFixed(2);
-    if(fdLbl) fdLbl.textContent = '$'+farStake.toFixed(2);
+    var legStake=parseFloat((gmRecoveryBudget()/4).toFixed(2));
 
     var rs=document.getElementById('gm-round-status');
-    if(rs)rs.textContent='PROBING...';
+    if(rs)rs.textContent='SPREAD PROBE...';
 
+    // Update barrier display
+    var dp=entry>100?2:5;
     var cbLbl=document.getElementById('gm-call-barrier-lbl');
     var pbLbl=document.getElementById('gm-put-barrier-lbl');
-    if(cbLbl)cbLbl.textContent='8×$'+nearStake.toFixed(2)+' ±'+nearOff.toFixed(2);
-    if(pbLbl)pbLbl.textContent='8×$'+nearStake.toFixed(2)+' ±'+nearOff.toFixed(2);
+    if(cbLbl)cbLbl.textContent='Near +'+nearOff.toFixed(2)+' / Far +'+farOff.toFixed(2);
+    if(pbLbl)pbLbl.textContent='Near -'+nearOff.toFixed(2)+' / Far -'+farOff.toFixed(2);
 
-    // Probe just 2 legs for gate check — gmPlaceSpread fires all 8
-    var probeLegs=[
-      {side:'callNear', type:'CALL', barrier:'+'+h1Barrier.toFixed(2), stake:h1Stake},
-      {side:'putNear',  type:'PUT',  barrier:'-'+l1Barrier.toFixed(2), stake:l1Stake}
+    // Probe all 4 legs
+    var legs=[
+      {side:'callNear',type:'CALL',barrier:'+'+nearOff.toFixed(2)},
+      {side:'callFar', type:'CALL',barrier:'+'+farOff.toFixed(2)},
+      {side:'putNear', type:'PUT', barrier:'-'+nearOff.toFixed(2)},
+      {side:'putFar',  type:'PUT', barrier:'-'+farOff.toFixed(2)}
     ];
-    probeLegs.forEach(function(leg){
-      var pid=wsSend({proposal:1,amount:leg.stake,basis:'stake',contract_type:leg.type,
-        currency:S.currency,duration:5,duration_unit:'t',
+    legs.forEach(function(leg){
+      var pid=wsSend({proposal:1,amount:legStake,basis:'stake',contract_type:leg.type,
+        currency:S.currency,duration:GM.dur,duration_unit:'s',
         symbol:GM.asset,barrier:leg.barrier});
       if(pid)S.pending[pid]={type:'gm_probe',gmSide:leg.side,
-        probeEntry:entry,probeStake:leg.stake,probeOffset:nearOff,
-        probeBarrier:leg.barrier,isSpread:true,nearOff:nearOff,farOff:nearOff,
-        isNearLeg:true,nearStake:nearStake,farStake:nearStake,
-        totalRisk:totalRiskTarget};
-      console.log('[GM FETCH] probe sent pid='+pid+' side='+leg.side+' barrier='+leg.barrier);
+        probeEntry:entry,probeStake:legStake,probeOffset:leg.side.indexOf('Far')>=0?farOff:nearOff,
+        probeBarrier:leg.barrier,isSpread:true,nearOff:nearOff,farOff:farOff};
     });
-    // Release placing lock — probe is async, onGMProbe handles the rest
-    GM._placing=false;
-    // Keep _probing=true until onGMProbe fires
-    // Safety timeout: release after 3s
-    setTimeout(function(){GM._probing=false;},3000);
   } else {
     // ── ORIGINAL 2-LEG HEDGE ──────────────────────────────────────
     var stake=gmStake();
@@ -5601,12 +5257,12 @@ function gmFetchProposals(){
     if(pbLbl)pbLbl.textContent='barrier: '+parseFloat((entry-offset).toFixed(dp))+' (entry-'+offset.toFixed(2)+')';
 
     var p1=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'CALL',
-      currency:S.currency,duration:5,duration_unit:'t',
+      currency:S.currency,duration:GM.dur,duration_unit:'s',
       symbol:GM.asset,barrier:callBarrier});
     if(p1)S.pending[p1]={type:'gm_probe',gmSide:'call',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:callBarrier};
 
     var p2=wsSend({proposal:1,amount:stake,basis:'stake',contract_type:'PUT',
-      currency:S.currency,duration:5,duration_unit:'t',
+      currency:S.currency,duration:GM.dur,duration_unit:'s',
       symbol:GM.asset,barrier:putBarrier});
     if(p2)S.pending[p2]={type:'gm_probe',gmSide:'put',probeEntry:entry,probeStake:stake,probeOffset:offset,probeBarrier:putBarrier};
   }
@@ -5618,7 +5274,7 @@ var _gmProbe={call:null,put:null,callId:null,putId:null,callAsk:0,putAsk:0,stake
 var _gmSpreadProbe={callNear:null,callFar:null,putNear:null,putFar:null,
   callNearId:null,callFarId:null,putNearId:null,putFarId:null,
   callNearAsk:0,callFarAsk:0,putNearAsk:0,putFarAsk:0,
-  nearStake:1.95,farStake:0.35,entry:0,nearOff:0.09,farOff:0.15,totalRisk:4.60};
+  legStake:0,entry:0,nearOff:0,farOff:0};
 
 function onGMProbe(proposal,pendInfo){
   if(!proposal||!proposal.id){
@@ -5635,12 +5291,10 @@ function onGMProbe(proposal,pendInfo){
     sp[pendInfo.gmSide]=payout;
     sp[pendInfo.gmSide+'Id']=proposal.id;
     sp[pendInfo.gmSide+'Ask']=ask;
-    sp.nearStake=pendInfo.nearStake||1.35;
-    sp.farStake=pendInfo.farStake||0.35;
+    sp.legStake=pendInfo.probeStake;
     sp.entry=pendInfo.probeEntry;
     sp.nearOff=pendInfo.nearOff;
     sp.farOff=pendInfo.farOff;
-    sp.totalRisk=pendInfo.totalRisk||3.40;
 
     // Update payout display
     var cEl=document.getElementById('gm-call-pay');
@@ -5649,53 +5303,33 @@ function onGMProbe(proposal,pendInfo){
     if(cEl&&sp.callNear&&sp.callFar) cEl.textContent='N:$'+sp.callNear.toFixed(2)+' F:$'+sp.callFar.toFixed(2);
     if(pEl&&sp.putNear&&sp.putFar)  pEl.textContent='N:$'+sp.putNear.toFixed(2)+' F:$'+sp.putFar.toFixed(2);
 
-    // For 8-leg setup: all barriers same, so callFar=callNear, putFar=putNear
-    if(!sp.callFar && sp.callNear) sp.callFar = sp.callNear;
-    if(!sp.putFar  && sp.putNear)  sp.putFar  = sp.putNear;
+    // Wait for all 4 probes
+    if(!sp.callNear||!sp.callFar||!sp.putNear||!sp.putFar)return;
 
-    // Wait for both sides (callNear + putNear minimum)
-    console.log('[GM PROBE] sp.callNear='+sp.callNear+' sp.putNear='+sp.putNear+' ns='+ns);
-    if(!sp.callNear||!sp.putNear)return;
-
-    var ns=sp.nearStake;
-    var fs=sp.farStake;
-    var totalRisk=sp.totalRisk;
-
-    // ── 8-LEG GATE ────────────────────────────────────────────────
-    // Just verify we got real quotes back — math guarantees profit at >200%
-    var callNearRate = sp.callNear > 0 ? sp.callNear / ns : 0;
-    var putNearRate  = sp.putNear  > 0 ? sp.putNear  / ns : 0;
-    var actualRate   = Math.min(callNearRate, putNearRate);
-    var passes = true; // 8-leg setup: always trade if quotes received
-    GM._probing=false; // release probe lock
-
-    var callNetBoth  = parseFloat(((sp.callNear * 4) - (ns * 8)).toFixed(2));
-    var putNetBoth   = parseFloat(((sp.putNear  * 4) - (ns * 8)).toFixed(2));
-    var callNearBreaksEven = true;
-    var putNearBreaksEven  = true;
-
-    var gateLabel = passes
-      ? '✅ '+(callNearRate*100).toFixed(0)+'%/'+(putNearRate*100).toFixed(0)+'% net ~+$'+Math.max(callNetBoth,putNetBoth).toFixed(2)
-      : '❌ no quotes yet';
+    // Gate: best-case win (near+far same side) must exceed total stake ($budget)
+    var totalStake=sp.legStake*4;
+    var bestWin=Math.max(sp.callNear+sp.callFar, sp.putNear+sp.putFar);
+    var worstWin=Math.min(sp.callNear,sp.callFar,sp.putNear,sp.putFar); // safety leg
+    var netBest=parseFloat((bestWin-totalStake).toFixed(2));
+    var netWorst=parseFloat((worstWin-totalStake).toFixed(2));
 
     var gEl=document.getElementById('gm-gate-status');
-    if(gEl){gEl.textContent=gateLabel;gEl.style.color=passes?'var(--ac)':'var(--re)';}
+    var passes=bestWin>totalStake;
+    if(gEl){gEl.textContent=passes?'✅ SPREAD':'❌ SKIP';gEl.style.color=passes?'var(--ac)':'var(--re)';}
     if(epEl){
-      epEl.textContent = passes
-        ? '8-leg net: +$'+Math.max(callNetBoth,putNetBoth).toFixed(2)+' per round'
-        : gateLabel;
+      epEl.textContent=passes
+        ?'Best: +$'+netBest.toFixed(2)+' | Safety: '+netWorst.toFixed(2)
+        :'Payout too low';
       epEl.style.color=passes?'var(--ac)':'var(--re)';
     }
 
     if(!passes){
       GM._skipped=(GM._skipped||0)+1;
       GM._skipReasons.gate=(GM._skipReasons.gate||0)+1;
-      var rs2=document.getElementById('gm-round-status');
-      if(rs2)rs2.textContent='WAIT: '+gateLabel;
       _gmSpreadProbe={callNear:null,callFar:null,putNear:null,putFar:null,
         callNearId:null,callFarId:null,putNearId:null,putFarId:null,
         callNearAsk:0,callFarAsk:0,putNearAsk:0,putFarAsk:0,
-        nearStake:1.95,farStake:0.35,entry:0,nearOff:0.09,farOff:0.15,totalRisk:4.60};
+        legStake:0,entry:0,nearOff:0,farOff:0};
       return;
     }
 
@@ -5704,7 +5338,7 @@ function onGMProbe(proposal,pendInfo){
     _gmSpreadProbe={callNear:null,callFar:null,putNear:null,putFar:null,
       callNearId:null,callFarId:null,putNearId:null,putFarId:null,
       callNearAsk:0,callFarAsk:0,putNearAsk:0,putFarAsk:0,
-      nearStake:1.95,farStake:0.35,entry:0,nearOff:0.09,farOff:0.15,totalRisk:4.60};
+      legStake:0,entry:0,nearOff:0,farOff:0};
     return;
   }
 
@@ -5781,81 +5415,57 @@ function gmPlaceSpread(sp){
   GM.rounds++;
   GM.lastRoundTime=Date.now();
 
-  var leg = parseFloat((document.getElementById('gm-leg-stake')||{value:'0.35'}).value)||0.35;
-  var barrier = parseFloat((document.getElementById('gm-h1-barrier')||{value:'0.06'}).value)||0.06;
-  var totalStake = parseFloat((leg * 8).toFixed(2));
-  var nearStake = leg;
-  var farStake  = leg;
+  var entry=sp.entry, legStake=sp.legStake;
+  var totalStake=legStake*4;
+  var snap=gmSnapshot(entry,sp.farOff,legStake,sp.callNear+sp.callFar,sp.putNear+sp.putFar);
 
   GM.pending[rid]={
     isSpread:true,
-    results:{callNear:null,callFar:null,putNear:null,putFar:null,
-             callNear2:null,callNear3:null,callNear4:null,
-             putNear2:null,putNear3:null,putNear4:null},
-    settled:0, totalLegs:8,
-    entry:entry,nearOff:barrier,farOff:barrier,
-    nearStake:nearStake,farStake:farStake,
-    stake:nearStake,totalStake:totalStake,
-    callPay:sp.callNear,putPay:sp.putNear,
-    combinedPay:(sp.callNear||0)+(sp.putNear||0),
+    results:{callNear:null,callFar:null,putNear:null,putFar:null},
+    settled:0, totalLegs:4,
+    entry:entry,nearOff:sp.nearOff,farOff:sp.farOff,
+    stake:legStake,totalStake:totalStake,
+    callPay:sp.callNear+sp.callFar,putPay:sp.putNear+sp.putFar,
+    combinedPay:sp.callNear+sp.callFar+sp.putNear+sp.putFar,
     callPlaced:false,putPlaced:false,
     callCid:null,putCid:null,
     callNearCid:null,callFarCid:null,putNearCid:null,putFarCid:null,
     time:snap.time,asset:GM.asset,
     lastRoundTime:Date.now(),
     snap:snap,
-    barrier:'±'+barrier.toFixed(2),
-    offset:barrier
+    barrier:'±'+sp.nearOff.toFixed(2)+'/±'+sp.farOff.toFixed(2),
+    offset:sp.farOff
   };
 
   var dp=entry>100?2:5;
   _gmActiveBarrier={active:true,entry:entry,
-    higher:parseFloat((entry+barrier).toFixed(dp)),
-    lower:parseFloat((entry-barrier).toFixed(dp)),
-    nearHigher:parseFloat((entry+barrier).toFixed(dp)),
-    nearLower:parseFloat((entry-barrier).toFixed(dp))};
+    higher:parseFloat((entry+sp.farOff).toFixed(dp)),
+    lower:parseFloat((entry-sp.farOff).toFixed(dp))};
   gmDrawChart();
 
   var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
-  set('gm-call-stake','8×$'+leg.toFixed(2)+' ±'+barrier.toFixed(2));
-  set('gm-put-stake', '8×$'+leg.toFixed(2)+' ±'+barrier.toFixed(2));
+  set('gm-call-stake','Near $'+legStake+' +'+sp.nearOff.toFixed(2)+' | Far $'+legStake+' +'+sp.farOff.toFixed(2));
+  set('gm-put-stake', 'Near $'+legStake+' -'+sp.nearOff.toFixed(2)+' | Far $'+legStake+' -'+sp.farOff.toFixed(2));
   set('gm-call-pnl','...');set('gm-put-pnl','...');
-  set('gm-round-status','BUYING 8-LEG...');set('gm-round-net','...');
+  set('gm-round-status','BUYING 4-LEG...');set('gm-round-net','...');
 
-  console.log('[GM SPREAD] R'+rid+' entry:'+entry+' barrier:±'+barrier+' stake:$'+leg+'×8 total:$'+totalStake);
+  console.log('[GM SPREAD] R'+rid+' entry:'+entry+' near:±'+sp.nearOff+' far:±'+sp.farOff+' stake:$'+legStake+' ×4');
 
-  // Build 8 legs — 4 HIGHER + 4 LOWER
-  // Stagger by 120ms each to avoid Deriv duplicate rejection
-  var allLegs = [
-    {side:'callNear', type:'CALL', barrier:'+'+barrier.toFixed(2)},
-    {side:'putNear',  type:'PUT',  barrier:'-'+barrier.toFixed(2)},
-    {side:'callNear2',type:'CALL', barrier:'+'+barrier.toFixed(2)},
-    {side:'putNear2', type:'PUT',  barrier:'-'+barrier.toFixed(2)},
-    {side:'callNear3',type:'CALL', barrier:'+'+barrier.toFixed(2)},
-    {side:'putNear3', type:'PUT',  barrier:'-'+barrier.toFixed(2)},
-    {side:'callFar',  type:'CALL', barrier:'+'+barrier.toFixed(2)},
-    {side:'putFar',   type:'PUT',  barrier:'-'+barrier.toFixed(2)}
+  var legs=[
+    {id:sp.callNearId,ask:sp.callNearAsk,side:'callNear',dir:'HIGHER',barrier:sp.nearOff},
+    {id:sp.callFarId, ask:sp.callFarAsk, side:'callFar', dir:'HIGHER',barrier:sp.farOff},
+    {id:sp.putNearId, ask:sp.putNearAsk, side:'putNear', dir:'LOWER', barrier:sp.nearOff},
+    {id:sp.putFarId,  ask:sp.putFarAsk,  side:'putFar',  dir:'LOWER', barrier:sp.farOff}
   ];
-
-  allLegs.forEach(function(leg, idx){
-    setTimeout(function(){
-      if(!GM.pending[rid]) return; // round cancelled
-      // Request fresh proposal then immediately buy
-      var pid = wsSend({proposal:1, amount:nearStake, basis:'stake',
-        contract_type:leg.type, currency:S.currency,
-        duration:5, duration_unit:'t',
-        symbol:GM.asset, barrier:leg.barrier});
-      if(pid) S.pending[pid] = {
-        type:'gm_8leg_buy',
-        rid:rid, side:leg.side,
-        legStake:nearStake,
-        dir:leg.type==='CALL'?'HIGHER':'LOWER',
-        asset:GM.asset
-      };
-    }, idx * 120); // 120ms stagger between each leg
+  legs.forEach(function(leg){
+    var bid=wsSend({buy:leg.id,price:leg.ask});
+    if(bid)S.pending[bid]={dir:leg.dir,stake:legStake,asset:GM.asset,
+      isBot:true,isGM:true,gmRound:rid,gmSide:leg.side,
+      entryPrice:entry,durVal:GM.dur,durUnit:'s'};
   });
+
   setTimeout(function(){GM._placing=false;},300);
-  var _forceMs=15000;
+  var _forceMs=(GM.dur*1000)+20000;
   GM.pending[rid]._timeout=setTimeout(function(){
     if(GM.pending[rid]&&GM.pending[rid].settled<4){
       console.warn('[GM] Spread R'+rid+' timed out — force settling');
@@ -5867,12 +5477,8 @@ function gmPlaceSpread(sp){
 function gmForceSettleSpread(rid){
   var round=GM.pending[rid];
   if(!round)return;
-  var ns=round.nearStake||1.35;
-  var fs=round.farStake||0.35;
-  if(!round.results.callNear)round.results.callNear={profit:-ns,win:false};
-  if(!round.results.callFar) round.results.callFar ={profit:-fs,win:false};
-  if(!round.results.putNear) round.results.putNear ={profit:-ns,win:false};
-  if(!round.results.putFar)  round.results.putFar  ={profit:-fs,win:false};
+  var legs=['callNear','callFar','putNear','putFar'];
+  legs.forEach(function(s){if(!round.results[s])round.results[s]={profit:-(round.stake||0),win:false};});
   gmSettleSpread(rid);
 }
 
@@ -5882,23 +5488,22 @@ function gmSettleSpread(rid){
   r._settled=true;
   clearTimeout(r._timeout);
 
-  var ns=r.nearStake||1.35;
-  var fs=r.farStake||0.35;
+  var ls=r.stake||0.75;
   var cn=r.results.callNear,cf=r.results.callFar,pn=r.results.putNear,pf=r.results.putFar;
-  var cnP=cn?parseFloat(cn.profit||0):-ns;
-  var cfP=cf?parseFloat(cf.profit||0):-fs;
-  var pnP=pn?parseFloat(pn.profit||0):-ns;
-  var pfP=pf?parseFloat(pf.profit||0):-fs;
+  var cnP=cn?parseFloat(cn.profit||0):-ls;
+  var cfP=cf?parseFloat(cf.profit||0):-ls;
+  var pnP=pn?parseFloat(pn.profit||0):-ls;
+  var pfP=pf?parseFloat(pf.profit||0):-ls;
   var total=parseFloat((cnP+cfP+pnP+pfP).toFixed(2));
   var isWin=total>0;
-  var gapLoss=!(cn&&cn.win)&&!(cf&&cf.win)&&!(pn&&pn.win)&&!(pf&&pf.win);
+  var gapLoss=!cn?.win&&!cf?.win&&!pn?.win&&!pf?.win;
 
   console.log('[GM SPREAD SETTLE] R'+rid+' cnP:'+cnP+' cfP:'+cfP+' pnP:'+pnP+' pfP:'+pfP+' total:'+total);
 
   GM.pnl=parseFloat((GM.pnl+total).toFixed(2));
   if(isWin)GM.won++;else GM.lost++;
   if(gapLoss)gmHandleGapLoss();else if(isWin)gmHandleWin();
-  gmRecoveryUpdate(isWin,gapLoss,total,r.callPay,r.putPay,r.totalStake||3.00);
+  gmRecoveryUpdate(isWin,gapLoss,total,r.callPay,r.putPay,ls);
 
   S.activeTrades=S.activeTrades.filter(function(t){return !(t.isGM&&t.gmRound===rid);});
 
@@ -5909,16 +5514,13 @@ function gmSettleSpread(rid){
 
   var callWon=(cn&&cn.win)||(cf&&cf.win);
   var putWon=(pn&&pn.win)||(pf&&pf.win);
-  var nearWon=(cn&&cn.win)||(pn&&pn.win);
-  var bothWon=callWon&&putWon;
 
   GM.history.unshift({
     rid:rid,total:total,win:isWin,isSpread:true,
     callPnl:cnP+cfP,putPnl:pnP+pfP,
     callWon:callWon,putWon:putWon,
     time:r.time,asset:r.asset,
-    nearStake:ns,farStake:fs,
-    stake:r.totalStake||3.00,callPay:r.callPay,putPay:r.putPay,
+    stake:ls,callPay:r.callPay,putPay:r.putPay,
     combinedPay:r.combinedPay,entry:r.entry,
     offset:r.farOff||r.offset||0.12,snap:snap,
     nearOff:r.nearOff,farOff:r.farOff
@@ -5929,19 +5531,18 @@ function gmSettleSpread(rid){
   var net=document.getElementById('gm-round-net');
   if(net){net.textContent=(total>=0?'+':'')+'$'+Math.abs(total).toFixed(2);net.style.color=total>0?'var(--ac)':'var(--re)';}
   var rs=document.getElementById('gm-round-status');
-  var winLabel=bothWon?'BOTH HIT ✅✅':nearWon?'NEAR WIN ✅':isWin?'WIN ✅':gapLoss?'GAP LOSS ⚠':'LOSS ❌';
-  var statusCol=isWin?'var(--ac)':gapLoss?'var(--go)':'var(--re)';
-  if(rs){rs.textContent=winLabel;rs.style.color=statusCol;}
+  var statusTxt=isWin?'WIN ✅':gapLoss?'GAP LOSS ⚠':'PARTIAL ❌';
+  if(rs){rs.textContent=statusTxt;rs.style.color=isWin?'var(--ac)':gapLoss?'var(--go)':'var(--re)';}
 
   var callPnlEl=document.getElementById('gm-call-pnl');
   var putPnlEl=document.getElementById('gm-put-pnl');
   if(callPnlEl){callPnlEl.textContent=(cnP+cfP>=0?'+':'')+'$'+Math.abs(cnP+cfP).toFixed(2);callPnlEl.style.color=(cnP+cfP)>0?'var(--ac)':'var(--re)';}
   if(putPnlEl){putPnlEl.textContent=(pnP+pfP>=0?'+':'')+'$'+Math.abs(pnP+pfP).toFixed(2);putPnlEl.style.color=(pnP+pfP)>0?'var(--ac)':'var(--re)';}
 
-  var notifMsg=bothWon?'BOTH barriers hit! +$'+total.toFixed(2):
-    nearWon?'Near '+( callWon?'HIGHER':'LOWER')+' hit | Net:'+(total>=0?'+':'')+total.toFixed(2):
-    gapLoss?'Both missed (gap loss) | -$'+Math.abs(total).toFixed(2):'Loss $'+total.toFixed(2);
-  notify('GM '+(isWin?'WIN ✅':gapLoss?'GAP ⚠':'LOSS ❌'),notifMsg,isWin?'win':'loss');
+  notify('GM '+(isWin?'WIN ✅':gapLoss?'GAP ⚠':'LOSS ❌'),
+    (isWin?'Spread won':'Spread loss')+' | CN:$'+cnP.toFixed(2)+' CF:$'+cfP.toFixed(2)+
+    ' PN:$'+pnP.toFixed(2)+' PF:$'+pfP.toFixed(2)+' | Net:'+(total>=0?'+':'')+total.toFixed(2),
+    isWin?'win':'loss');
 
   delete GM.pending[rid];
   GM._placing=false;
@@ -5955,8 +5556,8 @@ function gmPlaceSpread_onResult(rid,side,pnl,exitPrice){
   if(!round||!round.isSpread)return;
   round.results[side]={profit:pnl,win:pnl>0,exitPrice:exitPrice||0};
   round.settled=(round.settled||0)+1;
-  console.log('[GM SPREAD RESULT] R'+rid+' '+side+' pnl:'+pnl+' settled:+round.settled+/2');
-  if(round.settled>=8)gmSettleSpread(rid);
+  console.log('[GM SPREAD RESULT] R'+rid+' '+side+' pnl:'+pnl+' settled:'+round.settled+'/4');
+  if(round.settled>=4)gmSettleSpread(rid);
 }
 
 function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay){
@@ -6024,17 +5625,20 @@ function gmPlace(callId,putId,callAsk,putAsk,stake,entry,barrier,callPay,putPay)
   var b1=wsSend({buy:callId,price:callAsk});
   if(b1)S.pending[b1]={dir:'HIGHER',stake:stake,asset:GM.asset,
     isBot:true,isGM:true,gmRound:rid,gmSide:'call',
-    entryPrice:entry,durVal:5,durUnit:'t'};
+    entryPrice:entry,durVal:GM.dur,durUnit:'s'};
 
   var b2=wsSend({buy:putId,price:putAsk});
   if(b2)S.pending[b2]={dir:'LOWER',stake:stake,asset:GM.asset,
     isBot:true,isGM:true,gmRound:rid,gmSide:'put',
-    entryPrice:entry,durVal:5,durUnit:'t'};
+    entryPrice:entry,durVal:GM.dur,durUnit:'s'};
 
+  // Clear placing lock — both buy requests are now queued to WS
+  // Use setTimeout(0) so the lock is released after this call stack unwinds,
+  // giving the WS send queue time to process before another gmPlace could fire
   setTimeout(function(){ GM._placing=false; }, 200);
 
-  // Force-settle timeout: 5 ticks ≈ ~15s buffer
-  var _forceMs=15000;
+  // Force-settle timeout: duration + 15s buffer (not flat 120s which causes stuck trades)
+  var _forceMs=(GM.dur*1000)+15000;
   GM.pending[rid]._timeout=setTimeout(function(){
     if(GM.pending[rid]&&GM.pending[rid].settled<2){
       console.warn('[GM] Round '+rid+' timed out after '+(_forceMs/1000)+'s — force settling');
@@ -6074,8 +5678,8 @@ function onGMResult(rid,side,profit,exitPrice){
       // Clean up activeCids for this leg
       var _legCidKey=side+'Cid';
       if(round[_legCidKey])delete GM.activeCids[round[_legCidKey]];
-      console.log('[GM SPREAD RESULT] R'+rid+' '+side+' pnl:'+spnl+' settled:+round.settled+/2');
-      if(round.settled>=8)gmSettleSpread(rid);
+      console.log('[GM SPREAD RESULT] R'+rid+' '+side+' pnl:'+spnl+' settled:'+round.settled+'/4');
+      if(round.settled>=4)gmSettleSpread(rid);
       return;
     }
   }
@@ -6104,7 +5708,7 @@ function onGMResult(rid,side,profit,exitPrice){
   if(el){el.textContent=(pnl>=0?'+':'')+'$'+Math.abs(pnl).toFixed(2);el.style.color=pnl>0?'var(--ac)':'var(--re)';}
 
   console.log('[GM RESULT] R'+rid+' side:'+side+' pnl:'+pnl+' settled:'+round.settled);
-  if(round.settled>=8)gmSettle(rid);
+  if(round.settled>=2)gmSettle(rid);
 }
 
 function gmForceSettle(rid){
@@ -6395,8 +5999,8 @@ var _gmActiveBarrier={active:false,higher:0,lower:0};
 
 // ── 1. TICK BUFFER — rolling array of last 10 ticks ──────────────
 // Updated on every incoming price tick via gmOnTick()
-var _gmTickBuf = [];          // raw price history
-var _gmTickBufMax = 20;
+var _gmTickBuf = [];          // raw price history (last 10)
+var _gmTickBufMax = 10;
 
 function gmOnTick(price) {
   if (!price || price <= 0) return;
@@ -6641,8 +6245,6 @@ function gmDrawChart() {
   if (_gmActiveBarrier && _gmActiveBarrier.active) {
     if (_gmActiveBarrier.higher > 0) hi = Math.max(hi, _gmActiveBarrier.higher);
     if (_gmActiveBarrier.lower > 0) lo = Math.min(lo, _gmActiveBarrier.lower);
-    if (_gmActiveBarrier.nearHigher > 0) hi = Math.max(hi, _gmActiveBarrier.nearHigher);
-    if (_gmActiveBarrier.nearLower > 0) lo = Math.min(lo, _gmActiveBarrier.nearLower);
   }
   var rng = hi - lo || 0.0001;
   var pad = rng * 0.15;
@@ -6688,29 +6290,27 @@ function gmDrawChart() {
   var yDot = yPos(prices[n-1]);
   out += '<circle cx="' + xDot + '" cy="' + yDot.toFixed(1) + '" r="3.5" fill="var(--ac)" stroke="#070a0f" stroke-width="1.5"/>';
 
-  // Barrier lines — only draw entry (yellow) + 2 outer Far barriers (green/red)
+  // Barrier lines (if active round)
   if (_gmActiveBarrier && _gmActiveBarrier.active) {
-    // Yellow entry line
+    // Draw entry price line first (amber, solid)
     var entryLinePrice = _gmActiveBarrier.entry || 0;
     if (entryLinePrice > 0) {
       var yEntry = yPos(entryLinePrice);
-      out += '<line x1="0" y1="' + yEntry.toFixed(1) + '" x2="' + W + '" y2="' + yEntry.toFixed(1) + '" stroke="rgba(245,166,35,0.95)" stroke-width="1.8" stroke-dasharray="4,3"/>';
-      out += '<rect x="4" y="' + (yEntry - 11) + '" width="60" height="13" fill="rgba(245,166,35,0.22)" rx="3"/>';
+      out += '<line x1="0" y1="' + yEntry.toFixed(1) + '" x2="' + W + '" y2="' + yEntry.toFixed(1) + '" stroke="rgba(245,166,35,0.9)" stroke-width="1.5" stroke-dasharray="4,3"/>';
+      out += '<rect x="4" y="' + (yEntry - 11) + '" width="56" height="13" fill="rgba(245,166,35,0.18)" rx="3"/>';
       out += '<text x="6" y="' + (yEntry - 1) + '" fill="rgba(245,166,35,1)" font-size="9" font-family="monospace">⦿ ' + entryLinePrice.toFixed(entryLinePrice > 100 ? 2 : 4) + '</text>';
     }
-    // Green — outer Far HIGHER barrier (price must end ABOVE this to win HIGHER)
     if (_gmActiveBarrier.higher > 0) {
       var yhb = yPos(_gmActiveBarrier.higher);
-      out += '<line x1="0" y1="' + yhb.toFixed(1) + '" x2="' + W + '" y2="' + yhb.toFixed(1) + '" stroke="rgba(0,229,160,0.95)" stroke-width="2.2" stroke-dasharray="6,3"/>';
-      out += '<rect x="' + (W - 80) + '" y="' + (yhb - 12) + '" width="78" height="14" fill="rgba(0,229,160,0.18)" rx="3"/>';
-      out += '<text x="' + (W - 41) + '" y="' + (yhb - 1) + '" fill="rgba(0,229,160,1)" font-size="9" font-family="monospace" text-anchor="middle">↑ ' + _gmActiveBarrier.higher.toFixed(_gmActiveBarrier.higher > 100 ? 2 : 4) + '</text>';
+      out += '<line x1="0" y1="' + yhb.toFixed(1) + '" x2="' + W + '" y2="' + yhb.toFixed(1) + '" stroke="rgba(0,229,160,0.9)" stroke-width="1.5" stroke-dasharray="6,3"/>';
+      out += '<rect x="' + (W - 68) + '" y="' + (yhb - 10) + '" width="66" height="13" fill="rgba(0,229,160,0.15)" rx="3"/>';
+      out += '<text x="' + (W - 35) + '" y="' + (yhb + 1) + '" fill="rgba(0,229,160,1)" font-size="9" font-family="monospace" text-anchor="middle">↑ ' + _gmActiveBarrier.higher.toFixed(2) + '</text>';
     }
-    // Red — outer Far LOWER barrier (price must end BELOW this to win LOWER)
     if (_gmActiveBarrier.lower > 0) {
       var ylb = yPos(_gmActiveBarrier.lower);
-      out += '<line x1="0" y1="' + ylb.toFixed(1) + '" x2="' + W + '" y2="' + ylb.toFixed(1) + '" stroke="rgba(255,77,106,0.95)" stroke-width="2.2" stroke-dasharray="6,3"/>';
-      out += '<rect x="' + (W - 80) + '" y="' + (ylb + 0) + '" width="78" height="14" fill="rgba(255,77,106,0.18)" rx="3"/>';
-      out += '<text x="' + (W - 41) + '" y="' + (ylb + 11) + '" fill="rgba(255,77,106,1)" font-size="9" font-family="monospace" text-anchor="middle">↓ ' + _gmActiveBarrier.lower.toFixed(_gmActiveBarrier.lower > 100 ? 2 : 4) + '</text>';
+      out += '<line x1="0" y1="' + ylb.toFixed(1) + '" x2="' + W + '" y2="' + ylb.toFixed(1) + '" stroke="rgba(255,77,106,0.9)" stroke-width="1.5" stroke-dasharray="6,3"/>';
+      out += '<rect x="' + (W - 68) + '" y="' + (ylb - 1) + '" width="66" height="13" fill="rgba(255,77,106,0.15)" rx="3"/>';
+      out += '<text x="' + (W - 35) + '" y="' + (ylb + 10) + '" fill="rgba(255,77,106,1)" font-size="9" font-family="monospace" text-anchor="middle">↓ ' + _gmActiveBarrier.lower.toFixed(2) + '</text>';
     }
   }
 
@@ -6748,10 +6348,10 @@ function gmDrawChart() {
   if (upCnt) upCnt.textContent = ups + ' ticks';
   if (dnCnt) dnCnt.textContent = dns + ' ticks';
 
-  // Recent moves strip — last 20 ticks as H/L pills
+  // Recent moves strip — last 40 ticks as H/L pills (2 rows of 20)
   var strip = document.getElementById('gm-moves-strip');
   if (strip) {
-    var stripN = Math.min(20, n - 1);
+    var stripN = Math.min(40, n - 1);
     var stripHtml = '';
     var streak = 0, streakDir = null;
     for (var m = n - stripN; m < n; m++) {
@@ -6794,17 +6394,14 @@ function gmDrawChart() {
     }
   }
 
+  // Barrier legend (text overlay)
   var leg = document.getElementById('gm-barrier-legend');
   if (leg) {
-    if (_gmActiveBarrier && _gmActiveBarrier.active && _gmActiveBarrier.higher > 0) {
-      var _dp = _gmActiveBarrier.higher > 100 ? 2 : 4;
-      leg.innerHTML =
-        '<span style="color:rgba(0,229,160,0.95);font-weight:700">↑ ' + _gmActiveBarrier.higher.toFixed(_dp) + '</span><br>' +
-        '<span style="color:rgba(245,166,35,0.95);font-weight:600">⦿ ' + (_gmActiveBarrier.entry||0).toFixed(_dp) + '</span><br>' +
-        '<span style="color:rgba(255,77,106,0.95);font-weight:700">↓ ' + _gmActiveBarrier.lower.toFixed(_dp) + '</span>';
-    } else {
-      leg.innerHTML = '';
-    }
+    leg.innerHTML = (_gmActiveBarrier && _gmActiveBarrier.active && _gmActiveBarrier.higher > 0)
+      ? '<span style="color:rgba(0,229,160,0.9);font-weight:700">↑ ' + _gmActiveBarrier.higher.toFixed(2) + '</span><br>'
+        + '<span style="color:rgba(245,166,35,0.9);font-weight:600">⦿ ' + (_gmActiveBarrier.entry||0).toFixed(2) + '</span><br>'
+        + '<span style="color:rgba(255,77,106,0.9);font-weight:700">↓ ' + _gmActiveBarrier.lower.toFixed(2) + '</span>'
+      : '';
   }
 
   // Update volatility info in gmCalc panel
@@ -7274,363 +6871,6 @@ function gmUpdateWalls(price){
 
 // END GMILLI BOT
 
-// ══════════════════════════════════════════════════════════════
-// BARRIER LAB — live barrier scanner
-// Tests barriers 0.05 → 1.20 (step 0.05) via real Deriv proposals
-// Finds which offset gives winning return > stake + target profit
-// ══════════════════════════════════════════════════════════════
-
-var BL = {
-  running: false,
-  pending: {},      // reqId → {barrier, side}
-  results: {},      // barrier → {call:payout, put:payout}
-  barriers: [],     // list of offsets to test
-  total: 0,
-  done: 0
-};
-
-// Specific barrier values to scan including 0.06 and 0.10
-function blBarriers() {
-  return [0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.15, 0.20];
-}
-
-function blParseDur(val) {
-  // Returns {dur, unit} from select value like "5t", "1m"
-  if (!val) return {dur:5, unit:'t'};
-  if (val.endsWith('t')) return {dur:parseInt(val), unit:'t'};
-  if (val.endsWith('m')) return {dur:parseInt(val)*60, unit:'s'};
-  return {dur:5, unit:'t'};
-}
-
-function blUpdateMath() {
-  var stake  = parseFloat(document.getElementById('bl-stake').value)  || 125;
-  var target = parseFloat(document.getElementById('bl-target').value) || 32.52;
-  var totalRisk = stake * 2;
-  var required  = totalRisk + target;
-  var pct       = (required / stake * 100).toFixed(2);
-  var set = function(id, v){ var e=document.getElementById(id); if(e) e.textContent=v; };
-  set('bl-math-risk',     '$' + totalRisk.toFixed(2));
-  set('bl-math-required', '$' + required.toFixed(2));
-  set('bl-math-pct',      pct + '%');
-  set('bl-explain-stake',    stake.toFixed(2));
-  set('bl-explain-stake2',   stake.toFixed(2));
-  set('bl-explain-required', required.toFixed(2));
-}
-
-function blRun() {
-  if (!S.ws || S.ws.readyState !== 1) {
-    document.getElementById('bl-conn-warn').style.display = 'block';
-    notify('Barrier Lab', 'Connect to Deriv first', 'loss');
-    return;
-  }
-  document.getElementById('bl-conn-warn').style.display = 'none';
-
-  if (BL.running) {
-    notify('Barrier Lab', 'Scan already running...', 'loss');
-    return;
-  }
-
-  blUpdateMath();
-  BL.running = true;
-  BL.pending = {};
-  BL.results = {};
-  BL.done    = 0;
-  BL.barriers = blBarriers();
-  BL.total    = BL.barriers.length * 2; // CALL + PUT per barrier
-
-  var btn = document.getElementById('bl-run-btn');
-  if (btn) { btn.textContent = '⏳ Scanning...'; btn.disabled = true; }
-
-  var pw = document.getElementById('bl-progress-wrap');
-  if (pw) pw.style.display = 'block';
-  blSetProgress(0, 'Starting scan — sending probes in batches of 4 (450ms apart)...');
-
-  // Clear table
-  var tbody = document.getElementById('bl-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding:30px;text-align:center;color:var(--t3)">⏳ Fetching live payouts...</td></tr>';
-
-  var sumEl = document.getElementById('bl-summary');
-  if (sumEl) sumEl.style.display = 'none';
-
-  var asset  = document.getElementById('bl-asset').value || 'R_100';
-  var stake  = parseFloat(document.getElementById('bl-stake').value) || 125;
-  var durSel = document.getElementById('bl-dur').value || '5t';
-  var durObj = blParseDur(durSel);
-
-  // Build the full list of requests [{barrier, side, barrierStr}]
-  var allRequests = [];
-  BL.barriers.forEach(function(offset) {
-    BL.results[offset] = {call: null, put: null, callAsk: 0, putAsk: 0};
-    allRequests.push({barrier: offset, side: 'call', barrierStr: '+' + offset.toFixed(2)});
-    allRequests.push({barrier: offset, side: 'put',  barrierStr: '-' + offset.toFixed(2)});
-  });
-
-  // Send in batches of 4 with 450ms gap — prevents Deriv WS from dropping proposals
-  var BATCH_SIZE = 4;
-  var BATCH_DELAY = 450; // ms between batches
-  var batchIndex = 0;
-
-  function sendNextBatch() {
-    if (!BL.running) return; // scan was cancelled
-    var batch = allRequests.slice(batchIndex, batchIndex + BATCH_SIZE);
-    if (batch.length === 0) return;
-
-    batch.forEach(function(req) {
-      var ctSel = (document.getElementById('bl-contract-type')||{value:'HL'}).value;
-      var contractType;
-      if(ctSel === 'OUT'){
-        // Ends Outside — price must close outside the barrier range
-        contractType = req.side === 'call' ? 'EXPIRYMISS' : 'EXPIRYMISS';
-      } else if(ctSel === 'IN'){
-        // Ends Between — price must close inside the barrier range
-        contractType = 'EXPIRYRANGE';
-      } else {
-        contractType = req.side === 'call' ? 'CALL' : 'PUT';
-      }
-
-      // OUT/IN contracts need both barriers (high + low) in a single proposal
-      // We send as EXPIRYMISS with high_barrier and low_barrier
-      var proposalObj;
-      if(ctSel === 'OUT' || ctSel === 'IN'){
-        if(req.side === 'put') return; // skip — OUT/IN sent once per barrier via 'call' iteration
-        proposalObj = {
-          proposal: 1, amount: stake, basis: 'stake',
-          contract_type: ctSel === 'OUT' ? 'EXPIRYMISS' : 'EXPIRYRANGE',
-          currency: S.currency,
-          duration: durObj.dur, duration_unit: durObj.unit,
-          symbol: asset,
-          high_barrier: '+' + req.barrier.toFixed(2),
-          low_barrier:  '-' + req.barrier.toFixed(2)
-        };
-      } else {
-        proposalObj = {
-          proposal: 1, amount: stake, basis: 'stake',
-          contract_type: contractType, currency: S.currency,
-          duration: durObj.dur, duration_unit: durObj.unit,
-          symbol: asset, barrier: req.barrierStr
-        };
-      }
-
-      var pid = wsSend(proposalObj);
-      if (pid) BL.pending[pid] = {barrier: req.barrier, side: req.side, ctSel: ctSel};
-    });
-
-    batchIndex += BATCH_SIZE;
-    var pct = Math.round(batchIndex / allRequests.length * 50); // first 50% = sending phase
-    blSetProgress(pct, 'Sent ' + Math.min(batchIndex, allRequests.length) + ' / ' + allRequests.length + ' probes...');
-
-    if (batchIndex < allRequests.length) {
-      setTimeout(sendNextBatch, BATCH_DELAY);
-    } else {
-      blSetProgress(50, 'All probes sent — waiting for Deriv quotes...');
-    }
-  }
-
-  sendNextBatch();
-
-  // Safety timeout — render whatever we have after 30s (longer to allow batching)
-  setTimeout(function() {
-    if (BL.running) {
-      BL.running = false;
-      blRender();
-      blFinish('⚠ Timeout — partial results (' + BL.done + '/' + BL.total + ')');
-    }
-  }, 30000);
-}
-
-function blOnProposal(reqId, proposal, ask, payout) {
-  if (!BL.running) return;
-  var info = BL.pending[reqId];
-  if (!info) return;
-
-  var r = BL.results[info.barrier];
-  if (!r) return;
-
-  if(info.ctSel === 'OUT' || info.ctSel === 'IN'){
-    // Single proposal covers both sides — store same payout for call and put
-    r.call    = payout;
-    r.put     = payout;
-    r.callAsk = ask;
-    r.putAsk  = ask;
-    BL.done += 2; // counts as both sides
-  } else {
-    if (info.side === 'call') {
-      r.call    = payout;
-      r.callAsk = ask;
-    } else {
-      r.put    = payout;
-      r.putAsk = ask;
-    }
-    BL.done++;
-  }
-
-  var pct = 50 + Math.round(BL.done / BL.total * 50);
-  blSetProgress(pct, 'Received ' + BL.done + ' / ' + BL.total + ' quotes...');
-
-  if (r.call !== null && r.put !== null) {
-    blRenderRow(info.barrier, r);
-  }
-
-  if (BL.done >= BL.total) {
-    BL.running = false;
-    blRender();     // full re-render with sorting
-    blFinish('✅ Scan complete — ' + BL.barriers.length + ' barriers tested');
-  }
-}
-
-function blSetProgress(pct, label) {
-  var bar = document.getElementById('bl-progress-bar');
-  var lbl = document.getElementById('bl-progress-label');
-  var num = document.getElementById('bl-progress-pct');
-  if (bar) bar.style.width = pct + '%';
-  if (lbl) lbl.textContent = label;
-  if (num) num.textContent = pct + '%';
-}
-
-function blFinish(msg) {
-  var btn = document.getElementById('bl-run-btn');
-  if (btn) { btn.textContent = '▶ Run Scan'; btn.disabled = false; }
-  blSetProgress(100, msg);
-  document.getElementById('bl-scan-time').textContent = 'Scanned ' + new Date().toLocaleTimeString();
-}
-
-function blRenderRow(barrier, r) {
-  // Live row update — adds/updates a single row while scan is running
-  var stake  = parseFloat(document.getElementById('bl-stake').value)  || 125;
-  var target = parseFloat(document.getElementById('bl-target').value) || 32.52;
-  var totalRisk = stake * 2;
-  var required  = totalRisk + target;
-
-  var tbody = document.getElementById('bl-tbody');
-  if (!tbody) return;
-
-  // Remove placeholder row if present
-  var placeholder = tbody.querySelector('tr[data-placeholder]');
-  if (placeholder) placeholder.remove();
-
-  var callPay = r.call || 0;
-  var putPay  = r.put  || 0;
-  var avgPay  = (callPay + putPay) / 2;
-  var net     = avgPay - totalRisk;
-  var pct     = (avgPay / stake * 100).toFixed(1);
-  var passes  = callPay > required && putPay > required;
-  var partial = (callPay > required || putPay > required) && !passes;
-
-  var rowId = 'bl-row-' + (barrier * 100).toFixed(0);
-  var existing = document.getElementById(rowId);
-
-  var statusHtml = passes
-    ? '<span style="color:var(--ac);font-weight:700;background:var(--ad);padding:2px 8px;border-radius:99px;font-size:10px">✅ PASS</span>'
-    : partial
-      ? '<span style="color:var(--go);font-weight:700;background:var(--gd);padding:2px 8px;border-radius:99px;font-size:10px">⚡ PARTIAL</span>'
-      : '<span style="color:var(--re);font-weight:700;background:var(--rd);padding:2px 8px;border-radius:99px;font-size:10px">❌ LOW</span>';
-
-  var rowStyle = passes
-    ? 'background:rgba(0,229,160,0.06);border-left:3px solid var(--ac)'
-    : partial
-      ? 'background:rgba(245,166,35,0.05);border-left:3px solid var(--go)'
-      : '';
-
-  var html = '<tr id="' + rowId + '" style="border-bottom:1px solid var(--bo);' + rowStyle + '">'
-    + '<td style="padding:9px 14px;font-family:var(--mo);font-weight:700;font-size:13px">±' + barrier.toFixed(2) + '</td>'
-    + '<td style="padding:9px 14px;text-align:right;font-family:var(--mo);color:' + (callPay > required ? 'var(--ac)' : 'var(--t2)') + '">'
-      + (callPay > 0 ? '$' + callPay.toFixed(2) : '…') + '</td>'
-    + '<td style="padding:9px 14px;text-align:right;font-family:var(--mo);color:' + (putPay > required ? 'var(--ac)' : 'var(--t2)') + '">'
-      + (putPay > 0 ? '$' + putPay.toFixed(2) : '…') + '</td>'
-    + '<td style="padding:9px 14px;text-align:right;font-family:var(--mo);color:var(--t1)">'
-      + (avgPay > 0 ? '$' + avgPay.toFixed(2) : '…') + '</td>'
-    + '<td style="padding:9px 14px;text-align:right;font-family:var(--mo);font-weight:700;color:' + (net >= target ? 'var(--ac)' : net > 0 ? 'var(--go)' : 'var(--re)') + '">'
-      + (avgPay > 0 ? (net >= 0 ? '+' : '') + '$' + net.toFixed(2) : '…') + '</td>'
-    + '<td style="padding:9px 14px;text-align:right;font-family:var(--mo);color:var(--t2)">'
-      + (avgPay > 0 ? pct + '%' : '…') + '</td>'
-    + '<td style="padding:9px 14px;text-align:center">' + statusHtml + '</td>'
-    + '</tr>';
-
-  if (existing) {
-    existing.outerHTML = html;
-  } else {
-    tbody.insertAdjacentHTML('beforeend', html);
-  }
-}
-
-function blRender() {
-  // Full re-render sorted by barrier (ascending) with summary
-  var stake  = parseFloat(document.getElementById('bl-stake').value)  || 125;
-  var target = parseFloat(document.getElementById('bl-target').value) || 32.52;
-  var totalRisk = stake * 2;
-  var required  = totalRisk + target;
-
-  var rows = [];
-  BL.barriers.forEach(function(b) {
-    var r = BL.results[b];
-    if (!r || r.call === null || r.put === null) return;
-    rows.push({barrier: b, call: r.call, put: r.put});
-  });
-
-  rows.sort(function(a,b){ return a.barrier - b.barrier; });
-
-  var tbody = document.getElementById('bl-tbody');
-  if (tbody) {
-    tbody.innerHTML = '';
-    rows.forEach(function(row){ blRenderRow(row.barrier, {call:row.call, put:row.put}); });
-    if (rows.length === 0) {
-      tbody.innerHTML = '<tr data-placeholder="1"><td colspan="7" style="padding:30px;text-align:center;color:var(--t3)">No results yet</td></tr>';
-    }
-  }
-
-  // Build summary
-  var passing = rows.filter(function(r){ return r.call > required && r.put > required; });
-  var bestNet = -999, bestBarrier = null, bestCall = 0, bestPut = 0;
-  rows.forEach(function(r){
-    var avg = (r.call + r.put) / 2;
-    var net = avg - totalRisk;
-    if (net > bestNet) { bestNet = net; bestBarrier = r.barrier; bestCall = r.call; bestPut = r.put; }
-  });
-
-  var set = function(id, v){ var e=document.getElementById(id); if(e) e.textContent=v; };
-  var sumEl = document.getElementById('bl-summary');
-  if (sumEl) sumEl.style.display = 'grid';
-
-  if (bestBarrier !== null) {
-    set('bl-best-barrier', '±' + bestBarrier.toFixed(2));
-    set('bl-best-payout',  '$' + ((bestCall+bestPut)/2).toFixed(2) + ' avg return');
-    set('bl-best-net',     (bestNet >= 0 ? '+' : '') + '$' + bestNet.toFixed(2));
-    set('bl-pass-count',   passing.length);
-    set('bl-pass-range',   'of ' + rows.length + ' scanned');
-    // Recommended = tightest (smallest) barrier that passes
-    var rec = passing.length > 0
-      ? passing.reduce(function(a,b){ return a.barrier < b.barrier ? a : b; })
-      : null;
-    set('bl-recommended', rec ? '±' + rec.barrier.toFixed(2) : 'None — raise stake');
-  }
-}
-
-function blClear() {
-  BL.running = false;
-  BL.pending = {};
-  BL.results = {};
-  BL.done    = 0;
-  var tbody = document.getElementById('bl-tbody');
-  if (tbody) tbody.innerHTML = '<tr data-placeholder="1"><td colspan="7" style="padding:40px;text-align:center;color:var(--t3)">Connect to Deriv and click Run Scan to fetch live payouts</td></tr>';
-  var sumEl = document.getElementById('bl-summary');
-  if (sumEl) sumEl.style.display = 'none';
-  var pw = document.getElementById('bl-progress-wrap');
-  if (pw) pw.style.display = 'none';
-  blSetProgress(0, '');
-  var btn = document.getElementById('bl-run-btn');
-  if (btn) { btn.textContent = '▶ Run Scan'; btn.disabled = false; }
-  document.getElementById('bl-scan-time').textContent = '';
-}
-
-// Hook into the WS proposal handler — called from existing onProposal handler
-function blHandleProposal(reqId, proposal, ask, payout) {
-  if (BL.pending[reqId]) {
-    blOnProposal(reqId, proposal, ask, payout);
-    delete S.pending[reqId]; // don't let main handler also process it
-  }
-}
-
-// ══ END BARRIER LAB ══════════════════════════════════════════
 
 
 </script>
