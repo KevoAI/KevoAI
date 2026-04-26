@@ -5557,33 +5557,26 @@ function gmFetchProposals(){
     if(fdLbl) fdLbl.textContent = '$'+farStake.toFixed(2);
 
     var rs=document.getElementById('gm-round-status');
-    if(rs)rs.textContent='SHIELD PROBE...';
+    if(rs)rs.textContent='PROBING...';
 
-    // Update barrier display
     var cbLbl=document.getElementById('gm-call-barrier-lbl');
     var pbLbl=document.getElementById('gm-put-barrier-lbl');
-    if(cbLbl)cbLbl.textContent='Near $'+nearStake.toFixed(2)+' +'+nearOff.toFixed(2)+' / Far $'+farStake.toFixed(2)+' +'+farOff.toFixed(2);
-    if(pbLbl)pbLbl.textContent='Near $'+nearStake.toFixed(2)+' -'+nearOff.toFixed(2)+' / Far $'+farStake.toFixed(2)+' -'+farOff.toFixed(2);
+    if(cbLbl)cbLbl.textContent='8×$'+nearStake.toFixed(2)+' ±'+nearOff.toFixed(2);
+    if(pbLbl)pbLbl.textContent='8×$'+nearStake.toFixed(2)+' ±'+nearOff.toFixed(2);
 
-    // Fire 8 legs — 4 HIGHER + 4 LOWER at same barrier
-    var legs=[
+    // Probe just 2 legs for gate check — gmPlaceSpread fires all 8
+    var probeLegs=[
       {side:'callNear', type:'CALL', barrier:'+'+h1Barrier.toFixed(2), stake:h1Stake},
-      {side:'callNear2',type:'CALL', barrier:'+'+h1Barrier.toFixed(2), stake:h1Stake},
-      {side:'callNear3',type:'CALL', barrier:'+'+h1Barrier.toFixed(2), stake:h1Stake},
-      {side:'callFar',  type:'CALL', barrier:'+'+h1Barrier.toFixed(2), stake:h1Stake},
-      {side:'putNear',  type:'PUT',  barrier:'-'+l1Barrier.toFixed(2), stake:l1Stake},
-      {side:'putNear2', type:'PUT',  barrier:'-'+l1Barrier.toFixed(2), stake:l1Stake},
-      {side:'putNear3', type:'PUT',  barrier:'-'+l1Barrier.toFixed(2), stake:l1Stake},
-      {side:'putFar',   type:'PUT',  barrier:'-'+l1Barrier.toFixed(2), stake:l1Stake}
+      {side:'putNear',  type:'PUT',  barrier:'-'+l1Barrier.toFixed(2), stake:l1Stake}
     ];
-    legs.forEach(function(leg){
+    probeLegs.forEach(function(leg){
       var pid=wsSend({proposal:1,amount:leg.stake,basis:'stake',contract_type:leg.type,
         currency:S.currency,duration:5,duration_unit:'t',
         symbol:GM.asset,barrier:leg.barrier});
       if(pid)S.pending[pid]={type:'gm_probe',gmSide:leg.side,
-        probeEntry:entry,probeStake:leg.stake,probeOffset:leg.side.indexOf('Far')>=0?farOff:nearOff,
-        probeBarrier:leg.barrier,isSpread:true,nearOff:nearOff,farOff:farOff,
-        isNearLeg:leg.side.indexOf('Near')>=0,nearStake:nearStake,farStake:farStake,
+        probeEntry:entry,probeStake:leg.stake,probeOffset:nearOff,
+        probeBarrier:leg.barrier,isSpread:true,nearOff:nearOff,farOff:nearOff,
+        isNearLeg:true,nearStake:nearStake,farStake:nearStake,
         totalRisk:totalRiskTarget};
     });
   } else {
@@ -5651,8 +5644,12 @@ function onGMProbe(proposal,pendInfo){
     if(cEl&&sp.callNear&&sp.callFar) cEl.textContent='N:$'+sp.callNear.toFixed(2)+' F:$'+sp.callFar.toFixed(2);
     if(pEl&&sp.putNear&&sp.putFar)  pEl.textContent='N:$'+sp.putNear.toFixed(2)+' F:$'+sp.putFar.toFixed(2);
 
-    // Wait for all 4 probes
-    if(!sp.callNear||!sp.callFar||!sp.putNear||!sp.putFar)return;
+    // For 8-leg setup: all barriers same, so callFar=callNear, putFar=putNear
+    if(!sp.callFar && sp.callNear) sp.callFar = sp.callNear;
+    if(!sp.putFar  && sp.putNear)  sp.putFar  = sp.putNear;
+
+    // Wait for both sides (callNear + putNear minimum)
+    if(!sp.callNear||!sp.putNear)return;
 
     var ns=sp.nearStake;
     var fs=sp.farStake;
