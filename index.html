@@ -5428,33 +5428,34 @@ function gmLoop(){
     _pillEl.innerHTML = _pills;
   }
 
-  var _prices = _loopPrices;
-  var _pLen = _prices.length;
+  // Use _gmTickBuf for direction — same source as topbar LOWER×3 display
+  var _buf2 = _gmTickBuf;
+  var _bLen2 = _buf2.length;
 
-  // Need at least 4 prices minimum
-  if (_pLen < 4) {
+  // Need at least 4 prices
+  if (_bLen2 < 4) {
     var rs6 = document.getElementById('gm-round-status');
-    if (rs6) rs6.textContent = 'WAIT: building history ('+_pLen+'/4)';
+    if (rs6) rs6.textContent = 'WAIT: building history ('+_bLen2+'/4)';
     GM.interval = setTimeout(gmLoop, _nextInterval); return;
   }
 
-  var t0 = _prices[_pLen - 1];
-  var t1 = _prices[_pLen - 2];
-  var t2 = _prices[_pLen - 3];
-  var t3 = _prices[_pLen - 4];
+  var t0 = _buf2[_bLen2 - 1];
+  var t1 = _buf2[_bLen2 - 2];
+  var t2 = _buf2[_bLen2 - 3];
+  var t3 = _buf2[_bLen2 - 4];
 
-  // DIRECTION — 2 consecutive ticks same way
-  var _isUp   = t0 > t1 && t1 > t2;
-  var _isDown = t0 < t1 && t1 < t2;
+  // DIRECTION — 3 consecutive ticks same way (restored)
+  var _isUp   = t0 > t1 && t1 > t2 && t2 > t3;
+  var _isDown = t0 < t1 && t1 < t2 && t2 < t3;
 
   if (!_isUp && !_isDown) {
     var rs7 = document.getElementById('gm-round-status');
-    if (rs7) rs7.textContent = 'WAIT: need 2 consecutive ticks';
+    if (rs7) rs7.textContent = 'WAIT: need 3 consecutive ticks';
     GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
     GM.interval = setTimeout(gmLoop, _nextInterval); return;
   }
 
-  // ✅ Direction confirmed — fire
+  // ✅ 3 consecutive ticks confirmed — fire
   var _turboDir = _isUp ? 'UP 🚀' : 'DOWN 🚀';
   var rs10 = document.getElementById('gm-round-status');
   if (rs10) rs10.textContent = _turboDir+' — FIRING';
@@ -6374,8 +6375,8 @@ var _gmActiveBarrier={active:false,higher:0,lower:0};
 
 // ── 1. TICK BUFFER — rolling array of last 10 ticks ──────────────
 // Updated on every incoming price tick via gmOnTick()
-var _gmTickBuf = [];          // raw price history (last 10)
-var _gmTickBufMax = 10;
+var _gmTickBuf = [];          // raw price history
+var _gmTickBufMax = 20;
 
 function gmOnTick(price) {
   if (!price || price <= 0) return;
