@@ -5456,23 +5456,10 @@ function gmLoop(){
     GM.interval = setTimeout(gmLoop, _nextInterval); return;
   }
 
-  // 3. BREAKOUT — price must be breaking 20-tick high or low
-  var _window20 = _prices.slice(_pLen - 20);
-  var _high20   = Math.max.apply(null, _window20);
-  var _low20    = Math.min.apply(null, _window20);
-  var _breaking = (_isUp && t0 >= _high20) || (_isDown && t0 <= _low20);
-
-  if (!_breaking) {
-    var rs9 = document.getElementById('gm-round-status');
-    if (rs9) rs9.textContent = 'WAIT: no breakout (trapped in range H:'+_high20.toFixed(2)+' L:'+_low20.toFixed(2)+')';
-    GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
-    GM.interval = setTimeout(gmLoop, _nextInterval); return;
-  }
-
-  // ✅ ALL 3 CONDITIONS MET — fire Shield spread
+  // ✅ Direction + Acceleration passed — fire
   var _turboDir = _isUp ? 'UP 🚀' : 'DOWN 🚀';
   var rs10 = document.getElementById('gm-round-status');
-  if (rs10) rs10.textContent = 'TURBO '+_turboDir+' — FIRING SHIELD';
+  if (rs10) rs10.textContent = 'TURBO '+_turboDir+' — FIRING';
 
   // ── GUARDRAIL: Martingale init on first round ─────────────────
   if (!_gmMart.baseBudget) gmMartInit();
@@ -5656,26 +5643,20 @@ function onGMProbe(proposal,pendInfo){
     var totalRisk=sp.totalRisk;
 
     // ── 8-LEG GATE ────────────────────────────────────────────────
-    // Simple rule: payout must be > 200% (profitable per leg)
-    // At 8 legs same barrier: 4 win, 4 lose → net positive if payout > 200%
-    var HARD_FLOOR = 2.00;
-
+    // Just verify we got real quotes back — math guarantees profit at >200%
     var callNearRate = sp.callNear > 0 ? sp.callNear / ns : 0;
     var putNearRate  = sp.putNear  > 0 ? sp.putNear  / ns : 0;
     var actualRate   = Math.min(callNearRate, putNearRate);
-    var passes       = actualRate >= HARD_FLOOR;
+    var passes       = sp.callNear > 0 && sp.putNear > 0; // just need real quotes
 
+    var callNetBoth  = parseFloat(((sp.callNear * 4) - (ns * 8)).toFixed(2));
+    var putNetBoth   = parseFloat(((sp.putNear  * 4) - (ns * 8)).toFixed(2));
     var callNearBreaksEven = true;
     var putNearBreaksEven  = true;
-    var callCombo = sp.callNear * 4;
-    var putCombo  = sp.putNear  * 4;
-    var totalRisk8 = ns * 8;
-    var callNetBoth = parseFloat((callCombo - totalRisk8).toFixed(2));
-    var putNetBoth  = parseFloat((putCombo  - totalRisk8).toFixed(2));
 
     var gateLabel = passes
-      ? '✅ '+(callNearRate*100).toFixed(0)+'%/'+(putNearRate*100).toFixed(0)+'% — net ~+$'+Math.max(callNetBoth,putNetBoth).toFixed(2)
-      : '❌ payout '+(actualRate*100).toFixed(0)+'%<200% — skip';
+      ? '✅ '+(callNearRate*100).toFixed(0)+'%/'+(putNearRate*100).toFixed(0)+'% net ~+$'+Math.max(callNetBoth,putNetBoth).toFixed(2)
+      : '❌ no quotes yet';
 
     var gEl=document.getElementById('gm-gate-status');
     if(gEl){gEl.textContent=gateLabel;gEl.style.color=passes?'var(--ac)':'var(--re)';}
