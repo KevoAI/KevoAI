@@ -1756,6 +1756,10 @@ function onProposal(proposal, reqId){
 
   // Route HB proposals to dual-trade handler
   if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
+  if(p.type==='gm_probe'){
+    console.log('[GM PROBE] received side='+p.gmSide+' payout='+proposal.payout);
+    onGMProbe(proposal,p);return;
+  }
   if(p.type==='gm_8leg_buy'){
     // Immediately buy this proposal
     var _8rid=p.rid; var _8side=p.side;
