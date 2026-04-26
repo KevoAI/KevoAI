@@ -5337,6 +5337,9 @@ function gmUpdateEntryScoreUI(es){
 
 function gmLoop(){
   if(!GM.running)return;
+  if(GM._placing){
+    GM.interval=setTimeout(gmLoop,300);return;
+  }
   gmUpdateStats();
   var sl=parseFloat(document.getElementById('gm-daily-sl').value)||30;
   var tp=parseFloat(document.getElementById('gm-daily-tp').value)||60;
@@ -5459,6 +5462,9 @@ function gmLoop(){
   if(rs10)rs10.textContent=_turboDir+' — FIRING';
 
   if(!_gmMart.baseBudget)gmMartInit();
+
+  // Set _placing to prevent re-entry while probe is in flight
+  GM._placing=true;
   gmFetchProposals();
   GM.interval=setTimeout(gmLoop,_nextInterval);
 }
@@ -5492,9 +5498,10 @@ function gmAdaptiveOffset(){
 }
 
 function gmFetchProposals(){
-  if(!S.connected)return;
+  console.log('[GM FETCH] connected='+S.connected+' asset='+GM.asset+' price='+S.prices[GM.asset]);
+  if(!S.connected){console.warn('[GM FETCH] not connected');return;}
   var entry=S.prices[GM.asset]||0;
-  if(entry<=0)return;
+  if(entry<=0){console.warn('[GM FETCH] no price');return;}
 
   var spreadSw=document.getElementById('gm-spread-sw');
   var useSpread=spreadSw&&spreadSw.classList.contains('on');
