@@ -5337,7 +5337,7 @@ function gmUpdateEntryScoreUI(es){
 
 function gmLoop(){
   if(!GM.running)return;
-  if(GM._placing){
+  if(GM._probing){
     GM.interval=setTimeout(gmLoop,300);return;
   }
   gmUpdateStats();
@@ -5464,7 +5464,7 @@ function gmLoop(){
   if(!_gmMart.baseBudget)gmMartInit();
 
   // Set _placing to prevent re-entry while probe is in flight
-  GM._placing=true;
+  GM._probing=true;
   gmFetchProposals();
   GM.interval=setTimeout(gmLoop,_nextInterval);
 }
@@ -5499,9 +5499,17 @@ function gmAdaptiveOffset(){
 
 function gmFetchProposals(){
   console.log('[GM FETCH] connected='+S.connected+' asset='+GM.asset+' price='+S.prices[GM.asset]);
-  if(!S.connected){console.warn('[GM FETCH] not connected');return;}
+  if(!S.connected){console.warn('[GM FETCH] not connected');GM._placing=false;return;}
   var entry=S.prices[GM.asset]||0;
-  if(entry<=0){console.warn('[GM FETCH] no price');return;}
+  if(entry<=0){console.warn('[GM FETCH] no price');GM._placing=false;return;}
+
+  // Safety: always release _placing after 5s in case probe never returns
+  setTimeout(function(){
+    if(GM._placing){
+      console.warn('[GM FETCH] probe timeout — releasing _placing');
+      GM._placing=false;
+    }
+  }, 5000);
 
   var spreadSw=document.getElementById('gm-spread-sw');
   var useSpread=spreadSw&&spreadSw.classList.contains('on');
@@ -5565,7 +5573,13 @@ function gmFetchProposals(){
         probeBarrier:leg.barrier,isSpread:true,nearOff:nearOff,farOff:nearOff,
         isNearLeg:true,nearStake:nearStake,farStake:nearStake,
         totalRisk:totalRiskTarget};
+      console.log('[GM FETCH] probe sent pid='+pid+' side='+leg.side+' barrier='+leg.barrier);
     });
+    // Release placing lock — probe is async, onGMProbe handles the rest
+    GM._placing=false;
+    // Keep _probing=true until onGMProbe fires
+    // Safety timeout: release after 3s
+    setTimeout(function(){GM._probing=false;},3000);
   } else {
     // ── ORIGINAL 2-LEG HEDGE ──────────────────────────────────────
     var stake=gmStake();
@@ -5649,6 +5663,7 @@ function onGMProbe(proposal,pendInfo){
     var putNearRate  = sp.putNear  > 0 ? sp.putNear  / ns : 0;
     var actualRate   = Math.min(callNearRate, putNearRate);
     var passes = true; // 8-leg setup: always trade if quotes received
+    GM._probing=false; // release probe lock
 
     var callNetBoth  = parseFloat(((sp.callNear * 4) - (ns * 8)).toFixed(2));
     var putNetBoth   = parseFloat(((sp.putNear  * 4) - (ns * 8)).toFixed(2));
