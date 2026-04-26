@@ -5636,6 +5636,7 @@ function onGMProbe(proposal,pendInfo){
     if(!sp.putFar  && sp.putNear)  sp.putFar  = sp.putNear;
 
     // Wait for both sides (callNear + putNear minimum)
+    console.log('[GM PROBE] sp.callNear='+sp.callNear+' sp.putNear='+sp.putNear+' ns='+ns);
     if(!sp.callNear||!sp.putNear)return;
 
     var ns=sp.nearStake;
@@ -5647,7 +5648,7 @@ function onGMProbe(proposal,pendInfo){
     var callNearRate = sp.callNear > 0 ? sp.callNear / ns : 0;
     var putNearRate  = sp.putNear  > 0 ? sp.putNear  / ns : 0;
     var actualRate   = Math.min(callNearRate, putNearRate);
-    var passes       = sp.callNear > 0 && sp.putNear > 0; // just need real quotes
+    var passes = true; // 8-leg setup: always trade if quotes received
 
     var callNetBoth  = parseFloat(((sp.callNear * 4) - (ns * 8)).toFixed(2));
     var putNetBoth   = parseFloat(((sp.putNear  * 4) - (ns * 8)).toFixed(2));
