@@ -5369,6 +5369,16 @@ function gmLoop(){
     }
   });
 
+  // Clean up stale pending rounds older than 30s
+  var _now2 = Date.now();
+  Object.keys(GM.pending).forEach(function(rid){
+    var r = GM.pending[rid];
+    if(r && r.lastRoundTime && (_now2 - r.lastRoundTime) > 30000){
+      console.warn('[GM] Cleaning stale pending round', rid);
+      delete GM.pending[rid];
+    }
+  });
+
   if(gmActiveCount()>0){
     var rs=document.getElementById('gm-round-status');
     if(rs)rs.textContent='ACTIVE';
@@ -5421,10 +5431,10 @@ function gmLoop(){
   var _prices = _loopPrices;
   var _pLen = _prices.length;
 
-  // Need at least 21 prices (20 for breakout window + 1 current)
-  if (_pLen < 21) {
+  // Need at least 4 prices minimum
+  if (_pLen < 4) {
     var rs6 = document.getElementById('gm-round-status');
-    if (rs6) rs6.textContent = 'WAIT: building history ('+_pLen+'/21)';
+    if (rs6) rs6.textContent = 'WAIT: building history ('+_pLen+'/4)';
     GM.interval = setTimeout(gmLoop, _nextInterval); return;
   }
 
@@ -5433,33 +5443,21 @@ function gmLoop(){
   var t2 = _prices[_pLen - 3];
   var t3 = _prices[_pLen - 4];
 
-  // 1. DIRECTION — 3 consecutive ticks same way
-  var _isUp   = t0 > t1 && t1 > t2 && t2 > t3;
-  var _isDown = t0 < t1 && t1 < t2 && t2 < t3;
+  // DIRECTION — 2 consecutive ticks same way
+  var _isUp   = t0 > t1 && t1 > t2;
+  var _isDown = t0 < t1 && t1 < t2;
 
   if (!_isUp && !_isDown) {
     var rs7 = document.getElementById('gm-round-status');
-    if (rs7) rs7.textContent = 'WAIT: need 3 consecutive ticks';
+    if (rs7) rs7.textContent = 'WAIT: need 2 consecutive ticks';
     GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
     GM.interval = setTimeout(gmLoop, _nextInterval); return;
   }
 
-  // 2. ACCELERATION — only block severe exhaustion (current move < 30% of previous)
-  // 50% was too strict — natural tick variation causes false exhaustion signals
-  var _curMove  = Math.abs(t0 - t1);
-  var _prevMove = Math.abs(t1 - t2);
-
-  if (_prevMove > 0 && _curMove < _prevMove * 0.30) {
-    var rs8 = document.getElementById('gm-round-status');
-    if (rs8) rs8.textContent = 'WAIT: exhaustion ('+_curMove.toFixed(3)+'<30% of '+_prevMove.toFixed(3)+')';
-    GM._skipReasons.score = (GM._skipReasons.score || 0) + 1;
-    GM.interval = setTimeout(gmLoop, _nextInterval); return;
-  }
-
-  // ✅ Direction + Acceleration passed — fire
+  // ✅ Direction confirmed — fire
   var _turboDir = _isUp ? 'UP 🚀' : 'DOWN 🚀';
   var rs10 = document.getElementById('gm-round-status');
-  if (rs10) rs10.textContent = 'TURBO '+_turboDir+' — FIRING';
+  if (rs10) rs10.textContent = _turboDir+' — FIRING';
 
   // ── GUARDRAIL: Martingale init on first round ─────────────────
   if (!_gmMart.baseBudget) gmMartInit();
