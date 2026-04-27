@@ -1071,7 +1071,7 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                 <div style="font-size:11px;font-weight:700;color:var(--ac)">⚡ 3-Tick Filter</div>
                 <div style="display:flex;align-items:center;gap:7px">
                   <div id="gm-tick-filter-badge" style="font-size:10px;font-family:var(--mo);padding:2px 7px;border-radius:99px;background:var(--bg4);color:var(--t3)">OFF</div>
-                  <div class="tsw" id="gm-tick-filter-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on')"></div>
+                  <div class="tsw on" id="gm-tick-filter-sw" style="width:34px;height:18px" onclick="this.classList.toggle('on')"></div>
                 </div>
               </div>
               <div id="gm-tick-pills" style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:7px;min-height:18px"></div>
@@ -1568,6 +1568,18 @@ function onProposal(proposal, reqId){
   // Route HB proposals to dual-trade handler
   if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
   if(p.type==='gm_probe'){onGMProbe(proposal,p);delete S.pending[reqId];return;}
+  if(p.type==='gm_8leg_buy'){
+    var _ask=parseFloat(proposal.ask_price||0);
+    var _id=proposal.id;
+    if(!_id||!_ask)return;
+    var _bid=wsSend({buy:_id,price:_ask});
+    if(_bid)S.pending[_bid]={
+      dir:p.dir,stake:p.legStake,asset:p.asset,
+      isBot:true,isGM:true,gmRound:p.rid,gmSide:p.side,
+      entryPrice:S.prices[p.asset]||0,durVal:5,durUnit:'t'
+    };
+    return;
+  }
 }
 
 function onAuth(a) {
@@ -5238,7 +5250,7 @@ function gmFetchProposals(){
     ];
     gridLegs.forEach(function(leg){
       var pid=wsSend({proposal:1,amount:leg.stake,basis:'stake',contract_type:leg.type,
-        currency:S.currency,duration:GM.dur,duration_unit:GM.durUnit||'s',
+        currency:S.currency,duration:5,duration_unit:'t',
         symbol:GM.asset,barrier:leg.barrier});
       if(pid)S.pending[pid]={type:'gm_probe',gmSide:leg.side,
         probeEntry:entry,probeStake:leg.stake,probeBarrier:leg.barrier,
@@ -5317,8 +5329,13 @@ function onGMProbe(proposal,pendInfo){
     if(cEl&&sp.h1&&sp.h3)cEl.textContent='Ins:$'+((h1p+h2p)/2).toFixed(2)+' Prf:$'+((h3p+h4p)/2).toFixed(2);
     if(pEl&&sp.l1&&sp.l3)pEl.textContent='Ins:$'+((l1p+l2p)/2).toFixed(2)+' Prf:$'+((l3p+l4p)/2).toFixed(2);
 
-    // Wait for all 8 probes
-    var allIn=['h1','h2','h3','h4','l1','l2','l3','l4'].every(function(k){return sp[k]!==null;});
+    // Wait for 4 unique barrier responses (h2=h1, l2=l1, h4=h3, l4=l3 due to Deriv duplicate rejection)
+    // Mirror duplicate slots from received ones
+    if(sp.h1&&!sp.h2){sp.h2=sp.h1;sp.h2Id=sp.h1Id;sp.h2Ask=sp.h1Ask;}
+    if(sp.h3&&!sp.h4){sp.h4=sp.h3;sp.h4Id=sp.h3Id;sp.h4Ask=sp.h3Ask;}
+    if(sp.l1&&!sp.l2){sp.l2=sp.l1;sp.l2Id=sp.l1Id;sp.l2Ask=sp.l1Ask;}
+    if(sp.l3&&!sp.l4){sp.l4=sp.l3;sp.l4Id=sp.l3Id;sp.l4Ask=sp.l3Ask;}
+    var allIn=['h1','h3','l1','l3'].every(function(k){return sp[k]!==null;});
     if(!allIn)return;
 
     // Gate: insurance side (both h1+h2 OR l1+l2) must together exceed their stakes ($1.10)
@@ -5474,25 +5491,35 @@ function gmPlaceSpread(sp){
 
   console.log('[GM GRID] R'+rid+' entry:'+entry+' ins:±0.06($0.55×2) profit:±0.12($0.40×2) total:$'+totalStake.toFixed(2));
 
-  var legs=[
-    {id:sp.h1Id,ask:sp.h1Ask,side:'h1',dir:'HIGHER',stake:0.55},
-    {id:sp.h2Id,ask:sp.h2Ask,side:'h2',dir:'HIGHER',stake:0.55},
-    {id:sp.h3Id,ask:sp.h3Ask,side:'h3',dir:'HIGHER',stake:0.40},
-    {id:sp.h4Id,ask:sp.h4Ask,side:'h4',dir:'HIGHER',stake:0.40},
-    {id:sp.l1Id,ask:sp.l1Ask,side:'l1',dir:'LOWER', stake:0.55},
-    {id:sp.l2Id,ask:sp.l2Ask,side:'l2',dir:'LOWER', stake:0.55},
-    {id:sp.l3Id,ask:sp.l3Ask,side:'l3',dir:'LOWER', stake:0.40},
-    {id:sp.l4Id,ask:sp.l4Ask,side:'l4',dir:'LOWER', stake:0.40}
+  // Buy all 8 legs with staggered fresh proposals (120ms apart to avoid Deriv duplicate rejection)
+  var allLegs=[
+    {side:'h1',type:'CALL',barrier:'+0.06',stake:0.55},
+    {side:'l1',type:'PUT', barrier:'-0.06',stake:0.55},
+    {side:'h2',type:'CALL',barrier:'+0.06',stake:0.55},
+    {side:'l2',type:'PUT', barrier:'-0.06',stake:0.55},
+    {side:'h3',type:'CALL',barrier:'+0.12',stake:0.40},
+    {side:'l3',type:'PUT', barrier:'-0.12',stake:0.40},
+    {side:'h4',type:'CALL',barrier:'+0.12',stake:0.40},
+    {side:'l4',type:'PUT', barrier:'-0.12',stake:0.40}
   ];
-  legs.forEach(function(leg){
-    var bid=wsSend({buy:leg.id,price:leg.ask});
-    if(bid)S.pending[bid]={dir:leg.dir,stake:leg.stake,asset:GM.asset,
-      isBot:true,isGM:true,gmRound:rid,gmSide:leg.side,
-      entryPrice:entry,durVal:GM.dur,durUnit:GM.durUnit||'s'};
+  allLegs.forEach(function(leg,idx){
+    setTimeout(function(){
+      if(!GM.pending[rid])return;
+      var pid=wsSend({proposal:1,amount:leg.stake,basis:'stake',
+        contract_type:leg.type,currency:S.currency,
+        duration:5,duration_unit:'t',
+        symbol:GM.asset,barrier:leg.barrier});
+      if(pid)S.pending[pid]={
+        type:'gm_8leg_buy',
+        rid:rid,side:leg.side,
+        dir:leg.type==='CALL'?'HIGHER':'LOWER',
+        legStake:leg.stake,asset:GM.asset
+      };
+    },idx*120);
   });
 
   setTimeout(function(){GM._placing=false;},300);
-  var _forceMs=(GM.dur*1000)+20000;
+  var _forceMs=15000; // 5 ticks ≈ 15s
   GM.pending[rid]._timeout=setTimeout(function(){
     if(GM.pending[rid]&&GM.pending[rid].settled<8){
       console.warn('[GM] Grid R'+rid+' timed out — force settling');
