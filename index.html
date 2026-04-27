@@ -5712,13 +5712,14 @@ function onGMBuy(cid,side,rid){
   GM.activeCids[cid]={rid:rid,side:side};
   var round=GM.pending[rid];
   if(round){
-    if(side==='call'){round.callCid=cid;round.callPlaced=true;}
-    else{round.putCid=cid;round.putPlaced=true;}
-    // Update status once both are placed
-    if(round.callPlaced&&round.putPlaced){
-      var rs=document.getElementById('gm-round-status');
-      if(rs)rs.textContent='2 ACTIVE';
-    }
+    // Track per-leg cid for grid rounds
+    round[side+'Cid']=cid;
+    // For compat with 2-leg path
+    if(side==='call'||side==='h1'||side==='h2'||side==='h3'||side==='h4'){round.callPlaced=true;}
+    if(side==='put'||side==='l1'||side==='l2'||side==='l3'||side==='l4'){round.putPlaced=true;}
+    var rs=document.getElementById('gm-round-status');
+    var placed=Object.keys(round).filter(function(k){return k.endsWith('Cid')&&round[k];}).length;
+    if(rs)rs.textContent=placed+' LEG'+(placed!==1?'S':'')+' ACTIVE';
   }
   console.log('[GM BUY CONFIRMED] cid:'+cid+' side:'+side+' rid:'+rid);
 }
@@ -5775,6 +5776,18 @@ function onGMResult(rid,side,profit,exitPrice){
 function gmForceSettle(rid){
   var round=GM.pending[rid];
   if(!round)return;
+  if(round.isSpread){
+    // Fill any unsettled grid legs as losses
+    ['h1','h2','h3','h4','l1','l2','l3','l4'].forEach(function(s){
+      if(!round.results[s]){
+        var st=round.stakes?round.stakes[s]:0.35;
+        round.results[s]={profit:-st,win:false};
+        round.settled=(round.settled||0)+1;
+      }
+    });
+    gmSettleSpread(rid);
+    return;
+  }
   if(!round.results.call)round.results.call={profit:-(round.stake||0),win:false};
   if(!round.results.put)round.results.put={profit:-(round.stake||0),win:false};
   Object.keys(GM.activeCids).forEach(function(cid){
