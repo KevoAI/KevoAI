@@ -954,6 +954,19 @@ body{font-family:var(--fn);background:var(--bg0);color:var(--t1);min-height:100v
                   <div style="font-size:10px;color:var(--t3);font-family:var(--mo)" id="gm-tick-dn-cnt">-- ticks</div>
                 </div>
               </div>
+              <!-- Live Payout Display -->
+              <div style="padding:7px 12px;border-top:1px solid var(--bo)">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                  <div style="background:rgba(0,229,160,0.08);border:1px solid rgba(0,229,160,0.2);border-radius:6px;padding:6px 10px;text-align:center">
+                    <div style="font-size:9px;color:var(--t3);margin-bottom:2px">↑ HIGHER</div>
+                    <div style="font-size:14px;font-weight:800;font-family:var(--mo);color:var(--ac)" id="gm-live-call-pct">--%</div>
+                  </div>
+                  <div style="background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:6px;padding:6px 10px;text-align:center">
+                    <div style="font-size:9px;color:var(--t3);margin-bottom:2px">↓ LOWER</div>
+                    <div style="font-size:14px;font-weight:800;font-family:var(--mo);color:var(--re)" id="gm-live-put-pct">--%</div>
+                  </div>
+                </div>
+              </div>
               <!-- Recent moves strip -->
               <div style="padding:7px 12px;border-top:1px solid var(--bo)">
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
@@ -1568,6 +1581,7 @@ function onProposal(proposal, reqId){
   // Route HB proposals to dual-trade handler
   if(p.type==='hb_proposal'){onHBProposal(proposal,reqId,p);return;}
   if(p.type==='gm_probe'){onGMProbe(proposal,p);delete S.pending[reqId];return;}
+  if(p.type==='gm_live_payout'){onGMLivePayout(proposal,p.contractType);return;}
   if(p.type==='gm_8leg_buy'){
     var _ask=parseFloat(proposal.ask_price||0);
     var _id=proposal.id;
@@ -6076,10 +6090,55 @@ var _gmActiveBarrier={active:false,higher:0,lower:0};
 var _gmTickBuf = [];          // raw price history (last 10)
 var _gmTickBufMax = 10;
 
+// Live payout display — throttled probe sent every 3 ticks
+var _gmPayoutTick = 0;
+var _gmPayoutPending = false;
+
+function gmUpdateLivePayout(price) {
+  if(!S.connected || !price || price <= 0) return;
+  _gmPayoutTick++;
+  if(_gmPayoutTick % 3 !== 0) return; // every 3 ticks
+  if(_gmPayoutPending) return; // wait for response
+
+  _gmPayoutPending = true;
+  // Send call probe for current price
+  var pid = wsSend({proposal:1, amount:0.35, basis:'stake',
+    contract_type:'CALL', currency:S.currency||'USD',
+    duration:5, duration_unit:'t',
+    symbol:GM.asset, barrier:'+0.06'});
+  if(pid) S.pending[pid] = {type:'gm_live_payout', contractType:'CALL'};
+
+  var pid2 = wsSend({proposal:1, amount:0.35, basis:'stake',
+    contract_type:'PUT', currency:S.currency||'USD',
+    duration:5, duration_unit:'t',
+    symbol:GM.asset, barrier:'-0.06'});
+  if(pid2) S.pending[pid2] = {type:'gm_live_payout', contractType:'PUT'};
+
+  // Release lock after 2s regardless
+  setTimeout(function(){ _gmPayoutPending = false; }, 2000);
+}
+
+function onGMLivePayout(proposal, contractType) {
+  _gmPayoutPending = false;
+  var ask = parseFloat(proposal.ask_price || 0);
+  var payout = parseFloat(proposal.payout || 0);
+  if(!ask || !payout) return;
+
+  var pct = parseFloat((payout / ask * 100).toFixed(1));
+  var elId = contractType === 'CALL' ? 'gm-live-call-pct' : 'gm-live-put-pct';
+  var el = document.getElementById(elId);
+  if(!el) return;
+
+  el.textContent = pct.toFixed(1) + '%';
+  // Color code: green >210%, yellow 200-210%, red <200%
+  el.style.color = pct >= 210 ? 'var(--ac)' : pct >= 200 ? 'var(--go)' : 'var(--re)';
+}
+
 function gmOnTick(price) {
   if (!price || price <= 0) return;
   _gmTickBuf.push(price);
   if (_gmTickBuf.length > _gmTickBufMax) _gmTickBuf.shift();
+  gmUpdateLivePayout(price);
 }
 
 // ── Momentum check: last N ticks strictly rising or falling ──────
